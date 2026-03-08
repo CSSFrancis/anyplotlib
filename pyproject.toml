@@ -1,0 +1,22 @@
+[project]
+name = "viewer"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "anywidget>=0.9.21",
+    "jupyterlab>=4.5.5",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.2",
+    "pytest>=9.0.2",
+    "traitlets>=5.14.3",
+]
+
+[project.optional-dependencies]
+docs = [
+    "sphinx>=8.0",
+    "pydata-sphinx-theme>=0.16",
+    "sphinx-gallery>=0.18",
+    "pillow>=10.0",
+]
+
