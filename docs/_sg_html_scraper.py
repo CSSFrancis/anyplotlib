@@ -161,7 +161,7 @@ class ViewerScraper:
             return (
                 "\n\n.. raw:: html\n\n"
                 f'    <div style="display:block;text-align:center;line-height:0;margin:12px 0;">'
-                f'<iframe src="{src}" frameborder="0" scrolling="no"'
+                f'<iframe src="{src}" frameborder="50" scrolling="no"'
                 f' style="width:{w}px;height:{h}px;border:none;overflow:hidden;'
                 f'display:inline-block;max-width:100%;"></iframe></div>\n\n'
             )

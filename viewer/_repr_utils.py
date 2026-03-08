@@ -7,7 +7,7 @@ interactively without a live Jupyter kernel.
 
 Strategy
 --------
-1. Serialise every synced traitlet value to a plain JSON dict.
+ and 1. Serialise every synced traitlet value to a plain JSON dict.
 2. Embed that dict and the widget's ``_esm`` source directly in the page.
 3. Provide a minimal model shim (get/set/on/save_changes) so the ESM's
    render() function works without any Jupyter comm infrastructure.
