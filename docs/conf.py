@@ -53,7 +53,7 @@ sphinx_gallery_conf = {
     "plot_gallery": True,
     "download_all_examples": True,
     "remove_config_comments": True,
-    # ViewerScraper captures _repr_html_() from viewer widgets and writes
+    # ViewerScraper captures _repr_html_() from viewer Widgets and writes
     # them as self-contained iframe HTML files.  The matplotlib scraper
     # handles any plain plt figures in the same example.
     "image_scrapers": (ViewerScraper(), "matplotlib"),

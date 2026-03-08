@@ -1,5 +1,5 @@
 """
-Custom Sphinx Gallery scraper for viewer widgets.
+Custom Sphinx Gallery scraper for viewer Widgets.
 
 Sphinx Gallery requires every scraper to write a PNG file to the path provided
 by ``image_path_iterator`` — otherwise it raises ``ExtensionError``.
@@ -104,7 +104,7 @@ def _make_thumbnail_png(widget) -> bytes:
 # ---------------------------------------------------------------------------
 
 class ViewerScraper:
-    """Sphinx Gallery image scraper that embeds viewer widgets as live iframes."""
+    """Sphinx Gallery image scraper that embeds viewer Widgets as live iframes."""
 
     def __repr__(self) -> str:
         return "ViewerScraper()"
@@ -155,13 +155,33 @@ class ViewerScraper:
 
         # ── 3. Return rST ──────────────────────────────────────────────────
         if interactive:
-            # Single-line src= — safe for docutils raw:: html.
-            # Relative path from auto_examples/ up to _static/viewer_widgets/.
-            src = f"../_static/viewer_widgets/{html_name}"
+            # Compute the relative path from the *built* HTML page back up to
+            # _static/viewer_widgets/.
+            #
+            # The PNG (and its sibling HTML) sits at e.g.:
+            #   <build>/auto_examples/Markers/images/sphx_glr_plot_circles_001.png
+            # The built page for this example is at:
+            #   <build>/auto_examples/Markers/plot_circles.html
+            # _static/viewer_widgets/ lives at:
+            #   <build>/_static/viewer_widgets/
+            #
+            # We derive depth by counting the parts of the gallery output path
+            # relative to the Sphinx source dir (which mirrors the build root).
+            try:
+                src_dir = Path(gallery_conf["src_dir"])
+                # png_path is inside the gallery output images/ subdir.
+                # The page itself is one directory above images/.
+                page_dir = png_path.parent.parent  # strip /images
+                rel_parts = page_dir.relative_to(src_dir).parts
+                depth = len(rel_parts)  # e.g. 2 for auto_examples/Markers
+            except Exception:
+                depth = 1
+            prefix = "../" * depth
+            src = f"{prefix}_static/viewer_widgets/{html_name}"
             return (
                 "\n\n.. raw:: html\n\n"
                 f'    <div style="display:block;text-align:center;line-height:0;margin:12px 0;">'
-                f'<iframe src="{src}" frameborder="50" scrolling="no"'
+                f'<iframe src="{src}" frameborder="0" scrolling="no"'
                 f' style="width:{w}px;height:{h}px;border:none;overflow:hidden;'
                 f'display:inline-block;max-width:100%;"></iframe></div>\n\n'
             )

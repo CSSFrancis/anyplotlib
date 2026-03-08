@@ -2,7 +2,7 @@
 _repr_utils.py
 ==============
 
-Produces a self-contained HTML page that renders anywidget widgets
+Produces a self-contained HTML page that renders anywidget Widgets
 interactively without a live Jupyter kernel.
 
 Strategy

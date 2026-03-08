@@ -419,7 +419,7 @@ class Plot2D:
         self.set_colormap(name)
 
     # ------------------------------------------------------------------
-    # Overlay widgets
+    # Overlay Widgets
     # ------------------------------------------------------------------
     def add_widget(self, kind: str, color: str = "#00e5ff", **kwargs) -> str:
         kind = kind.lower()
@@ -768,7 +768,7 @@ class Plot1D:
         self._push()
 
     # ------------------------------------------------------------------
-    # Overlay widgets
+    # Overlay Widgets
     # ------------------------------------------------------------------
     def add_vline_widget(self, x: float, color: str = "#00e5ff") -> str:
         wid = str(_uuid.uuid4())[:8]
