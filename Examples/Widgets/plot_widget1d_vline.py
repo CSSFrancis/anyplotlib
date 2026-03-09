@@ -3,11 +3,11 @@
 ========================
 
 A draggable vertical line on a 1-D plot panel.
-Add it with :meth:`~viewer.figure_plots.Plot1D.add_vline_widget`.
+Add it with :meth:`~anyplotlib.figure_plots.Plot1D.add_vline_widget`.
 Drag the line left or right to change the selected x position.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 x      = np.linspace(0, 4 * np.pi, 512)
 signal = np.sin(x)

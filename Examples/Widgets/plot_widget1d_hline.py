@@ -3,11 +3,11 @@
 ==========================
 
 A draggable horizontal line on a 1-D plot panel.
-Add it with :meth:`~viewer.figure_plots.Plot1D.add_hline_widget`.
+Add it with :meth:`~anyplotlib.figure_plots.Plot1D.add_hline_widget`.
 Drag the line up or down to change the selected y value.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 x      = np.linspace(0, 4 * np.pi, 512)
 signal = np.sin(x)

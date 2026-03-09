@@ -6,7 +6,7 @@ A draggable annular (ring) overlay for selecting a radial band on a 2-D image.
 Drag the inner or outer ring to adjust the radii.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 rng  = np.random.default_rng(2)
 data = rng.standard_normal((128, 128)).cumsum(0).cumsum(1)

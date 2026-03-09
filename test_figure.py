@@ -1,6 +1,6 @@
 """Smoke test — run with: python3 test_figure.py"""
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 import json
 
 # --- subplots 2x1 ---

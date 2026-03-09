@@ -21,7 +21,7 @@ from __future__ import annotations
 import uuid as _uuid
 import numpy as np
 
-from viewer.markers import MarkerRegistry
+from anyplotlib.markers import MarkerRegistry
 
 __all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D"]
 

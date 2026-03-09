@@ -16,7 +16,7 @@ import json
 import numpy as np
 import pytest
 
-import viewer as vw
+import anyplotlib as vw
 
 PAD_L = 58
 PAD_R = 12

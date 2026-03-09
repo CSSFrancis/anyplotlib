@@ -1,7 +1,7 @@
 """Quick smoke-test for PlotMesh / pcolormesh support."""
 import numpy as np
-from viewer.figure_plots import PlotMesh, _resample_mesh
-from viewer.markers import MarkerRegistry
+from anyplotlib.figure_plots import PlotMesh, _resample_mesh
+from anyplotlib.markers import MarkerRegistry
 
 # ── _resample_mesh ────────────────────────────────────────────────────────────
 x_edges = np.logspace(-1, 2, 13)   # 12 cols, 13 edges
@@ -80,7 +80,7 @@ assert mesh._state["x_axis"] == new_x.tolist()
 print("update() with new x_edges OK")
 
 # ── Axes.pcolormesh integration ───────────────────────────────────────────────
-import viewer as vw
+import anyplotlib as vw
 fig, ax = vw.subplots(1, 1, figsize=(400, 400))
 m = ax.pcolormesh(data, x_edges=x_edges, y_edges=y_edges, units="nm")
 assert isinstance(m, PlotMesh)

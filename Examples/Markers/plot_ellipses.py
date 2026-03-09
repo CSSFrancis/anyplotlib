@@ -3,11 +3,11 @@ Ellipses
 ========
 
 Draw ellipses on a 2-D image with
-:meth:`~viewer.figure_plots.Plot2D.add_ellipses`.
+:meth:`~anyplotlib.figure_plots.Plot2D.add_ellipses`.
 Use ``markers["ellipses"]["name"].set(...)`` to update them live.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 rng  = np.random.default_rng(2)
 data = rng.standard_normal((128, 128)).cumsum(0).cumsum(1)

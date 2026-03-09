@@ -6,7 +6,7 @@
 import os
 import sys
 
-# Make the viewer package importable from docs/
+# Make the anyplotlib package importable from docs/
 sys.path.insert(0, os.path.abspath(".."))
 # Make docs/ itself importable so _sg_html_scraper can be found.
 sys.path.insert(0, os.path.abspath("."))
@@ -14,9 +14,9 @@ sys.path.insert(0, os.path.abspath("."))
 from _sg_html_scraper import ViewerScraper  # noqa: E402
 
 # -- Project information -----------------------------------------------------
-project = "viewer"
-copyright = "2026, viewer contributors"
-author = "viewer contributors"
+project = "anyplotlib"
+copyright = "2026, anyplotlib contributors"
+author = "anyplotlib contributors"
 release = "0.1.0"
 
 # -- General configuration ---------------------------------------------------
@@ -53,7 +53,7 @@ sphinx_gallery_conf = {
     "plot_gallery": True,
     "download_all_examples": True,
     "remove_config_comments": True,
-    # ViewerScraper captures _repr_html_() from viewer Widgets and writes
+    # ViewerScraper captures _repr_html_() from anyplotlib Widgets and writes
     # them as self-contained iframe HTML files.  The matplotlib scraper
     # handles any plain plt figures in the same example.
     "image_scrapers": (ViewerScraper(), "matplotlib"),
@@ -78,7 +78,7 @@ html_static_path = ["_static"]
 html_theme_options = {
     "github_url": "https://github.com/",
     "logo": {
-        "text": "viewer",
+        "text": "anyplotlib",
     },
     "navbar_end": ["navbar-icon-links"],
     "show_toc_level": 2,

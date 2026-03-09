@@ -2,7 +2,7 @@
 2D Image
 ========
 Display a 2-D image with physical axes using
-:meth:`~viewer.figure_plots.Axes.imshow`.
+:meth:`~anyplotlib.figure_plots.Axes.imshow`.
 The image is a synthetic STEM-like diffraction pattern with a physical
 length scale in nanometres.  Circle markers highlight the first-order
 diffraction spots, and an annular integration widget is placed over the
@@ -10,7 +10,7 @@ central beam.  Pan and zoom with the mouse; press **R** to reset the view,
 **H** to toggle the histogram, **L** / **S** to cycle colour-scale modes.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 rng = np.random.default_rng(1)
 # ── Synthetic diffraction pattern ─────────────────────────────────────────────
 N = 256
@@ -52,8 +52,8 @@ fig
 # %%
 # Adjust display range and colour map
 # -------------------------------------
-# :meth:`~viewer.figure_plots.Plot2D.set_clim` clips the colour scale;
-# :meth:`~viewer.figure_plots.Plot2D.set_colormap` switches the palette.
+# :meth:`~anyplotlib.figure_plots.Plot2D.set_clim` clips the colour scale;
+# :meth:`~anyplotlib.figure_plots.Plot2D.set_colormap` switches the palette.
 v.set_clim(vmin=0.0, vmax=0.8)
 v.set_colormap("viridis")
 fig

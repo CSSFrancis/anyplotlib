@@ -6,7 +6,7 @@ A draggable polygon overlay whose individual vertices can be repositioned.
 Pass ``vertices`` as a list of ``[x, y]`` pixel coordinates.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 rng  = np.random.default_rng(4)
 data = rng.standard_normal((128, 128)).cumsum(0).cumsum(1)

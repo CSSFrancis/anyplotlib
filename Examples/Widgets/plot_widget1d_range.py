@@ -3,12 +3,12 @@
 ================
 
 A draggable range selector on a 1-D plot panel with two handles.
-Add it with :meth:`~viewer.figure_plots.Plot1D.add_range_widget`.
+Add it with :meth:`~anyplotlib.figure_plots.Plot1D.add_range_widget`.
 Drag either handle to resize the selected interval, or drag the band
 to move it.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 x      = np.linspace(0, 4 * np.pi, 512)
 signal = np.sin(x)

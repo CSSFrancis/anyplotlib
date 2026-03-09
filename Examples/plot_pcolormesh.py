@@ -2,17 +2,17 @@
 pcolormesh — non-linear axes
 ============================
 
-Demonstrate :meth:`~viewer.figure_plots.Axes.pcolormesh` with non-uniform
+Demonstrate :meth:`~anyplotlib.figure_plots.Axes.pcolormesh` with non-uniform
 (log-spaced) x-edges and irregularly-spaced y-edges, mirroring
 ``matplotlib.axes.Axes.pcolormesh``.
 
-The key difference from :meth:`~viewer.figure_plots.Axes.imshow` is that
+The key difference from :meth:`~anyplotlib.figure_plots.Axes.imshow` is that
 ``pcolormesh`` takes **edge** arrays (length N+1 and M+1 for an (M, N) data
 array) rather than centre arrays.  This enables fully non-linear axes where
 each cell can have a different width/height in data coordinates.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 rng = np.random.default_rng(42)
 

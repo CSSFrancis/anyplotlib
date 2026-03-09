@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json, pathlib
 import anywidget, numpy as np, traitlets
-from viewer.figure_plots import GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh, Plot3D
+from anyplotlib.figure_plots import GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh, Plot3D
 
 __all__ = ["Figure", "GridSpec", "SubplotSpec", "subplots"]
 
@@ -190,7 +190,7 @@ class Figure(anywidget.AnyWidget):
         and by any HTML-capable notebook frontend that falls back to
         ``_repr_html_`` instead of the full ipywidgets protocol.
         """
-        from viewer._repr_utils import repr_html_iframe
+        from anyplotlib._repr_utils import repr_html_iframe
         return repr_html_iframe(self)
 
     def __repr__(self) -> str:
@@ -209,7 +209,7 @@ def subplots(nrows=1, ncols=1, *,
              width_ratios=None,
              height_ratios=None,
              gridspec_kw=None):
-    """Create a :class:`Figure` and a grid of :class:`~viewer.figure_plots.Axes`.
+    """Create a :class:`Figure` and a grid of :class:`~anyplotlib.figure_plots.Axes`.
 
     Mirrors :func:`matplotlib.pyplot.subplots`.
 
@@ -242,7 +242,7 @@ def subplots(nrows=1, ncols=1, *,
 
     Examples
     --------
-    >>> import viewer as vw
+    >>> import anyplotlib as vw
     >>> import numpy as np
     >>> fig, axs = vw.subplots(2, 1, figsize=(640, 600))
     >>> v2d = axs[0].imshow(np.random.rand(128, 128))

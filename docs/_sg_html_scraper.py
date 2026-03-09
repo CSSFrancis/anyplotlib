@@ -1,11 +1,11 @@
 """
-Custom Sphinx Gallery scraper for viewer Widgets.
+Custom Sphinx Gallery scraper for anyplotlib Widgets.
 
 Sphinx Gallery requires every scraper to write a PNG file to the path provided
 by ``image_path_iterator`` — otherwise it raises ``ExtensionError``.
 
 This scraper:
-1. Finds a viewer widget in ``example_globals`` (any object from the ``viewer``
+1. Finds a anyplotlib widget in ``example_globals`` (any object from the ``anyplotlib``
    package that has ``_repr_html_``).
 2. Renders a **static thumbnail PNG** via matplotlib for the gallery index.
 3. Writes the **full interactive HTML** (iframe + widget JS) alongside the PNG.
@@ -24,10 +24,10 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 def _find_viewer(globals_dict: dict):
-    """Return the most-recently assigned viewer widget, or None."""
+    """Return the most-recently assigned anyplotlib widget, or None."""
     for val in reversed(list(globals_dict.values())):
         module = getattr(type(val), "__module__", "") or ""
-        if module.startswith("viewer") and callable(getattr(val, "_repr_html_", None)):
+        if module.startswith("anyplotlib") and callable(getattr(val, "_repr_html_", None)):
             return val
     return None
 
@@ -66,7 +66,7 @@ def _make_thumbnail_png(widget) -> bytes:
             ax.set_facecolor("#181825")
 
         elif kind == "Figure":
-            from viewer.figure_plots import Plot2D, Plot1D
+            from anyplotlib.figure_plots import Plot2D, Plot1D
             import json
             plots = list(widget._plots_map.values())
             ax.set_title(f"Figure ({widget._nrows}×{widget._ncols})",
@@ -104,7 +104,7 @@ def _make_thumbnail_png(widget) -> bytes:
 # ---------------------------------------------------------------------------
 
 class ViewerScraper:
-    """Sphinx Gallery image scraper that embeds viewer Widgets as live iframes."""
+    """Sphinx Gallery image scraper that embeds anyplotlib Widgets as live iframes."""
 
     def __repr__(self) -> str:
         return "ViewerScraper()"
@@ -138,7 +138,7 @@ class ViewerScraper:
         #   and is copied verbatim by Sphinx.  The src= path is a single line,
         #   which is safe for docutils.
         try:
-            from viewer._repr_utils import build_standalone_html, _widget_px
+            from anyplotlib._repr_utils import build_standalone_html, _widget_px
             docs_dir = Path(gallery_conf["src_dir"])
             widgets_dir = docs_dir / "_static" / "viewer_widgets"
             widgets_dir.mkdir(parents=True, exist_ok=True)

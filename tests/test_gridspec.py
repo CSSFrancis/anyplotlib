@@ -24,9 +24,9 @@ import json
 import numpy as np
 import pytest
 
-import viewer as vw
-from viewer.figure import Figure
-from viewer.figure_plots import GridSpec, SubplotSpec, Axes  # noqa: F401
+import anyplotlib as vw
+from anyplotlib.figure import Figure
+from anyplotlib.figure_plots import GridSpec, SubplotSpec, Axes  # noqa: F401
 
 
 # ─────────────────────────────────────────────────────────────────────────────

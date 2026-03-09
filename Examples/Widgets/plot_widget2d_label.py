@@ -7,7 +7,7 @@ Specify position with ``x``, ``y`` (pixel coordinates), ``text``,
 and ``fontsize``.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 rng  = np.random.default_rng(5)
 data = rng.standard_normal((128, 128)).cumsum(0).cumsum(1)

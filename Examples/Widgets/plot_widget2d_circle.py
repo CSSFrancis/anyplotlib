@@ -3,12 +3,12 @@
 =================
 
 A draggable, resizable circle overlay on a 2-D image panel.
-Add it with :meth:`~viewer.figure_plots.Plot2D.add_widget` using
+Add it with :meth:`~anyplotlib.figure_plots.Plot2D.add_widget` using
 ``kind="circle"``, or via the convenience wrapper
 ``add_widget("circle", ...)``.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 rng  = np.random.default_rng(0)
 data = rng.standard_normal((128, 128)).cumsum(0).cumsum(1)

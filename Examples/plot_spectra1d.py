@@ -3,7 +3,7 @@
 ==========
 
 Plot a 1-D spectrum with a physical x-axis (energy in eV) using
-:meth:`~viewer.figure_plots.Axes.plot`.
+:meth:`~anyplotlib.figure_plots.Axes.plot`.
 
 The spectrum contains a broad background and three Gaussian peaks.
 Vertical-line markers highlight the peak positions, and a range widget
@@ -11,7 +11,7 @@ selects a region of interest.  Pan and zoom with the mouse; press **R**
 to reset the view.
 """
 import numpy as np
-import viewer as vw
+import anyplotlib as vw
 
 rng = np.random.default_rng(0)
 
@@ -52,7 +52,7 @@ fig
 # %%
 # Overlay a second spectrum
 # -------------------------
-# Use :meth:`~viewer.figure_plots.Plot1D.add_line` to overlay additional
+# Use :meth:`~anyplotlib.figure_plots.Plot1D.add_line` to overlay additional
 # curves — useful for comparing reference spectra or fits.
 
 fit = (
