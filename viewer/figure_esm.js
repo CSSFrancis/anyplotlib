@@ -243,8 +243,30 @@ function render({ model, el }) {
       const histCtx = histCanvas.getContext('2d');
       _p2d = { histCanvas, histCtx, histWidth, sbLine, sbLabel, plotWrap };
 
+    } else if (kind === '3d') {
+      // ── 3D branch: one full-panel plotCanvas + overlayCanvas on top ───────
+      plotCanvas = document.createElement('canvas');
+      plotCanvas.style.cssText = `display:block;border-radius:2px;background:${theme.bgPlot};`;
+
+      const wrap3 = document.createElement('div');
+      wrap3.style.cssText = 'position:relative;display:inline-block;line-height:0;';
+      wrap3.appendChild(plotCanvas);
+      cell.appendChild(wrap3);
+
+      overlayCanvas = document.createElement('canvas');
+      overlayCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:5;pointer-events:all;outline:none;';
+      wrap3.appendChild(overlayCanvas);
+
+      markersCanvas = document.createElement('canvas');
+      markersCanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:6;display:none;';
+      wrap3.appendChild(markersCanvas);
+
+      statusBar = document.createElement('div');
+      statusBar.style.cssText =
+        'position:absolute;bottom:4px;right:4px;padding:2px 6px;display:none;';
+      wrap3.appendChild(statusBar);
+
     } else {
-      // ── 1D branch ──────────────────────────────────────────────────────────
       plotCanvas = document.createElement('canvas');
       plotCanvas.tabIndex = 1;
       plotCanvas.style.cssText = 'outline:none;cursor:crosshair;display:block;border-radius:2px;';
@@ -371,7 +393,10 @@ function render({ model, el }) {
       }
 
       const st = p.state;
-      const hasPhysAxis = st && st.x_axis && st.x_axis.length >= 2
+      // Show axis canvases only when the user explicitly provided coordinate
+      // arrays (has_axes), or for pcolormesh panels (is_mesh, always has edges).
+      const hasPhysAxis = st && (st.is_mesh || st.has_axes)
+                       && st.x_axis && st.x_axis.length >= 2
                        && st.y_axis && st.y_axis.length >= 2;
 
       // y-axis: left gutter [0, PAD_T]..[PAD_L, ph-PAD_B]
@@ -420,6 +445,10 @@ function render({ model, el }) {
         }
       }
 
+    } else if (p.kind === '3d') {
+      // ── 3D: full-panel canvases ──
+      _sz(p.plotCanvas,    p.plotCtx, pw, ph);
+      _sz(p.overlayCanvas, p.ovCtx,   pw, ph);
     } else {
       // ── 1D: canvas is the full pw×ph, padding is drawn internally ──
       _sz(p.plotCanvas,    p.plotCtx,    pw, ph);
@@ -700,7 +729,7 @@ function render({ model, el }) {
     const TICK=6;
     const zoom=st.zoom, cx=st.center_x, cy=st.center_y;
     const units=st.units||'px';
-    const hasPhysAxis = xArr.length>=2 && yArr.length>=2;
+    const hasPhysAxis = (st.is_mesh || st.has_axes) && xArr.length>=2 && yArr.length>=2;
     const hasX = hasPhysAxis && p.xCtx && p.xAxisCanvas && p.xAxisCanvas.style.display!=='none';
     const hasY = hasPhysAxis && p.yCtx && p.yAxisCanvas && p.yAxisCanvas.style.display!=='none';
 
@@ -939,6 +968,269 @@ function render({ model, el }) {
     }
   }
 
+  // ── 3D drawing ───────────────────────────────────────────────────────────
+
+  function _rot3(az, el) {
+    // Rotation matrix: Ry(az) * Rx(-el)  (azimuth around world-Y, elevation around screen-X)
+    const azR = az * Math.PI / 180, elR = el * Math.PI / 180;
+    const ca = Math.cos(azR), sa = Math.sin(azR);
+    const ce = Math.cos(elR), se = Math.sin(elR);
+    // R = Ry(az) * Rx(-el):
+    return [
+      [ ca,      sa*se,   sa*ce],
+      [ 0,       ce,     -se   ],
+      [-sa,      ca*se,   ca*ce],
+    ];
+  }
+
+  function _applyRot(R, v) {
+    return [
+      R[0][0]*v[0] + R[0][1]*v[1] + R[0][2]*v[2],
+      R[1][0]*v[0] + R[1][1]*v[1] + R[1][2]*v[2],
+      R[2][0]*v[0] + R[2][1]*v[1] + R[2][2]*v[2],
+    ];
+  }
+
+  function _project3(rv, cx, cy, scale) {
+    // Weak perspective: x→right, z→up on screen
+    return [cx + rv[0] * scale, cy - rv[2] * scale];
+  }
+
+  function _colourFromLut(lut, t) {
+    // t in [0,1] → CSS colour from 256-entry [[r,g,b],...] lut
+    const i = Math.max(0, Math.min(255, Math.round(t * 255)));
+    const c = lut[i];
+    if (!c) return '#888';
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  function draw3d(p) {
+    const st = p.state; if (!st) return;
+    const { pw, ph, plotCtx: ctx } = p;
+
+    ctx.clearRect(0, 0, pw, ph);
+    ctx.fillStyle = theme.bgPlot;
+    ctx.fillRect(0, 0, pw, ph);
+
+    const verts    = st.vertices    || [];
+    const faces    = st.faces       || [];
+    const zVals    = st.z_values    || [];
+    const lut      = st.colormap_data || [];
+    const geom     = st.geom_type   || 'surface';
+    const bnds     = st.data_bounds || {};
+    const az       = st.azimuth     || 0;
+    const el       = st.elevation   || 30;
+    const zoom     = st.zoom        || 1.0;
+    const color    = st.color       || '#4fc3f7';
+    const ptSize   = st.point_size  || 4;
+    const lw       = st.linewidth   || 1.5;
+
+    // Normalise vertices to [-1,1]³
+    const xr = (bnds.xmax - bnds.xmin) || 1;
+    const yr = (bnds.ymax - bnds.ymin) || 1;
+    const zr = (bnds.zmax - bnds.zmin) || 1;
+    const maxR = Math.max(xr, yr, zr);
+    function norm(v) {
+      return [
+        2 * (v[0] - bnds.xmin) / maxR - xr / maxR,
+        2 * (v[1] - bnds.ymin) / maxR - yr / maxR,
+        2 * (v[2] - bnds.zmin) / maxR - zr / maxR,
+      ];
+    }
+
+    const R = _rot3(az, el);
+    const cx = pw / 2, cy = ph / 2;
+    const scale = zoom * Math.min(pw, ph) * 0.32;
+
+    // Pre-project all vertices
+    const proj = verts.map(v => {
+      const nv = norm(v);
+      const rv = _applyRot(R, nv);
+      return { s: _project3(rv, cx, cy, scale), d: rv[1] }; // d = depth (into screen)
+    });
+
+    // Z-value normalisation for colormap
+    const zMin = bnds.zmin, zMax = bnds.zmax, zRange = (zMax - zMin) || 1;
+
+    if (geom === 'surface' && faces.length > 0) {
+      // Compute per-face mean depth and mean z for colour
+      const faceData = faces.map(f => {
+        const d = (proj[f[0]].d + proj[f[1]].d + proj[f[2]].d) / 3;
+        const zMean = (zVals[f[0]] + zVals[f[1]] + zVals[f[2]]) / 3;
+        return { f, d, zMean };
+      });
+      // Painter's algorithm: draw back-to-front
+      faceData.sort((a, b) => b.d - a.d);
+
+      for (const { f, zMean } of faceData) {
+        const t  = (zMean - zMin) / zRange;
+        const fc = _colourFromLut(lut, t);
+        const [ax2, ay2] = proj[f[0]].s;
+        const [bx,  by ] = proj[f[1]].s;
+        const [ccx2,ccy2] = proj[f[2]].s;
+        ctx.beginPath();
+        ctx.moveTo(ax2, ay2); ctx.lineTo(bx, by); ctx.lineTo(ccx2, ccy2);
+        ctx.closePath();
+        ctx.fillStyle = fc;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = 0.4;
+        ctx.stroke();
+      }
+
+    } else if (geom === 'scatter') {
+      // Sort back-to-front so nearer points draw on top
+      const order = proj.map((p2, i) => ({ i, d: p2.d })).sort((a, b) => b.d - a.d);
+      for (const { i } of order) {
+        const [sx, sy] = proj[i].s;
+        ctx.beginPath();
+        ctx.arc(sx, sy, ptSize, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+    } else if (geom === 'line') {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth   = lw;
+      ctx.lineJoin    = 'round';
+      for (let i = 0; i < proj.length; i++) {
+        const [sx, sy] = proj[i].s;
+        if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      // Draw point markers at each vertex
+      ctx.fillStyle = color;
+      for (const { s } of proj) {
+        ctx.beginPath(); ctx.arc(s[0], s[1], lw + 1, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // ── Draw axes ────────────────────────────────────────────────────────────
+    const axisVerts = [
+      [-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]
+    ];
+    const ap = axisVerts.map(v => _project3(_applyRot(R, v), cx, cy, scale));
+
+    const axDefs = [
+      { i0:0, i1:1, label: st.x_label||'x', col:'#e06c75' },
+      { i0:2, i1:3, label: st.y_label||'y', col:'#98c379' },
+      { i0:4, i1:5, label: st.z_label||'z', col:'#61afef' },
+    ];
+    for (const { i0, i1, label, col } of axDefs) {
+      ctx.beginPath();
+      ctx.moveTo(ap[i0][0], ap[i0][1]);
+      ctx.lineTo(ap[i1][0], ap[i1][1]);
+      ctx.strokeStyle = col;
+      ctx.lineWidth   = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Positive-end label
+      ctx.fillStyle   = col;
+      ctx.font        = 'bold 11px sans-serif';
+      ctx.textAlign   = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, ap[i1][0], ap[i1][1]);
+    }
+
+    // ── Tick marks on each axis (5 evenly spaced) ─────────────────────────
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = theme.tickText;
+    const NTICK = 5;
+    const axisData = [
+      { lo: bnds.xmin, hi: bnds.xmax, baseN: [0,0,0], dir: [1/maxR*2,0,0] },
+      { lo: bnds.ymin, hi: bnds.ymax, baseN: [0,0,0], dir: [0,1/maxR*2,0] },
+      { lo: bnds.zmin, hi: bnds.zmax, baseN: [0,0,0], dir: [0,0,1/maxR*2] },
+    ];
+    const axisColours = ['#e06c75','#98c379','#61afef'];
+    for (let ai = 0; ai < 3; ai++) {
+      const { lo, hi } = axisData[ai];
+      const range = hi - lo || 1;
+      const step  = findNice(range / NTICK);
+      ctx.fillStyle   = axisColours[ai];
+      ctx.strokeStyle = axisColours[ai];
+      ctx.lineWidth   = 0.8;
+      for (let tv = Math.ceil(lo / step) * step; tv <= hi + step * 0.01; tv += step) {
+        const t = (tv - lo) / range; // 0..1
+        // Normalised position on the axis
+        let nv;
+        if (ai === 0) nv = [2*t*xr/maxR - xr/maxR, -yr/maxR, -zr/maxR];
+        else if(ai===1) nv = [-xr/maxR, 2*t*yr/maxR - yr/maxR, -zr/maxR];
+        else            nv = [-xr/maxR, -yr/maxR, 2*t*zr/maxR - zr/maxR];
+        const [tx, ty] = _project3(_applyRot(R, nv), cx, cy, scale);
+        // Small tick cross
+        ctx.beginPath();
+        ctx.arc(tx, ty, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Label (only every other tick to avoid crowding)
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(fmtVal(tv), tx + 3, ty - 1);
+      }
+    }
+  }
+
+  function _attachEvents3d(p) {
+    const { overlayCanvas } = p;
+    let dragStart = null;
+    let commitPending = false;
+    function _scheduleCommit() {
+      if (commitPending) return; commitPending = true;
+      requestAnimationFrame(() => {
+        commitPending = false;
+        model.save_changes();
+      });
+    }
+
+    overlayCanvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      dragStart = { mx: e.clientX, my: e.clientY,
+                    az: p.state.azimuth, el: p.state.elevation };
+      overlayCanvas.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragStart) return;
+      const dx = e.clientX - dragStart.mx;
+      const dy = e.clientY - dragStart.my;
+      p.state.azimuth   = dragStart.az + dx * 0.5;
+      p.state.elevation = Math.max(-89, Math.min(89, dragStart.el - dy * 0.5));
+      draw3d(p);
+      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      e.preventDefault();
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragStart) return;
+      dragStart = null;
+      overlayCanvas.style.cursor = 'grab';
+      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _scheduleCommit();
+    });
+
+    overlayCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      p.state.zoom = Math.max(0.1, Math.min(10, p.state.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
+      draw3d(p);
+      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _scheduleCommit();
+    }, { passive: false });
+
+    overlayCanvas.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'r') {
+        p.state.azimuth = -60; p.state.elevation = 30; p.state.zoom = 1;
+        draw3d(p);
+        model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+        model.save_changes();
+        e.preventDefault();
+      }
+    });
+    overlayCanvas.tabIndex = 0;
+    overlayCanvas.style.outline = 'none';
+    overlayCanvas.style.cursor  = 'grab';
+    overlayCanvas.addEventListener('mouseenter', () => overlayCanvas.focus());
+  }
+
   // ── 1D drawing ───────────────────────────────────────────────────────────
 
   function _plotRect1d(pw,ph){return{x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-PAD_R),h:Math.max(1,ph-PAD_T-PAD_B)};}
@@ -1055,8 +1347,16 @@ function render({ model, el }) {
       ctx.fillStyle=theme.tickText;ctx.fillText(fmtVal(v),tickRX,py);
     }
     if(yUnits){
-      ctx.save();const lcx=Math.max(8,(tickRX-maxTW)/2);ctx.translate(lcx,r.y+r.h/2);ctx.rotate(-Math.PI/2);
-      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=theme.unitText;ctx.font='9px monospace';ctx.fillText(yUnits,0,0);ctx.restore();
+      ctx.save();
+      // Centre the rotated label in the left gutter (x = 0..r.x).
+      // Using a fixed x of PAD_L*0.28 keeps it clear of the tick numbers
+      // regardless of how wide those numbers are.
+      const lcx = Math.round(PAD_L * 0.28);
+      ctx.translate(lcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+      ctx.fillText(yUnits, 0, 0);
+      ctx.restore();
     }
 
     // Legend
@@ -1313,6 +1613,7 @@ function render({ model, el }) {
   // ── panel-level event handlers ───────────────────────────────────────────
   function _attachPanelEvents(p) {
     if (p.kind === '2d') _attachEvents2d(p);
+    else if (p.kind === '3d') _attachEvents3d(p);
     else                 _attachEvents1d(p);
   }
 
@@ -1978,6 +2279,9 @@ function render({ model, el }) {
         p.histCanvas.style.left = (imgX+imgW)+'px'; p.histCanvas.style.top = imgY+'px';
         _szCSS(p.histCanvas, p.histWidth||80, imgH);
       }
+    } else if (p.kind === '3d') {
+      _szCSS(p.plotCanvas,    pw, ph);
+      _szCSS(p.overlayCanvas, pw, ph);
     } else {
       _szCSS(p.plotCanvas,    pw, ph);
       _szCSS(p.overlayCanvas, pw, ph);
@@ -2046,8 +2350,9 @@ function render({ model, el }) {
   // ── generic redraw ────────────────────────────────────────────────────────
   function _redrawPanel(p) {
     if(!p.state) return;
-    if(p.kind==='2d') draw2d(p);
-    else              draw1d(p);
+    if(p.kind==='2d')      draw2d(p);
+    else if(p.kind==='3d') draw3d(p);
+    else                   draw1d(p);
   }
 
   function redrawAll() {

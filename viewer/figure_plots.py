@@ -23,7 +23,7 @@ import numpy as np
 
 from viewer.markers import MarkerRegistry
 
-__all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh"]
+__all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D"]
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +187,87 @@ class Axes:
         self._attach(plot)
         return plot
 
+    def plot_surface(self, X, Y, Z, *,
+                     colormap: str = "viridis",
+                     x_label: str = "x", y_label: str = "y", z_label: str = "z",
+                     azimuth: float = -60.0, elevation: float = 30.0,
+                     zoom: float = 1.0) -> "Plot3D":
+        """Attach a 3-D surface to this axes cell.
+
+        Parameters
+        ----------
+        X, Y, Z : array-like
+            2-D grid arrays of the same shape (e.g. from ``np.meshgrid``),
+            or 1-D centre arrays for X/Y with a 2-D Z.
+        colormap : str, optional  Matplotlib colormap name.  Default ``'viridis'``.
+        x_label, y_label, z_label : str, optional  Axis labels.
+        azimuth, elevation : float, optional  Initial camera angles in degrees.
+        zoom : float, optional  Initial zoom factor.
+
+        Returns
+        -------
+        Plot3D
+        """
+        plot = Plot3D("surface", X, Y, Z, colormap=colormap,
+                      x_label=x_label, y_label=y_label, z_label=z_label,
+                      azimuth=azimuth, elevation=elevation, zoom=zoom)
+        self._attach(plot)
+        return plot
+
+    def scatter3d(self, x, y, z, *,
+                  color: str = "#4fc3f7",
+                  point_size: float = 4.0,
+                  x_label: str = "x", y_label: str = "y", z_label: str = "z",
+                  azimuth: float = -60.0, elevation: float = 30.0,
+                  zoom: float = 1.0) -> "Plot3D":
+        """Attach a 3-D scatter plot to this axes cell.
+
+        Parameters
+        ----------
+        x, y, z : array-like, shape (N,)  Point coordinates.
+        color : str, optional  CSS colour for all points.
+        point_size : float, optional  Radius of each point in pixels.
+        x_label, y_label, z_label : str, optional  Axis labels.
+        azimuth, elevation : float, optional  Initial camera angles in degrees.
+        zoom : float, optional  Initial zoom factor.
+
+        Returns
+        -------
+        Plot3D
+        """
+        plot = Plot3D("scatter", x, y, z, color=color, point_size=point_size,
+                      x_label=x_label, y_label=y_label, z_label=z_label,
+                      azimuth=azimuth, elevation=elevation, zoom=zoom)
+        self._attach(plot)
+        return plot
+
+    def plot3d(self, x, y, z, *,
+               color: str = "#4fc3f7",
+               linewidth: float = 1.5,
+               x_label: str = "x", y_label: str = "y", z_label: str = "z",
+               azimuth: float = -60.0, elevation: float = 30.0,
+               zoom: float = 1.0) -> "Plot3D":
+        """Attach a 3-D line plot to this axes cell.
+
+        Parameters
+        ----------
+        x, y, z : array-like, shape (N,)  Point coordinates along the line.
+        color : str, optional  CSS colour.
+        linewidth : float, optional  Stroke width in pixels.
+        x_label, y_label, z_label : str, optional  Axis labels.
+        azimuth, elevation : float, optional  Initial camera angles in degrees.
+        zoom : float, optional  Initial zoom factor.
+
+        Returns
+        -------
+        Plot3D
+        """
+        plot = Plot3D("line", x, y, z, color=color, linewidth=linewidth,
+                      x_label=x_label, y_label=y_label, z_label=z_label,
+                      azimuth=azimuth, elevation=elevation, zoom=zoom)
+        self._attach(plot)
+        return plot
+
     def plot(self, data: np.ndarray,
              axes: list | None = None,
              units: str = "px",
@@ -216,7 +297,7 @@ class Axes:
         self._attach(plot)
         return plot
 
-    def _attach(self, plot: "Plot1D | Plot2D | PlotMesh") -> None:
+    def _attach(self, plot: "Plot1D | Plot2D | PlotMesh | Plot3D") -> None:
         """Register a plot on this axes (replace any previous plot)."""
         # Allocate a panel id if needed; reuse if replacing
         if self._plot is not None:
@@ -297,6 +378,8 @@ class Plot2D:
             raise ValueError(f"data must be 2-D (H x W), got {data.shape}")
 
         h, w = data.shape
+        x_axis_given = x_axis is not None
+        y_axis_given = y_axis is not None
         if x_axis is None:
             x_axis = np.arange(w, dtype=float)
         if y_axis is None:
@@ -317,6 +400,8 @@ class Plot2D:
 
         self._state: dict = {
             "kind":              "2d",
+            "is_mesh":           False,
+            "has_axes":          x_axis_given or y_axis_given,
             "image_b64":         self._encode_bytes(img_u8),
             "image_width":       w,
             "image_height":      h,
@@ -386,9 +471,11 @@ class Plot2D:
         if x_axis is not None:
             self._state["x_axis"] = np.asarray(x_axis, float).tolist()
             self._state["image_width"] = w
+            self._state["has_axes"] = True
         if y_axis is not None:
             self._state["y_axis"] = np.asarray(y_axis, float).tolist()
             self._state["image_height"] = h
+            self._state["has_axes"] = True
         if units is not None:
             self._state["units"] = units
 
@@ -899,6 +986,195 @@ class PlotMesh:
             for name, g in td.items():
                 out.append({"type": mtype, "name": name, "n": g._count()})
         return out
+
+
+# ---------------------------------------------------------------------------
+# Plot3D
+# ---------------------------------------------------------------------------
+
+def _triangulate_grid(rows: int, cols: int) -> list:
+    """Return a flat list of [i0, i1, i2] triangle indices for an (rows×cols) grid."""
+    faces = []
+    for r in range(rows - 1):
+        for c in range(cols - 1):
+            i = r * cols + c
+            faces.append([i,       i + 1,       i + cols])
+            faces.append([i + 1,   i + cols + 1, i + cols])
+    return faces
+
+
+class Plot3D:
+    """3-D plot panel.
+
+    Supports three geometry types matching matplotlib's 3-D Axes API:
+
+    * ``'surface'``  – triangulated surface, Z-coloured via colormap.
+    * ``'scatter'``  – point cloud, single colour.
+    * ``'line'``     – connected line through 3-D points.
+
+    Created by :meth:`Axes.plot_surface`, :meth:`Axes.scatter3d`,
+    and :meth:`Axes.plot3d`.
+
+    Not an anywidget.  Holds state in ``_state`` dict; every mutation
+    calls ``_push()`` which writes to the parent Figure's panel trait.
+    """
+
+    def __init__(self, geom_type: str,
+                 x, y, z, *,
+                 colormap: str = "viridis",
+                 color: str = "#4fc3f7",
+                 point_size: float = 4.0,
+                 linewidth: float = 1.5,
+                 x_label: str = "x",
+                 y_label: str = "y",
+                 z_label: str = "z",
+                 azimuth: float = -60.0,
+                 elevation: float = 30.0,
+                 zoom: float = 1.0):
+        self._id:  str = ""
+        self._fig: object = None
+
+        geom_type = geom_type.lower()
+        if geom_type not in ("surface", "scatter", "line"):
+            raise ValueError("geom_type must be 'surface', 'scatter', or 'line'")
+
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+        z = np.asarray(z, dtype=float)
+
+        if geom_type == "surface":
+            # Accept 2-D grid arrays (meshgrid style) or 1-D flat arrays
+            if x.ndim == 2 and y.ndim == 2 and z.ndim == 2:
+                rows, cols = z.shape
+                xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
+            elif x.ndim == 1 and y.ndim == 1 and z.ndim == 2:
+                rows, cols = z.shape
+                if len(x) != cols or len(y) != rows:
+                    raise ValueError(
+                        "For surface with 1-D x/y: x must have length ncols "
+                        "and y must have length nrows")
+                XX, YY = np.meshgrid(x, y)
+                xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
+            else:
+                raise ValueError(
+                    "Surface x/y/z must be 2-D grids of the same shape, "
+                    "or 1-D x/y centre arrays with 2-D z.")
+            faces = _triangulate_grid(rows, cols)
+            vertices = np.column_stack([xf, yf, zf]).tolist()
+            z_values = zf.tolist()
+        else:
+            if x.ndim != 1 or y.ndim != 1 or z.ndim != 1:
+                raise ValueError("scatter/line x, y, z must be 1-D arrays")
+            if not (len(x) == len(y) == len(z)):
+                raise ValueError("x, y, z must have the same length")
+            vertices = np.column_stack([x, y, z]).tolist()
+            faces    = []
+            z_values = z.tolist()
+
+        # Normalised data bounds for the JS renderer
+        all_x = np.asarray([v[0] for v in vertices])
+        all_y = np.asarray([v[1] for v in vertices])
+        all_z = np.asarray([v[2] for v in vertices])
+        data_bounds = {
+            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
+            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
+            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+        }
+
+        cmap_lut = _build_colormap_lut(colormap)
+
+        self._state: dict = {
+            "kind":        "3d",
+            "geom_type":   geom_type,
+            "vertices":    vertices,
+            "faces":       faces,
+            "z_values":    z_values,
+            "colormap_name": colormap,
+            "colormap_data": cmap_lut,
+            "color":       color,
+            "point_size":  float(point_size),
+            "linewidth":   float(linewidth),
+            "x_label":     x_label,
+            "y_label":     y_label,
+            "z_label":     z_label,
+            "azimuth":     float(azimuth),
+            "elevation":   float(elevation),
+            "zoom":        float(zoom),
+            "data_bounds": data_bounds,
+        }
+
+    # ------------------------------------------------------------------
+    def _push(self) -> None:
+        if self._fig is None:
+            return
+        self._fig._push(self._id)
+
+    def to_state_dict(self) -> dict:
+        return dict(self._state)
+
+    # ------------------------------------------------------------------
+    # Display settings
+    # ------------------------------------------------------------------
+    def set_colormap(self, name: str) -> None:
+        """Set the surface colormap (ignored for scatter/line)."""
+        self._state["colormap_name"] = name
+        self._state["colormap_data"] = _build_colormap_lut(name)
+        self._push()
+
+    def set_view(self, azimuth: float | None = None,
+                 elevation: float | None = None) -> None:
+        """Set the camera azimuth (°) and/or elevation (°)."""
+        if azimuth   is not None: self._state["azimuth"]   = float(azimuth)
+        if elevation is not None: self._state["elevation"] = float(elevation)
+        self._push()
+
+    def set_zoom(self, zoom: float) -> None:
+        self._state["zoom"] = float(zoom)
+        self._push()
+
+    def update(self, x, y, z) -> None:
+        """Replace the geometry data."""
+        # Re-run the same logic as __init__ for the stored geom_type
+        geom_type = self._state["geom_type"]
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+        z = np.asarray(z, dtype=float)
+
+        if geom_type == "surface":
+            if x.ndim == 2 and y.ndim == 2 and z.ndim == 2:
+                rows, cols = z.shape
+                xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
+            elif x.ndim == 1 and y.ndim == 1 and z.ndim == 2:
+                rows, cols = z.shape
+                XX, YY = np.meshgrid(x, y)
+                xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
+            else:
+                raise ValueError("Surface x/y/z must be 2-D grids or 1-D+2-D.")
+            faces    = _triangulate_grid(rows, cols)
+            vertices = np.column_stack([xf, yf, zf]).tolist()
+            z_values = zf.tolist()
+        else:
+            vertices = np.column_stack([x.ravel(), y.ravel(), z.ravel()]).tolist()
+            faces    = []
+            z_values = z.ravel().tolist()
+
+        all_x = np.asarray([v[0] for v in vertices])
+        all_y = np.asarray([v[1] for v in vertices])
+        all_z = np.asarray([v[2] for v in vertices])
+        data_bounds = {
+            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
+            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
+            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+        }
+
+        self._state.update({
+            "vertices":    vertices,
+            "faces":       faces,
+            "z_values":    z_values,
+            "data_bounds": data_bounds,
+            "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
+        })
+        self._push()
 
 
 # ---------------------------------------------------------------------------

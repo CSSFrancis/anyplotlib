@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json, pathlib
 import anywidget, numpy as np, traitlets
-from viewer.figure_plots import GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh
+from viewer.figure_plots import GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh, Plot3D
 
 __all__ = ["Figure", "GridSpec", "SubplotSpec", "subplots"]
 
@@ -152,7 +152,7 @@ class Figure(anywidget.AnyWidget):
             plot     = self._plots_map.get(pid)
             panel_specs.append({
                 "id":           pid,
-                "kind":         "2d" if isinstance(plot, (Plot2D, PlotMesh)) else "1d",
+                "kind":         "3d" if isinstance(plot, Plot3D) else ("2d" if isinstance(plot, (Plot2D, PlotMesh)) else "1d"),
                 "row_start":    s.row_start,
                 "row_stop":     s.row_stop,
                 "col_start":    s.col_start,
