@@ -1,4 +1,5 @@
-
+Anyplotlib
+----------
 
 Welcome to **anyplotlib** – a lightweight, interactive viewer for 1-D signals and
 2-D images, backed by [anywidget](https://anywidget.dev/) and a pure-JavaScript
