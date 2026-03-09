@@ -418,6 +418,8 @@ class MarkerRegistry:
         "points", "vlines", "hlines", "lines", "rectangles",
         "ellipses", "polygons", "texts",
     })
+    # pcolormesh panels only support points (circles) and line segments
+    _KNOWN_MESH = frozenset({"circles", "lines"})
 
     def __init__(self, push_fn, allowed: frozenset | None = None):
         """
@@ -435,6 +437,11 @@ class MarkerRegistry:
 
     # ------------------------------------------------------------------
     def __getitem__(self, marker_type: str) -> MarkerTypeDict:
+        if self._allowed is not None and marker_type not in self._allowed:
+            raise ValueError(
+                f"Marker type '{marker_type}' is not allowed on this panel. "
+                f"Allowed types: {sorted(self._allowed)}"
+            )
         if marker_type not in self._types:
             self._types[marker_type] = MarkerTypeDict(marker_type, self._push_fn)
         return self._types[marker_type]

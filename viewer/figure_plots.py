@@ -23,7 +23,7 @@ import numpy as np
 
 from viewer.markers import MarkerRegistry
 
-__all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D"]
+__all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh"]
 
 
 # ---------------------------------------------------------------------------
@@ -161,6 +161,32 @@ class Axes:
         self._attach(plot)
         return plot
 
+    def pcolormesh(self, data: np.ndarray,
+                   x_edges=None, y_edges=None,
+                   units: str = "") -> "PlotMesh":
+        """Attach a 2-D mesh to this axes cell using edge coordinates.
+
+        Follows the matplotlib pcolormesh convention: x_edges and y_edges
+        are the cell *edge* coordinates, so they have length N+1 and M+1
+        respectively for an (M, N) data array.
+
+        Parameters
+        ----------
+        data : np.ndarray  shape (M, N)
+        x_edges : array-like, length N+1, optional
+            Column edge coordinates.  Defaults to ``np.arange(N+1)``.
+        y_edges : array-like, length M+1, optional
+            Row edge coordinates.  Defaults to ``np.arange(M+1)``.
+        units : str, optional
+
+        Returns
+        -------
+        PlotMesh
+        """
+        plot = PlotMesh(data, x_edges=x_edges, y_edges=y_edges, units=units)
+        self._attach(plot)
+        return plot
+
     def plot(self, data: np.ndarray,
              axes: list | None = None,
              units: str = "px",
@@ -190,7 +216,7 @@ class Axes:
         self._attach(plot)
         return plot
 
-    def _attach(self, plot: "Plot1D | Plot2D") -> None:
+    def _attach(self, plot: "Plot1D | Plot2D | PlotMesh") -> None:
         """Register a plot on this axes (replace any previous plot)."""
         # Allocate a panel id if needed; reuse if replacing
         if self._plot is not None:
@@ -596,6 +622,268 @@ class Plot2D:
                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
         return self._add_marker("texts", name, offsets=offsets, texts=texts,
                                 color=color, fontsize=fontsize,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def remove_marker(self, marker_type: str, name: str) -> None:
+        self.markers.remove(marker_type, name)
+
+    def clear_markers(self) -> None:
+        self.markers.clear()
+
+    def list_markers(self) -> list:
+        out = []
+        for mtype, td in self.markers._types.items():
+            for name, g in td.items():
+                out.append({"type": mtype, "name": name, "n": g._count()})
+        return out
+
+
+# ---------------------------------------------------------------------------
+# PlotMesh helpers
+# ---------------------------------------------------------------------------
+
+def _resample_mesh(data: np.ndarray,
+                   x_edges: np.ndarray,
+                   y_edges: np.ndarray) -> np.ndarray:
+    """Resample an (M, N) mesh to a regular (M, N) pixel grid.
+
+    The non-uniform cell *edges* define where each column/row boundary sits
+    in physical space.  We map a uniformly-spaced output grid back to input
+    cell indices via ``np.searchsorted`` on the edges, giving a simple
+    nearest-cell lookup (no interpolation).
+
+    Parameters
+    ----------
+    data     : shape (M, N)
+    x_edges  : length N+1  – column edge coordinates
+    y_edges  : length M+1  – row edge coordinates
+
+    Returns
+    -------
+    resampled : shape (M, N) float64, ready for ``_normalize_image``
+    """
+    m, n = data.shape
+    # Uniform sample points at cell centres of the *output* (M, N) grid
+    # expressed in the same physical space as the edges.
+    x_out = np.linspace(x_edges[0], x_edges[-1], n, endpoint=False) \
+            + (x_edges[-1] - x_edges[0]) / (2 * n)
+    y_out = np.linspace(y_edges[0], y_edges[-1], m, endpoint=False) \
+            + (y_edges[-1] - y_edges[0]) / (2 * m)
+
+    # Map each output sample to the source cell index (clipped to valid range)
+    xi = np.clip(np.searchsorted(x_edges, x_out, side='right') - 1, 0, n - 1)
+    yi = np.clip(np.searchsorted(y_edges, y_out, side='right') - 1, 0, m - 1)
+
+    return data[np.ix_(yi, xi)].astype(np.float64)
+
+
+# ---------------------------------------------------------------------------
+# PlotMesh
+# ---------------------------------------------------------------------------
+
+class PlotMesh:
+    """2-D mesh plot panel using pcolormesh-style edge coordinates.
+
+    Accepts cell *edge* arrays (length N+1 / M+1) exactly like
+    ``matplotlib.axes.Axes.pcolormesh``.  The mesh is resampled to a regular
+    pixel grid internally; the original edge arrays are sent to JS for
+    accurate non-linear axis ticks.
+
+    Marker support is limited to circles (points) and line segments.
+    Overlay widgets are not supported.
+    """
+
+    def __init__(self, data: np.ndarray,
+                 x_edges=None, y_edges=None, units: str = ""):
+        self._id:  str = ""       # assigned by Axes._attach
+        self._fig: object = None  # assigned by Axes._attach
+
+        data = np.asarray(data, dtype=float)
+        if data.ndim != 2:
+            raise ValueError(f"data must be 2-D (M x N), got {data.shape}")
+
+        m, n = data.shape
+
+        if x_edges is None:
+            x_edges = np.arange(n + 1, dtype=float)
+        if y_edges is None:
+            y_edges = np.arange(m + 1, dtype=float)
+
+        x_edges = np.asarray(x_edges, dtype=float)
+        y_edges = np.asarray(y_edges, dtype=float)
+
+        if x_edges.ndim != 1 or len(x_edges) != n + 1:
+            raise ValueError(
+                f"x_edges must be 1-D with length N+1={n+1}, got {x_edges.shape}")
+        if y_edges.ndim != 1 or len(y_edges) != m + 1:
+            raise ValueError(
+                f"y_edges must be 1-D with length M+1={m+1}, got {y_edges.shape}")
+
+        self._x_edges = x_edges
+        self._y_edges = y_edges
+
+        resampled = _resample_mesh(data, x_edges, y_edges)
+        img_u8, vmin, vmax = _normalize_image(resampled)
+        self._raw_u8   = img_u8
+        self._raw_vmin = vmin
+        self._raw_vmax = vmax
+
+        cmap_lut = _build_colormap_lut("gray")
+
+        self._state: dict = {
+            "kind":              "2d",
+            "is_mesh":           True,
+            "image_b64":         Plot2D._encode_bytes(img_u8),
+            "image_width":       n,
+            "image_height":      m,
+            "x_axis":            x_edges.tolist(),
+            "y_axis":            y_edges.tolist(),
+            "units":             units,
+            "hist_min":          vmin,
+            "hist_max":          vmax,
+            "display_min":       vmin,
+            "display_max":       vmax,
+            "histogram_data":    _compute_histogram(img_u8, vmin, vmax),
+            "histogram_visible": False,
+            "show_colorbar":     False,
+            "log_scale":         False,
+            "scale_mode":        "linear",
+            "colormap_name":     "gray",
+            "colormap_data":     cmap_lut,
+            "zoom":              1.0,
+            "center_x":          0.5,
+            "center_y":          0.5,
+            "overlay_widgets":   [],
+            "markers":           [],
+        }
+
+        self.markers = MarkerRegistry(self._push_markers,
+                                      allowed=MarkerRegistry._KNOWN_MESH)
+
+    def _push(self) -> None:
+        if self._fig is None:
+            return
+        self._fig._push(self._id)
+
+    def _push_markers(self) -> None:
+        self._state["markers"] = self.markers.to_wire_list()
+        self._push()
+
+    def to_state_dict(self) -> dict:
+        d = dict(self._state)
+        d["markers"] = self.markers.to_wire_list()
+        return d
+
+    # ------------------------------------------------------------------
+    # Data update
+    # ------------------------------------------------------------------
+    def update(self, data: np.ndarray,
+               x_edges=None, y_edges=None,
+               units: str | None = None) -> None:
+        """Replace the mesh data."""
+        data = np.asarray(data, dtype=float)
+        if data.ndim != 2:
+            raise ValueError(f"data must be 2-D, got {data.shape}")
+        m, n = data.shape
+
+        if x_edges is not None:
+            x_edges = np.asarray(x_edges, dtype=float)
+            if len(x_edges) != n + 1:
+                raise ValueError(f"x_edges must have length N+1={n+1}")
+            self._x_edges = x_edges
+        if y_edges is not None:
+            y_edges = np.asarray(y_edges, dtype=float)
+            if len(y_edges) != m + 1:
+                raise ValueError(f"y_edges must have length M+1={m+1}")
+            self._y_edges = y_edges
+
+        resampled = _resample_mesh(data, self._x_edges, self._y_edges)
+        img_u8, vmin, vmax = _normalize_image(resampled)
+        self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
+
+        self._state.update({
+            "image_b64":    Plot2D._encode_bytes(img_u8),
+            "image_width":  n,
+            "image_height": m,
+            "x_axis":       self._x_edges.tolist(),
+            "y_axis":       self._y_edges.tolist(),
+            "hist_min":     vmin,
+            "hist_max":     vmax,
+            "display_min":  vmin,
+            "display_max":  vmax,
+            "histogram_data": _compute_histogram(img_u8, vmin, vmax),
+            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
+        })
+        if units is not None:
+            self._state["units"] = units
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Display settings  (same API as Plot2D)
+    # ------------------------------------------------------------------
+    def set_colormap(self, name: str) -> None:
+        self._state["colormap_name"] = name
+        self._state["colormap_data"] = _build_colormap_lut(name)
+        self._push()
+
+    def set_clim(self, vmin=None, vmax=None) -> None:
+        if vmin is not None:
+            self._state["display_min"] = float(vmin)
+        if vmax is not None:
+            self._state["display_max"] = float(vmax)
+        self._push()
+
+    def set_scale_mode(self, mode: str) -> None:
+        valid = ("linear", "log", "symlog")
+        if mode not in valid:
+            raise ValueError(f"mode must be one of {valid}")
+        self._state["scale_mode"] = mode
+        self._push()
+
+    @property
+    def histogram_visible(self) -> bool:
+        return self._state["histogram_visible"]
+
+    @histogram_visible.setter
+    def histogram_visible(self, val: bool) -> None:
+        self._state["histogram_visible"] = bool(val)
+        self._push()
+
+    @property
+    def colormap_name(self) -> str:
+        return self._state["colormap_name"]
+
+    @colormap_name.setter
+    def colormap_name(self, name: str) -> None:
+        self.set_colormap(name)
+
+    # ------------------------------------------------------------------
+    # Marker API  (circles and lines only)
+    # ------------------------------------------------------------------
+    def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
+        return self.markers.add(mtype, name, **kwargs)
+
+    def add_circles(self, offsets, name=None, *, radius=5,
+                    facecolors=None, edgecolors="#ff0000",
+                    linewidths=1.5, alpha=0.3,
+                    hover_edgecolors=None, hover_facecolors=None,
+                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add point markers in physical (data) coordinates."""
+        return self._add_marker("circles", name, offsets=offsets, radius=radius,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_lines(self, segments, name=None, *,
+                  edgecolors="#ff0000", linewidths=1.5,
+                  hover_edgecolors=None,
+                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add line-segment markers in physical (data) coordinates."""
+        return self._add_marker("lines", name, segments=segments,
+                                edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label)
 

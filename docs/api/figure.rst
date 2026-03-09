@@ -1,9 +1,8 @@
-Viewer2D
+Figure
 ========
 
-.. automodule:: viewer.viewer2d
+.. automodule:: viewer.figure
    :members:
    :undoc-members: False
    :show-inheritance:
    :member-order: bysource
-

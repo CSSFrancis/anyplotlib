@@ -371,12 +371,8 @@ function render({ model, el }) {
       }
 
       const st = p.state;
-      const sx = st && st.scale_x || 0;
-      const sy = st && st.scale_y || 0;
-      const hasPhysAxis = sx > 0 && sy > 0
-        && Math.abs(sx - sy) / Math.max(sx, sy) > 0.005
-        && st.x_axis && st.x_axis.length >= 2
-        && st.y_axis && st.y_axis.length >= 2;
+      const hasPhysAxis = st && st.x_axis && st.x_axis.length >= 2
+                       && st.y_axis && st.y_axis.length >= 2;
 
       // y-axis: left gutter [0, PAD_T]..[PAD_L, ph-PAD_B]
       if (p.yAxisCanvas && p.yCtx) {
@@ -532,6 +528,8 @@ function render({ model, el }) {
 
   function drawScaleBar2d(p) {
     const st=p.state; if(!st||!p.scaleBar) return;
+    // pcolormesh panels have non-uniform axes: no meaningful single pixel scale
+    if(st.is_mesh){p.scaleBar.style.display='none';return;}
     const units=st.units||'px';
     const scaleX=st.scale_x||0;
     if(!scaleX||units==='px'){p.scaleBar.style.display='none';return;}
@@ -702,10 +700,7 @@ function render({ model, el }) {
     const TICK=6;
     const zoom=st.zoom, cx=st.center_x, cy=st.center_y;
     const units=st.units||'px';
-    const sx=st.scale_x||0, sy=st.scale_y||0;
-    const hasPhysAxis = sx>0 && sy>0
-      && Math.abs(sx-sy)/Math.max(sx,sy) > 0.005
-      && xArr.length>=2 && yArr.length>=2;
+    const hasPhysAxis = xArr.length>=2 && yArr.length>=2;
     const hasX = hasPhysAxis && p.xCtx && p.xAxisCanvas && p.xAxisCanvas.style.display!=='none';
     const hasY = hasPhysAxis && p.yCtx && p.yAxisCanvas && p.yAxisCanvas.style.display!=='none';
 
@@ -1331,16 +1326,25 @@ function render({ model, el }) {
       _scheduleCommit();
     },{passive:false});
 
-    // Pan
+    // Pan + widget drag
     let panStart={};
     overlayCanvas.addEventListener('mousedown',(e)=>{
       if(e.button!==0) return;
       const st=p.state; if(!st) return;
       overlayCanvas.focus();
+      const rect=overlayCanvas.getBoundingClientRect();
+      const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      const hit=_ovHitTest2d(mx, my, p);
+      if(hit){
+        p.ovDrag2d=hit;
+        overlayCanvas.style.cursor='move';
+        e.preventDefault(); return;
+      }
       panStart={mx:e.clientX,my:e.clientY,cx:st.center_x,cy:st.center_y};
       p.isPanning=true; overlayCanvas.style.cursor='grabbing'; e.preventDefault();
     });
     document.addEventListener('mousemove',(e)=>{
+      if(p.ovDrag2d){_doDrag2d(e,p);return;}
       if(!p.isPanning) return;
       const st=p.state; if(!st) return;
       const rect=overlayCanvas.getBoundingClientRect();
@@ -1354,6 +1358,7 @@ function render({ model, el }) {
       _scheduleCommit(); e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
+      if(p.ovDrag2d){p.ovDrag2d=null;overlayCanvas.style.cursor='default';return;}
       if(!p.isPanning) return;
       p.isPanning=false; overlayCanvas.style.cursor='default';
       const st=p.state; if(!st) return;
@@ -1364,24 +1369,43 @@ function render({ model, el }) {
       model.save_changes();
     });
 
-    // Status bar + tooltip
+    // Status bar + tooltip + widget hover cursor
     overlayCanvas.addEventListener('mousemove',(e)=>{
+      if(p.ovDrag2d) return; // handled by document mousemove
       const st=p.state; if(!st) return;
       const rect=overlayCanvas.getBoundingClientRect();
       const mx=e.clientX-rect.left, my=e.clientY-rect.top;
-      const [ix,iy]=_canvasToImg2d(mx,my,st,Math.max(1,p.pw-PAD_L-PAD_R),Math.max(1,p.ph-PAD_T-PAD_B));
+
+      // Update cursor based on widget hit
+      const whit=_ovHitTest2d(mx, my, p);
+      if(whit){
+        const m=whit.mode;
+        overlayCanvas.style.cursor = m==='move' ? 'move'
+          : (m==='resize_br'||m==='resize_tl') ? 'nwse-resize'
+          : (m==='resize_bl'||m==='resize_tr') ? 'nesw-resize'
+          : (m==='resize_r'||m==='resize_ir')  ? 'ew-resize'
+          : m.startsWith('vertex_')            ? 'crosshair'
+          : 'move';
+      } else if(!p.isPanning){
+        overlayCanvas.style.cursor='default';
+      }
+
+      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const [ix,iy]=_canvasToImg2d(mx,my,st,imgW,imgH);
       if(ix>=0&&ix<st.image_width&&iy>=0&&iy<st.image_height){
         const xArr=st.x_axis||[], yArr=st.y_axis||[];
         const iw=st.image_width, ih=st.image_height;
+        // For both imshow (centre arrays) and pcolormesh (edge arrays),
+        // ix/iw maps the pixel fraction into the axis array via binary search.
         const physX=xArr.length>=2?_axisFracToVal(xArr,ix/iw):ix;
         const physY=yArr.length>=2?_axisFracToVal(yArr,iy/ih):iy;
         const units=st.units||'px';
-        const showPhys=units!=='px'&&(xArr.length>=2||yArr.length>=2);
+        const showPhys=xArr.length>=2||yArr.length>=2;
         p.statusBar.textContent = showPhys
-          ? `x:${fmtVal(physX)} y:${fmtVal(physY)} ${units}  [${Math.floor(ix)}, ${Math.floor(iy)}]`
+          ? `x:${fmtVal(physX)} y:${fmtVal(physY)}${units?' '+units:''}  [${Math.floor(ix)}, ${Math.floor(iy)}]`
           : `x:${Math.floor(ix)}  y:${Math.floor(iy)}`;
         p.statusBar.style.display='block';
-        const mhit=_markerHitTest2d(mx,my,st,Math.max(1,p.pw-PAD_L-PAD_R),Math.max(1,p.ph-PAD_T-PAD_B));
+        const mhit=_markerHitTest2d(mx,my,st,imgW,imgH);
         const newSi=mhit?mhit.si:-1;
         if(newSi!==p._hoverSi){
           p._hoverSi=newSi; p._hoverI=mhit?mhit.i:-1;
@@ -1545,6 +1569,174 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('mouseleave',()=>{p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
     });
+  }
+
+  // ── 2D overlay widget hit-test & drag ────────────────────────────────────
+  // Returns {idx, mode, snapW, ...} describing which widget and handle was hit.
+  // mode values:
+  //   'move'       – drag the whole widget body
+  //   'resize_r'   – circle/annular outer-radius handle (right)
+  //   'resize_ir'  – annular inner-radius handle
+  //   'resize_br'  – rectangle bottom-right corner
+  //   'resize_bl'  – rectangle bottom-left corner
+  //   'resize_tr'  – rectangle top-right corner
+  //   'resize_tl'  – rectangle top-left corner
+  //   'vertex_N'   – polygon vertex N
+  function _ovHitTest2d(mx, my, p) {
+    const st = p.state; if (!st) return null;
+    const imgW = Math.max(1, p.pw - PAD_L - PAD_R);
+    const imgH = Math.max(1, p.ph - PAD_T - PAD_B);
+    const widgets = st.overlay_widgets || [];
+    const scale   = _imgScale2d(st, imgW);
+    const HR = 9; // handle grab radius (px)
+
+    // iterate top-to-bottom (last drawn = topmost)
+    for (let i = widgets.length - 1; i >= 0; i--) {
+      const w = widgets[i];
+      if (w.type === 'circle') {
+        const [ccx, ccy] = _imgToCanvas2d(w.cx, w.cy, st, imgW, imgH);
+        const cr = w.r * scale;
+        // outer radius handle
+        if (Math.hypot(mx - (ccx + cr), my - ccy) <= HR)
+          return { idx:i, mode:'resize_r', snapW:{...w}, startMX:mx, startMY:my };
+        // body (inside ring ± tolerance)
+        if (Math.abs(Math.hypot(mx-ccx, my-ccy) - cr) <= Math.max(HR, cr*0.18) ||
+            Math.hypot(mx-ccx, my-ccy) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'annular') {
+        const [ccx, ccy] = _imgToCanvas2d(w.cx, w.cy, st, imgW, imgH);
+        const ro = w.r_outer * scale, ri = w.r_inner * scale;
+        // inner-radius handle (above centre, inside inner ring)
+        if (Math.hypot(mx - (ccx + ri), my - (ccy - ri * 0.3)) <= HR)
+          return { idx:i, mode:'resize_ir', snapW:{...w}, startMX:mx, startMY:my };
+        // outer-radius handle
+        if (Math.hypot(mx - (ccx + ro), my - ccy) <= HR)
+          return { idx:i, mode:'resize_r', snapW:{...w}, startMX:mx, startMY:my };
+        // body (annular band)
+        const d = Math.hypot(mx - ccx, my - ccy);
+        if (d >= ri - HR && d <= ro + HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'rectangle') {
+        const [rx, ry] = _imgToCanvas2d(w.x, w.y, st, imgW, imgH);
+        const rw = w.w * scale, rh = w.h * scale;
+        if (Math.hypot(mx-(rx+rw), my-(ry+rh)) <= HR) return { idx:i, mode:'resize_br', snapW:{...w}, startMX:mx, startMY:my };
+        if (Math.hypot(mx-rx,      my-(ry+rh)) <= HR) return { idx:i, mode:'resize_bl', snapW:{...w}, startMX:mx, startMY:my };
+        if (Math.hypot(mx-(rx+rw), my-ry)      <= HR) return { idx:i, mode:'resize_tr', snapW:{...w}, startMX:mx, startMY:my };
+        if (Math.hypot(mx-rx,      my-ry)      <= HR) return { idx:i, mode:'resize_tl', snapW:{...w}, startMX:mx, startMY:my };
+        if (mx >= rx-HR && mx <= rx+rw+HR && my >= ry-HR && my <= ry+rh+HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'crosshair') {
+        const [ccx, ccy] = _imgToCanvas2d(w.cx, w.cy, st, imgW, imgH);
+        if (Math.hypot(mx-ccx, my-ccy) <= HR + 4)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'polygon') {
+        const verts = w.vertices || [];
+        for (let k = 0; k < verts.length; k++) {
+          const [px, py] = _imgToCanvas2d(verts[k][0], verts[k][1], st, imgW, imgH);
+          if (Math.hypot(mx-px, my-py) <= HR)
+            return { idx:i, mode:`vertex_${k}`, snapW:{...w, vertices: verts.map(v=>[...v])}, startMX:mx, startMY:my };
+        }
+        // hit inside polygon → move whole polygon
+        if (_pointInPolygon2d(mx, my, verts, st, imgW, imgH))
+          return { idx:i, mode:'move', snapW:{...w, vertices: verts.map(v=>[...v])}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'label') {
+        const [lx, ly] = _imgToCanvas2d(w.x, w.y, st, imgW, imgH);
+        if (Math.hypot(mx-lx, my-ly) <= HR + 6)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+      }
+    }
+    return null;
+  }
+
+  function _pointInPolygon2d(mx, my, verts, st, imgW, imgH) {
+    let inside = false;
+    const cverts = verts.map(v => _imgToCanvas2d(v[0], v[1], st, imgW, imgH));
+    for (let i = 0, j = cverts.length-1; i < cverts.length; j = i++) {
+      const [xi,yi] = cverts[i], [xj,yj] = cverts[j];
+      if (((yi>my)!==(yj>my)) && (mx < (xj-xi)*(my-yi)/(yj-yi)+xi)) inside = !inside;
+    }
+    return inside;
+  }
+
+  function _doDrag2d(e, p) {
+    const st = p.state; if (!st) return;
+    const imgW = Math.max(1, p.pw - PAD_L - PAD_R);
+    const imgH = Math.max(1, p.ph - PAD_T - PAD_B);
+    const rect  = p.overlayCanvas.getBoundingClientRect();
+    const mx    = e.clientX - rect.left;
+    const my    = e.clientY - rect.top;
+    const d     = p.ovDrag2d;
+    const s     = d.snapW;
+    const w     = st.overlay_widgets[d.idx];
+    const scale = _imgScale2d(st, imgW);
+
+    // Convert current mouse to image coords
+    const [imgMX, imgMY] = _canvasToImg2d(mx, my, st, imgW, imgH);
+    // delta in image pixels from drag-start
+    const [imgSX, imgSY] = _canvasToImg2d(d.startMX, d.startMY, st, imgW, imgH);
+    const dix = imgMX - imgSX, diy = imgMY - imgSY;
+
+    if (w.type === 'circle') {
+      if (d.mode === 'move') {
+        w.cx = s.cx + dix; w.cy = s.cy + diy;
+      } else if (d.mode === 'resize_r') {
+        // distance from centre in image-px
+        const [ccx, ccy] = _imgToCanvas2d(s.cx, s.cy, st, imgW, imgH);
+        w.r = Math.max(1, Math.hypot(mx-ccx, my-ccy) / scale);
+      }
+    } else if (w.type === 'annular') {
+      if (d.mode === 'move') {
+        w.cx = s.cx + dix; w.cy = s.cy + diy;
+      } else if (d.mode === 'resize_r') {
+        const [ccx, ccy] = _imgToCanvas2d(s.cx, s.cy, st, imgW, imgH);
+        const newR = Math.max(s.r_inner + 1, Math.hypot(mx-ccx, my-ccy) / scale);
+        w.r_outer = newR;
+      } else if (d.mode === 'resize_ir') {
+        const [ccx, ccy] = _imgToCanvas2d(s.cx, s.cy, st, imgW, imgH);
+        const newR = Math.max(1, Math.min(s.r_outer - 1, Math.hypot(mx-ccx, my-ccy) / scale));
+        w.r_inner = newR;
+      }
+    } else if (w.type === 'rectangle') {
+      if (d.mode === 'move') {
+        w.x = s.x + dix; w.y = s.y + diy;
+      } else if (d.mode === 'resize_br') {
+        w.w = Math.max(1, s.w + dix); w.h = Math.max(1, s.h + diy);
+      } else if (d.mode === 'resize_bl') {
+        const newW = Math.max(1, s.w - dix);
+        w.x = s.x + (s.w - newW); w.w = newW;
+        w.h = Math.max(1, s.h + diy);
+      } else if (d.mode === 'resize_tr') {
+        w.w = Math.max(1, s.w + dix);
+        const newH = Math.max(1, s.h - diy);
+        w.y = s.y + (s.h - newH); w.h = newH;
+      } else if (d.mode === 'resize_tl') {
+        const newW = Math.max(1, s.w - dix);
+        w.x = s.x + (s.w - newW); w.w = newW;
+        const newH = Math.max(1, s.h - diy);
+        w.y = s.y + (s.h - newH); w.h = newH;
+      }
+    } else if (w.type === 'crosshair') {
+      w.cx = s.cx + dix; w.cy = s.cy + diy;
+    } else if (w.type === 'polygon') {
+      if (d.mode === 'move') {
+        w.vertices = s.vertices.map(v => [v[0]+dix, v[1]+diy]);
+      } else if (d.mode.startsWith('vertex_')) {
+        const k = parseInt(d.mode.slice(7));
+        w.vertices = s.vertices.map((v,j) => j===k ? [imgMX, imgMY] : [...v]);
+      }
+    } else if (w.type === 'label') {
+      w.x = s.x + dix; w.y = s.y + diy;
+    }
+
+    drawOverlay2d(p);
+    model.set(`panel_${p.id}_json`, JSON.stringify(st));
+    model.save_changes();
+    e.preventDefault();
   }
 
   function _canvasXToFrac1d(px,x0,x1,r){return x0+((px-r.x)/(r.w||1))*(x1-x0);}
