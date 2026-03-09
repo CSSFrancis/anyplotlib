@@ -730,12 +730,25 @@ function render({ model, el }) {
       p.xCtx.strokeStyle=theme.tickStroke;
       p.xCtx.fillStyle=theme.tickText; p.xCtx.font='10px sans-serif';
       p.xCtx.textAlign='center'; p.xCtx.textBaseline='top';
-      for(let v=Math.ceil(xVMin/step)*step; v<=xVMax+step*0.01; v+=step){
+      // Generate nice tick values; place each at its true canvas position
+      // via binary-search into the axis array (works for both linear and
+      // non-linear / pcolormesh edge arrays).
+      const xTicks=[];
+      for(let v=Math.ceil(xVMin/step)*step; v<=xVMax+step*0.01; v+=step) xTicks.push(v);
+      // Clamp first/last label so it doesn't overflow the canvas edges
+      const minLabelGap=28; // px — minimum gap between adjacent labels
+      let lastPx=-Infinity;
+      for(let ti=0;ti<xTicks.length;ti++){
+        const v=xTicks[ti];
         const frac=_axisValToFrac(xArr,v);
         const px2=_fracToPx(frac,zoom,cx,imgW);
         if(px2<0||px2>imgW) continue;
         p.xCtx.beginPath(); p.xCtx.moveTo(px2,0); p.xCtx.lineTo(px2,TICK); p.xCtx.stroke();
-        p.xCtx.fillText(fmtVal(v), px2, TICK+2);
+        // Skip label if too close to the previous one
+        if(px2-lastPx>=minLabelGap){
+          p.xCtx.fillText(fmtVal(v), px2, TICK+2);
+          lastPx=px2;
+        }
       }
       p.xCtx.textAlign='right'; p.xCtx.textBaseline='bottom';
       p.xCtx.fillStyle=theme.unitText; p.xCtx.font='9px sans-serif';
@@ -756,12 +769,20 @@ function render({ model, el }) {
       p.yCtx.strokeStyle=theme.tickStroke;
       p.yCtx.fillStyle=theme.tickText; p.yCtx.font='10px sans-serif';
       p.yCtx.textAlign='right'; p.yCtx.textBaseline='middle';
-      for(let v=Math.ceil(yVMin/step)*step; v<=yVMax+step*0.01; v+=step){
+      const yTicks=[];
+      for(let v=Math.ceil(yVMin/step)*step; v<=yVMax+step*0.01; v+=step) yTicks.push(v);
+      const minLabelGapY=14; // px
+      let lastPy=Infinity;
+      for(let ti=0;ti<yTicks.length;ti++){
+        const v=yTicks[ti];
         const frac=_axisValToFrac(yArr,v);
         const py2=_fracToPx(frac,zoom,cy,imgH);
         if(py2<0||py2>imgH) continue;
         p.yCtx.beginPath(); p.yCtx.moveTo(aw,py2); p.yCtx.lineTo(aw-TICK,py2); p.yCtx.stroke();
-        p.yCtx.fillText(fmtVal(v), aw-TICK-2, py2);
+        if(lastPy-py2>=minLabelGapY){
+          p.yCtx.fillText(fmtVal(v), aw-TICK-2, py2);
+          lastPy=py2;
+        }
       }
     }
   }
