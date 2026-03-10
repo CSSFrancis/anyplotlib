@@ -7,7 +7,7 @@ canvas renderer.  The goal is to duplicate and extend the interactive plotting c
 although the scope is intentionally limited in the following ways:
 
 1. This uses the object-oriented API of Matplotlib, not the stateful pyplot interface. This means there is
-no `plt.imshow` or `plt.plot` – instead, you create a viewer object and call methods on it to add data
+no `plt.imshow` or `plt.plot` – instead, you create a Figure object and call methods on it to add data
 and customize the plot. This is a deliberate choice to avoid the pitfalls of the stateful API.
 
 python
