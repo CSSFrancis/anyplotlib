@@ -1171,6 +1171,18 @@ function render({ model, el }) {
     }
   }
 
+  // ── event emission helper (module-scope: accessible to all attach fns) ──
+  // eventType: 'on_changed' | 'on_release' | 'on_click'
+  function _emitEvent(panelId, eventType, widgetId, extraData) {
+    const payload = Object.assign(
+      { source: 'js', panel_id: panelId, event_type: eventType,
+        widget_id: widgetId || null },
+      extraData || {}
+    );
+    model.set('event_json', JSON.stringify(payload));
+    model.save_changes();
+  }
+
   function _attachEvents3d(p) {
     const { overlayCanvas } = p;
     let dragStart = null;
@@ -1183,15 +1195,6 @@ function render({ model, el }) {
       });
     }
 
-  // ── event emission helper ───────────────────────────────────────────
-  function _emitEvent(panelId, name, widgetId, settled, extraData) {
-    const payload = Object.assign(
-      { panel_id: panelId, name: name, widget_id: widgetId || null, settled: !!settled },
-      extraData || {}
-    );
-    model.set('event_json', JSON.stringify(payload));
-    model.save_changes();
-  }
 
     overlayCanvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
@@ -1208,7 +1211,7 @@ function render({ model, el }) {
       p.state.elevation = Math.max(-89, Math.min(89, dragStart.el - dy * 0.5));
       draw3d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'rotate_change', null, false,
+      _emitEvent(p.id, 'on_changed', null,
         { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
       e.preventDefault();
     });
@@ -1217,7 +1220,7 @@ function render({ model, el }) {
       dragStart = null;
       overlayCanvas.style.cursor = 'grab';
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'rotate_change', null, true,
+      _emitEvent(p.id, 'on_release', null,
         { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
       _scheduleCommit();
     });
@@ -1227,7 +1230,7 @@ function render({ model, el }) {
       p.state.zoom = Math.max(0.1, Math.min(10, p.state.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
       draw3d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'zoom_change', null, false,
+      _emitEvent(p.id, 'on_changed', null,
         { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
       _scheduleCommit();
     }, { passive: false });
@@ -1684,8 +1687,8 @@ function render({ model, el }) {
     document.addEventListener('mousemove',(e)=>{
       if(p.ovDrag2d){
         _doDrag2d(e,p);
-        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===p.ovDrag2d.id)||{};
-        _emitEvent(p.id,(_dw.type||'widget')+'_change',p.ovDrag2d.id,false,_dw);
+        const _dw=(p.state.overlay_widgets||[])[p.ovDrag2d.idx]||{};
+        _emitEvent(p.id,'on_changed',_dw.id||null,_dw);
         return;
       }
       if(!p.isPanning) return;
@@ -1702,10 +1705,12 @@ function render({ model, el }) {
     });
     document.addEventListener('mouseup',(e)=>{
       if(p.ovDrag2d){
-        const _did=p.ovDrag2d.id;
-        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===_did)||{};
+        const _idx=p.ovDrag2d.idx;
+        const _dw=(p.state.overlay_widgets||[])[_idx]||{};
+        const _did=_dw.id||null;
         p.ovDrag2d=null; overlayCanvas.style.cursor='default';
-        _emitEvent(p.id,(_dw.type||'widget')+'_change',_did,true,_dw);
+        model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+        _emitEvent(p.id,'on_release',_did,_dw);
         return;
       }
       if(!p.isPanning) return;
@@ -1715,7 +1720,7 @@ function render({ model, el }) {
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/rect.width/st.zoom));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/rect.height/st.zoom));
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id,'zoom_change',null,true,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom});
+      _emitEvent(p.id,'on_release',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom});
       model.save_changes();
     });
 
@@ -1873,8 +1878,8 @@ function render({ model, el }) {
     document.addEventListener('mousemove',(e)=>{
       if(p.ovDrag){
         _doDrag1d(e,p);
-        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===p.ovDrag.id)||{};
-        _emitEvent(p.id,(_dw.type||'widget')+'_change',p.ovDrag.id,false,_dw);
+        const _dw=(p.state.overlay_widgets||[])[p.ovDrag.idx]||{};
+        _emitEvent(p.id,'on_changed',_dw.id||null,_dw);
         return;
       }
       if(!p.isPanning) return;
@@ -1890,15 +1895,17 @@ function render({ model, el }) {
     });
     document.addEventListener('mouseup',(e)=>{
       if(p.ovDrag){
-        const _did=p.ovDrag.id;
-        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===_did)||{};
+        const _idx=p.ovDrag.idx;
+        const _dw=(p.state.overlay_widgets||[])[_idx]||{};
+        const _did=_dw.id||null;
         p.ovDrag=null; overlayCanvas.style.cursor='crosshair';
-        _emitEvent(p.id,(_dw.type||'widget')+'_change',_did,true,_dw);
+        model.set(`panel_${p.id}_json`,JSON.stringify(p.state));
+        _emitEvent(p.id,'on_release',_did,_dw);
       }
       if(p.isPanning){
         p.isPanning=false; overlayCanvas.style.cursor='crosshair';
         const st=p.state;
-        if(st) _emitEvent(p.id,'view_change',null,true,{view_x0:st.view_x0,view_x1:st.view_x1});
+        if(st) _emitEvent(p.id,'on_release',null,{view_x0:st.view_x0,view_x1:st.view_x1});
       }
     });
 
@@ -2470,6 +2477,27 @@ function render({ model, el }) {
   // ── model listeners ───────────────────────────────────────────────────────
   model.on('change:layout_json', () => { applyLayout(); redrawAll(); });
   model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); });
+
+  // Python→JS targeted widget update (source:"python" in event_json).
+  // Applies changed fields directly to the widget in overlay_widgets and
+  // redraws the panel — no image re-decode, no Python echo.
+  model.on('change:event_json', () => {
+    try {
+      const msg = JSON.parse(model.get('event_json') || '{}');
+      if (!msg || msg.source !== 'python') return;
+      const p = panels.get(msg.panel_id);
+      if (!p || !p.state) return;
+      const ws = p.state.overlay_widgets || [];
+      const wi = ws.findIndex(w => w.id === msg.widget_id);
+      if (wi < 0) return;
+      // Apply every field from the message except protocol keys
+      const skip = new Set(['source', 'panel_id', 'widget_id']);
+      for (const [k, v] of Object.entries(msg)) {
+        if (!skip.has(k)) ws[wi][k] = v;
+      }
+      _redrawPanel(p);
+    } catch(_) {}
+  });
 
   // ── initial render ────────────────────────────────────────────────────────
   applyLayout();
