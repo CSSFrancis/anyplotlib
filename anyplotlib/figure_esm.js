@@ -312,6 +312,7 @@ function render({ model, el }) {
       isPanning: false, panStart: {},
       state: null,
       _hoverSi: -1, _hoverI: -1,   // index of hovered marker group / marker (-1 = none)
+      _hovBar:  -1,                 // index of hovered bar (-1 = none)
       // 2D extras (null for 1D panels)
       histCanvas:  _p2d ? _p2d.histCanvas  : null,
       histCtx:     _p2d ? _p2d.histCtx     : null,
@@ -1635,9 +1636,10 @@ function render({ model, el }) {
 
   // ── panel-level event handlers ───────────────────────────────────────────
   function _attachPanelEvents(p) {
-    if (p.kind === '2d') _attachEvents2d(p);
-    else if (p.kind === '3d') _attachEvents3d(p);
-    else                 _attachEvents1d(p);
+    if (p.kind === '2d')  _attachEvents2d(p);
+    else if (p.kind === '3d')  _attachEvents3d(p);
+    else if (p.kind === 'bar') _attachEventsBar(p);
+    else                       _attachEvents1d(p);
   }
 
   function _canvasToImg2d(px,py,st,pw,ph){
@@ -2400,11 +2402,315 @@ function render({ model, el }) {
   });
 
 
+  // ── bar chart ─────────────────────────────────────────────────────────────
+  // Shared geometry helper used by both drawBar and _attachEventsBar.
+  // Returns the per-slot pixel width, per-bar pixel width, and coordinate
+  // mappers for the current panel state.
+  function _barGeom(st, r) {
+    const values   = st.values   || [];
+    const n        = values.length || 1;
+    const orient   = st.orient   || 'v';
+    const bwFrac   = st.bar_width !== undefined ? st.bar_width : 0.7;
+    const baseline = st.baseline !== undefined  ? st.baseline  : 0;
+    const dMin     = st.data_min, dMax = st.data_max;
+
+    if (orient === 'h') {
+      // Horizontal: categories on Y, values on X
+      const slotPx = r.h / n;
+      const barPx  = slotPx * bwFrac;
+      // xToPx maps a value to an x pixel (value axis = horizontal)
+      function xToPx(v) { return r.x + ((v - dMin) / ((dMax - dMin) || 1)) * r.w; }
+      // yToPx maps a bar index to the centre of its slot (category axis = vertical)
+      function yToPx(i) { return r.y + (i + 0.5) * slotPx; }
+      const basePx = Math.max(r.x, Math.min(r.x + r.w, xToPx(baseline)));
+      return { n, orient, slotPx, barPx, dMin, dMax, baseline, basePx, xToPx, yToPx };
+    } else {
+      // Vertical: categories on X, values on Y
+      const slotPx = r.w / n;
+      const barPx  = slotPx * bwFrac;
+      function xToPx(i) { return r.x + (i + 0.5) * slotPx; }
+      function yToPx(v) { return r.y + r.h - ((v - dMin) / ((dMax - dMin) || 1)) * r.h; }
+      const basePx = Math.max(r.y, Math.min(r.y + r.h, yToPx(baseline)));
+      return { n, orient, slotPx, barPx, dMin, dMax, baseline, basePx, xToPx, yToPx };
+    }
+  }
+
+  function drawBar(p) {
+    const st = p.state; if (!st) return;
+    const { pw, ph, plotCtx: ctx } = p;
+    const r = _plotRect1d(pw, ph);
+
+    ctx.clearRect(0, 0, pw, ph);
+    ctx.fillStyle = theme.bg;     ctx.fillRect(0, 0, pw, ph);
+    ctx.fillStyle = theme.bgPlot; ctx.fillRect(r.x, r.y, r.w, r.h);
+
+    const values    = st.values    || [];
+    const xCenters  = st.x_centers || values.map((_, i) => i);
+    const xLabels   = st.x_labels  || [];
+    const barColor  = st.bar_color  || '#4fc3f7';
+    const barColors = st.bar_colors || [];
+    const orient    = st.orient || 'v';
+    const dMin      = st.data_min, dMax = st.data_max;
+
+    if (!values.length) return;
+
+    const g = _barGeom(st, r);
+
+    // ── grid lines (along value axis) ─────────────────────────────────────
+    ctx.strokeStyle = theme.gridStroke; ctx.lineWidth = 1;
+    const valRange = (dMax - dMin) || 1;
+    const valStep  = findNice(valRange / Math.max(2, Math.floor((orient==='h' ? r.w : r.h) / 40)));
+
+    if (orient === 'h') {
+      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+        const px = g.xToPx(v);
+        if (px < r.x || px > r.x + r.w) continue;
+        ctx.beginPath(); ctx.moveTo(px, r.y); ctx.lineTo(px, r.y + r.h); ctx.stroke();
+      }
+    } else {
+      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+        const py = g.yToPx(v);
+        if (py < r.y || py > r.y + r.h) continue;
+        ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x + r.w, py); ctx.stroke();
+      }
+    }
+
+    // ── bars ──────────────────────────────────────────────────────────────
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+
+    for (let i = 0; i < g.n; i++) {
+      const color = barColors[i] || barColor;
+      const isHov = (p._hovBar === i);
+
+      if (orient === 'h') {
+        const cy      = g.yToPx(i);
+        const valPx   = g.xToPx(values[i]);
+        const barLeft = Math.min(valPx, g.basePx);
+        const barW    = Math.max(1, Math.abs(valPx - g.basePx));
+        ctx.fillStyle = color;
+        ctx.fillRect(barLeft, cy - g.barPx / 2, barW, g.barPx);
+        if (isHov) {
+          ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.22)';
+          ctx.fillRect(barLeft, cy - g.barPx / 2, barW, g.barPx);
+          ctx.restore();
+        }
+        ctx.strokeStyle = theme.dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.09)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(barLeft, cy - g.barPx / 2, barW, g.barPx);
+      } else {
+        const cx     = g.xToPx(i);
+        const valPy  = g.yToPx(values[i]);
+        const barTop = Math.min(valPy, g.basePx);
+        const barH   = Math.max(1, Math.abs(valPy - g.basePx));
+        ctx.fillStyle = color;
+        ctx.fillRect(cx - g.barPx / 2, barTop, g.barPx, barH);
+        if (isHov) {
+          ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.22)';
+          ctx.fillRect(cx - g.barPx / 2, barTop, g.barPx, barH);
+          ctx.restore();
+        }
+        ctx.strokeStyle = theme.dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.09)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx - g.barPx / 2, barTop, g.barPx, barH);
+      }
+    }
+    ctx.restore();
+
+    // ── value annotations ─────────────────────────────────────────────────
+    if (st.show_values) {
+      ctx.font = '9px monospace'; ctx.fillStyle = theme.tickText;
+      for (let i = 0; i < g.n; i++) {
+        if (orient === 'h') {
+          const cy    = g.yToPx(i);
+          const valPx = g.xToPx(values[i]);
+          const above = values[i] >= g.baseline;
+          ctx.textAlign    = above ? 'left' : 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(fmtVal(values[i]), valPx + (above ? 3 : -3), cy);
+        } else {
+          const cx    = g.xToPx(i);
+          const valPy = g.yToPx(values[i]);
+          const above = values[i] >= g.baseline;
+          ctx.textAlign    = 'center';
+          ctx.textBaseline = above ? 'bottom' : 'top';
+          ctx.fillText(fmtVal(values[i]), cx, valPy + (above ? -2 : 2));
+        }
+      }
+    }
+
+    // ── axis borders ──────────────────────────────────────────────────────
+    ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r.x, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r.x, r.y);         ctx.lineTo(r.x, r.y + r.h);       ctx.stroke();
+
+    // Explicit baseline when it isn't at the plot edge
+    if (orient === 'h') {
+      if (g.basePx > r.x && g.basePx < r.x + r.w) {
+        ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(g.basePx, r.y); ctx.lineTo(g.basePx, r.y + r.h); ctx.stroke();
+      }
+    } else {
+      if (g.basePx > r.y && g.basePx < r.y + r.h) {
+        ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(r.x, g.basePx); ctx.lineTo(r.x + r.w, g.basePx); ctx.stroke();
+      }
+    }
+
+    // ── tick labels ───────────────────────────────────────────────────────
+    ctx.font = '10px monospace'; ctx.fillStyle = theme.tickText;
+
+    if (orient === 'h') {
+      // Value axis → X ticks at bottom
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+        const px = g.xToPx(v);
+        if (px < r.x || px > r.x + r.w) continue;
+        ctx.strokeStyle = theme.axisStroke;
+        ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
+        ctx.fillStyle = theme.tickText;
+        ctx.fillText(fmtVal(v), px, r.y + r.h + 7);
+      }
+      // Category axis → Y labels on left
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      const maxCatLabels = Math.max(1, Math.floor(r.h / 14));
+      const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
+      for (let i = 0; i < g.n; i += catStep) {
+        const cy    = g.yToPx(i);
+        const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
+        ctx.strokeStyle = theme.axisStroke;
+        ctx.beginPath(); ctx.moveTo(r.x, cy); ctx.lineTo(r.x - 4, cy); ctx.stroke();
+        ctx.fillStyle = theme.tickText;
+        ctx.fillText(label, r.x - 7, cy);
+      }
+      // Units
+      if (st.y_units) {
+        ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
+        ctx.fillStyle=theme.unitText;
+        ctx.fillText(st.y_units, r.x + r.w, r.y + r.h + 24);
+        ctx.font='10px monospace';
+      }
+      if (st.units) {
+        ctx.save();
+        ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+        ctx.fillText(st.units, 0, 0);
+        ctx.restore();
+      }
+    } else {
+      // Category axis → X ticks at bottom
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const maxCatLabels = Math.max(1, Math.floor(r.w / 42));
+      const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
+      for (let i = 0; i < g.n; i += catStep) {
+        const cx    = g.xToPx(i);
+        const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
+        ctx.strokeStyle = theme.axisStroke;
+        ctx.beginPath(); ctx.moveTo(cx, r.y + r.h); ctx.lineTo(cx, r.y + r.h + 4); ctx.stroke();
+        ctx.fillStyle = theme.tickText;
+        ctx.fillText(label, cx, r.y + r.h + 7);
+      }
+      if (st.units && st.units !== 'px') {
+        ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
+        ctx.fillStyle=theme.unitText;
+        ctx.fillText(st.units, r.x + r.w, r.y + r.h + 24);
+        ctx.font='10px monospace';
+      }
+      // Value axis → Y ticks on left
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+        const py = g.yToPx(v);
+        if (py < r.y || py > r.y + r.h) continue;
+        ctx.strokeStyle = theme.axisStroke;
+        ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
+        ctx.fillStyle = theme.tickText;
+        ctx.fillText(fmtVal(v), r.x - 8, py);
+      }
+      if (st.y_units) {
+        ctx.save();
+        ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+        ctx.fillText(st.y_units, 0, 0);
+        ctx.restore();
+      }
+    }
+  }
+
+  function _attachEventsBar(p) {
+    const { overlayCanvas } = p;
+
+    // Return the bar index at canvas position (mx, my), or -1 if none.
+    function _barHit(mx, my) {
+      const st = p.state; if (!st || !st.values.length) return -1;
+      const r  = _plotRect1d(p.pw, p.ph);
+      if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) return -1;
+      const g = _barGeom(st, r);
+      for (let i = 0; i < g.n; i++) {
+        if (g.orient === 'h') {
+          const cy    = g.yToPx(i);
+          const valPx = g.xToPx(st.values[i]);
+          const left  = Math.min(valPx, g.basePx);
+          const barW  = Math.max(1, Math.abs(valPx - g.basePx));
+          if (Math.abs(my - cy) <= g.barPx / 2 && mx >= left && mx <= left + barW) return i;
+        } else {
+          const cx    = g.xToPx(i);
+          const valPy = g.yToPx(st.values[i]);
+          const top   = Math.min(valPy, g.basePx);
+          const barH  = Math.max(1, Math.abs(valPy - g.basePx));
+          if (Math.abs(mx - cx) <= g.barPx / 2 && my >= top && my <= top + barH) return i;
+        }
+      }
+      return -1;
+    }
+
+    overlayCanvas.addEventListener('mousemove', (e) => {
+      const st = p.state; if (!st) return;
+      const rect = overlayCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const idx = _barHit(mx, my);
+      if (idx !== p._hovBar) {
+        p._hovBar = idx;
+        drawBar(p);
+      }
+      if (idx >= 0) {
+        const label = (st.x_labels||[])[idx] !== undefined
+          ? String(st.x_labels[idx])
+          : fmtVal((st.x_centers||[])[idx] ?? idx);
+        _showTooltip(`${label}: ${fmtVal(st.values[idx])}`, e.clientX, e.clientY);
+        overlayCanvas.style.cursor = 'pointer';
+      } else {
+        tooltip.style.display = 'none';
+        overlayCanvas.style.cursor = 'default';
+      }
+    });
+
+    overlayCanvas.addEventListener('mouseleave', () => {
+      if (p._hovBar !== -1) { p._hovBar = -1; drawBar(p); }
+      tooltip.style.display = 'none';
+    });
+
+    overlayCanvas.addEventListener('click', (e) => {
+      const st = p.state; if (!st) return;
+      const rect = overlayCanvas.getBoundingClientRect();
+      const idx  = _barHit(e.clientX - rect.left, e.clientY - rect.top);
+      if (idx < 0) return;
+      _emitEvent(p.id, 'on_click', null, {
+        bar_index: idx,
+        value:     st.values[idx],
+        x_center:  (st.x_centers||[])[idx] ?? idx,
+        x_label:   (st.x_labels||[])[idx]  !== undefined
+                     ? String(st.x_labels[idx]) : null,
+      });
+    });
+  }
+
   // ── generic redraw ────────────────────────────────────────────────────────
   function _redrawPanel(p) {
     if(!p.state) return;
     if(p.kind==='2d')      draw2d(p);
     else if(p.kind==='3d') draw3d(p);
+    else if(p.kind==='bar') drawBar(p);
     else                   draw1d(p);
   }
 

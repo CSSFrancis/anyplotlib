@@ -34,7 +34,7 @@ from anyplotlib.widgets import (
 )
 
 __all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D",
-           "_resample_mesh"]
+           "PlotBar", "_resample_mesh"]
 
 
 # ---------------------------------------------------------------------------
@@ -308,7 +308,57 @@ class Axes:
         self._attach(plot)
         return plot
 
-    def _attach(self, plot: "Plot1D | Plot2D | PlotMesh | Plot3D") -> None:
+    def bar(self, values,
+            x_labels=None,
+            x_centers=None,
+            color: str = "#4fc3f7",
+            colors=None,
+            bar_width: float = 0.7,
+            orient: str = "v",
+            baseline: float = 0.0,
+            show_values: bool = False,
+            units: str = "",
+            y_units: str = "") -> "PlotBar":
+        """Attach a bar chart to this axes cell.
+
+        Parameters
+        ----------
+        values : array-like, shape (N,)
+            Bar heights (vertical) or widths (horizontal).
+        x_labels : list of str, optional
+            Category labels for each bar.  Shown on the categorical axis
+            instead of numeric tick values.
+        x_centers : array-like, optional
+            Numeric positions of bar centres.  Defaults to ``0, 1, … N-1``.
+        color : str, optional
+            Single CSS colour applied to every bar.  Default ``"#4fc3f7"``.
+        colors : list of str, optional
+            Per-bar colour list; overrides *color* where provided.
+        bar_width : float, optional
+            Bar width as a fraction of the slot width (0–1).  Default ``0.7``.
+        orient : ``"v"`` | ``"h"``, optional
+            Vertical (default) or horizontal orientation.
+        baseline : float, optional
+            Value at which bars are rooted.  Default ``0``.
+        show_values : bool, optional
+            Draw the numeric value above / beside each bar.
+        units : str, optional
+            Label for the categorical axis.
+        y_units : str, optional
+            Label for the value axis.
+
+        Returns
+        -------
+        PlotBar
+        """
+        plot = PlotBar(values, x_labels=x_labels, x_centers=x_centers,
+                       color=color, colors=colors, bar_width=bar_width,
+                       orient=orient, baseline=baseline, show_values=show_values,
+                       units=units, y_units=y_units)
+        self._attach(plot)
+        return plot
+
+    def _attach(self, plot: "Plot1D | Plot2D | PlotMesh | Plot3D | PlotBar") -> None:
         """Register a plot on this axes (replace any previous plot)."""
         # Allocate a panel id if needed; reuse if replacing
         if self._plot is not None:
@@ -1459,4 +1509,154 @@ class Plot1D:
             for name, g in td.items():
                 out.append({"type": mtype, "name": name, "n": g._count()})
         return out
+
+
+# ---------------------------------------------------------------------------
+# PlotBar
+# ---------------------------------------------------------------------------
+
+class PlotBar:
+    """Bar-chart plot panel.
+
+    Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
+    ``_push()`` which writes to the parent Figure's panel trait.
+
+    Created by :meth:`Axes.bar`.
+    """
+
+    def __init__(self, values,
+                 x_labels=None,
+                 x_centers=None,
+                 color: str = "#4fc3f7",
+                 colors=None,
+                 bar_width: float = 0.7,
+                 orient: str = "v",
+                 baseline: float = 0.0,
+                 show_values: bool = False,
+                 units: str = "",
+                 y_units: str = ""):
+        self._id:  str = ""
+        self._fig: object = None
+
+        values = np.asarray(values, dtype=float)
+        n = len(values)
+        if values.ndim != 1:
+            raise ValueError(f"values must be 1-D, got shape {values.shape}")
+        if orient not in ("v", "h"):
+            raise ValueError("orient must be 'v' or 'h'")
+
+        if x_centers is None:
+            x_centers = np.arange(n, dtype=float)
+        x_centers = np.asarray(x_centers, dtype=float)
+        if len(x_centers) != n:
+            raise ValueError("x_centers length must match values length")
+
+        val_min = float(np.nanmin(values)) if n else 0.0
+        val_max = float(np.nanmax(values)) if n else 1.0
+        dmin = min(float(baseline), val_min)
+        dmax = max(float(baseline), val_max)
+        pad  = (dmax - dmin) * 0.07 if dmax > dmin else 0.5
+        dmax += pad
+        if dmin < float(baseline):
+            dmin -= pad
+
+        self._state: dict = {
+            "kind":        "bar",
+            "values":      values.tolist(),
+            "x_centers":   x_centers.tolist(),
+            "x_labels":    list(x_labels) if x_labels is not None else [],
+            "bar_color":   color,
+            "bar_colors":  list(colors) if colors is not None else [],
+            "bar_width":   float(bar_width),
+            "orient":      orient,
+            "baseline":    float(baseline),
+            "show_values": bool(show_values),
+            "data_min":    dmin,
+            "data_max":    dmax,
+            "units":       units,
+            "y_units":     y_units,
+        }
+        self.callbacks = CallbackRegistry()
+
+    # ------------------------------------------------------------------
+    def _push(self) -> None:
+        if self._fig is None:
+            return
+        self._fig._push(self._id)
+
+    def to_state_dict(self) -> dict:
+        return dict(self._state)
+
+    # ------------------------------------------------------------------
+    # Data update
+    # ------------------------------------------------------------------
+    def update(self, values, x_centers=None, x_labels=None) -> None:
+        """Replace bar values; recalculates the value-axis range automatically."""
+        values = np.asarray(values, dtype=float)
+        if values.ndim != 1:
+            raise ValueError(f"values must be 1-D, got shape {values.shape}")
+
+        baseline = self._state["baseline"]
+        dmin = min(float(baseline), float(np.nanmin(values)))
+        dmax = max(float(baseline), float(np.nanmax(values)))
+        pad  = (dmax - dmin) * 0.07 if dmax > dmin else 0.5
+        dmax += pad
+        if dmin < baseline:
+            dmin -= pad
+
+        self._state["values"]   = values.tolist()
+        self._state["data_min"] = dmin
+        self._state["data_max"] = dmax
+        if x_centers is not None:
+            self._state["x_centers"] = np.asarray(x_centers, dtype=float).tolist()
+        if x_labels is not None:
+            self._state["x_labels"] = list(x_labels)
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Display settings
+    # ------------------------------------------------------------------
+    def set_color(self, color: str) -> None:
+        """Set a single colour for all bars."""
+        self._state["bar_color"] = color
+        self._push()
+
+    def set_colors(self, colors) -> None:
+        """Set per-bar colours (list of CSS colour strings, length N)."""
+        self._state["bar_colors"] = list(colors)
+        self._push()
+
+    def set_show_values(self, show: bool) -> None:
+        """Show or hide in-bar value annotations."""
+        self._state["show_values"] = bool(show)
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Callbacks
+    # ------------------------------------------------------------------
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires when the user clicks a bar.
+
+        The :class:`~anyplotlib.callbacks.Event` has ``bar_index``,
+        ``value``, ``x_center``, and ``x_label``.
+        """
+        cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
+
+    def on_changed(self, fn: Callable) -> Callable:
+        """Decorator: fires on hover-enter for a bar."""
+        cid = self.callbacks.connect("on_changed", fn)
+        fn._cid = cid
+        return fn
+
+    def disconnect(self, cid: int) -> None:
+        self.callbacks.disconnect(cid)
+
+    def __repr__(self) -> str:
+        n = len(self._state.get("values", []))
+        orient = self._state.get("orient", "v")
+        return f"PlotBar(n={n}, orient={orient!r})"
+
+
 
