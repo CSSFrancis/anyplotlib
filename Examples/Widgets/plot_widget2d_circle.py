@@ -4,8 +4,7 @@
 
 A draggable, resizable circle overlay on a 2-D image panel.
 Add it with :meth:`~anyplotlib.figure_plots.Plot2D.add_widget` using
-``kind="circle"``, or via the convenience wrapper
-``add_widget("circle", ...)``.
+``kind="circle"``.
 """
 import numpy as np
 import anyplotlib as vw
@@ -19,5 +18,5 @@ fig, ax = vw.subplots(1, 1, figsize=(460, 460))
 v = ax.imshow(data, axes=[xy, xy], units="nm")
 
 v.add_widget("circle", color="#e040fb", cx=64, cy=64, r=20)
-fig
 
+fig

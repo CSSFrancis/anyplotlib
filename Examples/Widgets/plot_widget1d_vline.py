@@ -16,4 +16,5 @@ fig, ax = vw.subplots(1, 1, figsize=(560, 300))
 v = ax.plot(signal, axes=[x], units="rad")
 
 v.add_vline_widget(x=np.pi, color="#e040fb")
+
 fig

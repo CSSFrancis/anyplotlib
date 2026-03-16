@@ -28,6 +28,7 @@ v.add_lines(segments, name="frame",
             edgecolors="#00e5ff", linewidths=1.5,
             label="frame",
             labels=["top", "right", "bottom", "left", "diagonal"])
+
 fig
 
 # %%

@@ -17,5 +17,5 @@ fig, ax = vw.subplots(1, 1, figsize=(460, 460))
 v = ax.imshow(data, axes=[xy, xy], units="nm")
 
 v.add_widget("annular", color="#00e5ff", cx=64, cy=64, r_outer=40, r_inner=20)
-fig
 
+fig

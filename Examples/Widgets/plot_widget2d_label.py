@@ -19,4 +19,5 @@ v = ax.imshow(data, axes=[xy, xy], units="nm")
 
 v.add_widget("label", color="#ff1744", x=10, y=10,
              text="Region A", fontsize=14)
+
 fig

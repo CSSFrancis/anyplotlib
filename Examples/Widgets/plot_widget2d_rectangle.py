@@ -18,5 +18,5 @@ fig, ax = vw.subplots(1, 1, figsize=(460, 460))
 v = ax.imshow(data, axes=[xy, xy], units="nm")
 
 v.add_widget("rectangle", color="#ffeb3b", x=24, y=24, w=80, h=60)
-fig
 
+fig

@@ -24,6 +24,7 @@ v.add_squares(centres, widths=20,
               name="tiles",
               edgecolors="#00e5ff", facecolors="#00e5ff22",
               label="tiles", labels=[f"T{i}" for i in range(5)])
+
 fig
 
 # %%

@@ -21,11 +21,11 @@ triangle = [[64.0, 10.0], [100.0, 60.0], [28.0, 60.0]]
 hexagon  = [[64.0 + 28 * np.cos(np.radians(60 * k)),
              95.0 + 28 * np.sin(np.radians(60 * k))]
             for k in range(6)]
-
 v.add_polygons([triangle, hexagon], name="shapes",
                edgecolors="#69f0ae", facecolors="#69f0ae22",
                linewidths=2.0,
                label="shapes", labels=["triangle", "hexagon"])
+
 fig
 
 # %%

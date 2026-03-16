@@ -20,10 +20,10 @@ v = ax.imshow(data, axes=[xy, xy], units="nm")
 tails = rng.uniform(15, 100, (8, 2))
 U     = rng.uniform(-18, 18, 8)
 V     = rng.uniform(-18, 18, 8)
-
 v.add_arrows(tails, U, V, name="flow",
              edgecolors="#76ff03", linewidths=2.0,
              label="flow vectors")
+
 fig
 
 # %%
