@@ -20,11 +20,21 @@ from __future__ import annotations
 
 import uuid as _uuid
 import numpy as np
+from typing import Callable
 
 from anyplotlib.markers import MarkerRegistry
 from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.widgets import (
+    Widget,
+    RectangleWidget, CircleWidget, AnnularWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget,
+    VLineWidget as _VLineWidget,
+    HLineWidget as _HLineWidget,
+    RangeWidget as _RangeWidget,
+)
 
-__all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D"]
+__all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D",
+           "_resample_mesh"]
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +362,44 @@ def _build_colormap_lut(name: str) -> list:
         return [[i, i, i] for i in range(256)]
 
 
+def _resample_mesh(data: np.ndarray, x_edges, y_edges) -> np.ndarray:
+    """Resample a mesh to a regular pixel grid via nearest-neighbour lookup.
+
+    For uniform edges this is an identity operation.  For non-uniform edges
+    (e.g. log-spaced) it maps each uniform output pixel to the nearest input
+    cell, producing a visually correct linear-axis image.
+
+    Parameters
+    ----------
+    data    : ndarray, shape (M, N) — one value per mesh cell.
+    x_edges : array-like, length N+1 — column edge coordinates.
+    y_edges : array-like, length M+1 — row edge coordinates.
+
+    Returns
+    -------
+    ndarray, shape (M, N)
+    """
+    rows, cols = data.shape
+    x_edges = np.asarray(x_edges, dtype=float)
+    y_edges = np.asarray(y_edges, dtype=float)
+
+    # Cell centres
+    x_c = (x_edges[:-1] + x_edges[1:]) / 2.0
+    y_c = (y_edges[:-1] + y_edges[1:]) / 2.0
+
+    # Uniform sample points (same count as original cells)
+    x_samp = np.linspace(x_c[0], x_c[-1], cols)
+    y_samp = np.linspace(y_c[0], y_c[-1], rows)
+
+    # Nearest-neighbour cell lookup via edge-sorted searchsorted
+    xi = np.searchsorted(x_edges, x_samp) - 1
+    xi = np.clip(xi, 0, cols - 1)
+    yi = np.searchsorted(y_edges, y_samp) - 1
+    yi = np.clip(yi, 0, rows - 1)
+
+    return data[np.ix_(yi, xi)]
+
+
 # ---------------------------------------------------------------------------
 # Plot2D
 # ---------------------------------------------------------------------------
@@ -432,6 +480,7 @@ class Plot2D:
         self.markers = MarkerRegistry(self._push_markers,
                                       allowed=MarkerRegistry._KNOWN_2D)
         self.callbacks = CallbackRegistry()
+        self._widgets: dict[str, Widget] = {}
 
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
@@ -442,6 +491,7 @@ class Plot2D:
         """Serialise _state + markers and write to Figure trait."""
         if self._fig is None:
             return
+        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
 
     def _push_markers(self) -> None:
@@ -452,6 +502,7 @@ class Plot2D:
     def to_state_dict(self) -> dict:
         """Return a JSON-serialisable copy of the current state."""
         d = dict(self._state)
+        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         d["markers"] = self.markers.to_wire_list()
         return d
 
@@ -536,462 +587,108 @@ class Plot2D:
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
-    def add_widget(self, kind: str, color: str = "#00e5ff", **kwargs) -> str:
+    def add_widget(self, kind: str, color: str = "#00e5ff", **kwargs) -> Widget:
         kind = kind.lower()
         valid = ("circle", "rectangle", "annular", "polygon", "label", "crosshair")
         if kind not in valid:
             raise ValueError(f"kind must be one of {valid}")
-        wid = str(_uuid.uuid4())[:8]
         iw, ih = self._state["image_width"], self._state["image_height"]
 
         def _f(k, default): return float(kwargs.get(k, default))
         def _i(k, default): return int(kwargs.get(k, default))
 
         if kind == "circle":
-            entry = {"id": wid, "type": "circle",
-                     "cx": _f("cx", iw/2), "cy": _f("cy", ih/2),
-                     "r":  _f("r",  iw*0.1), "color": color}
+            widget = CircleWidget(lambda: None,
+                                  cx=_f("cx", iw / 2), cy=_f("cy", ih / 2),
+                                  r=_f("r", iw * 0.1), color=color)
         elif kind == "rectangle":
-            entry = {"id": wid, "type": "rectangle",
-                     "x": _f("x", iw*0.25), "y": _f("y", ih*0.25),
-                     "w": _f("w", iw*0.5),  "h": _f("h", ih*0.5), "color": color}
+            widget = RectangleWidget(lambda: None,
+                                     x=_f("x", iw * 0.25), y=_f("y", ih * 0.25),
+                                     w=_f("w", iw * 0.5), h=_f("h", ih * 0.5),
+                                     color=color)
         elif kind == "annular":
-            r_outer = _f("r_outer", iw*0.2)
-            r_inner = _f("r_inner", iw*0.1)
-            if r_inner >= r_outer:
-                raise ValueError("r_inner must be < r_outer")
-            entry = {"id": wid, "type": "annular",
-                     "cx": _f("cx", iw/2), "cy": _f("cy", ih/2),
-                     "r_outer": r_outer, "r_inner": r_inner, "color": color}
+            r_outer = _f("r_outer", iw * 0.2)
+            r_inner = _f("r_inner", iw * 0.1)
+            widget = AnnularWidget(lambda: None,
+                                   cx=_f("cx", iw / 2), cy=_f("cy", ih / 2),
+                                   r_outer=r_outer, r_inner=r_inner, color=color)
         elif kind == "polygon":
-            raw = kwargs.get("vertices", [[iw*.25,ih*.25],[iw*.75,ih*.25],
-                                           [iw*.75,ih*.75],[iw*.25,ih*.75]])
-            verts = [[float(x), float(y)] for x, y in raw]
-            if len(verts) < 3:
-                raise ValueError("polygon needs >= 3 vertices")
-            entry = {"id": wid, "type": "polygon", "vertices": verts, "color": color}
+            raw = kwargs.get("vertices", [[iw * .25, ih * .25], [iw * .75, ih * .25],
+                                          [iw * .75, ih * .75], [iw * .25, ih * .75]])
+            widget = PolygonWidget(lambda: None, vertices=raw, color=color)
         elif kind == "crosshair":
-            entry = {"id": wid, "type": "crosshair",
-                     "cx": _f("cx", iw/2), "cy": _f("cy", ih/2), "color": color}
+            widget = CrosshairWidget(lambda: None,
+                                     cx=_f("cx", iw / 2), cy=_f("cy", ih / 2),
+                                     color=color)
         else:  # label
-            entry = {"id": wid, "type": "label",
-                     "x": _f("x", iw*0.1), "y": _f("y", ih*0.1),
-                     "text": str(kwargs.get("text", "Label")),
-                     "fontsize": _i("fontsize", 14), "color": color}
+            widget = LabelWidget(lambda: None,
+                                 x=_f("x", iw * 0.1), y=_f("y", ih * 0.1),
+                                 text=str(kwargs.get("text", "Label")),
+                                 fontsize=_i("fontsize", 14), color=color)
 
-        self._state["overlay_widgets"].append(entry)
-        self._push()
-        return wid
+        # Replace the temporary push_fn with a targeted one now that
+        # we have both the widget's _id and the plot's _id.
+        plot_ref = self
+        wid_id   = widget._id
+        def _targeted_push():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items()
+                          if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _targeted_push
 
-    def get_widget(self, wid: str) -> dict:
-        for w in self._state["overlay_widgets"]:
-            if w["id"] == wid:
-                return dict(w)
-        raise KeyError(wid)
+        self._widgets[widget.id] = widget
+        self._push()       # full panel push once so JS knows about the widget
+        return widget
 
-    def remove_widget(self, wid: str) -> None:
-        before = len(self._state["overlay_widgets"])
-        self._state["overlay_widgets"] = [
-            w for w in self._state["overlay_widgets"] if w["id"] != wid]
-        if len(self._state["overlay_widgets"]) == before:
+    def get_widget(self, wid) -> Widget:
+        """Return the Widget object by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        try:
+            return self._widgets[wid]
+        except KeyError:
             raise KeyError(wid)
+
+    def remove_widget(self, wid) -> None:
+        """Remove a widget by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        if wid not in self._widgets:
+            raise KeyError(wid)
+        del self._widgets[wid]
         self._push()
 
     def list_widgets(self) -> list:
-        return [dict(w) for w in self._state["overlay_widgets"]]
+        return list(self._widgets.values())
 
     def clear_widgets(self) -> None:
-        self._state["overlay_widgets"] = []
+        self._widgets.clear()
         self._push()
 
-    # convenience widget helpers
-    def add_annular_widget(self, cx=None, cy=None, r_outer=None, r_inner=None,
-                           color="#00e5ff") -> str:
-        iw, ih = self._state["image_width"], self._state["image_height"]
-        return self.add_widget("annular", color=color,
-                               cx=cx or iw/2, cy=cy or ih/2,
-                               r_outer=r_outer or iw*0.2,
-                               r_inner=r_inner or iw*0.1)
-
-    def add_crosshair_widget(self, cx=None, cy=None, color="#00e5ff") -> str:
-        iw, ih = self._state["image_width"], self._state["image_height"]
-        return self.add_widget("crosshair", color=color,
-                               cx=cx or iw/2, cy=cy or ih/2)
-
     # ------------------------------------------------------------------
-    # Callback API
+    # Callback API  (Plot2D)
     # ------------------------------------------------------------------
-    def on_change(self, widget_id=None):
-        """Fires on every drag/scroll frame. Keep callbacks fast."""
-        def decorator(fn):
-            cid = self.callbacks.connect("change", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
+    def on_changed(self, fn: Callable) -> Callable:
+        """Decorator: fires on every pan/zoom/drag frame on this panel."""
+        cid = self.callbacks.connect("on_changed", fn)
+        fn._cid = cid
+        return fn
 
-    def on_release(self, widget_id=None):
-        """Fires once when drag settles. Safe for expensive work."""
-        def decorator(fn):
-            cid = self.callbacks.connect("release", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
+    def on_release(self, fn: Callable) -> Callable:
+        """Decorator: fires once when pan/zoom/drag settles on this panel."""
+        cid = self.callbacks.connect("on_release", fn)
+        fn._cid = cid
+        return fn
+
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires on click on this panel."""
+        cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
 
     def disconnect(self, cid: int) -> None:
-        """Remove the callback registered under integer *cid*."""
-        self.callbacks.disconnect(cid)
-
-    # ------------------------------------------------------------------
-    # Marker API  (matplotlib-style kwargs → MarkerRegistry)
-    # ------------------------------------------------------------------
-    def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
-        return self.markers.add(mtype, name, **kwargs)
-
-    def add_circles(self, offsets, name=None, *, radius=5,
-                    facecolors=None, edgecolors="#ff0000",
-                    linewidths=1.5, alpha=0.3,
-                    hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("circles", name, offsets=offsets, radius=radius,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_arrows(self, offsets, U, V, name=None, *,
-                   edgecolors="#ff0000", linewidths=1.5,
-                   hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
-                                edgecolors=edgecolors, linewidths=linewidths,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def add_ellipses(self, offsets, widths, heights, name=None, *,
-                     angles=0, facecolors=None, edgecolors="#ff0000",
-                     linewidths=1.5, alpha=0.3,
-                     hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("ellipses", name, offsets=offsets,
-                                widths=widths, heights=heights, angles=angles,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_lines(self, segments, name=None, *,
-                  edgecolors="#ff0000", linewidths=1.5,
-                  hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("lines", name, segments=segments,
-                                edgecolors=edgecolors, linewidths=linewidths,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def add_rectangles(self, offsets, widths, heights, name=None, *,
-                       angles=0, facecolors=None, edgecolors="#ff0000",
-                       linewidths=1.5, alpha=0.3,
-                       hover_edgecolors=None, hover_facecolors=None,
-                       labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("rectangles", name, offsets=offsets,
-                                widths=widths, heights=heights, angles=angles,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_squares(self, offsets, widths, name=None, *,
-                    angles=0, facecolors=None, edgecolors="#ff0000",
-                    linewidths=1.5, alpha=0.3,
-                    hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("squares", name, offsets=offsets,
-                                widths=widths, angles=angles,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_polygons(self, vertices_list, name=None, *,
-                     facecolors=None, edgecolors="#ff0000",
-                     linewidths=1.5, alpha=0.3,
-                     hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("polygons", name, vertices_list=vertices_list,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_texts(self, offsets, texts, name=None, *,
-                  color="#ff0000", fontsize=12,
-                  hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("texts", name, offsets=offsets, texts=texts,
-                                color=color, fontsize=fontsize,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def remove_marker(self, marker_type: str, name: str) -> None:
-        self.markers.remove(marker_type, name)
-
-    def clear_markers(self) -> None:
-        self.markers.clear()
-
-    def list_markers(self) -> list:
-        out = []
-        for mtype, td in self.markers._types.items():
-            for name, g in td.items():
-                out.append({"type": mtype, "name": name, "n": g._count()})
-        return out
-
-
-# ---------------------------------------------------------------------------
-# PlotMesh helpers
-# ---------------------------------------------------------------------------
-
-def _resample_mesh(data: np.ndarray,
-                   x_edges: np.ndarray,
-                   y_edges: np.ndarray) -> np.ndarray:
-    """Resample an (M, N) mesh to a regular (M, N) pixel grid.
-
-    The non-uniform cell *edges* define where each column/row boundary sits
-    in physical space.  We map a uniformly-spaced output grid back to input
-    cell indices via ``np.searchsorted`` on the edges, giving a simple
-    nearest-cell lookup (no interpolation).
-
-    Parameters
-    ----------
-    data     : shape (M, N)
-    x_edges  : length N+1  – column edge coordinates
-    y_edges  : length M+1  – row edge coordinates
-
-    Returns
-    -------
-    resampled : shape (M, N) float64, ready for ``_normalize_image``
-    """
-    m, n = data.shape
-    # Uniform sample points at cell centres of the *output* (M, N) grid
-    # expressed in the same physical space as the edges.
-    x_out = np.linspace(x_edges[0], x_edges[-1], n, endpoint=False) \
-            + (x_edges[-1] - x_edges[0]) / (2 * n)
-    y_out = np.linspace(y_edges[0], y_edges[-1], m, endpoint=False) \
-            + (y_edges[-1] - y_edges[0]) / (2 * m)
-
-    # Map each output sample to the source cell index (clipped to valid range)
-    xi = np.clip(np.searchsorted(x_edges, x_out, side='right') - 1, 0, n - 1)
-    yi = np.clip(np.searchsorted(y_edges, y_out, side='right') - 1, 0, m - 1)
-
-    return data[np.ix_(yi, xi)].astype(np.float64)
-
-
-# ---------------------------------------------------------------------------
-# PlotMesh
-# ---------------------------------------------------------------------------
-
-class PlotMesh:
-    """2-D mesh plot panel using pcolormesh-style edge coordinates.
-
-    Accepts cell *edge* arrays (length N+1 / M+1) exactly like
-    ``matplotlib.axes.Axes.pcolormesh``.  The mesh is resampled to a regular
-    pixel grid internally; the original edge arrays are sent to JS for
-    accurate non-linear axis ticks.
-
-    Marker support is limited to circles (points) and line segments.
-    Overlay widgets are not supported.
-    """
-
-    def __init__(self, data: np.ndarray,
-                 x_edges=None, y_edges=None, units: str = ""):
-        self._id:  str = ""       # assigned by Axes._attach
-        self._fig: object = None  # assigned by Axes._attach
-
-        data = np.asarray(data, dtype=float)
-        if data.ndim != 2:
-            raise ValueError(f"data must be 2-D (M x N), got {data.shape}")
-
-        m, n = data.shape
-
-        if x_edges is None:
-            x_edges = np.arange(n + 1, dtype=float)
-        if y_edges is None:
-            y_edges = np.arange(m + 1, dtype=float)
-
-        x_edges = np.asarray(x_edges, dtype=float)
-        y_edges = np.asarray(y_edges, dtype=float)
-
-        if x_edges.ndim != 1 or len(x_edges) != n + 1:
-            raise ValueError(
-                f"x_edges must be 1-D with length N+1={n+1}, got {x_edges.shape}")
-        if y_edges.ndim != 1 or len(y_edges) != m + 1:
-            raise ValueError(
-                f"y_edges must be 1-D with length M+1={m+1}, got {y_edges.shape}")
-
-        self._x_edges = x_edges
-        self._y_edges = y_edges
-
-        resampled = _resample_mesh(data, x_edges, y_edges)
-        img_u8, vmin, vmax = _normalize_image(resampled)
-        self._raw_u8   = img_u8
-        self._raw_vmin = vmin
-        self._raw_vmax = vmax
-
-        cmap_lut = _build_colormap_lut("gray")
-
-        self._state: dict = {
-            "kind":              "2d",
-            "is_mesh":           True,
-            "image_b64":         Plot2D._encode_bytes(img_u8),
-            "image_width":       n,
-            "image_height":      m,
-            "x_axis":            x_edges.tolist(),
-            "y_axis":            y_edges.tolist(),
-            "units":             units,
-            "hist_min":          vmin,
-            "hist_max":          vmax,
-            "display_min":       vmin,
-            "display_max":       vmax,
-            "histogram_data":    _compute_histogram(img_u8, vmin, vmax),
-            "histogram_visible": False,
-            "show_colorbar":     False,
-            "log_scale":         False,
-            "scale_mode":        "linear",
-            "colormap_name":     "gray",
-            "colormap_data":     cmap_lut,
-            "zoom":              1.0,
-            "center_x":          0.5,
-            "center_y":          0.5,
-            "overlay_widgets":   [],
-            "markers":           [],
-        }
-
-        self.markers = MarkerRegistry(self._push_markers,
-                                      allowed=MarkerRegistry._KNOWN_MESH)
-        self.callbacks = CallbackRegistry()
-
-    def _push(self) -> None:
-        if self._fig is None:
-            return
-        self._fig._push(self._id)
-
-    def _push_markers(self) -> None:
-        self._state["markers"] = self.markers.to_wire_list()
-        self._push()
-
-    def to_state_dict(self) -> dict:
-        d = dict(self._state)
-        d["markers"] = self.markers.to_wire_list()
-        return d
-
-    # ------------------------------------------------------------------
-    # Data update
-    # ------------------------------------------------------------------
-    def update(self, data: np.ndarray,
-               x_edges=None, y_edges=None,
-               units: str | None = None) -> None:
-        """Replace the mesh data."""
-        data = np.asarray(data, dtype=float)
-        if data.ndim != 2:
-            raise ValueError(f"data must be 2-D, got {data.shape}")
-        m, n = data.shape
-
-        if x_edges is not None:
-            x_edges = np.asarray(x_edges, dtype=float)
-            if len(x_edges) != n + 1:
-                raise ValueError(f"x_edges must have length N+1={n+1}")
-            self._x_edges = x_edges
-        if y_edges is not None:
-            y_edges = np.asarray(y_edges, dtype=float)
-            if len(y_edges) != m + 1:
-                raise ValueError(f"y_edges must have length M+1={m+1}")
-            self._y_edges = y_edges
-
-        resampled = _resample_mesh(data, self._x_edges, self._y_edges)
-        img_u8, vmin, vmax = _normalize_image(resampled)
-        self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
-
-        self._state.update({
-            "image_b64":    Plot2D._encode_bytes(img_u8),
-            "image_width":  n,
-            "image_height": m,
-            "x_axis":       self._x_edges.tolist(),
-            "y_axis":       self._y_edges.tolist(),
-            "hist_min":     vmin,
-            "hist_max":     vmax,
-            "display_min":  vmin,
-            "display_max":  vmax,
-            "histogram_data": _compute_histogram(img_u8, vmin, vmax),
-            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
-        })
-        if units is not None:
-            self._state["units"] = units
-        self._push()
-
-    # ------------------------------------------------------------------
-    # Display settings  (same API as Plot2D)
-    # ------------------------------------------------------------------
-    def set_colormap(self, name: str) -> None:
-        self._state["colormap_name"] = name
-        self._state["colormap_data"] = _build_colormap_lut(name)
-        self._push()
-
-    def set_clim(self, vmin=None, vmax=None) -> None:
-        if vmin is not None:
-            self._state["display_min"] = float(vmin)
-        if vmax is not None:
-            self._state["display_max"] = float(vmax)
-        self._push()
-
-    def set_scale_mode(self, mode: str) -> None:
-        valid = ("linear", "log", "symlog")
-        if mode not in valid:
-            raise ValueError(f"mode must be one of {valid}")
-        self._state["scale_mode"] = mode
-        self._push()
-
-    @property
-    def histogram_visible(self) -> bool:
-        return self._state["histogram_visible"]
-
-    @histogram_visible.setter
-    def histogram_visible(self, val: bool) -> None:
-        self._state["histogram_visible"] = bool(val)
-        self._push()
-
-    @property
-    def colormap_name(self) -> str:
-        return self._state["colormap_name"]
-
-    @colormap_name.setter
-    def colormap_name(self, name: str) -> None:
-        self.set_colormap(name)
-
-    # ------------------------------------------------------------------
-    # Callback API  (PlotMesh)
-    # ------------------------------------------------------------------
-    def on_change(self, widget_id=None):
-        """Fires on every drag/zoom frame. Keep callbacks fast."""
-        def decorator(fn):
-            cid = self.callbacks.connect("change", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
-
-    def on_release(self, widget_id=None):
-        """Fires once when drag/zoom settles."""
-        def decorator(fn):
-            cid = self.callbacks.connect("release", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
-
-    def disconnect(self, cid: int) -> None:
-        """Remove the callback registered under integer *cid*."""
+        """Remove the callback registered under integer cid."""
         self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
@@ -1038,7 +735,107 @@ class PlotMesh:
 
 
 # ---------------------------------------------------------------------------
-# Plot3D
+# PlotMesh  (pcolormesh-style 2-D panel)
+# ---------------------------------------------------------------------------
+
+class PlotMesh(Plot2D):
+    """2-D mesh plot panel created by :meth:`Axes.pcolormesh`.
+
+    Accepts cell *edge* arrays (length N+1 / M+1) rather than centre arrays,
+    matches matplotlib's ``pcolormesh`` convention.  Only ``'circles'`` and
+    ``'lines'`` markers are supported.
+    """
+
+    def __init__(self, data: np.ndarray,
+                 x_edges=None, y_edges=None, units: str = ""):
+        data = np.asarray(data)
+        if data.ndim != 2:
+            raise ValueError(f"data must be 2-D (M x N), got {data.shape}")
+        rows, cols = data.shape
+
+        if x_edges is None:
+            x_edges = np.arange(cols + 1, dtype=float)
+        if y_edges is None:
+            y_edges = np.arange(rows + 1, dtype=float)
+        x_edges = np.asarray(x_edges, dtype=float)
+        y_edges = np.asarray(y_edges, dtype=float)
+
+        if len(x_edges) != cols + 1:
+            raise ValueError(
+                f"x_edges must have length {cols + 1} for {cols} columns, "
+                f"got {len(x_edges)}")
+        if len(y_edges) != rows + 1:
+            raise ValueError(
+                f"y_edges must have length {rows + 1} for {rows} rows, "
+                f"got {len(y_edges)}")
+
+        # Resample to a regular pixel grid for display
+        resampled = _resample_mesh(data, x_edges, y_edges)
+
+        # Use cell centres to initialise the parent (axes will be replaced)
+        x_c = (x_edges[:-1] + x_edges[1:]) / 2.0
+        y_c = (y_edges[:-1] + y_edges[1:]) / 2.0
+        super().__init__(resampled, x_axis=x_c, y_axis=y_c, units=units)
+
+        # Override mesh-specific state
+        self._state["is_mesh"]  = True
+        self._state["has_axes"] = True
+        # Store edges (not centres) so the JS renderer can place grid lines
+        self._state["x_axis"] = x_edges.tolist()
+        self._state["y_axis"] = y_edges.tolist()
+        # Mesh panels have no fixed pixel scale
+        self._state.pop("scale_x", None)
+        self._state.pop("scale_y", None)
+
+        # Restrict markers to circles + lines only
+        self.markers = MarkerRegistry(self._push_markers,
+                                      allowed=MarkerRegistry._KNOWN_MESH)
+
+    # ------------------------------------------------------------------
+    # Data update
+    # ------------------------------------------------------------------
+    def update(self, data: np.ndarray,
+               x_edges=None, y_edges=None, units: str | None = None) -> None:
+        """Replace the mesh data (and optionally the edge arrays)."""
+        data = np.asarray(data)
+        if data.ndim != 2:
+            raise ValueError(f"data must be 2-D, got {data.shape}")
+        rows, cols = data.shape
+
+        cur_xe = np.asarray(self._state["x_axis"], dtype=float)
+        cur_ye = np.asarray(self._state["y_axis"], dtype=float)
+        xe = np.asarray(x_edges, dtype=float) if x_edges is not None else cur_xe
+        ye = np.asarray(y_edges, dtype=float) if y_edges is not None else cur_ye
+
+        if len(xe) != cols + 1:
+            raise ValueError(f"x_edges must have length {cols + 1}")
+        if len(ye) != rows + 1:
+            raise ValueError(f"y_edges must have length {rows + 1}")
+
+        resampled = _resample_mesh(data, xe, ye)
+        img_u8, vmin, vmax = _normalize_image(resampled)
+        self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
+
+        self._state.update({
+            "image_b64":      self._encode_bytes(img_u8),
+            "image_width":    cols,
+            "image_height":   rows,
+            "x_axis":         xe.tolist(),
+            "y_axis":         ye.tolist(),
+            "hist_min":       vmin,
+            "hist_max":       vmax,
+            "display_min":    vmin,
+            "display_max":    vmax,
+            "histogram_data": _compute_histogram(img_u8, vmin, vmax),
+            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
+        })
+        if units is not None:
+            self._state["units"] = units
+        self._push()
+
+
+# ---------------------------------------------------------------------------
+# _triangulate_grid helper + Plot3D
 # ---------------------------------------------------------------------------
 
 def _triangulate_grid(rows: int, cols: int) -> list:
@@ -1165,21 +962,23 @@ class Plot3D:
     # ------------------------------------------------------------------
     # Callback API  (Plot3D)
     # ------------------------------------------------------------------
-    def on_change(self, widget_id=None):
-        """Fires on every rotation/zoom frame. Keep callbacks fast."""
-        def decorator(fn):
-            cid = self.callbacks.connect("change", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
+    def on_changed(self, fn: Callable) -> Callable:
+        """Decorator: fires on every rotation/zoom frame."""
+        cid = self.callbacks.connect("on_changed", fn)
+        fn._cid = cid
+        return fn
 
-    def on_release(self, widget_id=None):
-        """Fires once when rotation/zoom settles."""
-        def decorator(fn):
-            cid = self.callbacks.connect("release", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
+    def on_release(self, fn: Callable) -> Callable:
+        """Decorator: fires once when rotation/zoom settles."""
+        cid = self.callbacks.connect("on_release", fn)
+        fn._cid = cid
+        return fn
+
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires on click on this panel."""
+        cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
 
     def disconnect(self, cid: int) -> None:
         """Remove the callback registered under integer *cid*."""
@@ -1308,10 +1107,12 @@ class Plot1D:
         self.markers = MarkerRegistry(self._push_markers,
                                       allowed=MarkerRegistry._KNOWN_1D)
         self.callbacks = CallbackRegistry()
+        self._widgets: dict[str, Widget] = {}
 
     def _push(self) -> None:
         if self._fig is None:
             return
+        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
 
     def _push_markers(self) -> None:
@@ -1320,6 +1121,7 @@ class Plot1D:
 
     def to_state_dict(self) -> dict:
         d = dict(self._state)
+        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         d["markers"] = self.markers.to_wire_list()
         return d
 
@@ -1408,68 +1210,88 @@ class Plot1D:
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
-    def add_vline_widget(self, x: float, color: str = "#00e5ff") -> str:
-        wid = str(_uuid.uuid4())[:8]
-        self._state["overlay_widgets"].append(
-            {"id": wid, "type": "vline", "x": float(x), "color": color})
+    def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
+        widget = _VLineWidget(lambda: None, x=float(x), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
         self._push()
-        return wid
+        return widget
 
-    def add_hline_widget(self, y: float, color: str = "#00e5ff") -> str:
-        wid = str(_uuid.uuid4())[:8]
-        self._state["overlay_widgets"].append(
-            {"id": wid, "type": "hline", "y": float(y), "color": color})
+    def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
+        widget = _HLineWidget(lambda: None, y=float(y), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
         self._push()
-        return wid
+        return widget
 
     def add_range_widget(self, x0: float, x1: float,
-                         color: str = "#00e5ff") -> str:
-        wid = str(_uuid.uuid4())[:8]
-        self._state["overlay_widgets"].append(
-            {"id": wid, "type": "range",
-             "x0": float(x0), "x1": float(x1), "color": color})
+                         color: str = "#00e5ff") -> _RangeWidget:
+        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
         self._push()
-        return wid
+        return widget
 
-    def get_widget(self, wid: str) -> dict:
-        for w in self._state["overlay_widgets"]:
-            if w["id"] == wid:
-                return dict(w)
-        raise KeyError(wid)
-
-    def remove_widget(self, wid: str) -> None:
-        before = len(self._state["overlay_widgets"])
-        self._state["overlay_widgets"] = [
-            w for w in self._state["overlay_widgets"] if w["id"] != wid]
-        if len(self._state["overlay_widgets"]) == before:
+    def get_widget(self, wid) -> Widget:
+        """Return the Widget object by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        try:
+            return self._widgets[wid]
+        except KeyError:
             raise KeyError(wid)
+
+    def remove_widget(self, wid) -> None:
+        """Remove a widget by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        if wid not in self._widgets:
+            raise KeyError(wid)
+        del self._widgets[wid]
         self._push()
 
     def list_widgets(self) -> list:
-        return [dict(w) for w in self._state["overlay_widgets"]]
+        return list(self._widgets.values())
 
     def clear_widgets(self) -> None:
-        self._state["overlay_widgets"] = []
+        self._widgets.clear()
         self._push()
 
     # ------------------------------------------------------------------
     # Callback API  (Plot1D)
     # ------------------------------------------------------------------
-    def on_change(self, widget_id=None):
-        """Fires on every drag frame. Keep callbacks fast."""
-        def decorator(fn):
-            cid = self.callbacks.connect("change", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
+    def on_changed(self, fn: Callable) -> Callable:
+        """Decorator: fires on every drag/zoom frame on this panel."""
+        cid = self.callbacks.connect("on_changed", fn)
+        fn._cid = cid
+        return fn
 
-    def on_release(self, widget_id=None):
-        """Fires once when drag settles. Safe for expensive work."""
-        def decorator(fn):
-            cid = self.callbacks.connect("release", None, widget_id, fn)
-            fn._cid = cid
-            return fn
-        return decorator
+    def on_release(self, fn: Callable) -> Callable:
+        """Decorator: fires once when drag/zoom settles on this panel."""
+        cid = self.callbacks.connect("on_release", fn)
+        fn._cid = cid
+        return fn
+
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires on click on this panel."""
+        cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
 
     def disconnect(self, cid: int) -> None:
         """Remove the callback registered under integer *cid*."""
@@ -1496,39 +1318,43 @@ class Plot1D:
         self._push()
 
     # ------------------------------------------------------------------
-    # Marker API  (matplotlib-style)
+    # Marker API  (matplotlib-style kwargs → MarkerRegistry)
     # ------------------------------------------------------------------
     def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
         return self.markers.add(mtype, name, **kwargs)
 
-    def add_points(self, offsets, name=None, *, sizes=5,
-                   facecolors=None, edgecolors="#ff0000",
-                   linewidths=1.5, alpha=0.3,
-                   hover_edgecolors=None, hover_facecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("points", name, offsets=offsets, sizes=sizes,
+    def add_circles(self, offsets, name=None, *, radius=5,
+                    facecolors=None, edgecolors="#ff0000",
+                    linewidths=1.5, alpha=0.3,
+                    hover_edgecolors=None, hover_facecolors=None,
+                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("circles", name, offsets=offsets, radius=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label)
 
-    def add_vlines(self, offsets, name=None, *,
-                   color="#ff0000", linewidths=1.5,
+    def add_arrows(self, offsets, U, V, name=None, *,
+                   edgecolors="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("vlines", name, offsets=offsets,
-                                color=color, linewidths=linewidths,
+        return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
+                                edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label)
 
-    def add_hlines(self, offsets, name=None, *,
-                   color="#ff0000", linewidths=1.5,
-                   hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("hlines", name, offsets=offsets,
-                                color=color, linewidths=linewidths,
+    def add_ellipses(self, offsets, widths, heights, name=None, *,
+                     angles=0, facecolors=None, edgecolors="#ff0000",
+                     linewidths=1.5, alpha=0.3,
+                     hover_edgecolors=None, hover_facecolors=None,
+                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("ellipses", name, offsets=offsets,
+                                widths=widths, heights=heights, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
                                 labels=labels, label=label)
 
     def add_lines(self, segments, name=None, *,
@@ -1538,6 +1364,44 @@ class Plot1D:
         return self._add_marker("lines", name, segments=segments,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_rectangles(self, offsets, widths, heights, name=None, *,
+                       angles=0, facecolors=None, edgecolors="#ff0000",
+                       linewidths=1.5, alpha=0.3,
+                       hover_edgecolors=None, hover_facecolors=None,
+                       labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("rectangles", name, offsets=offsets,
+                                widths=widths, heights=heights, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_squares(self, offsets, widths, name=None, *,
+                    angles=0, facecolors=None, edgecolors="#ff0000",
+                    linewidths=1.5, alpha=0.3,
+                    hover_edgecolors=None, hover_facecolors=None,
+                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("squares", name, offsets=offsets,
+                                widths=widths, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_polygons(self, vertices_list, name=None, *,
+                     facecolors=None, edgecolors="#ff0000",
+                     linewidths=1.5, alpha=0.3,
+                     hover_edgecolors=None, hover_facecolors=None,
+                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("polygons", name, vertices_list=vertices_list,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
                                 labels=labels, label=label)
 
     def add_texts(self, offsets, texts, name=None, *,

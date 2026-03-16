@@ -23,6 +23,8 @@ class Figure(anywidget.AnyWidget):
     layout_json = traitlets.Unicode("{}").tag(sync=True)
     fig_width   = traitlets.Int(640).tag(sync=True)
     fig_height  = traitlets.Int(480).tag(sync=True)
+    # Bidirectional js. Events have an object id and some
+    # data that
     event_json  = traitlets.Unicode("{}").tag(sync=True)
     _esm = _ESM_SOURCE
 
@@ -182,7 +184,8 @@ class Figure(anywidget.AnyWidget):
 
     @traitlets.observe("event_json")
     def _on_event(self, change) -> None:
-        """Dispatch a JS interaction event to the relevant plot's CallbackRegistry."""
+        """Dispatch a JS interaction event to the relevant plot and widget callbacks."""
+        print("_on_event:", change["new"])
         raw = change["new"]
         if not raw or raw == "{}":
             return
@@ -190,17 +193,38 @@ class Figure(anywidget.AnyWidget):
             msg = json.loads(raw)
         except Exception:
             return
-        panel_id  = msg.get("panel_id", "")
-        name      = msg.get("name", "unknown")
-        widget_id = msg.get("widget_id")
-        settled   = bool(msg.get("settled", False))
-        data      = {k: v for k, v in msg.items()
-                     if k not in ("panel_id", "name", "widget_id", "settled")}
-        event = Event(name=name, panel_id=panel_id,
-                      widget_id=widget_id, settled=settled, data=data)
+
+        # Echo guard — Python-originated pushes must not loop back
+        if msg.get("source") == "python":
+            return
+
+        panel_id   = msg.get("panel_id", "")
+        event_type = msg.get("event_type", "on_changed")
+        widget_id  = msg.get("widget_id")
+        data = {k: v for k, v in msg.items()
+                if k not in ("source", "panel_id", "event_type", "widget_id")}
+
         plot = self._plots_map.get(panel_id)
-        if plot is not None and hasattr(plot, "callbacks"):
+        if plot is None:
+            return
+
+        source = None
+        if widget_id and hasattr(plot, "_widgets"):
+            widget = plot._widgets.get(widget_id)
+            if widget is not None:
+                widget._update_from_js(data, event_type)
+                source = widget
+
+        if hasattr(plot, "callbacks"):
+            event = Event(event_type=event_type, source=source, data=data)
             plot.callbacks.fire(event)
+
+    def _push_widget(self, panel_id: str, widget_id: str, fields: dict) -> None:
+        """Send a targeted widget-position update to JS (no image data)."""
+        payload = {"source": "python", "panel_id": panel_id,
+                   "widget_id": widget_id}
+        payload.update(fields)
+        self.event_json = json.dumps(payload)
 
     # ── helpers ───────────────────────────────────────────────────────────────
     def get_axes(self) -> list:
