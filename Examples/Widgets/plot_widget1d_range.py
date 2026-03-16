@@ -17,5 +17,5 @@ fig, ax = vw.subplots(1, 1, figsize=(560, 300))
 v = ax.plot(signal, axes=[x], units="rad")
 
 v.add_range_widget(x0=np.pi, x1=2 * np.pi, color="#ffeb3b")
-fig
 
+fig

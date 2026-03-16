@@ -17,5 +17,5 @@ fig, ax = vw.subplots(1, 1, figsize=(460, 460))
 v = ax.imshow(data, axes=[xy, xy], units="nm")
 
 v.add_widget("crosshair", color="#69f0ae", cx=64, cy=64)
-fig
 
+fig

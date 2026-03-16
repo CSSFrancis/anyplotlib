@@ -23,6 +23,7 @@ v.add_ellipses(centres, widths=30, heights=14,
                name="grains",
                edgecolors="#ff9100", facecolors="#ff910033",
                label="grains", labels=["A", "B", "C"])
+
 fig
 
 # %%
@@ -34,4 +35,3 @@ v.markers["ellipses"]["grains"].set(widths=38, heights=18,
                                     edgecolors="#69f0ae",
                                     facecolors="#69f0ae33")
 fig
-

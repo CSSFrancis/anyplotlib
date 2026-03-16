@@ -22,6 +22,7 @@ v.add_texts([[4.0, 4.0], [4.0, 116.0], [88.0, 4.0], [88.0, 116.0]],
             name="corners",
             color="#ffeb3b", fontsize=12,
             label="corners")
+
 fig
 
 # %%
@@ -31,4 +32,3 @@ fig
 
 v.markers["texts"]["corners"].set(color="#e040fb", fontsize=14)
 fig
-

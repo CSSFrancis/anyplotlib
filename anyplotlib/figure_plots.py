@@ -804,6 +804,81 @@ class Plot2D:
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label)
 
+    def add_arrows(self, offsets, U, V, name=None, *,
+                   edgecolors="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add vector-arrow markers in physical (data) coordinates."""
+        return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
+                                edgecolors=edgecolors, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_ellipses(self, offsets, widths, heights, name=None, *,
+                     angles=0, facecolors=None, edgecolors="#ff0000",
+                     linewidths=1.5, alpha=0.3,
+                     hover_edgecolors=None, hover_facecolors=None,
+                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add ellipse markers in physical (data) coordinates."""
+        return self._add_marker("ellipses", name, offsets=offsets,
+                                widths=widths, heights=heights, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_rectangles(self, offsets, widths, heights, name=None, *,
+                       angles=0, facecolors=None, edgecolors="#ff0000",
+                       linewidths=1.5, alpha=0.3,
+                       hover_edgecolors=None, hover_facecolors=None,
+                       labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add rectangle markers in physical (data) coordinates."""
+        return self._add_marker("rectangles", name, offsets=offsets,
+                                widths=widths, heights=heights, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_squares(self, offsets, widths, name=None, *,
+                    angles=0, facecolors=None, edgecolors="#ff0000",
+                    linewidths=1.5, alpha=0.3,
+                    hover_edgecolors=None, hover_facecolors=None,
+                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add square markers in physical (data) coordinates."""
+        return self._add_marker("squares", name, offsets=offsets,
+                                widths=widths, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_polygons(self, vertices_list, name=None, *,
+                     facecolors=None, edgecolors="#ff0000",
+                     linewidths=1.5, alpha=0.3,
+                     hover_edgecolors=None, hover_facecolors=None,
+                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add closed polygon markers in physical (data) coordinates."""
+        return self._add_marker("polygons", name, vertices_list=vertices_list,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_texts(self, offsets, texts, name=None, *,
+                  color="#ff0000", fontsize=12,
+                  hover_edgecolors=None,
+                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add text annotation markers in physical (data) coordinates."""
+        return self._add_marker("texts", name, offsets=offsets, texts=texts,
+                                color=color, fontsize=fontsize,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
     def remove_marker(self, marker_type: str, name: str) -> None:
         self.markers.remove(marker_type, name)
 
@@ -1412,11 +1487,45 @@ class Plot1D:
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("circles", name, offsets=offsets, radius=radius,
+        # On 1-D panels the native type is "points" (radius maps to sizes).
+        return self._add_marker("points", name, offsets=offsets, sizes=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_points(self, offsets, name=None, *, sizes=5,
+                   color="#ff0000", facecolors=None,
+                   linewidths=1.5, alpha=0.3,
+                   hover_edgecolors=None, hover_facecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add point markers at (x, y) positions in data coordinates."""
+        return self._add_marker("points", name, offsets=offsets, sizes=sizes,
+                                edgecolors=color, facecolors=facecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_hlines(self, y_values, name=None, *,
+                   color="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add static horizontal lines at the given y positions."""
+        return self._add_marker("hlines", name, offsets=y_values,
+                                color=color, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_vlines(self, x_values, name=None, *,
+                   color="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add static vertical lines at the given x positions."""
+        return self._add_marker("vlines", name, offsets=x_values,
+                                color=color, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label)
 
     def add_arrows(self, offsets, U, V, name=None, *,

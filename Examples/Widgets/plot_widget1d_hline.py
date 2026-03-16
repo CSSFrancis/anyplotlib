@@ -16,5 +16,5 @@ fig, ax = vw.subplots(1, 1, figsize=(560, 300))
 v = ax.plot(signal, axes=[x], units="rad")
 
 v.add_hline_widget(y=0.5, color="#69f0ae")
-fig
 
+fig

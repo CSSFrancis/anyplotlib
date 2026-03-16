@@ -6,7 +6,7 @@ Plot a 1-D spectrum with a physical x-axis (energy in eV) using
 :meth:`~anyplotlib.figure_plots.Axes.plot`.
 
 The spectrum contains a broad background and three Gaussian peaks.
-Vertical-line markers highlight the peak positions, and a range widget
+Circle markers highlight the peak positions, and a range widget
 selects a region of interest.  Pan and zoom with the mouse; press **R**
 to reset the view.
 """
@@ -15,7 +15,7 @@ import anyplotlib as vw
 
 rng = np.random.default_rng(0)
 
-# ── Synthetic XPS-style spectrum ─────────────────────────────────────────────
+# ── Synthetic XPS-style spectrum ──────────────────────────────────────────────
 energy = np.linspace(280, 295, 512)          # binding energy axis (eV)
 
 def gaussian(x, mu, sigma, amp):
@@ -41,8 +41,8 @@ peak_offsets  = np.column_stack([
     np.interp(peak_energies, energy, spectrum),
 ])
 v.add_points(peak_offsets, name="peaks",
-             edgecolors="#ff1744", facecolors="#ff174433", sizes=7,
-             labels=["C–C", "C–O", "C=O"])
+             sizes=7, color="#ff1744", facecolors="#ff174433",
+             labels=["C\u2013C", "C\u2013O", "C=O"])
 
 # ── Region-of-interest widget ─────────────────────────────────────────────────
 v.add_range_widget(x0=285.8, x1=288.8, color="#00e5ff")
@@ -62,5 +62,5 @@ fit = (
     + gaussian(energy, 288.0, 0.4, 0.18)
 )
 v.add_line(fit, x_axis=energy, color="#ffcc00", linewidth=1.5, label="fit")
-fig
 
+fig

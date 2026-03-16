@@ -147,18 +147,18 @@ v_fft.set_colormap("inferno")
 
 # ── Callbacks ─────────────────────────────────────────────────────────────────
 
-@v_real.on_change(wid)
+@wid.on_changed
 def _roi_dragging(event):
     """Fires on every drag frame — highlight rectangle while dragging."""
     # Cheaply pulse the widget colour to give live drag feedback.
     for w in v_real._state["overlay_widgets"]:
-        if w["id"] == wid:
+        if w["id"] == wid._id:
             w["color"] = "#ff9800"   # orange while dragging
             break
     v_real._push()
 
 
-@v_real.on_release(wid)
+@wid.on_release
 def _roi_released(event):
     """Fires once on mouse-up — recompute and push the full FFT."""
     x0 = event.data.get("x", roi_x0)
@@ -168,14 +168,14 @@ def _roi_released(event):
 
     # Restore widget colour to yellow
     for widget in v_real._state["overlay_widgets"]:
-        if widget["id"] == wid:
+        if widget["id"] == wid._id:
             widget["color"] = "#ffeb3b"
             break
 
     log_mag, freq_x, freq_y = _compute_fft(image, x0, y0, w, h)
 
     # Push updated FFT into the right panel
-    v_fft.update(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/Å")
+    v_fft.update(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/\u00c5")
 
 
 fig

@@ -19,5 +19,5 @@ v = ax.imshow(data, axes=[xy, xy], units="nm")
 v.add_widget("polygon", color="#ff9100",
              vertices=[[32, 16], [96, 16], [112, 80],
                        [64, 112], [16, 80]])
-fig
 
+fig
