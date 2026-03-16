@@ -801,18 +801,22 @@ function render({ model, el }) {
       const yTicks=[];
       for(let v=Math.ceil(yVMin/step)*step; v<=yVMax+step*0.01; v+=step) yTicks.push(v);
       const minLabelGapY=14; // px
-      let lastPy=Infinity;
+      let lastPy=-Infinity;
       for(let ti=0;ti<yTicks.length;ti++){
         const v=yTicks[ti];
         const frac=_axisValToFrac(yArr,v);
         const py2=_fracToPx(frac,zoom,cy,imgH);
         if(py2<0||py2>imgH) continue;
         p.yCtx.beginPath(); p.yCtx.moveTo(aw,py2); p.yCtx.lineTo(aw-TICK,py2); p.yCtx.stroke();
-        if(lastPy-py2>=minLabelGapY){
+        if(py2-lastPy>=minLabelGapY){
           p.yCtx.fillText(fmtVal(v), aw-TICK-2, py2);
           lastPy=py2;
         }
       }
+      // Units label: top-left corner of y-axis gutter
+      p.yCtx.textAlign='left'; p.yCtx.textBaseline='top';
+      p.yCtx.fillStyle=theme.unitText; p.yCtx.font='9px sans-serif';
+      p.yCtx.fillText(units, 2, 1);
     }
   }
 
