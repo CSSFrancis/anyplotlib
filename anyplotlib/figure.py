@@ -2,6 +2,7 @@ from __future__ import annotations
 import json, pathlib
 import anywidget, numpy as np, traitlets
 from anyplotlib.figure_plots import GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh, Plot3D
+from anyplotlib.callbacks import Event
 
 __all__ = ["Figure", "GridSpec", "SubplotSpec", "subplots"]
 
@@ -22,6 +23,7 @@ class Figure(anywidget.AnyWidget):
     layout_json = traitlets.Unicode("{}").tag(sync=True)
     fig_width   = traitlets.Int(640).tag(sync=True)
     fig_height  = traitlets.Int(480).tag(sync=True)
+    event_json  = traitlets.Unicode("{}").tag(sync=True)
     _esm = _ESM_SOURCE
 
     def __init__(self, nrows=1, ncols=1, figsize=(640, 480),
@@ -177,6 +179,28 @@ class Figure(anywidget.AnyWidget):
         self._push_layout()
         for pid in self._plots_map:
             self._push(pid)
+
+    @traitlets.observe("event_json")
+    def _on_event(self, change) -> None:
+        """Dispatch a JS interaction event to the relevant plot's CallbackRegistry."""
+        raw = change["new"]
+        if not raw or raw == "{}":
+            return
+        try:
+            msg = json.loads(raw)
+        except Exception:
+            return
+        panel_id  = msg.get("panel_id", "")
+        name      = msg.get("name", "unknown")
+        widget_id = msg.get("widget_id")
+        settled   = bool(msg.get("settled", False))
+        data      = {k: v for k, v in msg.items()
+                     if k not in ("panel_id", "name", "widget_id", "settled")}
+        event = Event(name=name, panel_id=panel_id,
+                      widget_id=widget_id, settled=settled, data=data)
+        plot = self._plots_map.get(panel_id)
+        if plot is not None and hasattr(plot, "callbacks"):
+            plot.callbacks.fire(event)
 
     # ── helpers ───────────────────────────────────────────────────────────────
     def get_axes(self) -> list:

@@ -1183,6 +1183,16 @@ function render({ model, el }) {
       });
     }
 
+  // ── event emission helper ───────────────────────────────────────────
+  function _emitEvent(panelId, name, widgetId, settled, extraData) {
+    const payload = Object.assign(
+      { panel_id: panelId, name: name, widget_id: widgetId || null, settled: !!settled },
+      extraData || {}
+    );
+    model.set('event_json', JSON.stringify(payload));
+    model.save_changes();
+  }
+
     overlayCanvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
       dragStart = { mx: e.clientX, my: e.clientY,
@@ -1198,6 +1208,8 @@ function render({ model, el }) {
       p.state.elevation = Math.max(-89, Math.min(89, dragStart.el - dy * 0.5));
       draw3d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _emitEvent(p.id, 'rotate_change', null, false,
+        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
       e.preventDefault();
     });
     document.addEventListener('mouseup', () => {
@@ -1205,6 +1217,8 @@ function render({ model, el }) {
       dragStart = null;
       overlayCanvas.style.cursor = 'grab';
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _emitEvent(p.id, 'rotate_change', null, true,
+        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
       _scheduleCommit();
     });
 
@@ -1213,6 +1227,8 @@ function render({ model, el }) {
       p.state.zoom = Math.max(0.1, Math.min(10, p.state.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
       draw3d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _emitEvent(p.id, 'zoom_change', null, false,
+        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
       _scheduleCommit();
     }, { passive: false });
 
@@ -1666,7 +1682,12 @@ function render({ model, el }) {
       p.isPanning=true; overlayCanvas.style.cursor='grabbing'; e.preventDefault();
     });
     document.addEventListener('mousemove',(e)=>{
-      if(p.ovDrag2d){_doDrag2d(e,p);return;}
+      if(p.ovDrag2d){
+        _doDrag2d(e,p);
+        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===p.ovDrag2d.id)||{};
+        _emitEvent(p.id,(_dw.type||'widget')+'_change',p.ovDrag2d.id,false,_dw);
+        return;
+      }
       if(!p.isPanning) return;
       const st=p.state; if(!st) return;
       const rect=overlayCanvas.getBoundingClientRect();
@@ -1680,7 +1701,13 @@ function render({ model, el }) {
       _scheduleCommit(); e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
-      if(p.ovDrag2d){p.ovDrag2d=null;overlayCanvas.style.cursor='default';return;}
+      if(p.ovDrag2d){
+        const _did=p.ovDrag2d.id;
+        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===_did)||{};
+        p.ovDrag2d=null; overlayCanvas.style.cursor='default';
+        _emitEvent(p.id,(_dw.type||'widget')+'_change',_did,true,_dw);
+        return;
+      }
       if(!p.isPanning) return;
       p.isPanning=false; overlayCanvas.style.cursor='default';
       const st=p.state; if(!st) return;
@@ -1688,6 +1715,7 @@ function render({ model, el }) {
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/rect.width/st.zoom));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/rect.height/st.zoom));
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _emitEvent(p.id,'zoom_change',null,true,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom});
       model.save_changes();
     });
 
@@ -1843,7 +1871,12 @@ function render({ model, el }) {
       p.isPanning=true;overlayCanvas.style.cursor='grabbing';e.preventDefault();
     });
     document.addEventListener('mousemove',(e)=>{
-      if(p.ovDrag){_doDrag1d(e,p);return;}
+      if(p.ovDrag){
+        _doDrag1d(e,p);
+        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===p.ovDrag.id)||{};
+        _emitEvent(p.id,(_dw.type||'widget')+'_change',p.ovDrag.id,false,_dw);
+        return;
+      }
       if(!p.isPanning) return;
       const st=p.state; if(!st) return;
       const r=_plotRect1d(p.pw,p.ph);
@@ -1855,9 +1888,18 @@ function render({ model, el }) {
       draw1d(p);_propagateView1d(p);
       model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
     });
-    document.addEventListener('mouseup',()=>{
-      if(p.ovDrag){p.ovDrag=null;overlayCanvas.style.cursor='crosshair';}
-      if(p.isPanning){p.isPanning=false;overlayCanvas.style.cursor='crosshair';}
+    document.addEventListener('mouseup',(e)=>{
+      if(p.ovDrag){
+        const _did=p.ovDrag.id;
+        const _dw=(p.state.overlay_widgets||[]).find(w=>w.id===_did)||{};
+        p.ovDrag=null; overlayCanvas.style.cursor='crosshair';
+        _emitEvent(p.id,(_dw.type||'widget')+'_change',_did,true,_dw);
+      }
+      if(p.isPanning){
+        p.isPanning=false; overlayCanvas.style.cursor='crosshair';
+        const st=p.state;
+        if(st) _emitEvent(p.id,'view_change',null,true,{view_x0:st.view_x0,view_x1:st.view_x1});
+      }
     });
 
     overlayCanvas.addEventListener('keydown',(e)=>{
