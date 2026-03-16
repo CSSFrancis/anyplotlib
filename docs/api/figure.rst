@@ -1,7 +1,7 @@
 Figure
-========
+======
 
-.. automodule:: viewer.figure
+.. automodule:: anyplotlib.figure
    :members:
    :undoc-members: False
    :show-inheritance:
