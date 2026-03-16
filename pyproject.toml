@@ -9,7 +9,7 @@ packages = ["anyplotlib"]
 name = "anyplotlib"
 version = "0.1.0"
 description = "A plotting library using python, javascript and anywidget for performant in browser plotting."
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "anywidget>=0.9.21",
     "colorcet>=3.0",
@@ -25,6 +25,7 @@ docs = [
     "pydata-sphinx-theme>=0.16",
     "sphinx-gallery>=0.18",
     "pillow>=10.0",
+    "matplotlib>=3.9",
 ]
 
 [dependency-groups]

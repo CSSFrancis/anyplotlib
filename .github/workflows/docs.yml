@@ -1,0 +1,82 @@
+name: Docs
+
+on:
+  push:
+    # Publish to dev/ on every push to main …
+    branches: [main]
+    # … and to a versioned directory on every release tag.
+    tags: ["v*.*.*"]
+  # Allow manual re-builds from the Actions tab.
+  workflow_dispatch:
+
+# Only one docs deployment should run at a time to avoid race conditions on
+# the gh-pages branch.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # needed to push to gh-pages
+
+jobs:
+  build-and-deploy:
+    name: Build & deploy docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Full history lets sphinx-gallery / git tools see tags correctly.
+          fetch-depth: 0
+
+      # ── uv + Python ────────────────────────────────────────────────────────
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      # ── Dependencies ───────────────────────────────────────────────────────
+      # Install the package itself plus the [docs] optional-dependency group
+      # (sphinx, pydata-sphinx-theme, sphinx-gallery, pillow).
+      # sphinx-gallery transitively brings in matplotlib, which the custom
+      # scraper (docs/_sg_html_scraper.py) needs to render thumbnails.
+      - name: Install dependencies (with docs extras)
+        run: uv sync --extra docs
+
+      # ── Sphinx build ───────────────────────────────────────────────────────
+      # -W turns warnings into errors so broken cross-references are caught.
+      # Remove -W if the gallery examples produce unavoidable warnings.
+      - name: Build HTML documentation
+        run: |
+          uv run sphinx-build -b html docs build/html -W --keep-going
+
+      # ── Determine deployment target ─────────────────────────────────────────
+      # Release tag  (refs/tags/v1.2.3) → destination = "v1.2.3"
+      # Everything else (push to main, manual dispatch) → destination = "dev"
+      - name: Determine deployment directory
+        id: target
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "dest_dir=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "dest_dir=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Deploy to gh-pages ────────────────────────────────────────────────
+      # keep_files: true preserves all existing directories on the branch so
+      # versioned releases accumulate rather than overwriting each other.
+      # Only the target destination_dir is replaced on each run.
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/html
+          destination_dir: ${{ steps.target.outputs.dest_dir }}
+          keep_files: true
+          # Commit message makes the deployment easy to identify in the branch log.
+          commit_message: |
+            docs: deploy ${{ steps.target.outputs.dest_dir }} @ ${{ github.sha }}
+
