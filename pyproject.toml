@@ -27,4 +27,9 @@ docs = [
     "pillow>=10.0",
 ]
 
+[dependency-groups]
+dev = [
+    "playwright>=1.58.0",
+]
+
 
