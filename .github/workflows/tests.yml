@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel in-flight runs for the same branch so a new push doesn't queue
+# behind an older one.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── uv + Python ────────────────────────────────────────────────────────
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          # Cache the uv download / build cache between runs.
+          enable-cache: true
+
+      # ── Dependencies ───────────────────────────────────────────────────────
+      # uv sync installs the project + all dependency groups (including dev,
+      # which pulls in playwright).
+      - name: Install dependencies
+        run: uv sync
+
+      # ── Playwright browsers ────────────────────────────────────────────────
+      # Visual regression tests (test_visual.py) use headless Chromium.
+      # They skip gracefully when no baselines exist, but the browser must be
+      # present so the playwright fixture doesn't error on setup.
+      - name: Install Playwright browsers (Linux)
+        if: runner.os == 'Linux'
+        run: uv run playwright install chromium --with-deps
+
+      - name: Install Playwright browsers (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: uv run playwright install chromium
+
+      # ── Test suite ─────────────────────────────────────────────────────────
+      - name: Run tests
+        run: uv run pytest tests/ -v --tb=short
+
