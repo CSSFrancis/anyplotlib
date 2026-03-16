@@ -8,7 +8,7 @@ Demonstrate :meth:`~anyplotlib.figure_plots.Axes.pcolormesh` with non-uniform
 
 The key difference from :meth:`~anyplotlib.figure_plots.Axes.imshow` is that
 ``pcolormesh`` takes **edge** arrays (length N+1 and M+1 for an (M, N) data
-array) rather than centre arrays.  This enables fully non-linear axes where
+array) rather than center arrays.  This enables fully non-linear axes where
 each cell can have a different width/height in data coordinates.
 """
 import numpy as np
