@@ -1,0 +1,759 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>anyplotlib.figure &#8212; anyplotlib 0.1.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/figure';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">anyplotlib.figure</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for anyplotlib.figure</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pathlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anywidget</span><span class="o">,</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="o">,</span><span class="w"> </span><span class="nn">traitlets</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.figure_plots</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSpec</span><span class="p">,</span> <span class="n">SubplotSpec</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">,</span> <span class="n">Plot3D</span><span class="p">,</span> <span class="n">PlotBar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Figure&quot;</span><span class="p">,</span> <span class="s2">&quot;GridSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;SubplotSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;subplots&quot;</span><span class="p">]</span>
+
+<span class="n">_HERE</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">_ESM_SOURCE</span> <span class="o">=</span> <span class="p">(</span><span class="n">_HERE</span> <span class="o">/</span> <span class="s2">&quot;figure_esm.js&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Figure">
+<a class="viewcode-back" href="../../api/figure.html#anyplotlib.figure.Figure">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Figure</span><span class="p">(</span><span class="n">anywidget</span><span class="o">.</span><span class="n">AnyWidget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-panel interactive figure widget.</span>
+
+<span class="sd">    Create via :func:`subplots` or directly::</span>
+
+<span class="sd">        fig = Figure(2, 2, figsize=(800, 600))</span>
+<span class="sd">        ax  = fig.add_subplot((0, 0))</span>
+<span class="sd">        v2d = ax.imshow(data)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">layout_json</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">fig_width</span>   <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">640</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">fig_height</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">480</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Bidirectional js. Events have an object id and some</span>
+    <span class="c1"># data that</span>
+    <span class="n">event_json</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_esm</span> <span class="o">=</span> <span class="n">_ESM_SOURCE</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">480</span><span class="p">),</span>
+                 <span class="n">width_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">sharex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nrows</span> <span class="o">=</span> <span class="n">nrows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ncols</span> <span class="o">=</span> <span class="n">ncols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_width_ratios</span>  <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">width_ratios</span><span class="p">)</span>  <span class="k">if</span> <span class="n">width_ratios</span>  <span class="k">else</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">ncols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_height_ratios</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">height_ratios</span><span class="p">)</span> <span class="k">if</span> <span class="n">height_ratios</span> <span class="k">else</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">nrows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sharex</span> <span class="o">=</span> <span class="n">sharex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sharey</span> <span class="o">=</span> <span class="n">sharey</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="p">:</span> <span class="nb">dict</span>  <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_trait_notifications</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>  <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span> <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
+
+    <span class="c1"># ── subplot creation ──────────────────────────────────────────────────────</span>
+<div class="viewcode-block" id="Figure.add_subplot">
+<a class="viewcode-back" href="../../api/figure.html#anyplotlib.figure.Figure.add_subplot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_subplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Axes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a subplot cell and return its :class:`Axes`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        spec : SubplotSpec | int | (row, col) tuple</span>
+<span class="sd">            - ``SubplotSpec``: used directly (e.g. from ``GridSpec[r, c]``).</span>
+<span class="sd">            - ``int``: converted to ``(row, col)`` via ``divmod(spec, ncols)``,</span>
+<span class="sd">              matching ``matplotlib.Figure.add_subplot(num)`` numbering.</span>
+<span class="sd">            - ``(row, col)`` tuple: selects a single cell.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">SubplotSpec</span><span class="p">):</span>
+            <span class="k">pass</span>  <span class="c1"># use as-is</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ncols</span><span class="p">)</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">SubplotSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">row</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">spec</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">SubplotSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">row</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;add_subplot: unsupported spec type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Axes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ── internal registration (called by Axes._attach) ────────────────────────</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_panel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_id</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_trait</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;panel_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">_json&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_traits</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;panel_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">_json&quot;</span><span class="p">:</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">[</span><span class="n">pid</span><span class="p">]</span> <span class="o">=</span> <span class="n">plot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="p">[</span><span class="n">pid</span><span class="p">]</span>  <span class="o">=</span> <span class="n">ax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">panel_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialise one panel and write to its trait.&quot;&quot;&quot;</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">panel_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">tname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;panel_</span><span class="si">{</span><span class="n">panel_id</span><span class="si">}</span><span class="s2">_json&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_trait</span><span class="p">(</span><span class="n">tname</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tname</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">to_state_dict</span><span class="p">()))</span>
+
+    <span class="c1"># ── layout ────────────────────────────────────────────────────────────────</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_cell_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">fw</span><span class="p">,</span> <span class="n">fh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span>
+        <span class="n">wr</span><span class="p">,</span> <span class="n">hr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_width_ratios</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height_ratios</span>
+        <span class="n">wsum</span><span class="p">,</span> <span class="n">hsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">wr</span><span class="p">),</span> <span class="nb">sum</span><span class="p">(</span><span class="n">hr</span><span class="p">)</span>
+
+        <span class="c1"># Step 1: raw pixel size per grid track (float precision)</span>
+        <span class="n">col_px</span> <span class="o">=</span> <span class="p">[</span><span class="n">fw</span> <span class="o">*</span> <span class="n">w</span> <span class="o">/</span> <span class="n">wsum</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wr</span><span class="p">]</span>
+        <span class="n">row_px</span> <span class="o">=</span> <span class="p">[</span><span class="n">fh</span> <span class="o">*</span> <span class="n">h</span> <span class="o">/</span> <span class="n">hsum</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hr</span><span class="p">]</span>
+
+        <span class="c1"># Step 2: aspect-lock every 2D panel by shrinking its track(s).</span>
+        <span class="c1"># Multiple passes let interactions between panels converge.</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="p">(</span><span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">)):</span>
+                    <span class="k">continue</span>
+                <span class="n">s</span>  <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">_spec</span>
+                <span class="n">cw</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">col_px</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">:</span><span class="n">s</span><span class="o">.</span><span class="n">col_stop</span><span class="p">])</span>
+                <span class="n">ch</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">row_px</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">:</span><span class="n">s</span><span class="o">.</span><span class="n">row_stop</span><span class="p">])</span>
+                <span class="n">iw</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_width&quot;</span><span class="p">,</span>  <span class="mi">1</span><span class="p">)</span>
+                <span class="n">ih</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_height&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">iw</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ih</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">ar</span> <span class="o">=</span> <span class="n">iw</span> <span class="o">/</span> <span class="n">ih</span>
+                <span class="k">if</span> <span class="n">cw</span> <span class="o">/</span> <span class="n">ch</span> <span class="o">&gt;</span> <span class="n">ar</span><span class="p">:</span>               <span class="c1"># wider than image -&gt; shrink cols</span>
+                    <span class="n">new_cw</span> <span class="o">=</span> <span class="n">ch</span> <span class="o">*</span> <span class="n">ar</span>
+                    <span class="n">span</span>   <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">col_stop</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">col_stop</span><span class="p">):</span>
+                        <span class="n">col_px</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_cw</span> <span class="o">/</span> <span class="n">span</span>
+                <span class="k">else</span><span class="p">:</span>                          <span class="c1"># taller than image -&gt; shrink rows</span>
+                    <span class="n">new_ch</span> <span class="o">=</span> <span class="n">cw</span> <span class="o">/</span> <span class="n">ar</span>
+                    <span class="n">span</span>   <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">row_stop</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">row_stop</span><span class="p">):</span>
+                        <span class="n">row_px</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_ch</span> <span class="o">/</span> <span class="n">span</span>
+
+        <span class="c1"># Step 3: every panel gets the pixel size of its track span.</span>
+        <span class="c1"># All panels sharing a row/col automatically have identical dimensions.</span>
+        <span class="n">sizes</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">s</span>  <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">_spec</span>
+            <span class="n">pw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">col_px</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">:</span><span class="n">s</span><span class="o">.</span><span class="n">col_stop</span><span class="p">])))</span>
+            <span class="n">ph</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">row_px</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">:</span><span class="n">s</span><span class="o">.</span><span class="n">row_stop</span><span class="p">])))</span>
+            <span class="n">sizes</span><span class="p">[</span><span class="n">pid</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">pw</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">ph</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">sizes</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_push_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cell_sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_cell_sizes</span><span class="p">()</span>
+        <span class="n">all_ids</span>    <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">share_groups</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_mg</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">flag</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">share_groups</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">all_ids</span><span class="p">)]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">share_groups</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">flag</span>
+
+        <span class="n">_mg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sharex</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="n">_mg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sharey</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+
+        <span class="n">panel_specs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">s</span>        <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">_spec</span>
+            <span class="n">pw</span><span class="p">,</span> <span class="n">ph</span>   <span class="o">=</span> <span class="n">cell_sizes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">))</span>
+            <span class="n">plot</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+            <span class="n">panel_specs</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span>           <span class="n">pid</span><span class="p">,</span>
+                <span class="s2">&quot;kind&quot;</span><span class="p">:</span>         <span class="p">(</span><span class="s2">&quot;3d&quot;</span>  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">Plot3D</span><span class="p">)</span>
+                             <span class="k">else</span> <span class="s2">&quot;2d&quot;</span>  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="p">(</span><span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">))</span>
+                             <span class="k">else</span> <span class="s2">&quot;bar&quot;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">PlotBar</span><span class="p">)</span>
+                             <span class="k">else</span> <span class="s2">&quot;1d&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;row_start&quot;</span><span class="p">:</span>    <span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">,</span>
+                <span class="s2">&quot;row_stop&quot;</span><span class="p">:</span>     <span class="n">s</span><span class="o">.</span><span class="n">row_stop</span><span class="p">,</span>
+                <span class="s2">&quot;col_start&quot;</span><span class="p">:</span>    <span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">,</span>
+                <span class="s2">&quot;col_stop&quot;</span><span class="p">:</span>     <span class="n">s</span><span class="o">.</span><span class="n">col_stop</span><span class="p">,</span>
+                <span class="s2">&quot;panel_width&quot;</span><span class="p">:</span>  <span class="n">pw</span><span class="p">,</span>
+                <span class="s2">&quot;panel_height&quot;</span><span class="p">:</span> <span class="n">ph</span><span class="p">,</span>
+            <span class="p">})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layout_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s2">&quot;nrows&quot;</span><span class="p">:</span>          <span class="bp">self</span><span class="o">.</span><span class="n">_nrows</span><span class="p">,</span>
+            <span class="s2">&quot;ncols&quot;</span><span class="p">:</span>          <span class="bp">self</span><span class="o">.</span><span class="n">_ncols</span><span class="p">,</span>
+            <span class="s2">&quot;width_ratios&quot;</span><span class="p">:</span>   <span class="bp">self</span><span class="o">.</span><span class="n">_width_ratios</span><span class="p">,</span>
+            <span class="s2">&quot;height_ratios&quot;</span><span class="p">:</span>  <span class="bp">self</span><span class="o">.</span><span class="n">_height_ratios</span><span class="p">,</span>
+            <span class="s2">&quot;fig_width&quot;</span><span class="p">:</span>      <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span><span class="p">,</span>
+            <span class="s2">&quot;fig_height&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span><span class="p">,</span>
+            <span class="s2">&quot;panel_specs&quot;</span><span class="p">:</span>    <span class="n">panel_specs</span><span class="p">,</span>
+            <span class="s2">&quot;share_groups&quot;</span><span class="p">:</span>   <span class="n">share_groups</span><span class="p">,</span>
+        <span class="p">})</span>
+
+    <span class="nd">@traitlets</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;fig_width&quot;</span><span class="p">,</span> <span class="s2">&quot;fig_height&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">change</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+
+    <span class="nd">@traitlets</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;event_json&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">change</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch a JS interaction event to the relevant plot and widget callbacks.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;_on_event:&quot;</span><span class="p">,</span> <span class="n">change</span><span class="p">[</span><span class="s2">&quot;new&quot;</span><span class="p">])</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">change</span><span class="p">[</span><span class="s2">&quot;new&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span> <span class="ow">or</span> <span class="n">raw</span> <span class="o">==</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Echo guard — Python-originated pushes must not loop back</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;python&quot;</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">panel_id</span>   <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;panel_id&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">event_type</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;event_type&quot;</span><span class="p">,</span> <span class="s2">&quot;on_changed&quot;</span><span class="p">)</span>
+        <span class="n">widget_id</span>  <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;widget_id&quot;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="s2">&quot;panel_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_type&quot;</span><span class="p">,</span> <span class="s2">&quot;widget_id&quot;</span><span class="p">)}</span>
+
+        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">panel_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">source</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">widget_id</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;_widgets&quot;</span><span class="p">):</span>
+            <span class="n">widget</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">widget_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">widget</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">widget</span><span class="o">.</span><span class="n">_update_from_js</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">event_type</span><span class="p">)</span>
+                <span class="n">source</span> <span class="o">=</span> <span class="n">widget</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;callbacks&quot;</span><span class="p">):</span>
+            <span class="n">event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">(</span><span class="n">event_type</span><span class="o">=</span><span class="n">event_type</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">plot</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_push_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">panel_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">widget_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Send a targeted widget-position update to JS (no image data).&quot;&quot;&quot;</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="s2">&quot;panel_id&quot;</span><span class="p">:</span> <span class="n">panel_id</span><span class="p">,</span>
+                   <span class="s2">&quot;widget_id&quot;</span><span class="p">:</span> <span class="n">widget_id</span><span class="p">}</span>
+        <span class="n">payload</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+
+    <span class="c1"># ── helpers ───────────────────────────────────────────────────────────────</span>
+<div class="viewcode-block" id="Figure.get_axes">
+<a class="viewcode-back" href="../../api/figure.html#anyplotlib.figure.Figure.get_axes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+                      <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">row_start</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">col_start</span><span class="p">))</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_repr_html_</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a self-contained iframe embedding the live widget.</span>
+
+<span class="sd">        Used by Sphinx Gallery (via :class:`~docs._sg_html_scraper.ViewerScraper`)</span>
+<span class="sd">        and by any HTML-capable notebook frontend that falls back to</span>
+<span class="sd">        ``_repr_html_`` instead of the full ipywidgets protocol.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._repr_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">repr_html_iframe</span>
+        <span class="k">return</span> <span class="n">repr_html_iframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Figure(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_nrows</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_ncols</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;panels=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;size=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># subplots — module-level convenience</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="subplots">
+<a class="viewcode-back" href="../../api/figure.html#anyplotlib.figure.subplots">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+             <span class="n">sharex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">480</span><span class="p">),</span>
+             <span class="n">width_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">height_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">gridspec_kw</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a :class:`Figure` and a grid of :class:`~anyplotlib.figure_plots.Axes`.</span>
+
+<span class="sd">    Mirrors :func:`matplotlib.pyplot.subplots`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nrows, ncols : int</span>
+<span class="sd">        Number of rows and columns in the grid.</span>
+<span class="sd">    sharex, sharey : bool</span>
+<span class="sd">        Link pan/zoom across all panels on the respective axis.</span>
+<span class="sd">    figsize : (width, height)</span>
+<span class="sd">        Figure size in CSS pixels.  Default ``(640, 480)``.</span>
+<span class="sd">    width_ratios : list of float, optional</span>
+<span class="sd">        Relative column widths.  Equivalent to</span>
+<span class="sd">        ``gridspec_kw={&quot;width_ratios&quot;: ...}``.</span>
+<span class="sd">    height_ratios : list of float, optional</span>
+<span class="sd">        Relative row heights.  Equivalent to</span>
+<span class="sd">        ``gridspec_kw={&quot;height_ratios&quot;: ...}``.</span>
+<span class="sd">    gridspec_kw : dict, optional</span>
+<span class="sd">        Extra keyword arguments forwarded to :class:`GridSpec`.</span>
+<span class="sd">        Recognised keys: ``width_ratios``, ``height_ratios``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fig : Figure</span>
+<span class="sd">    axs : Axes  or  numpy array of Axes</span>
+<span class="sd">        - Single cell  → scalar ``Axes``.</span>
+<span class="sd">        - Single row   → 1-D array of shape ``(ncols,)``.</span>
+<span class="sd">        - Single column → 1-D array of shape ``(nrows,)``.</span>
+<span class="sd">        - Otherwise    → 2-D array of shape ``(nrows, ncols)``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import anyplotlib as vw</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; fig, axs = vw.subplots(2, 1, figsize=(640, 600))</span>
+<span class="sd">    &gt;&gt;&gt; v2d = axs[0].imshow(np.random.rand(128, 128))</span>
+<span class="sd">    &gt;&gt;&gt; v1d = axs[1].plot(np.sin(np.linspace(0, 6.28, 256)))</span>
+<span class="sd">    &gt;&gt;&gt; fig</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Merge gridspec_kw into width_ratios / height_ratios (matplotlib compat)</span>
+    <span class="k">if</span> <span class="n">gridspec_kw</span><span class="p">:</span>
+        <span class="n">width_ratios</span>  <span class="o">=</span> <span class="n">gridspec_kw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;width_ratios&quot;</span><span class="p">,</span>  <span class="n">width_ratios</span><span class="p">)</span>
+        <span class="n">height_ratios</span> <span class="o">=</span> <span class="n">gridspec_kw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;height_ratios&quot;</span><span class="p">,</span> <span class="n">height_ratios</span><span class="p">)</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">Figure</span><span class="p">(</span>
+        <span class="n">nrows</span><span class="o">=</span><span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="n">ncols</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span>
+        <span class="n">width_ratios</span><span class="o">=</span><span class="n">width_ratios</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="n">height_ratios</span><span class="p">,</span>
+        <span class="n">sharex</span><span class="o">=</span><span class="n">sharex</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">sharey</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Build the GridSpec from the Figure&#39;s own stored ratios so there is</span>
+    <span class="c1"># exactly one source of truth.</span>
+    <span class="n">gs</span> <span class="o">=</span> <span class="n">GridSpec</span><span class="p">(</span>
+        <span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span><span class="p">,</span>
+        <span class="n">width_ratios</span><span class="o">=</span><span class="n">fig</span><span class="o">.</span><span class="n">_width_ratios</span><span class="p">,</span>
+        <span class="n">height_ratios</span><span class="o">=</span><span class="n">fig</span><span class="o">.</span><span class="n">_height_ratios</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">axes_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrows</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncols</span><span class="p">):</span>
+            <span class="n">axes_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">nrows</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">ncols</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axes_grid</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">nrows</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axes_grid</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">if</span> <span class="n">ncols</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axes_grid</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axes_grid</span></div>
+
+
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

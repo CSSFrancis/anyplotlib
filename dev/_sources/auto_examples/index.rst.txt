@@ -1,0 +1,556 @@
+:orphan:
+
+Examples
+========
+
+A collection of short, self-contained examples.
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_3d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_3d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3D Plotting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate pcolormesh with non-uniform (log-spaced) x-edges and irregularly-spaced y-edges, mirroring matplotlib.axes.Axes.pcolormesh.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_pcolormesh_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_pcolormesh`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">pcolormesh — non-linear axes</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Plot a 1-D spectrum with a physical x-axis (energy in eV) using plot.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_spectra1d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_spectra1d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Spectra</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Display a 2-D image with physical axes using imshow. The image is a synthetic STEM-like diffraction pattern with a physical length scale in nanometres.  Circle markers highlight the first-order diffraction spots, and an annular integration widget is placed over the central beam.  Pan and zoom with the mouse; press R to reset the view, H to toggle the histogram, L / S to cycle colour-scale modes.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_image2d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_image2d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Image</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with vertical and horizontal orientations, per-bar colours, category labels, and live data updates via update.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_bar_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_bar`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Bar Chart</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/plot_3d
+   /auto_examples/plot_pcolormesh
+   /auto_examples/plot_spectra1d
+   /auto_examples/plot_image2d
+   /auto_examples/plot_bar
+
+Interactive Examples
+====================
+
+Examples that use the callback / event system to connect widget
+interactions to live Python computations.
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_interactive_fft_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_interactive_fft`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+Markers
+-------
+A collection of short examples using markers
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw static horizontal threshold lines on a 1-D plot with add_hlines. Use markers[&quot;hlines&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_horizontal_lines_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_horizontal_lines`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Horizontal Lines</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw static vertical marker lines on a 1-D plot with add_vlines. Use markers[&quot;vlines&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_vertical_lines_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_vertical_lines`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Vertical Lines</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Mark specific (x, y) positions on a 1-D plot with add_points. Use markers[&quot;points&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_points_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_points`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Points</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Place text annotations on a 2-D image with add_texts. Use markers[&quot;texts&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_texts_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_texts`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Text Labels</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw vector arrows on a 2-D image with add_arrows. Use markers[&quot;arrows&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_arrows_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_arrows`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Arrows</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Mark circular features on a 2-D image with add_circles. Use markers[&quot;circles&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_circles_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_circles`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Circles</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw bounding boxes on a 2-D image with add_rectangles. Use markers[&quot;rectangles&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_rectangles_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_rectangles`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Rectangles</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw line segments on a 2-D image with add_lines. Use markers[&quot;lines&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_line_segments_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_line_segments`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Line Segments</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw ellipses on a 2-D image with add_ellipses. Use markers[&quot;ellipses&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_ellipses_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_ellipses`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Ellipses</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw squares on a 2-D image with add_squares. Use markers[&quot;squares&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_squares_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_squares`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Squares</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw closed polygons on a 2-D image with add_polygons. Use markers[&quot;polygons&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_polygons_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_polygons`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Polygons</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+Widgets
+-------
+Short examples of using widgets in anyplotlib
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable horizontal line on a 1-D plot panel. Add it with add_hline_widget. Drag the line up or down to change the selected y value.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_hline_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_hline`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Horizontal Line Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable vertical line on a 1-D plot panel. Add it with add_vline_widget. Drag the line left or right to change the selected x position.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_vline_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_vline`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Vertical Line Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable range selector on a 1-D plot panel with two handles. Add it with add_range_widget. Drag either handle to resize the selected interval, or drag the band to move it.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_range_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_range`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Range Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable crosshair overlay that snaps to a single [x, y] position on a 2-D image panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_crosshair_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_crosshair`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Crosshair Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable, resizable circle overlay on a 2-D image panel. Add it with add_widget using kind=&quot;circle&quot;.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_circle_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_circle`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Circle Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable, resizable rectangle overlay on a 2-D image panel. Add it with add_widget using kind=&quot;rectangle&quot;.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_rectangle_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_rectangle`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Rectangle Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable annular (ring) overlay for selecting a radial band on a 2-D image. Drag the inner or outer ring to adjust the radii.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_annular_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_annular`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Annular Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable text label overlay on a 2-D image panel. Specify position with x, y (pixel coordinates), text, and fontsize.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_label_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_label`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Label Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable polygon overlay whose individual vertices can be repositioned. Pass vertices as a list of [x, y] pixel coordinates.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_polygon_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_polygon`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Polygon Widget</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+   :includehidden:
+
+
+   /auto_examples/Interactive/index.rst
+   /auto_examples/Markers/index.rst
+   /auto_examples/Widgets/index.rst
+
+
+.. only:: html
+
+  .. container:: sphx-glr-footer sphx-glr-footer-gallery
+
+    .. container:: sphx-glr-download sphx-glr-download-python
+
+      :download:`Download all examples in Python source code: auto_examples_python.zip </auto_examples/auto_examples_python.zip>`
+
+    .. container:: sphx-glr-download sphx-glr-download-jupyter
+
+      :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip </auto_examples/auto_examples_jupyter.zip>`
+
+
+.. only:: html
+
+ .. rst-class:: sphx-glr-signature
+
+    `Gallery generated by Sphinx-Gallery <https://sphinx-gallery.github.io>`_

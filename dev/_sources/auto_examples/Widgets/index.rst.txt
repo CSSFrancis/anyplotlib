@@ -1,0 +1,188 @@
+
+
+.. _sphx_glr_auto_examples_Widgets:
+
+Widgets
+-------
+Short examples of using widgets in anyplotlib
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable horizontal line on a 1-D plot panel. Add it with add_hline_widget. Drag the line up or down to change the selected y value.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_hline_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_hline`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Horizontal Line Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable vertical line on a 1-D plot panel. Add it with add_vline_widget. Drag the line left or right to change the selected x position.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_vline_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_vline`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Vertical Line Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable range selector on a 1-D plot panel with two handles. Add it with add_range_widget. Drag either handle to resize the selected interval, or drag the band to move it.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_range_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_range`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Range Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable crosshair overlay that snaps to a single [x, y] position on a 2-D image panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_crosshair_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_crosshair`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Crosshair Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable, resizable circle overlay on a 2-D image panel. Add it with add_widget using kind=&quot;circle&quot;.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_circle_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_circle`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Circle Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable, resizable rectangle overlay on a 2-D image panel. Add it with add_widget using kind=&quot;rectangle&quot;.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_rectangle_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_rectangle`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Rectangle Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable annular (ring) overlay for selecting a radial band on a 2-D image. Drag the inner or outer ring to adjust the radii.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_annular_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_annular`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Annular Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable text label overlay on a 2-D image panel. Specify position with x, y (pixel coordinates), text, and fontsize.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_label_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_label`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Label Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable polygon overlay whose individual vertices can be repositioned. Pass vertices as a list of [x, y] pixel coordinates.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_polygon_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_polygon`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Polygon Widget</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/Widgets/plot_widget1d_hline
+   /auto_examples/Widgets/plot_widget1d_vline
+   /auto_examples/Widgets/plot_widget1d_range
+   /auto_examples/Widgets/plot_widget2d_crosshair
+   /auto_examples/Widgets/plot_widget2d_circle
+   /auto_examples/Widgets/plot_widget2d_rectangle
+   /auto_examples/Widgets/plot_widget2d_annular
+   /auto_examples/Widgets/plot_widget2d_label
+   /auto_examples/Widgets/plot_widget2d_polygon
+

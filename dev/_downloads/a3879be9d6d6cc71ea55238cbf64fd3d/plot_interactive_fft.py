@@ -1,0 +1,184 @@
+"""
+Interactive FFT ROI
+===================
+
+A draggable rectangle widget on a real-space image drives a live 2-D FFT
+of the selected region, displayed in a side-by-side panel.
+
+**How it works**
+
+* The left panel shows a synthetic real-space image (a periodic lattice with
+  noise, similar to an atomic-resolution STEM image).
+* A yellow rectangle widget marks the region-of-interest (ROI).
+* Whenever the ROI is moved or resized the :meth:`~anyplotlib.figure_plots.Plot2D.on_release`
+  callback re-computes ``numpy.fft.fft2`` on the cropped pixels, applies a
+  Hann window to reduce edge ringing, takes the log-magnitude, and pushes the
+  result into the right panel with
+  :meth:`~anyplotlib.figure_plots.Plot2D.update`.
+* A second :meth:`~anyplotlib.figure_plots.Plot2D.on_change` callback updates
+  a lightweight text readout (ROI size in pixels) on every drag frame without
+  re-running the FFT.
+
+**Interaction**
+
+* Drag the rectangle body to move the ROI.
+* Drag any corner handle to resize it.
+* The FFT panel refreshes automatically on mouse-release.
+
+.. note::
+   The ``on_release`` / ``on_change`` callbacks are pure Python — no kernel
+   restart is needed after editing them.
+"""
+
+import numpy as np
+import anyplotlib as vw
+
+# ── Synthetic real-space image ────────────────────────────────────────────────
+# Periodic lattice (two overlapping sinusoidal gratings) + Gaussian envelope
+# + shot noise.  Mimics a crystalline region in an electron-microscopy image.
+
+N = 256                          # image size (pixels)
+rng = np.random.default_rng(42)
+
+x = np.arange(N)
+XX, YY = np.meshgrid(x, x)
+
+# Two lattice periodicities (pixels)
+a1, a2 = 22, 14
+theta = np.deg2rad(30)
+
+lattice = (
+    np.cos(2 * np.pi * (XX * np.cos(theta) + YY * np.sin(theta)) / a1)
+    + 0.6 * np.cos(2 * np.pi * (XX * np.cos(theta + np.pi / 3)
+                                 + YY * np.sin(theta + np.pi / 3)) / a2)
+)
+
+# Gaussian envelope (brighter in centre)
+cx, cy = N // 2, N // 2
+gauss = np.exp(-((XX - cx) ** 2 + (YY - cy) ** 2) / (2 * (N * 0.35) ** 2))
+
+image = gauss * lattice + rng.normal(scale=0.08, size=(N, N))
+
+# Normalise to [0, 1]
+image = (image - image.min()) / (image.max() - image.min())
+
+# Physical axis: 0.1 Å / pixel
+scale = 0.1          # Å per pixel
+xy_px = np.arange(N) * scale   # physical axis in Å
+
+# ── Figure layout: real-space (left) | FFT (right) ───────────────────────────
+fig, (ax_real, ax_fft) = vw.subplots(
+    1, 2,
+    figsize=(900, 460),
+    sharex=False,
+    sharey=False,
+)
+
+# ── Left panel: real-space image ──────────────────────────────────────────────
+v_real = ax_real.imshow(image, axes=[xy_px, xy_px], units="Å")
+v_real.set_colormap("gray")
+
+# Initial ROI: centred, 64 × 64 px
+ROI_W, ROI_H = 64, 64
+roi_x0 = (N - ROI_W) // 2   # pixel coords (top-left corner)
+roi_y0 = (N - ROI_H) // 2
+
+wid = v_real.add_widget(
+    "rectangle",
+    color="#ffeb3b",
+    x=float(roi_x0),
+    y=float(roi_y0),
+    w=float(ROI_W),
+    h=float(ROI_H),
+)
+
+# ── Right panel: FFT magnitude ────────────────────────────────────────────────
+def _compute_fft(img_full, x0, y0, w, h):
+    """Crop, window and FFT a region of *img_full*.
+
+    Parameters
+    ----------
+    img_full : ndarray, shape (N, N)   – full real-space image (float)
+    x0, y0   : float  – top-left corner of rectangle in pixel coords
+    w, h     : float  – width and height in pixels
+
+    Returns
+    -------
+    log_mag : ndarray  – log10(1 + |FFT|), shifted so DC is at centre
+    freq_x  : ndarray  – spatial-frequency axis (1/Å), shape (w_int,)
+    freq_y  : ndarray  – spatial-frequency axis (1/Å), shape (h_int,)
+    """
+    ih, iw = img_full.shape
+
+    # Clamp ROI to image bounds
+    x0i = max(0, int(round(x0)))
+    y0i = max(0, int(round(y0)))
+    x1i = min(iw, x0i + max(1, int(round(w))))
+    y1i = min(ih, y0i + max(1, int(round(h))))
+
+    crop = img_full[y0i:y1i, x0i:x1i].copy()
+    ch, cw = crop.shape
+    if ch < 2 or cw < 2:
+        # ROI too small — return a blank placeholder
+        blank = np.zeros((4, 4))
+        f = np.fft.fftfreq(4, d=scale)
+        return blank, f, f
+
+    # Hann window to suppress edge ringing
+    win_y = np.hanning(ch)
+    win_x = np.hanning(cw)
+    crop *= win_y[:, None] * win_x[None, :]
+
+    # 2-D FFT → log magnitude, DC centred
+    fft2  = np.fft.fftshift(np.fft.fft2(crop))
+    log_mag = np.log1p(np.abs(fft2))
+
+    # Spatial-frequency axes  (cycles per Å)
+    freq_x = np.fft.fftshift(np.fft.fftfreq(cw, d=scale))
+    freq_y = np.fft.fftshift(np.fft.fftfreq(ch, d=scale))
+
+    return log_mag, freq_x, freq_y
+
+
+# Compute initial FFT and display it
+_fft_init, _fx_init, _fy_init = _compute_fft(image, roi_x0, roi_y0, ROI_W, ROI_H)
+v_fft = ax_fft.imshow(_fft_init, axes=[_fx_init, _fy_init], units="1/Å")
+v_fft.set_colormap("inferno")
+
+# ── Callbacks ─────────────────────────────────────────────────────────────────
+
+@wid.on_changed
+def _roi_dragging(event):
+    """Fires on every drag frame — highlight rectangle while dragging."""
+    # Cheaply pulse the widget colour to give live drag feedback.
+    for w in v_real._state["overlay_widgets"]:
+        if w["id"] == wid._id:
+            w["color"] = "#ff9800"   # orange while dragging
+            break
+    v_real._push()
+
+
+@wid.on_release
+def _roi_released(event):
+    """Fires once on mouse-up — recompute and push the full FFT."""
+    x0 = event.data.get("x", roi_x0)
+    y0 = event.data.get("y", roi_y0)
+    w  = event.data.get("w", ROI_W)
+    h  = event.data.get("h", ROI_H)
+
+    # Restore widget colour to yellow
+    for widget in v_real._state["overlay_widgets"]:
+        if widget["id"] == wid._id:
+            widget["color"] = "#ffeb3b"
+            break
+
+    log_mag, freq_x, freq_y = _compute_fft(image, x0, y0, w, h)
+
+    # Push updated FFT into the right panel
+    v_fft.update(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/\u00c5")
+
+
+fig
+
+
+

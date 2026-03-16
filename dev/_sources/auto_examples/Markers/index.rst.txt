@@ -1,0 +1,224 @@
+
+
+.. _sphx_glr_auto_examples_Markers:
+
+Markers
+-------
+A collection of short examples using markers
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw static horizontal threshold lines on a 1-D plot with add_hlines. Use markers[&quot;hlines&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_horizontal_lines_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_horizontal_lines`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Horizontal Lines</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw static vertical marker lines on a 1-D plot with add_vlines. Use markers[&quot;vlines&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_vertical_lines_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_vertical_lines`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Vertical Lines</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Mark specific (x, y) positions on a 1-D plot with add_points. Use markers[&quot;points&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_points_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_points`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Points</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Place text annotations on a 2-D image with add_texts. Use markers[&quot;texts&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_texts_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_texts`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Text Labels</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw vector arrows on a 2-D image with add_arrows. Use markers[&quot;arrows&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_arrows_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_arrows`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Arrows</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Mark circular features on a 2-D image with add_circles. Use markers[&quot;circles&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_circles_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_circles`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Circles</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw bounding boxes on a 2-D image with add_rectangles. Use markers[&quot;rectangles&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_rectangles_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_rectangles`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Rectangles</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw line segments on a 2-D image with add_lines. Use markers[&quot;lines&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_line_segments_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_line_segments`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Line Segments</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw ellipses on a 2-D image with add_ellipses. Use markers[&quot;ellipses&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_ellipses_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_ellipses`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Ellipses</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw squares on a 2-D image with add_squares. Use markers[&quot;squares&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_squares_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_squares`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Squares</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Draw closed polygons on a 2-D image with add_polygons. Use markers[&quot;polygons&quot;][&quot;name&quot;].set(...) to update them live.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_polygons_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_polygons`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Polygons</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/Markers/plot_horizontal_lines
+   /auto_examples/Markers/plot_vertical_lines
+   /auto_examples/Markers/plot_points
+   /auto_examples/Markers/plot_texts
+   /auto_examples/Markers/plot_arrows
+   /auto_examples/Markers/plot_circles
+   /auto_examples/Markers/plot_rectangles
+   /auto_examples/Markers/plot_line_segments
+   /auto_examples/Markers/plot_ellipses
+   /auto_examples/Markers/plot_squares
+   /auto_examples/Markers/plot_polygons
+

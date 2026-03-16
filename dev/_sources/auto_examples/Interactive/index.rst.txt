@@ -1,0 +1,48 @@
+
+
+.. _sphx_glr_auto_examples_Interactive:
+
+Interactive Examples
+====================
+
+Examples that use the callback / event system to connect widget
+interactions to live Python computations.
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_interactive_fft_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_interactive_fft`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/Interactive/plot_interactive_fft
+
