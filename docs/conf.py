@@ -19,6 +19,12 @@ copyright = "2026, anyplotlib contributors"
 author = "anyplotlib contributors"
 release = "0.1.0"
 
+# When built in CI the workflow sets DOCS_VERSION to the tag name (e.g.
+# "v0.1.0") or "dev".  Fall back to "dev" for local builds.
+_docs_version = os.environ.get("DOCS_VERSION", "dev")
+_base = "https://cssfrancis.github.io/anyplotlib/"
+html_baseurl = f"{_base}{_docs_version}/"
+
 # -- General configuration ---------------------------------------------------
 extensions = [
     "sphinx.ext.autodoc",
@@ -76,13 +82,17 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 
 html_theme_options = {
-    "github_url": "https://github.com/",
+    "github_url": "https://github.com/CSSFrancis/anyplotlib",
     "logo": {
         "image_light": "_static/anyplotlib.svg",
         "image_dark": "_static/anyplotlib.svg",
         "text": "anyplotlib",
     },
-    "navbar_end": ["navbar-icon-links"],
+    "switcher": {
+        "json_url": f"{_base}switcher.json",
+        "version_match": _docs_version,
+    },
+    "navbar_end": ["version-switcher", "navbar-icon-links"],
     "show_toc_level": 2,
 }
 

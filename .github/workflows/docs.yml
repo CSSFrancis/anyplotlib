@@ -45,13 +45,6 @@ jobs:
       - name: Install dependencies (with docs extras)
         run: uv sync --extra docs
 
-      # ── Sphinx build ───────────────────────────────────────────────────────
-      # -W turns warnings into errors so broken cross-references are caught.
-      # Remove -W if the gallery examples produce unavoidable warnings.
-      - name: Build HTML documentation
-        run: |
-          uv run sphinx-build -b html docs build/html -W --keep-going
-
       # ── Determine deployment target ─────────────────────────────────────────
       # Release tag  (refs/tags/v1.2.3) → destination = "v1.2.3"
       # Everything else (push to main, manual dispatch) → destination = "dev"
@@ -64,6 +57,15 @@ jobs:
           else
             echo "dest_dir=dev" >> "$GITHUB_OUTPUT"
           fi
+
+      # ── Sphinx build ───────────────────────────────────────────────────────
+      # -W turns warnings into errors so broken cross-references are caught.
+      # Remove -W if the gallery examples produce unavoidable warnings.
+      - name: Build HTML documentation
+        env:
+          DOCS_VERSION: ${{ steps.target.outputs.dest_dir }}
+        run: |
+          uv run sphinx-build -b html docs build/html -W --keep-going
 
       # ── Deploy to gh-pages ────────────────────────────────────────────────
       # keep_files: true preserves all existing directories on the branch so
@@ -79,4 +81,17 @@ jobs:
           # Commit message makes the deployment easy to identify in the branch log.
           commit_message: |
             docs: deploy ${{ steps.target.outputs.dest_dir }} @ ${{ github.sha }}
+
+      # ── Deploy root files (redirect + switcher) ────────────────────────────
+      # Places index.html and switcher.json at the root of gh-pages so the
+      # bare URL redirects to dev/ and the version switcher is always reachable.
+      - name: Deploy root redirect and switcher
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_root
+          destination_dir: .
+          keep_files: true
+          commit_message: |
+            docs: update root redirect and switcher.json @ ${{ github.sha }}
 
