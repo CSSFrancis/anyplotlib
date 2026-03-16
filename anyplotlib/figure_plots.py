@@ -22,6 +22,7 @@ import uuid as _uuid
 import numpy as np
 
 from anyplotlib.markers import MarkerRegistry
+from anyplotlib.callbacks import CallbackRegistry
 
 __all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D"]
 
@@ -430,6 +431,7 @@ class Plot2D:
 
         self.markers = MarkerRegistry(self._push_markers,
                                       allowed=MarkerRegistry._KNOWN_2D)
+        self.callbacks = CallbackRegistry()
 
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
@@ -615,6 +617,29 @@ class Plot2D:
         iw, ih = self._state["image_width"], self._state["image_height"]
         return self.add_widget("crosshair", color=color,
                                cx=cx or iw/2, cy=cy or ih/2)
+
+    # ------------------------------------------------------------------
+    # Callback API
+    # ------------------------------------------------------------------
+    def on_change(self, widget_id=None):
+        """Fires on every drag/scroll frame. Keep callbacks fast."""
+        def decorator(fn):
+            cid = self.callbacks.connect("change", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def on_release(self, widget_id=None):
+        """Fires once when drag settles. Safe for expensive work."""
+        def decorator(fn):
+            cid = self.callbacks.connect("release", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def disconnect(self, cid: int) -> None:
+        """Remove the callback registered under integer *cid*."""
+        self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
     # Marker API  (matplotlib-style kwargs → MarkerRegistry)
@@ -847,6 +872,7 @@ class PlotMesh:
 
         self.markers = MarkerRegistry(self._push_markers,
                                       allowed=MarkerRegistry._KNOWN_MESH)
+        self.callbacks = CallbackRegistry()
 
     def _push(self) -> None:
         if self._fig is None:
@@ -944,6 +970,29 @@ class PlotMesh:
     @colormap_name.setter
     def colormap_name(self, name: str) -> None:
         self.set_colormap(name)
+
+    # ------------------------------------------------------------------
+    # Callback API  (PlotMesh)
+    # ------------------------------------------------------------------
+    def on_change(self, widget_id=None):
+        """Fires on every drag/zoom frame. Keep callbacks fast."""
+        def decorator(fn):
+            cid = self.callbacks.connect("change", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def on_release(self, widget_id=None):
+        """Fires once when drag/zoom settles."""
+        def decorator(fn):
+            cid = self.callbacks.connect("release", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def disconnect(self, cid: int) -> None:
+        """Remove the callback registered under integer *cid*."""
+        self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
     # Marker API  (circles and lines only)
@@ -1102,6 +1151,7 @@ class Plot3D:
             "zoom":        float(zoom),
             "data_bounds": data_bounds,
         }
+        self.callbacks = CallbackRegistry()
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
@@ -1111,6 +1161,29 @@ class Plot3D:
 
     def to_state_dict(self) -> dict:
         return dict(self._state)
+
+    # ------------------------------------------------------------------
+    # Callback API  (Plot3D)
+    # ------------------------------------------------------------------
+    def on_change(self, widget_id=None):
+        """Fires on every rotation/zoom frame. Keep callbacks fast."""
+        def decorator(fn):
+            cid = self.callbacks.connect("change", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def on_release(self, widget_id=None):
+        """Fires once when rotation/zoom settles."""
+        def decorator(fn):
+            cid = self.callbacks.connect("release", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def disconnect(self, cid: int) -> None:
+        """Remove the callback registered under integer *cid*."""
+        self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
     # Display settings
@@ -1234,6 +1307,7 @@ class Plot1D:
 
         self.markers = MarkerRegistry(self._push_markers,
                                       allowed=MarkerRegistry._KNOWN_1D)
+        self.callbacks = CallbackRegistry()
 
     def _push(self) -> None:
         if self._fig is None:
@@ -1377,6 +1451,29 @@ class Plot1D:
     def clear_widgets(self) -> None:
         self._state["overlay_widgets"] = []
         self._push()
+
+    # ------------------------------------------------------------------
+    # Callback API  (Plot1D)
+    # ------------------------------------------------------------------
+    def on_change(self, widget_id=None):
+        """Fires on every drag frame. Keep callbacks fast."""
+        def decorator(fn):
+            cid = self.callbacks.connect("change", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def on_release(self, widget_id=None):
+        """Fires once when drag settles. Safe for expensive work."""
+        def decorator(fn):
+            cid = self.callbacks.connect("release", None, widget_id, fn)
+            fn._cid = cid
+            return fn
+        return decorator
+
+    def disconnect(self, cid: int) -> None:
+        """Remove the callback registered under integer *cid*."""
+        self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
     # View control
