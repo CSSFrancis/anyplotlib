@@ -351,15 +351,49 @@ def _compute_histogram(img_u8: np.ndarray, vmin: float, vmax: float) -> dict:
     return {"bins": bin_centers.tolist(), "counts": counts.tolist()}
 
 
+# Mapping from common matplotlib colormap names to their nearest colorcet
+# equivalents so callers can keep using familiar names without any matplotlib
+# dependency.
+_CMAP_ALIASES: dict[str, str] = {
+    "viridis":       "bmy",       # blue→magenta→yellow, perceptually uniform
+    "plasma":        "fire",      # warm sequential (dark→bright)
+    "inferno":       "kb",        # dark→blue→white
+    "magma":         "kbc",       # dark→blue→cyan sequential
+    "cividis":       "dimgray",   # accessible, low-chroma sequential
+    "hot":           "fire",
+    "afmhot":        "fire",
+    "jet":           "rainbow4",
+    "hsv":           "rainbow4",
+    "nipy_spectral": "rainbow4",
+    "RdBu":          "coolwarm",
+    "bwr":           "cwr",       # blue→white→red diverging
+    "seismic":       "coolwarm",
+}
+
+
 def _build_colormap_lut(name: str) -> list:
-    """Return a 256-entry [[r,g,b], ...] LUT for the named colormap."""
-    try:
-        import matplotlib.cm as cm
-        cmap = cm.get_cmap(name, 256)
-        return [[int(r * 255), int(g * 255), int(b * 255)]
-                for r, g, b, _ in (cmap(i / 255) for i in range(256))]
-    except Exception:
-        return [[i, i, i] for i in range(256)]
+    """Return a 256-entry ``[[r, g, b], ...]`` LUT for the named colormap.
+
+    Uses **colorcet** exclusively.  Common matplotlib colormap names are
+    transparently remapped via :data:`_CMAP_ALIASES` so callers can keep
+    using names like ``"viridis"`` or ``"hot"`` without any matplotlib
+    dependency.  Falls back to a plain gray ramp for unknown names.
+    """
+    import colorcet as cc
+
+    resolved = _CMAP_ALIASES.get(name, name)
+    palette = cc.palette.get(resolved)
+
+    if palette is None:
+        # Unknown name → linear gray ramp
+        return [[v, v, v] for v in range(256)]
+
+    n = len(palette)
+    lut: list = []
+    for i in range(256):
+        h = palette[int(round(i * (n - 1) / 255))].lstrip("#")
+        lut.append([int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)])
+    return lut
 
 
 def _resample_mesh(data: np.ndarray, x_edges, y_edges) -> np.ndarray:
@@ -1425,5 +1459,4 @@ class Plot1D:
             for name, g in td.items():
                 out.append({"type": mtype, "name": name, "n": g._count()})
         return out
-
 
