@@ -226,22 +226,21 @@ function render({ model, el }) {
       xAxisCanvas = document.createElement('canvas');
       xAxisCanvas.style.cssText = `position:absolute;display:none;background:${theme.axisBg};`;
 
-      // Histogram canvas: to the right of the image area, same height
-      const histCanvas = document.createElement('canvas');
-      histCanvas.style.cssText = 'position:absolute;display:none;cursor:ns-resize;';
-      const histWidth = 80;
+      // Colorbar canvas: narrow strip (16 px) to the right of the image area
+      const cbCanvas = document.createElement('canvas');
+      cbCanvas.style.cssText = 'position:absolute;display:none;pointer-events:none;border-radius:0 2px 2px 0;';
 
       plotWrap.appendChild(plotCanvas);
       plotWrap.appendChild(overlayCanvas);
       plotWrap.appendChild(markersCanvas);
       plotWrap.appendChild(yAxisCanvas);
       plotWrap.appendChild(xAxisCanvas);
-      plotWrap.appendChild(histCanvas);
+      plotWrap.appendChild(cbCanvas);
       plotWrap.appendChild(statusBar);
       cell.appendChild(plotWrap);
 
-      const histCtx = histCanvas.getContext('2d');
-      _p2d = { histCanvas, histCtx, histWidth, sbLine, sbLabel, plotWrap };
+      const cbCtx = cbCanvas.getContext('2d');
+      _p2d = { cbCanvas, cbCtx, plotWrap };
 
     } else if (kind === '3d') {
       // ── 3D branch: one full-panel plotCanvas + overlayCanvas on top ───────
@@ -313,12 +312,11 @@ function render({ model, el }) {
       state: null,
       _hoverSi: -1, _hoverI: -1,   // index of hovered marker group / marker (-1 = none)
       _hovBar:  -1,                 // index of hovered bar (-1 = none)
-      // 2D extras (null for 1D panels)
-      histCanvas:  _p2d ? _p2d.histCanvas  : null,
-      histCtx:     _p2d ? _p2d.histCtx     : null,
-      histWidth:   _p2d ? _p2d.histWidth   : 0,
-      sbLine:      _p2d ? _p2d.sbLine      : null,
-      sbLabel:     _p2d ? _p2d.sbLabel     : null,
+      // 2D extras (null for non-2D panels)
+      cbCanvas:    _p2d ? _p2d.cbCanvas    : null,
+      cbCtx:       _p2d ? _p2d.cbCtx       : null,
+      sbLine:      null,
+      sbLabel:     null,
       plotWrap:    _p2d ? _p2d.plotWrap    : null,
     };
     panels.set(id, p);
@@ -432,17 +430,17 @@ function render({ model, el }) {
         }
       }
 
-      // Histogram: right of image area
-      if (p.histCanvas && p.histCtx) {
-        const hw = p.histWidth || 80;
-        const vis = st && st.histogram_visible;
+      // Colorbar: narrow strip to the right of the image area
+      if (p.cbCanvas && p.cbCtx) {
+        const cbW = 16;
+        const vis = st && st.show_colorbar;
         if (vis) {
-          p.histCanvas.style.display = 'block';
-          p.histCanvas.style.left = (imgX + imgW) + 'px';
-          p.histCanvas.style.top  = imgY + 'px';
-          _sz(p.histCanvas, p.histCtx, hw, imgH);
+          p.cbCanvas.style.display = 'block';
+          p.cbCanvas.style.left = (imgX + imgW + 2) + 'px';
+          p.cbCanvas.style.top  = imgY + 'px';
+          _sz(p.cbCanvas, p.cbCtx, cbW, imgH);
         } else {
-          p.histCanvas.style.display = 'none';
+          p.cbCanvas.style.display = 'none';
         }
       }
 
@@ -459,9 +457,21 @@ function render({ model, el }) {
   }
 
   // ── 2D drawing ───────────────────────────────────────────────────────────
+
+  // Largest rect with the image's natural aspect that fits inside cw×ch,
+  // centred.  All 2-D coordinate functions derive from this single rect so
+  // draw, hit-test, and coordinate conversion are always consistent.
+  // s = uniform scale factor (canvas px per image px).
+  function _imgFitRect(iw, ih, cw, ch) {
+    const s = Math.min(cw / iw, ch / ih);
+    const fw = iw * s, fh = ih * s;
+    return { x: (cw - fw) / 2, y: (ch - fh) / 2, w: fw, h: fh, s };
+  }
+
   function _buildLut32(st) {
     const dMin=st.display_min, dMax=st.display_max;
-    const hMin=st.hist_min,    hMax=st.hist_max;
+    const hMin=st.raw_min!=null?st.raw_min:dMin;
+    const hMax=st.raw_max!=null?st.raw_max:dMax;
     const mode=st.scale_mode||'linear';
     const range=hMax-hMin||1;
     const cmapData=st.colormap_data||[];
@@ -487,26 +497,44 @@ function render({ model, el }) {
   }
 
   function _lutKey(st) {
-    return [st.display_min,st.display_max,st.hist_min,st.hist_max,st.scale_mode,st.colormap_name].join('|');
+    return [st.display_min,st.display_max,st.raw_min,st.raw_max,st.scale_mode,st.colormap_name].join('|');
   }
 
   function _imgToCanvas2d(ix, iy, st, pw, ph) {
-    const zoom=st.zoom, cx=st.center_x, cy=st.center_y;
-    const iw=st.image_width, ih=st.image_height;
-    if(zoom>=1.0){
-      const visW=iw/zoom, visH=ih/zoom;
-      const srcX=Math.max(0,Math.min(iw-visW,cx*iw-visW/2));
-      const srcY=Math.max(0,Math.min(ih-visH,cy*ih-visH/2));
-      return [(ix-srcX)/visW*pw, (iy-srcY)/visH*ph];
-    } else {
-      const dstW=pw*zoom, dstH=ph*zoom;
-      return [(pw-dstW)/2+(ix/iw)*dstW, (ph-dstH)/2+(iy/ih)*dstH];
-    }
+    const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
+    const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
+    const iw = st.image_width, ih = st.image_height;
+    const visW = iw / zoom, visH = ih / zoom;
+    const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+    const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+    return [x + (ix - srcX) / visW * w, y + (iy - srcY) / visH * h];
   }
 
-  function _imgScale2d(st, pw) {
-    const zoom=st.zoom, iw=st.image_width;
-    return zoom>=1.0 ? pw/(iw/zoom) : pw*zoom/iw;
+  // Returns canvas-px per image-px at the current zoom (uniform in x and y).
+  function _imgScale2d(st, pw, ph) {
+    return _imgFitRect(st.image_width, st.image_height, pw, ph).s * st.zoom;
+  }
+
+  function _blit2d(bitmap, st, pw, ph, ctx) {
+    const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
+    const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
+    const iw = st.image_width, ih = st.image_height;
+    ctx.clearRect(0, 0, pw, ph);
+    ctx.fillStyle = theme.bgCanvas;
+    ctx.fillRect(0, 0, pw, ph);
+    ctx.imageSmoothingEnabled = false;
+    if (zoom >= 1.0) {
+      // Zoomed in: show a portion of the image filling the fit-rect.
+      const visW = iw / zoom, visH = ih / zoom;
+      const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+      const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+      ctx.drawImage(bitmap, srcX, srcY, visW, visH, x, y, w, h);
+    } else {
+      // Zoomed out: shrink the fit-rect proportionally, keep it centred.
+      const dstW = w * zoom, dstH = h * zoom;
+      ctx.drawImage(bitmap, 0, 0, iw, ih,
+        x + (w - dstW) / 2, y + (h - dstH) / 2, dstW, dstH);
+    }
   }
 
   function draw2d(p) {
@@ -548,10 +576,10 @@ function render({ model, el }) {
       blitCache.w=iw; blitCache.h=ih;
       _blit2d(oc, st, imgW, imgH, ctx);
     }
-    // Axes / scalebar
+    // Axes / scalebar / colorbar
     _drawAxes2d(p);
     drawScaleBar2d(p);
-    drawHistogram2d(p);
+    drawColorbar2d(p);
     drawOverlay2d(p);
     drawMarkers2d(p);
   }
@@ -565,14 +593,16 @@ function render({ model, el }) {
     if(!scaleX||units==='px'){p.scaleBar.style.display='none';return;}
 
     const imgW=Math.max(1,p.pw-PAD_L-PAD_R);
+    const imgH=Math.max(1,p.ph-PAD_T-PAD_B);
 
-    // Compute bar width accounting for current zoom
+    // Compute bar width in the fit-rect pixel space
     const zoom=st.zoom||1;
     const iw=st.image_width||imgW;
+    const fr=_imgFitRect(iw, st.image_height||imgH, imgW, imgH);
     const visDataW=(zoom>=1?iw/zoom:iw)*scaleX;
     const targetDataWidth=visDataW*0.2;
     const niceWidth=findNice(targetDataWidth);
-    const barPx=Math.round((niceWidth/visDataW)*imgW);
+    const barPx=Math.round((niceWidth/visDataW)*fr.w);  // use fit-rect width
     if(barPx<4){p.scaleBar.style.display='none';return;}
 
     // Layout constants (CSS pixels)
@@ -630,96 +660,47 @@ function render({ model, el }) {
     sb.style.display='block';
   }
 
-  function drawHistogram2d(p) {
-    const st=p.state; if(!st||!p.histCanvas||!p.histCtx) return;
-    const vis=st.histogram_visible||false;
-    p.histCanvas.style.display = vis ? 'block' : 'none';
+  function drawColorbar2d(p) {
+    const st=p.state; if(!st||!p.cbCanvas||!p.cbCtx) return;
+    const vis=st.show_colorbar||false;
+    p.cbCanvas.style.display = vis ? 'block' : 'none';
     if(!vis) return;
 
-    const hw=p.histWidth||80;
-    const ph=Math.max(1,p.ph-PAD_T-PAD_B);  // histogram height = image area height
-    const hctx=p.histCtx;
-    hctx.clearRect(0,0,hw,ph);
-    hctx.fillStyle=theme.axisBg; hctx.fillRect(0,0,hw,ph);
+    const cbW=16;
+    const imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+    const ctx=p.cbCtx;
+    ctx.clearRect(0,0,cbW,imgH);
 
-    const histData=st.histogram_data||{bins:[],counts:[]};
-    const bins=histData.bins||[], counts=histData.counts||[];
-    if(!bins.length||!counts.length){return;}
-
-    const hMin=st.hist_min||0, hMax=st.hist_max||1;
-    const maxC=Math.max(...counts)||1;
-
-    // Draw histogram bars
-    const barAreaX=18, barAreaW=hw-barAreaX-2;
-    const dMin=st.display_min, dMax=st.display_max;
-
-    function _dataToY(v){return ph-2-((v-hMin)/(hMax-hMin||1))*(ph-4);}
-
-    // Bars
-    hctx.fillStyle=theme.dark?'rgba(150,150,200,0.55)':'rgba(80,80,160,0.55)';
-    for(let i=0;i<counts.length;i++){
-      const y0=_dataToY(bins[i]);
-      const y1=i+1<bins.length?_dataToY(bins[i+1]):_dataToY(hMax);
-      const bh=Math.abs(y0-y1)||1;
-      const bw=Math.max(1,(counts[i]/maxC)*barAreaW);
-      hctx.fillRect(barAreaX, Math.min(y0,y1), bw, bh);
-    }
-
-    // display_min / display_max lines
-    const yDMax=_dataToY(dMax), yDMin=_dataToY(dMin);
-    hctx.save();
-    hctx.strokeStyle='#ffffff'; hctx.lineWidth=2; hctx.setLineDash([4,3]);
-    hctx.beginPath();hctx.moveTo(barAreaX,yDMax);hctx.lineTo(hw,yDMax);hctx.stroke();
-    hctx.strokeStyle='#aaaaff';
-    hctx.beginPath();hctx.moveTo(barAreaX,yDMin);hctx.lineTo(hw,yDMin);hctx.stroke();
-    hctx.setLineDash([]);hctx.restore();
-
-    // Labels
-    hctx.fillStyle=theme.tickText; hctx.font='9px monospace'; hctx.textAlign='right';
-    hctx.fillText(fmtVal(hMax),hw-1,12);
-    hctx.fillText(fmtVal(hMin),hw-1,ph-3);
-
-    // Scale mode badge
-    const mode=st.scale_mode||'linear';
-    if(mode!=='linear'){
-      hctx.save();hctx.font='bold 9px monospace';hctx.fillStyle='rgba(255,180,0,0.9)';
-      hctx.textAlign='right';hctx.fillText(mode.toUpperCase(),hw-1,ph-14);hctx.restore();
-    }
-
-    // Colorbar strip on the left
-    const cbW=barAreaX-2;
+    // Gradient strip
     if(st.colormap_data&&st.colormap_data.length===256){
-      for(let py2=2;py2<ph-2;py2++){
-        const frac=1-(py2-2)/(ph-4);
+      for(let py=0;py<imgH;py++){
+        const frac=1-py/(imgH-1||1);
         const ci=Math.max(0,Math.min(255,Math.round(frac*255)));
         const [r2,g2,b2]=st.colormap_data[ci];
-        hctx.fillStyle=`rgb(${r2},${g2},${b2})`;
-        hctx.fillRect(0,py2,cbW,1);
+        ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
+        ctx.fillRect(0,py,cbW,1);
       }
-    }
-
-    // Drag for display_min/max
-    p.histCanvas._hMin=hMin; p.histCanvas._hMax=hMax;
-    p.histCanvas._ph=ph; p.histCanvas._dMin=dMin; p.histCanvas._dMax=dMax;
-    p.histCanvas._dataToY=_dataToY;
-  }
-
-  function _blit2d(bitmap, st, pw, ph, ctx) {
-    const zoom=st.zoom, cx=st.center_x, cy=st.center_y;
-    const iw=st.image_width, ih=st.image_height;
-    ctx.clearRect(0,0,pw,ph);
-    ctx.imageSmoothingEnabled=false;
-    if(zoom>=1.0){
-      const visW=iw/zoom, visH=ih/zoom;
-      const srcX=Math.max(0,Math.min(iw-visW,cx*iw-visW/2));
-      const srcY=Math.max(0,Math.min(ih-visH,cy*ih-visH/2));
-      ctx.drawImage(bitmap,srcX,srcY,visW,visH,0,0,pw,ph);
     } else {
-      const dstW=pw*zoom, dstH=ph*zoom;
-      ctx.fillStyle=theme.bgCanvas; ctx.fillRect(0,0,pw,ph);
-      ctx.drawImage(bitmap,0,0,iw,ih,(pw-dstW)/2,(ph-dstH)/2,dstW,dstH);
+      ctx.fillStyle=theme.dark?'#444':'#ccc';
+      ctx.fillRect(0,0,cbW,imgH);
     }
+
+    // Border
+    ctx.strokeStyle=theme.border||'#888';
+    ctx.lineWidth=0.5;
+    ctx.strokeRect(0,0,cbW,imgH);
+
+    // display_min / display_max tick marks
+    const dMin=st.display_min, dMax=st.display_max;
+    const hMin=st.raw_min!=null?st.raw_min:dMin;
+    const hMax=st.raw_max!=null?st.raw_max:dMax;
+    const vRange=(hMax-hMin)||1;
+    function _vToY(v){return imgH-1-((v-hMin)/vRange)*(imgH-1);}
+    ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(0,_vToY(dMax));ctx.lineTo(cbW,_vToY(dMax));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,_vToY(dMin));ctx.lineTo(cbW,_vToY(dMin));ctx.stroke();
   }
+
 
   function _drawAxes2d(p) {
     const st=p.state; if(!st) return;
@@ -827,7 +808,7 @@ function render({ model, el }) {
     const imgW=Math.max(1,pw-PAD_L-PAD_R), imgH=Math.max(1,ph-PAD_T-PAD_B);
     ovCtx.clearRect(0,0,imgW,imgH);
     const widgets=st.overlay_widgets||[];
-    const scale=_imgScale2d(st,imgW);
+    const scale=_imgScale2d(st,imgW,imgH);
     for(const w of widgets){
       ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
       if(w.type==='circle'){
@@ -883,7 +864,7 @@ function render({ model, el }) {
     mkCtx.clearRect(0,0,imgW,imgH);
     const sets=st.markers||[];
     if(!sets.length) return;
-    const scale=_imgScale2d(st,imgW);
+    const scale=_imgScale2d(st,imgW,imgH);
     const hsi = hoverState ? hoverState.si : -1;
 
     for(let si=0;si<sets.length;si++){
@@ -1521,7 +1502,7 @@ function render({ model, el }) {
   // si/i identify the set/marker for hover; labels are for tooltips (null if unset).
   function _markerHitTest2d(mx, my, st, pw, ph) {
     const sets = st.markers || [];
-    const scale = _imgScale2d(st, pw);
+    const scale = _imgScale2d(st, pw, ph);
     for (let si = sets.length-1; si >= 0; si--) {
       const ms = sets[si];
       const type = ms.type || 'circles';
@@ -1642,10 +1623,14 @@ function render({ model, el }) {
     else                       _attachEvents1d(p);
   }
 
-  function _canvasToImg2d(px,py,st,pw,ph){
-    const zoom=st.zoom,cx=st.center_x,cy=st.center_y,iw=st.image_width,ih=st.image_height;
-    if(zoom>=1.0){const visW=iw/zoom,visH=ih/zoom;const srcX=Math.max(0,Math.min(iw-visW,cx*iw-visW/2));const srcY=Math.max(0,Math.min(ih-visH,cy*ih-visH/2));return[srcX+(px/pw)*visW,srcY+(py/ph)*visH];}
-    const dstW=pw*zoom,dstH=ph*zoom;return[((px-(pw-dstW)/2)/dstW)*iw,((py-(ph-dstH)/2)/dstH)*ih];
+  function _canvasToImg2d(px, py, st, pw, ph) {
+    const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
+    const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
+    const iw = st.image_width, ih = st.image_height;
+    const visW = iw / zoom, visH = ih / zoom;
+    const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+    const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+    return [srcX + (px - x) / w * visW, srcY + (py - y) / h * visH];
   }
 
   function _attachEvents2d(p) {
@@ -1656,17 +1641,25 @@ function render({ model, el }) {
       requestAnimationFrame(()=>{commitPending=false;localOnly=true;model.save_changes();setTimeout(()=>{localOnly=false;},200);});
     }
 
-    // Wheel zoom
+    // Wheel zoom — anchored on the image point under the cursor
     overlayCanvas.addEventListener('wheel',(e)=>{
       e.preventDefault();
       const st=p.state; if(!st) return;
       const rect=overlayCanvas.getBoundingClientRect();
-      const mx=(e.clientX-rect.left)/rect.width, my=(e.clientY-rect.top)/rect.height;
+      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      // Image point under cursor before zoom change
+      const [anchorX,anchorY]=_canvasToImg2d(mx,my,st,imgW,imgH);
       const curZ=st.zoom, newZ=Math.max(0.75,Math.min(100,curZ*(e.deltaY>0?0.9:1.1)));
-      const ratio=curZ/newZ;
       st.zoom=newZ;
-      st.center_x=Math.max(0,Math.min(1,st.center_x+(mx-0.5)*(1-ratio)/newZ));
-      st.center_y=Math.max(0,Math.min(1,st.center_y+(my-0.5)*(1-ratio)/newZ));
+      // Reposition center so the same image point stays under the cursor
+      const iw=st.image_width, ih=st.image_height;
+      const fr=_imgFitRect(iw,ih,imgW,imgH);
+      const newVisW=iw/newZ, newVisH=ih/newZ;
+      const newSrcX=anchorX-(mx-fr.x)/fr.w*newVisW;
+      const newSrcY=anchorY-(my-fr.y)/fr.h*newVisH;
+      st.center_x=Math.max(0,Math.min(1,(newSrcX+newVisW/2)/iw));
+      st.center_y=Math.max(0,Math.min(1,(newSrcY+newVisH/2)/ih));
       draw2d(p);
       _propagateZoom2d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
@@ -1699,11 +1692,12 @@ function render({ model, el }) {
       }
       if(!p.isPanning) return;
       const st=p.state; if(!st) return;
-      const rect=overlayCanvas.getBoundingClientRect();
+      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
       const z=st.zoom;
       localOnly=true;
-      st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/rect.width/z));
-      st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/rect.height/z));
+      st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/fr.w/z));
+      st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/fr.h/z));
       draw2d(p);
       _propagateZoom2d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
@@ -1722,9 +1716,10 @@ function render({ model, el }) {
       if(!p.isPanning) return;
       p.isPanning=false; overlayCanvas.style.cursor='default';
       const st=p.state; if(!st) return;
-      const rect=overlayCanvas.getBoundingClientRect();
-      st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/rect.width/st.zoom));
-      st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/rect.height/st.zoom));
+      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
+      st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/fr.w/st.zoom));
+      st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/fr.h/st.zoom));
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
       _emitEvent(p.id,'on_release',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom});
       model.save_changes();
@@ -1790,11 +1785,6 @@ function render({ model, el }) {
         st.zoom=1; st.center_x=0.5; st.center_y=0.5;
         draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
         e.preventDefault();
-      } else if(key==='h'){
-        st.histogram_visible=!st.histogram_visible;
-        draw2d(p);
-        model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
-        e.preventDefault();
       } else if(key==='c'){
         st.show_colorbar=!st.show_colorbar;
         draw2d(p);
@@ -1811,37 +1801,6 @@ function render({ model, el }) {
       }
     });
     overlayCanvas.addEventListener('mouseenter',()=>overlayCanvas.focus());
-
-    // Histogram drag (display_min / display_max lines)
-    if(p.histCanvas){
-      const HTOL=6;
-      let histDrag=null;
-      p.histCanvas.addEventListener('mousedown',(e)=>{
-        const st2=p.state; if(!st2) return;
-        const rect=p.histCanvas.getBoundingClientRect();
-        const my2=e.clientY-rect.top, ph2=rect.height;
-        const yMax=ph2-2-((st2.display_max-st2.hist_min)/((st2.hist_max-st2.hist_min)||1))*(ph2-4);
-        const yMin=ph2-2-((st2.display_min-st2.hist_min)/((st2.hist_max-st2.hist_min)||1))*(ph2-4);
-        if(Math.abs(my2-yMax)<=HTOL){histDrag='max'; e.preventDefault();}
-        else if(Math.abs(my2-yMin)<=HTOL){histDrag='min'; e.preventDefault();}
-      });
-      document.addEventListener('mousemove',(e)=>{
-        if(!histDrag) return;
-        const st2=p.state; if(!st2) return;
-        const rect=p.histCanvas.getBoundingClientRect();
-        const my2=Math.max(0,Math.min(rect.height,e.clientY-rect.top));
-        const frac=1-(my2-2)/(rect.height-4);
-        let val=st2.hist_min+frac*(st2.hist_max-st2.hist_min);
-        val=Math.max(st2.hist_min,Math.min(st2.hist_max,val));
-        if(histDrag==='max'&&val>st2.display_min){st2.display_max=val;}
-        else if(histDrag==='min'&&val<st2.display_max){st2.display_min=val;}
-        draw2d(p);
-        model.set(`panel_${p.id}_json`,JSON.stringify(st2));
-        _scheduleCommit();
-        e.preventDefault();
-      });
-      document.addEventListener('mouseup',()=>{ histDrag=null; });
-    }
   }
 
   function _attachEvents1d(p) {
@@ -1964,7 +1923,7 @@ function render({ model, el }) {
     const imgW = Math.max(1, p.pw - PAD_L - PAD_R);
     const imgH = Math.max(1, p.ph - PAD_T - PAD_B);
     const widgets = st.overlay_widgets || [];
-    const scale   = _imgScale2d(st, imgW);
+    const scale   = _imgScale2d(st, imgW, imgH);
     const HR = 9; // handle grab radius (px)
 
     // iterate top-to-bottom (last drawn = topmost)
@@ -2050,7 +2009,7 @@ function render({ model, el }) {
     const d     = p.ovDrag2d;
     const s     = d.snapW;
     const w     = st.overlay_widgets[d.idx];
-    const scale = _imgScale2d(st, imgW);
+    const scale = _imgScale2d(st, imgW, imgH);
 
     // Convert current mouse to image coords
     const [imgMX, imgMY] = _canvasToImg2d(mx, my, st, imgW, imgH);
@@ -2241,27 +2200,6 @@ function render({ model, el }) {
     const col_px = width_ratios.map(w => nfw * w / wsum);
     const row_px = height_ratios.map(h => nfh * h / hsum);
 
-    // Aspect-lock 2D panels
-    for (let pass = 0; pass < 4; pass++) {
-      for (const spec of panel_specs) {
-        const p = panels.get(spec.id);
-        if (!p || p.kind !== '2d' || !p.state) continue;
-        const iw = p.state.image_width||1, ih = p.state.image_height||1;
-        if (iw<=0||ih<=0) continue;
-        const ar = iw/ih;
-        let cw=0, ch=0;
-        for(let c=spec.col_start;c<spec.col_stop;c++) cw+=col_px[c];
-        for(let r=spec.row_start;r<spec.row_stop;r++) ch+=row_px[r];
-        if (ch===0) continue;
-        if (cw/ch > ar) {
-          const new_cw=ch*ar, span=Math.max(1,spec.col_stop-spec.col_start);
-          for(let c=spec.col_start;c<spec.col_stop;c++) col_px[c]=new_cw/span;
-        } else {
-          const new_ch=cw/ar, span=Math.max(1,spec.row_stop-spec.row_start);
-          for(let r=spec.row_start;r<spec.row_stop;r++) row_px[r]=new_ch/span;
-        }
-      }
-    }
 
     // Resize canvases (CSS size only — no pixel content redrawn)
     const colPx = new Array(ncols).fill(0);
@@ -2330,9 +2268,9 @@ function render({ model, el }) {
         p.xAxisCanvas.style.left = imgX+'px'; p.xAxisCanvas.style.top = (ph-PAD_B)+'px';
         _szCSS(p.xAxisCanvas, imgW, PAD_B);
       }
-      if (p.histCanvas && p.histCanvas.style.display !== 'none') {
-        p.histCanvas.style.left = (imgX+imgW)+'px'; p.histCanvas.style.top = imgY+'px';
-        _szCSS(p.histCanvas, p.histWidth||80, imgH);
+      if (p.cbCanvas && p.cbCanvas.style.display !== 'none') {
+        p.cbCanvas.style.left = (imgX + imgW + 2) + 'px'; p.cbCanvas.style.top = imgY + 'px';
+        _szCSS(p.cbCanvas, 16, imgH);
       }
     } else if (p.kind === '3d') {
       _szCSS(p.plotCanvas,    pw, ph);
@@ -2635,6 +2573,9 @@ function render({ model, el }) {
         ctx.restore();
       }
     }
+
+    // Overlay widgets (vlines, hlines) drawn on the overlay canvas
+    drawOverlay1d(p);
   }
 
   function _attachEventsBar(p) {
@@ -2664,10 +2605,58 @@ function render({ model, el }) {
       return -1;
     }
 
+    // Widget drag support
+    let commitPending = false;
+    function _scheduleCommit() {
+      if (commitPending) return; commitPending = true;
+      requestAnimationFrame(() => { commitPending = false; model.save_changes(); });
+    }
+
+    overlayCanvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      const rect = overlayCanvas.getBoundingClientRect();
+      const hit = _ovHitTest1d(e.clientX - rect.left, e.clientY - rect.top, p);
+      if (hit) {
+        p.ovDrag = hit;
+        overlayCanvas.style.cursor = 'ew-resize';
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!p.ovDrag) return;
+      _doDrag1d(e, p);
+      const _dw = (p.state.overlay_widgets || [])[p.ovDrag.idx] || {};
+      _emitEvent(p.id, 'on_changed', _dw.id || null, _dw);
+    });
+
+    document.addEventListener('mouseup', (e) => {
+      if (!p.ovDrag) return;
+      const _idx = p.ovDrag.idx;
+      const _dw  = (p.state.overlay_widgets || [])[_idx] || {};
+      const _did = _dw.id || null;
+      p.ovDrag = null;
+      overlayCanvas.style.cursor = 'default';
+      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _emitEvent(p.id, 'on_release', _did, _dw);
+      _scheduleCommit();
+    });
+
     overlayCanvas.addEventListener('mousemove', (e) => {
+      if (p.ovDrag) return;  // handled by document mousemove during drag
       const st = p.state; if (!st) return;
       const rect = overlayCanvas.getBoundingClientRect();
       const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+
+      // Overlay widget cursor hint
+      const whit = _ovHitTest1d(mx, my, p);
+      if (whit) {
+        overlayCanvas.style.cursor = 'ew-resize';
+        tooltip.style.display = 'none';
+        if (p._hovBar !== -1) { p._hovBar = -1; drawBar(p); }
+        return;
+      }
+
       const idx = _barHit(mx, my);
       if (idx !== p._hovBar) {
         p._hovBar = idx;
@@ -2691,6 +2680,7 @@ function render({ model, el }) {
     });
 
     overlayCanvas.addEventListener('click', (e) => {
+      if (p.ovDrag) return;
       const st = p.state; if (!st) return;
       const rect = overlayCanvas.getBoundingClientRect();
       const idx  = _barHit(e.clientX - rect.left, e.clientY - rect.top);

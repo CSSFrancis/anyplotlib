@@ -395,11 +395,6 @@ def _normalize_image(data: np.ndarray):
     return img_u8, vmin, vmax
 
 
-def _compute_histogram(img_u8: np.ndarray, vmin: float, vmax: float) -> dict:
-    counts, edges = np.histogram(img_u8.ravel(), bins=256, range=(0, 255))
-    bin_centers = vmin + (edges[:-1] + edges[1:]) / 2 / 255.0 * (vmax - vmin)
-    return {"bins": bin_centers.tolist(), "counts": counts.tolist()}
-
 
 # Mapping from common matplotlib colormap names to their nearest colorcet
 # equivalents so callers can keep using familiar names without any matplotlib
@@ -543,12 +538,10 @@ class Plot2D:
             "units":             units,
             "scale_x":           scale_x,
             "scale_y":           scale_y,
-            "hist_min":          vmin,
-            "hist_max":          vmax,
             "display_min":       vmin,
             "display_max":       vmax,
-            "histogram_data":    _compute_histogram(img_u8, vmin, vmax),
-            "histogram_visible": False,
+            "raw_min":           vmin,
+            "raw_max":           vmax,
             "show_colorbar":     False,
             "log_scale":         False,
             "scale_mode":        "linear",
@@ -620,11 +613,10 @@ class Plot2D:
             "image_b64":   self._encode_bytes(img_u8),
             "image_width":  w,
             "image_height": h,
-            "hist_min":    vmin,
-            "hist_max":    vmax,
             "display_min": vmin,
             "display_max": vmax,
-            "histogram_data": _compute_histogram(img_u8, vmin, vmax),
+            "raw_min":     vmin,
+            "raw_max":     vmax,
             "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
         })
         self._push()
@@ -649,15 +641,6 @@ class Plot2D:
         if mode not in valid:
             raise ValueError(f"mode must be one of {valid}")
         self._state["scale_mode"] = mode
-        self._push()
-
-    @property
-    def histogram_visible(self) -> bool:
-        return self._state["histogram_visible"]
-
-    @histogram_visible.setter
-    def histogram_visible(self, val: bool) -> None:
-        self._state["histogram_visible"] = bool(val)
         self._push()
 
     @property
@@ -981,11 +964,10 @@ class PlotMesh(Plot2D):
             "image_height":   rows,
             "x_axis":         xe.tolist(),
             "y_axis":         ye.tolist(),
-            "hist_min":       vmin,
-            "hist_max":       vmax,
             "display_min":    vmin,
             "display_max":    vmax,
-            "histogram_data": _compute_histogram(img_u8, vmin, vmax),
+            "raw_min":        vmin,
+            "raw_max":        vmax,
             "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
         })
         if units is not None:
@@ -1621,6 +1603,27 @@ class Plot1D:
 
 
 # ---------------------------------------------------------------------------
+# _bar_x_axis helper
+# ---------------------------------------------------------------------------
+
+def _bar_x_axis(x_centers: np.ndarray) -> list:
+    """Return a 2-element [x_left_edge, x_right_edge] list for a bar chart.
+
+    The edges are half a slot-width outside the first/last bar centre so that
+    a vline_widget at ``x_centers[i]`` renders at exactly the bar's centre
+    pixel when used with ``_xToFrac1d`` / ``_fracToPx1d`` in the JS renderer.
+    """
+    n = len(x_centers)
+    if n == 0:
+        return [0.0, 1.0]
+    if n == 1:
+        return [float(x_centers[0]) - 0.5, float(x_centers[0]) + 0.5]
+    slot = (float(x_centers[-1]) - float(x_centers[0])) / (n - 1)
+    half = slot / 2.0
+    return [float(x_centers[0]) - half, float(x_centers[-1]) + half]
+
+
+# ---------------------------------------------------------------------------
 # PlotBar
 # ---------------------------------------------------------------------------
 
@@ -1629,6 +1632,10 @@ class PlotBar:
 
     Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
     ``_push()`` which writes to the parent Figure's panel trait.
+
+    Supports draggable :class:`~anyplotlib.widgets.VLineWidget` and
+    :class:`~anyplotlib.widgets.HLineWidget` overlays via
+    :meth:`add_vline_widget` / :meth:`add_hline_widget`.
 
     Created by :meth:`Axes.bar`.
     """
@@ -1669,6 +1676,10 @@ class PlotBar:
         if dmin < float(baseline):
             dmin -= pad
 
+        # Compute physical x-axis extent (left/right edges of the bar chart)
+        # so that vline_widgets map to the correct pixel positions.
+        x_axis = _bar_x_axis(x_centers)
+
         self._state: dict = {
             "kind":        "bar",
             "values":      values.tolist(),
@@ -1684,17 +1695,26 @@ class PlotBar:
             "data_max":    dmax,
             "units":       units,
             "y_units":     y_units,
+            # overlay-widget coordinate system (mirrors Plot1D)
+            "x_axis":      x_axis,
+            "view_x0":     0.0,
+            "view_x1":     1.0,
+            "overlay_widgets": [],
         }
         self.callbacks = CallbackRegistry()
+        self._widgets: dict[str, Widget] = {}
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
         if self._fig is None:
             return
+        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
 
     def to_state_dict(self) -> dict:
-        return dict(self._state)
+        d = dict(self._state)
+        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        return d
 
     # ------------------------------------------------------------------
     # Data update
@@ -1717,7 +1737,9 @@ class PlotBar:
         self._state["data_min"] = dmin
         self._state["data_max"] = dmax
         if x_centers is not None:
-            self._state["x_centers"] = np.asarray(x_centers, dtype=float).tolist()
+            xc = np.asarray(x_centers, dtype=float)
+            self._state["x_centers"] = xc.tolist()
+            self._state["x_axis"]    = _bar_x_axis(xc)
         if x_labels is not None:
             self._state["x_labels"] = list(x_labels)
         self._push()
@@ -1741,6 +1763,60 @@ class PlotBar:
         self._push()
 
     # ------------------------------------------------------------------
+    # Overlay Widgets
+    # ------------------------------------------------------------------
+    def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
+        """Add a draggable vertical line at data position *x*."""
+        widget = _VLineWidget(lambda: None, x=float(x), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
+        """Add a draggable horizontal line at value-axis position *y*."""
+        widget = _HLineWidget(lambda: None, y=float(y), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def get_widget(self, wid) -> Widget:
+        """Return the Widget object by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        try:
+            return self._widgets[wid]
+        except KeyError:
+            raise KeyError(wid)
+
+    def remove_widget(self, wid) -> None:
+        """Remove a widget by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        if wid not in self._widgets:
+            raise KeyError(wid)
+        del self._widgets[wid]
+        self._push()
+
+    def list_widgets(self) -> list:
+        return list(self._widgets.values())
+
+    def clear_widgets(self) -> None:
+        self._widgets.clear()
+        self._push()
+
+    # ------------------------------------------------------------------
     # Callbacks
     # ------------------------------------------------------------------
     def on_click(self, fn: Callable) -> Callable:
@@ -1754,8 +1830,14 @@ class PlotBar:
         return fn
 
     def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: fires on hover-enter for a bar."""
+        """Decorator: fires on every drag frame (widget drag or hover)."""
         cid = self.callbacks.connect("on_changed", fn)
+        fn._cid = cid
+        return fn
+
+    def on_release(self, fn: Callable) -> Callable:
+        """Decorator: fires once when a widget drag settles."""
+        cid = self.callbacks.connect("on_release", fn)
         fn._cid = cid
         return fn
 
@@ -1766,6 +1848,12 @@ class PlotBar:
         n = len(self._state.get("values", []))
         orient = self._state.get("orient", "v")
         return f"PlotBar(n={n}, orient={orient!r})"
+
+
+
+
+
+
 
 
 

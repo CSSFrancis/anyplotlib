@@ -68,7 +68,8 @@ make clean   # wipe build artefacts
 |------|---------|
 | `anyplotlib/figure.py` | `Figure` widget; layout engine; JS↔Python dispatch |
 | `anyplotlib/figure_plots.py` | All plot classes, `Axes`, `GridSpec`, `subplots()` |
-| `anyplotlib/figure_esm.js` | All JS canvas rendering |
+| `anyplotlib/figure_esm.js` | All JS canvas rendering (2 805 lines — see `anyplotlib/FIGURE_ESM.md` for a full section map) |
+| `anyplotlib/FIGURE_ESM.md` | Line-numbered navigator for `figure_esm.js` — read this before editing the JS |
 | `anyplotlib/markers.py` | Static marker collections; `to_wire()` translation |
 | `anyplotlib/widgets.py` | Interactive overlay widgets |
 | `anyplotlib/callbacks.py` | `CallbackRegistry`, `Event` dataclass |

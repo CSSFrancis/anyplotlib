@@ -9,13 +9,16 @@ canvas pixel dimensions.
 The sizing contract (all measured at the *canvas* level, before PAD margins):
   - All panels in the same grid column have the same canvas width  (pw).
   - All panels in the same grid row    have the same canvas height (ph).
-  - For a 2-D panel with an image of aspect ratio ar = iw/ih:
-        canvas_pw / canvas_ph  == ar   (within 1 px rounding).
+  - Grid tracks are pure ratio math — no aspect-locking.
+        col_px[i] = fig_width  * width_ratios[i]  / sum(width_ratios)
+        row_px[r] = fig_height * height_ratios[r] / sum(height_ratios)
   - For N equal-ratio columns inside figsize (fw, fh):
         each column width == fw / N   (within 1 px rounding).
   - width_ratios / height_ratios scale the tracks proportionally.
   - The total figure area is not exceeded: sum(col tracks) <= fw,
     sum(row tracks) <= fh.
+  - Images are rendered "contain" (letterboxed) in JS — the Python layout
+    engine never modifies tracks because of image content.
 """
 
 from __future__ import annotations
@@ -384,49 +387,44 @@ class TestRatioSizing:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Part 5 – _compute_cell_sizes: 2D aspect-locking
+# Part 5 – _compute_cell_sizes: 2D panels obey pure ratio math (no aspect-lock)
 # ─────────────────────────────────────────────────────────────────────────────
 
-class TestAspectLocking:
-    """2D images must produce square-pixel canvases (pw/ph == iw/ih)."""
+class Test2DPanelLayout:
+    """2D panels must receive exactly the canvas size their grid cell dictates.
 
-    def _assert_aspect(self, pw, ph, iw, ih, tol=1):
-        expected_ph = round(pw * ih / iw)
-        assert approx(ph, expected_ph, tol=tol), \
-            f"aspect wrong: image {iw}×{ih}, canvas {pw}×{ph}, " \
-            f"expected ph≈{expected_ph}"
+    Images are rendered "contain" (letterboxed) by the JS renderer, so the
+    Python layout engine never shrinks tracks to match image aspect ratios.
+    """
 
-    def test_square_image_square_canvas(self):
-        fig, ax = vw.subplots(1, 1, figsize=(400, 400))
+    def test_2d_panel_gets_full_cell_width(self):
+        """A 2D panel's canvas width equals the grid-ratio column width."""
+        fig, ax = vw.subplots(1, 1, figsize=(400, 300))
         v = ax.imshow(np.zeros((128, 128)))
         pw, ph = _sizes(fig)[v._id]
-        assert approx(pw, ph, tol=1), f"square image → square canvas: {pw}×{ph}"
+        assert pw == 400, f"expected pw=400, got {pw}"
+        assert ph == 300, f"expected ph=300, got {ph}"
 
-    def test_2to1_wide_image(self):
-        """256×128 image (2:1) in square cell → pw/ph ≈ 2."""
+    def test_2d_nonsquare_canvas_from_nonsquare_figsize(self):
+        """Non-square figsize → non-square canvas even for a square image."""
+        fig, ax = vw.subplots(1, 1, figsize=(600, 200))
+        v = ax.imshow(np.zeros((128, 128)))
+        pw, ph = _sizes(fig)[v._id]
+        assert pw == 600 and ph == 200, f"expected 600×200, got {pw}×{ph}"
+
+    def test_wide_image_does_not_shrink_canvas(self):
+        """Wide image (2:1) in a square cell — canvas stays square."""
         fig, ax = vw.subplots(1, 1, figsize=(400, 400))
-        v = ax.imshow(np.zeros((128, 256)))  # H=128, W=256
+        v = ax.imshow(np.zeros((128, 256)))   # H=128, W=256
         pw, ph = _sizes(fig)[v._id]
-        ratio = pw / ph
-        assert approx(round(ratio * 100), 200, tol=3), \
-            f"2:1 image should give pw/ph≈2, got {ratio:.3f}"
+        assert pw == 400 and ph == 400, f"expected 400×400, got {pw}×{ph}"
 
-    def test_tall_image_portrait(self):
-        """128×64 image (1:2 — tall) in square cell → ph/pw ≈ 2."""
+    def test_tall_image_does_not_shrink_canvas(self):
+        """Tall image (1:2) in a square cell — canvas stays square."""
         fig, ax = vw.subplots(1, 1, figsize=(400, 400))
-        v = ax.imshow(np.zeros((256, 128)))   # H=256 (tall), W=128
+        v = ax.imshow(np.zeros((256, 128)))   # H=256, W=128
         pw, ph = _sizes(fig)[v._id]
-        ratio = ph / pw
-        assert approx(round(ratio * 100), 200, tol=3), \
-            f"tall image should give ph/pw≈2, got {ratio:.3f}"
-
-    def test_aspect_does_not_exceed_cell(self):
-        """Canvas must not exceed allocated cell size."""
-        fig, ax = vw.subplots(1, 1, figsize=(300, 500))
-        v = ax.imshow(np.zeros((64, 128)))  # wide image, tall cell
-        pw, ph = _sizes(fig)[v._id]
-        assert pw <= 300 + 1, f"pw={pw} exceeds cell width 300"
-        assert ph <= 500 + 1, f"ph={ph} exceeds cell height 500"
+        assert pw == 400 and ph == 400, f"expected 400×400, got {pw}×{ph}"
 
     def test_2d_and_1d_same_row_same_height(self):
         """2D and 1D panels in the same row must have the same canvas height."""
@@ -450,41 +448,38 @@ class TestAspectLocking:
         assert pw2d == pw1d, \
             f"same-col panels must have equal width: 2D={pw2d}, 1D={pw1d}"
 
-    def test_wide_2d_shrinks_col_not_row(self):
+    def test_image_does_not_affect_sibling_panel_size(self):
+        """Adding an image to one panel must NOT change a sibling panel's dimensions.
+
+        This is the key regression test for the old aspect-lock bug:
+        a square image in row-0 of a height_ratios=[2,1] layout used to
+        shrink the shared column from 800 px to 333 px.
         """
-        Wide image (W > H) in a taller-than-wide cell:
-        the aspect lock should shrink the column width, leaving row height intact.
-        The 1D panel in the same column must match the shrunken width.
-        """
-        # figsize 400×600, square image 128×128:
-        # cell is 400×600 → taller than wide → shrink row: ph = pw = 400
-        fig, axs = vw.subplots(2, 1, figsize=(400, 600))
-        v2d = axs[0].imshow(np.zeros((128, 128)))
-        v1d = axs[1].plot(np.zeros(256))
+        fig, axs = vw.subplots(2, 1, figsize=(800, 600),
+                               height_ratios=[2, 1])
+        v2d = axs[0].imshow(np.zeros((256, 256)))
+        v1d = axs[1].plot(np.zeros(10))
         s = _sizes(fig)
         pw2d, ph2d = s[v2d._id]
         pw1d, ph1d = s[v1d._id]
-        assert pw2d == pw1d, f"column widths must match: {pw2d} vs {pw1d}"
-        assert approx(pw2d, ph2d, tol=1), \
-            f"square image canvas must be square: {pw2d}×{ph2d}"
+        # Both panels must share the full figure width
+        assert pw2d == 800, f"2D panel width should be 800, got {pw2d}"
+        assert pw1d == 800, f"1D panel width should be 800, got {pw1d}"
+        # Heights follow height_ratios=[2,1] → 400 and 200
+        assert approx(ph2d, 400, tol=2), f"2D panel height should be ~400, got {ph2d}"
+        assert approx(ph1d, 200, tol=2), f"1D panel height should be ~200, got {ph1d}"
 
-    def test_aspect_locks_converge_multiple_2d(self):
-        """
-        Two 2D panels in the same column with different aspect ratios.
-        The more-constrained one determines the final column width.
-        Both panels must get the same pw.
-        """
-        # Col width = 400. Image A: 128×128 (ar=1) → ph=pw=400 (no shrink needed for height).
-        # Image B: 64×128 (ar=0.5, tall) → ph = pw / 0.5 = 800, too tall.
-        # The taller cell gets shrunk: row_px[1] = pw_col / (1/0.5) = pw_col * 0.5 …
-        # The column serves both; they must end up the same pw.
+    def test_two_2d_panels_same_col_same_width(self):
+        """Two 2D panels with different aspect ratios in the same column
+        must both get the column width — no convergence loop needed."""
         fig, axs = vw.subplots(2, 1, figsize=(400, 800))
         vA = axs[0].imshow(np.zeros((128, 128)))   # square
-        vB = axs[1].imshow(np.zeros((128, 64)))    # wide (W=64 is wrong, fix: W>H)
+        vB = axs[1].imshow(np.zeros((128, 64)))    # wide
         s = _sizes(fig)
-        pwA = s[vA._id][0]
-        pwB = s[vB._id][0]
-        assert pwA == pwB, f"Two 2D panels in same col must have same pw: {pwA} vs {pwB}"
+        pwA, phA = s[vA._id]
+        pwB, phB = s[vB._id]
+        assert pwA == pwB == 400, \
+            f"Both 2D panels in same col must have pw=400: {pwA}, {pwB}"
 
     def test_minimum_canvas_size_floor(self):
         """Even a tiny figsize must produce canvas size ≥ 64 px."""
@@ -660,13 +655,14 @@ class TestEdgeCases:
         pid2 = v2._id
         assert pid1 == pid2, "replacing plot must reuse the same panel id"
 
-    def test_2d_in_nonsquare_cell_aspect_preserved(self):
-        """Non-square figsize with a square image → canvas must still be square."""
+    def test_2d_canvas_equals_cell_allocation(self):
+        """Non-square figsize with a square image → canvas equals the full cell
+        (no aspect-lock shrinking).  The image is letterboxed by the JS renderer."""
         fig, ax = vw.subplots(1, 1, figsize=(600, 300))
         v = ax.imshow(np.zeros((128, 128)))
         pw, ph = _sizes(fig)[v._id]
-        assert approx(pw, ph, tol=1), \
-            f"square image in non-square cell should produce square canvas: {pw}×{ph}"
+        assert pw == 600 and ph == 300, \
+            f"canvas should equal full figsize 600×300, got {pw}×{ph}"
 
     def test_layout_json_is_valid_json(self):
         fig, axs = vw.subplots(2, 2, figsize=(400, 400))

@@ -95,38 +95,13 @@ class Figure(anywidget.AnyWidget):
         wr, hr = self._width_ratios, self._height_ratios
         wsum, hsum = sum(wr), sum(hr)
 
-        # Step 1: raw pixel size per grid track (float precision)
+        # Grid tracks are pure ratio math — no aspect-locking.
+        # Rule: col_px[i] = fw * width_ratios[i] / Σ width_ratios (and analogous
+        # for rows).  Every panel gets exactly the canvas size its cell specifies;
+        # images are rendered "contain" (letterboxed) in JS if needed.
         col_px = [fw * w / wsum for w in wr]
         row_px = [fh * h / hsum for h in hr]
 
-        # Step 2: aspect-lock every 2D panel by shrinking its track(s).
-        # Multiple passes let interactions between panels converge.
-        for _ in range(4):
-            for pid, ax in self._axes_map.items():
-                plot = self._plots_map.get(pid)
-                if not isinstance(plot, (Plot2D, PlotMesh)):
-                    continue
-                s  = ax._spec
-                cw = sum(col_px[s.col_start:s.col_stop])
-                ch = sum(row_px[s.row_start:s.row_stop])
-                iw = plot._state.get("image_width",  1)
-                ih = plot._state.get("image_height", 1)
-                if iw <= 0 or ih <= 0 or ch == 0:
-                    continue
-                ar = iw / ih
-                if cw / ch > ar:               # wider than image -> shrink cols
-                    new_cw = ch * ar
-                    span   = max(1, s.col_stop - s.col_start)
-                    for c in range(s.col_start, s.col_stop):
-                        col_px[c] = new_cw / span
-                else:                          # taller than image -> shrink rows
-                    new_ch = cw / ar
-                    span   = max(1, s.row_stop - s.row_start)
-                    for r in range(s.row_start, s.row_stop):
-                        row_px[r] = new_ch / span
-
-        # Step 3: every panel gets the pixel size of its track span.
-        # All panels sharing a row/col automatically have identical dimensions.
         sizes: dict = {}
         for pid, ax in self._axes_map.items():
             s  = ax._spec
