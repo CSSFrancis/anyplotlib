@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-_VALID_EVENT_TYPES = ("on_click", "on_changed", "on_release")
+_VALID_EVENT_TYPES = ("on_click", "on_changed", "on_release", "on_key")
 
 
 @dataclass

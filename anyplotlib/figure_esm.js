@@ -312,6 +312,8 @@ function render({ model, el }) {
       state: null,
       _hoverSi: -1, _hoverI: -1,   // index of hovered marker group / marker (-1 = none)
       _hovBar:  -1,                 // index of hovered bar (-1 = none)
+      lastWidgetId: null,           // id of the last clicked/dragged widget (for on_key Delete etc.)
+      mouseX: 0, mouseY: 0,        // last known canvas-relative cursor position
       // 2D extras (null for non-2D panels)
       cbCanvas:    _p2d ? _p2d.cbCanvas    : null,
       cbCtx:       _p2d ? _p2d.cbCtx       : null,
@@ -1221,7 +1223,25 @@ function render({ model, el }) {
       _scheduleCommit();
     }, { passive: false });
 
+    overlayCanvas.addEventListener('mousemove', (e) => {
+      const rect = overlayCanvas.getBoundingClientRect();
+      p.mouseX = e.clientX - rect.left;
+      p.mouseY = e.clientY - rect.top;
+    });
+
+    // Keyboard shortcuts
+    // Built-in: r=reset view. Registered keys are forwarded to Python first.
     overlayCanvas.addEventListener('keydown', (e) => {
+      const st = p.state; if (!st) return;
+      const regKeys = st.registered_keys || [];
+      if (regKeys.includes(e.key) || regKeys.includes('*')) {
+        _emitEvent(p.id, 'on_key', null, {
+          key: e.key,
+          last_widget_id: p.lastWidgetId || null,
+          mouse_x: p.mouseX, mouse_y: p.mouseY,
+        });
+        e.preventDefault(); return;
+      }
       if (e.key.toLowerCase() === 'r') {
         p.state.azimuth = -60; p.state.elevation = 30; p.state.zoom = 1;
         draw3d(p);
@@ -1677,6 +1697,7 @@ function render({ model, el }) {
       const hit=_ovHitTest2d(mx, my, p);
       if(hit){
         p.ovDrag2d=hit;
+        p.lastWidgetId=(st.overlay_widgets||[])[hit.idx]?.id||null;
         overlayCanvas.style.cursor='move';
         e.preventDefault(); return;
       }
@@ -1727,10 +1748,11 @@ function render({ model, el }) {
 
     // Status bar + tooltip + widget hover cursor
     overlayCanvas.addEventListener('mousemove',(e)=>{
-      if(p.ovDrag2d) return; // handled by document mousemove
-      const st=p.state; if(!st) return;
       const rect=overlayCanvas.getBoundingClientRect();
       const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      p.mouseX=mx; p.mouseY=my;
+      if(p.ovDrag2d) return; // handled by document mousemove
+      const st=p.state; if(!st) return;
 
       // Update cursor based on widget hit
       const whit=_ovHitTest2d(mx, my, p);
@@ -1778,8 +1800,28 @@ function render({ model, el }) {
     });
 
     // Keyboard shortcuts
+    // Built-ins: r=reset zoom, c=colorbar toggle, l=log scale, s=symlog scale.
+    // Any key listed in st.registered_keys (or '*' for all keys) is forwarded
+    // to Python via on_key and suppresses the matching built-in.
     overlayCanvas.addEventListener('keydown',(e)=>{
       const st=p.state; if(!st) return;
+      const regKeys=st.registered_keys||[];
+      if(regKeys.includes(e.key)||regKeys.includes('*')){
+        const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+        const [imgX,imgY]=_canvasToImg2d(p.mouseX,p.mouseY,st,imgW,imgH);
+        const xArr=st.x_axis||[], yArr=st.y_axis||[];
+        const iw=st.image_width||1, ih=st.image_height||1;
+        const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/iw):imgX;
+        const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/ih):imgY;
+        _emitEvent(p.id,'on_key',null,{
+          key:e.key,
+          last_widget_id:p.lastWidgetId||null,
+          mouse_x:p.mouseX, mouse_y:p.mouseY,
+          img_x:imgX, img_y:imgY,
+          phys_x:physX, phys_y:physY,
+        });
+        e.preventDefault(); return;
+      }
       const key=e.key.toLowerCase();
       if(key==='r'){
         st.zoom=1; st.center_x=0.5; st.center_y=0.5;
@@ -1836,7 +1878,7 @@ function render({ model, el }) {
       if(e.button!==0) return;
       const st=p.state; if(!st) return;
       const hit=_ovHitTest1d(e.clientX-overlayCanvas.getBoundingClientRect().left, e.clientY-overlayCanvas.getBoundingClientRect().top, p);
-      if(hit){p.ovDrag=hit;overlayCanvas.style.cursor=(hit.mode==='edge0'||hit.mode==='edge1')?'ew-resize':'move';e.preventDefault();return;}
+      if(hit){p.ovDrag=hit;p.lastWidgetId=(p.state.overlay_widgets||[])[hit.idx]?.id||null;overlayCanvas.style.cursor=(hit.mode==='edge0'||hit.mode==='edge1')?'ew-resize':'move';e.preventDefault();return;}
       panStart={mx:e.clientX,x0:st.view_x0,x1:st.view_x1};
       p.isPanning=true;overlayCanvas.style.cursor='grabbing';e.preventDefault();
     });
@@ -1874,8 +1916,26 @@ function render({ model, el }) {
       }
     });
 
+    // Keyboard shortcuts
+    // Built-in: r=reset view. Any key in st.registered_keys (or '*') is
+    // forwarded to Python via on_key and suppresses the matching built-in.
     overlayCanvas.addEventListener('keydown',(e)=>{
-      if(e.key.toLowerCase()==='r'){const st=p.state;if(!st)return;st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.preventDefault();}
+      const st=p.state; if(!st) return;
+      const regKeys=st.registered_keys||[];
+      if(regKeys.includes(e.key)||regKeys.includes('*')){
+        const r=_plotRect1d(p.pw,p.ph);
+        const xArr=st.x_axis||[];
+        const frac=_canvasXToFrac1d(p.mouseX,st.view_x0,st.view_x1,r);
+        const physX=xArr.length>=2?_fracToX1d(xArr,frac):frac;
+        _emitEvent(p.id,'on_key',null,{
+          key:e.key,
+          last_widget_id:p.lastWidgetId||null,
+          mouse_x:p.mouseX, mouse_y:p.mouseY,
+          phys_x:physX,
+        });
+        e.preventDefault(); return;
+      }
+      if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.preventDefault();}
     });
     overlayCanvas.tabIndex=0;overlayCanvas.style.outline='none';
     overlayCanvas.addEventListener('mouseenter',()=>overlayCanvas.focus());
@@ -1883,6 +1943,7 @@ function render({ model, el }) {
       const st=p.state;if(!st)return;
       const rect=overlayCanvas.getBoundingClientRect();
       const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+      p.mouseX=mx; p.mouseY=my;
       const r=_plotRect1d(p.pw,p.ph);
       if(mx<r.x||mx>r.x+r.w||my<r.y||my>r.y+r.h){
         p.statusBar.style.display='none';tooltip.style.display='none';
@@ -2618,6 +2679,7 @@ function render({ model, el }) {
       const hit = _ovHitTest1d(e.clientX - rect.left, e.clientY - rect.top, p);
       if (hit) {
         p.ovDrag = hit;
+        p.lastWidgetId = (p.state.overlay_widgets || [])[hit.idx]?.id || null;
         overlayCanvas.style.cursor = 'ew-resize';
         e.preventDefault();
       }
@@ -2643,10 +2705,11 @@ function render({ model, el }) {
     });
 
     overlayCanvas.addEventListener('mousemove', (e) => {
-      if (p.ovDrag) return;  // handled by document mousemove during drag
-      const st = p.state; if (!st) return;
       const rect = overlayCanvas.getBoundingClientRect();
       const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      p.mouseX = mx; p.mouseY = my;
+      if (p.ovDrag) return;  // handled by document mousemove during drag
+      const st = p.state; if (!st) return;
 
       // Overlay widget cursor hint
       const whit = _ovHitTest1d(mx, my, p);
@@ -2693,6 +2756,23 @@ function render({ model, el }) {
                      ? String(st.x_labels[idx]) : null,
       });
     });
+
+    // Keyboard: registered_keys forwarded to Python; no built-in bar shortcuts.
+    overlayCanvas.addEventListener('keydown', (e) => {
+      const st = p.state; if (!st) return;
+      const regKeys = st.registered_keys || [];
+      if (regKeys.includes(e.key) || regKeys.includes('*')) {
+        _emitEvent(p.id, 'on_key', null, {
+          key: e.key,
+          last_widget_id: p.lastWidgetId || null,
+          mouse_x: p.mouseX, mouse_y: p.mouseY,
+        });
+        e.preventDefault();
+      }
+    });
+    overlayCanvas.tabIndex = 0;
+    overlayCanvas.style.outline = 'none';
+    overlayCanvas.addEventListener('mouseenter', () => overlayCanvas.focus());
   }
 
   // ── generic redraw ────────────────────────────────────────────────────────
