@@ -552,6 +552,7 @@ class Plot2D:
             "center_y":          0.5,
             "overlay_widgets":   [],
             "markers":           [],
+            "registered_keys":   [],
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -754,12 +755,75 @@ class Plot2D:
         fn._cid = cid
         return fn
 
+    def on_key(self, key_or_fn=None) -> Callable:
+        """Register a key-press handler for this panel.
+
+        Two call forms are supported::
+
+            @plot.on_key('q')          # fires only when 'q' is pressed
+            def handler(event): ...
+
+            @plot.on_key               # fires for every registered key
+            def handler(event): ...
+
+        The event carries: ``key``, ``mouse_x``, ``mouse_y``, ``phys_x``,
+        and ``last_widget_id``.
+
+        .. note::
+            Registered keys take priority over the built-in **r** (reset view)
+            shortcut.
+        """
+        if callable(key_or_fn):
+            return self._connect_on_key(None, key_or_fn)
+        key = key_or_fn
+        def _decorator(fn):
+            return self._connect_on_key(key, fn)
+        return _decorator
+
+    def _connect_on_key(self, key, fn) -> Callable:
+        if key is None:
+            if '*' not in self._state['registered_keys']:
+                self._state['registered_keys'].append('*')
+                self._push()
+            cid = self.callbacks.connect("on_key", fn)
+        else:
+            if key not in self._state['registered_keys']:
+                self._state['registered_keys'].append(key)
+                self._push()
+            def _wrapped(event):
+                if event.data.get('key') == key:
+                    fn(event)
+            cid = self.callbacks.connect("on_key", _wrapped)
+            _wrapped._cid = cid
+        fn._cid = cid
+        return fn
+
     def disconnect(self, cid: int) -> None:
-        """Remove the callback registered under integer cid."""
+        """Remove the callback registered under integer *cid*."""
         self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
-    # Marker API  (circles and lines only)
+    # View control
+    # ------------------------------------------------------------------
+    def set_view(self, x0: float | None = None, x1: float | None = None) -> None:
+        xarr = np.asarray(self._state["x_axis"])
+        if len(xarr) < 2:
+            return
+        xmin, xmax = float(xarr[0]), float(xarr[-1])
+        span = xmax - xmin or 1.0
+        f0 = 0.0 if x0 is None else max(0.0, min(1.0, (float(x0)-xmin)/span))
+        f1 = 1.0 if x1 is None else max(0.0, min(1.0, (float(x1)-xmin)/span))
+        self._state["view_x0"] = f0
+        self._state["view_x1"] = f1
+        self._push()
+
+    def reset_view(self) -> None:
+        self._state["view_x0"] = 0.0
+        self._state["view_x1"] = 1.0
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Marker API  (matplotlib-style kwargs → MarkerRegistry)
     # ------------------------------------------------------------------
     def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
         return self.markers.add(mtype, name, **kwargs)
@@ -769,21 +833,44 @@ class Plot2D:
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add point markers in physical (data) coordinates."""
-        return self._add_marker("circles", name, offsets=offsets, radius=radius,
+        # On 1-D panels the native type is "points" (radius maps to sizes).
+        return self._add_marker("points", name, offsets=offsets, sizes=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label)
 
-    def add_lines(self, segments, name=None, *,
-                  edgecolors="#ff0000", linewidths=1.5,
-                  hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add line-segment markers in physical (data) coordinates."""
-        return self._add_marker("lines", name, segments=segments,
-                                edgecolors=edgecolors, linewidths=linewidths,
+    def add_points(self, offsets, name=None, *, sizes=5,
+                   color="#ff0000", facecolors=None,
+                   linewidths=1.5, alpha=0.3,
+                   hover_edgecolors=None, hover_facecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add point markers at (x, y) positions in data coordinates."""
+        return self._add_marker("points", name, offsets=offsets, sizes=sizes,
+                                edgecolors=color, facecolors=facecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_hlines(self, y_values, name=None, *,
+                   color="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add static horizontal lines at the given y positions."""
+        return self._add_marker("hlines", name, offsets=y_values,
+                                color=color, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_vlines(self, x_values, name=None, *,
+                   color="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add static vertical lines at the given x positions."""
+        return self._add_marker("vlines", name, offsets=x_values,
+                                color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label)
 
@@ -791,7 +878,6 @@ class Plot2D:
                    edgecolors="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add vector-arrow markers in physical (data) coordinates."""
         return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
@@ -802,7 +888,6 @@ class Plot2D:
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add ellipse markers in physical (data) coordinates."""
         return self._add_marker("ellipses", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -811,12 +896,20 @@ class Plot2D:
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label)
 
+    def add_lines(self, segments, name=None, *,
+                  edgecolors="#ff0000", linewidths=1.5,
+                  hover_edgecolors=None,
+                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("lines", name, segments=segments,
+                                edgecolors=edgecolors, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
     def add_rectangles(self, offsets, widths, heights, name=None, *,
                        angles=0, facecolors=None, edgecolors="#ff0000",
                        linewidths=1.5, alpha=0.3,
                        hover_edgecolors=None, hover_facecolors=None,
                        labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add rectangle markers in physical (data) coordinates."""
         return self._add_marker("rectangles", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -830,7 +923,6 @@ class Plot2D:
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add square markers in physical (data) coordinates."""
         return self._add_marker("squares", name, offsets=offsets,
                                 widths=widths, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -844,7 +936,6 @@ class Plot2D:
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add closed polygon markers in physical (data) coordinates."""
         return self._add_marker("polygons", name, vertices_list=vertices_list,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
@@ -856,7 +947,6 @@ class Plot2D:
                   color="#ff0000", fontsize=12,
                   hover_edgecolors=None,
                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add text annotation markers in physical (data) coordinates."""
         return self._add_marker("texts", name, offsets=offsets, texts=texts,
                                 color=color, fontsize=fontsize,
                                 hover_edgecolors=hover_edgecolors,
@@ -1088,6 +1178,7 @@ class Plot3D:
             "elevation":   float(elevation),
             "zoom":        float(zoom),
             "data_bounds": data_bounds,
+            "registered_keys": [],
         }
         self.callbacks = CallbackRegistry()
 
@@ -1118,6 +1209,49 @@ class Plot3D:
     def on_click(self, fn: Callable) -> Callable:
         """Decorator: fires on click on this panel."""
         cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
+
+    def on_key(self, key_or_fn=None) -> Callable:
+        """Register a key-press handler for this panel.
+
+        Two call forms are supported::
+
+            @plot.on_key('q')          # fires only when 'q' is pressed
+            def handler(event): ...
+
+            @plot.on_key               # fires for every registered key
+            def handler(event): ...
+
+        The event carries: ``key``, ``mouse_x``, ``mouse_y``, and
+        ``last_widget_id``.
+
+        .. note::
+            Registered keys take priority over the built-in **r** (reset view)
+            shortcut.
+        """
+        if callable(key_or_fn):
+            return self._connect_on_key(None, key_or_fn)
+        key = key_or_fn
+        def _decorator(fn):
+            return self._connect_on_key(key, fn)
+        return _decorator
+
+    def _connect_on_key(self, key, fn) -> Callable:
+        if key is None:
+            if '*' not in self._state['registered_keys']:
+                self._state['registered_keys'].append('*')
+                self._push()
+            cid = self.callbacks.connect("on_key", fn)
+        else:
+            if key not in self._state['registered_keys']:
+                self._state['registered_keys'].append(key)
+                self._push()
+            def _wrapped(event):
+                if event.data.get('key') == key:
+                    fn(event)
+            cid = self.callbacks.connect("on_key", _wrapped)
+            _wrapped._cid = cid
         fn._cid = cid
         return fn
 
@@ -1243,6 +1377,7 @@ class Plot1D:
             "spans":         [],
             "overlay_widgets": [],
             "markers":       [],
+            "registered_keys": [],
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -1431,6 +1566,49 @@ class Plot1D:
     def on_click(self, fn: Callable) -> Callable:
         """Decorator: fires on click on this panel."""
         cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
+
+    def on_key(self, key_or_fn=None) -> Callable:
+        """Register a key-press handler for this panel.
+
+        Two call forms are supported::
+
+            @plot.on_key('q')          # fires only when 'q' is pressed
+            def handler(event): ...
+
+            @plot.on_key               # fires for every registered key
+            def handler(event): ...
+
+        The event carries: ``key``, ``mouse_x``, ``mouse_y``, ``phys_x``,
+        and ``last_widget_id``.
+
+        .. note::
+            Registered keys take priority over the built-in **r** (reset view)
+            shortcut.
+        """
+        if callable(key_or_fn):
+            return self._connect_on_key(None, key_or_fn)
+        key = key_or_fn
+        def _decorator(fn):
+            return self._connect_on_key(key, fn)
+        return _decorator
+
+    def _connect_on_key(self, key, fn) -> Callable:
+        if key is None:
+            if '*' not in self._state['registered_keys']:
+                self._state['registered_keys'].append('*')
+                self._push()
+            cid = self.callbacks.connect("on_key", fn)
+        else:
+            if key not in self._state['registered_keys']:
+                self._state['registered_keys'].append(key)
+                self._push()
+            def _wrapped(event):
+                if event.data.get('key') == key:
+                    fn(event)
+            cid = self.callbacks.connect("on_key", _wrapped)
+            _wrapped._cid = cid
         fn._cid = cid
         return fn
 
@@ -1700,6 +1878,7 @@ class PlotBar:
             "view_x0":     0.0,
             "view_x1":     1.0,
             "overlay_widgets": [],
+            "registered_keys": [],
         }
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
@@ -1841,6 +2020,45 @@ class PlotBar:
         fn._cid = cid
         return fn
 
+    def on_key(self, key_or_fn=None) -> Callable:
+        """Register a key-press handler for this panel.
+
+        Two call forms are supported::
+
+            @plot.on_key('q')          # fires only when 'q' is pressed
+            def handler(event): ...
+
+            @plot.on_key               # fires for every registered key
+            def handler(event): ...
+
+        The event carries: ``key``, ``mouse_x``, ``mouse_y``, and
+        ``last_widget_id``.
+        """
+        if callable(key_or_fn):
+            return self._connect_on_key(None, key_or_fn)
+        key = key_or_fn
+        def _decorator(fn):
+            return self._connect_on_key(key, fn)
+        return _decorator
+
+    def _connect_on_key(self, key, fn) -> Callable:
+        if key is None:
+            if '*' not in self._state['registered_keys']:
+                self._state['registered_keys'].append('*')
+                self._push()
+            cid = self.callbacks.connect("on_key", fn)
+        else:
+            if key not in self._state['registered_keys']:
+                self._state['registered_keys'].append(key)
+                self._push()
+            def _wrapped(event):
+                if event.data.get('key') == key:
+                    fn(event)
+            cid = self.callbacks.connect("on_key", _wrapped)
+            _wrapped._cid = cid
+        fn._cid = cid
+        return fn
+
     def disconnect(self, cid: int) -> None:
         self.callbacks.disconnect(cid)
 
@@ -1848,10 +2066,6 @@ class PlotBar:
         n = len(self._state.get("values", []))
         orient = self._state.get("orient", "v")
         return f"PlotBar(n={n}, orient={orient!r})"
-
-
-
-
 
 
 
