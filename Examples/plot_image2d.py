@@ -1,17 +1,23 @@
 """
-2D Image
-========
+2D Image with Histogram
+=======================
 
-Display a 2-D image with physical axes using
-:meth:`~anyplotlib.figure_plots.Axes.imshow`.
-The image is a synthetic STEM-like diffraction pattern with a physical
-length scale in nanometres.  Circle markers highlight the first-order
-diffraction spots, and an annular integration widget is placed over the
-central beam.  Pan and zoom with the mouse; press **R** to reset the view,
-**H** to toggle the histogram, **L** / **S** to cycle colour-scale modes.
+Display a 2-D image with physical axes, a colourmap, and an interactive
+histogram below — all wired together with draggable threshold widgets.
+
+Layout
+------
+A :class:`~anyplotlib.figure_plots.GridSpec` with two rows puts the image
+on top and a bar-chart histogram below.  Two
+:class:`~anyplotlib.widgets.VLineWidget` handles on the histogram mark the
+``display_min`` / ``display_max`` thresholds; dragging them updates the
+image colour scale in real time.
+
+Key bindings on the image panel: **R** reset view · **C** toggle colorbar ·
+**L** / **S** cycle colour-scale modes.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 
 rng = np.random.default_rng(1)
@@ -35,13 +41,21 @@ image = (
     + rng.normal(scale=0.04, size=(N, N))
 )
 
-# ── Plot ──────────────────────────────────────────────────────────────────────
-fig, ax = vw.subplots(1, 1, figsize=(500, 500))
-v = ax.imshow(image, axes=[x, y], units="nm")
+# ── Layout: image (top, 3×) + histogram bar chart (bottom, 1×) ────────────────
+gs = apl.GridSpec(2, 1, height_ratios=[3, 1])
+fig = apl.Figure(figsize=(500, 640))
+ax_img  = fig.add_subplot(gs[0, 0])
+ax_hist = fig.add_subplot(gs[1, 0])
+
+# ── Image panel ───────────────────────────────────────────────────────────────
+v = ax_img.imshow(image, axes=[x, y], units="nm")
 v.set_colormap("inferno")
 
-# ── First-order spot markers ──────────────────────────────────────────────────
-# imshow axes are centre arrays: pixel = (phys - x[0]) / (x[1] - x[0])
+vmin_init = float(image.min())
+vmax_init = float(image.max())
+v.set_clim(vmin=vmin_init, vmax=vmax_init)
+
+# First-order spot markers
 dx = x[1] - x[0]
 
 
@@ -57,22 +71,39 @@ v.add_circles(spot_px, name="spots", radius=7,
               edgecolors="#00e5ff", facecolors="#00e5ff22",
               labels=["g1", "g1_bar", "g2", "g2_bar"])
 
-# ── Annular integration widget ────────────────────────────────────────────────
-cx = cy = float(phys_to_px(0.0))
-v.add_widget("annular", color="#ffcc00",
-             cx=cx, cy=cy,
-             r_outer=float(phys_to_px(2.8) - phys_to_px(0.0)),
-             r_inner=float(phys_to_px(1.2) - phys_to_px(0.0)))
+# ── Histogram bar chart ────────────────────────────────────────────────────────
+counts, edges = np.histogram(image.ravel(), bins=64)
+bin_centers   = 0.5 * (edges[:-1] + edges[1:])
+
+h = ax_hist.bar(counts, x_centers=bin_centers, orient="v",
+                color="#4fc3f7", y_units="count")
+
+# ── Draggable threshold handles on the histogram ──────────────────────────────
+wlo = h.add_vline_widget(vmin_init, color="#ff6e40")   # low-threshold handle
+whi = h.add_vline_widget(vmax_init, color="#ffffff")   # high-threshold handle
+
+
+@wlo.on_release
+def _apply_low(event):
+    """Update image display_min when the low handle is released."""
+    v.set_clim(vmin=event.x)
+
+
+@whi.on_release
+def _apply_high(event):
+    """Update image display_max when the high handle is released."""
+    v.set_clim(vmax=event.x)
+
 
 fig
 
 # %%
-# Adjust display range and colour map
-# ------------------------------------
-# :meth:`~anyplotlib.figure_plots.Plot2D.set_clim` clips the colour scale;
-# :meth:`~anyplotlib.figure_plots.Plot2D.set_colormap` switches the palette.
+# Adjust colour map
+# ------------------
+# :meth:`~anyplotlib.figure_plots.Plot2D.set_colormap` switches the palette;
+# :meth:`~anyplotlib.figure_plots.Plot2D.set_clim` adjusts the display range.
 
-v.set_clim(vmin=0.0, vmax=0.8)
 v.set_colormap("viridis")
+v.set_clim(vmin=0.0, vmax=0.8)
 
 fig

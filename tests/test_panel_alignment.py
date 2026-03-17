@@ -132,28 +132,30 @@ def test_1row_2col_plot_area_top_bottom_aligned():
     assert h2d == h1d, f"Plot area heights: 2D={h2d}, 1D={h1d}"
 
 
-# ── test 3: 2D aspect ratio preserves square pixels ──────────────────────────
+# ── test 3: 2D panel canvas equals its grid cell ─────────────────────────────
 
 def test_square_image_gets_square_canvas():
-    """A 128×128 image must produce a square canvas (pw == ph)."""
+    """A 128×128 image in a 500×500 figsize → canvas is 500×500 (pw == ph).
+    This still holds: the grid cell is square so the canvas is square too.
+    Images are letterboxed in JS; the Python layout never changes the cell size."""
     fig, axs = vw.subplots(1, 1, figsize=(500, 500))
     v2d = axs.imshow(np.random.rand(128, 128))
 
     sizes = _panel_sizes(fig)
     pw, ph = sizes[v2d._id]
-    assert pw == ph, f"Square image must have pw==ph: pw={pw}, ph={ph}"
+    assert pw == ph, f"Square figsize must give pw==ph: pw={pw}, ph={ph}"
 
 
-def test_wide_image_correct_aspect():
-    """A 256×128 (2:1) image in a square cell must halve the height."""
+def test_wide_image_canvas_equals_cell():
+    """A 2:1 image in a square cell gets a square canvas — no aspect-lock.
+    The image is letterboxed (pillarboxed) by the JS renderer."""
     fig, axs = vw.subplots(1, 1, figsize=(512, 512))
     v2d = axs.imshow(np.random.rand(128, 256))  # w=256, h=128
 
     sizes = _panel_sizes(fig)
     pw, ph = sizes[v2d._id]
-    # aspect ratio should be 2:1
-    assert abs(pw / ph - 2.0) < 0.05, (
-        f"2:1 image should have pw/ph≈2, got {pw}/{ph}={pw/ph:.3f}"
+    assert pw == 512 and ph == 512, (
+        f"Canvas should equal full figsize 512×512, got {pw}×{ph}"
     )
 
 
@@ -161,8 +163,8 @@ def test_wide_image_correct_aspect():
 
 def test_nonsquare_2d_and_1d_same_column():
     """
-    A tall non-square image (h > w) in a 2-row column: after aspect-locking,
-    both panels must still have the same canvas width.
+    A tall non-square image in a 2-row, 1-col layout: both panels must have
+    the same canvas width (dictated by the column track, not the image aspect).
     """
     fig, axs = vw.subplots(2, 1, figsize=(600, 800))
     v2d = axs[0].imshow(np.random.rand(256, 128))  # tall image
@@ -173,8 +175,7 @@ def test_nonsquare_2d_and_1d_same_column():
     pw1d, ph1d = sizes[v1d._id]
 
     assert pw2d == pw1d, (
-        f"Same-column panels must have equal width after aspect lock: "
-        f"2D={pw2d}, 1D={pw1d}"
+        f"Same-column panels must have equal width: 2D={pw2d}, 1D={pw1d}"
     )
 
 
