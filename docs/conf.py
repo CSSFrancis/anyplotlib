@@ -86,14 +86,10 @@ html_theme_options = {
     "logo": {
         "image_light": "_static/anyplotlib.svg",
         "image_dark": "_static/anyplotlib.svg",
-        "text": "anyplotlib",
+        "text": "anyplotlib"
     },
-    "switcher": {
-        "json_url": f"{_base}switcher.json",
-        "version_match": _docs_version,
-    },
-    "navbar_end": ["version-switcher", "navbar-icon-links"],
-    "show_toc_level": 2,
+    "navbar_end": ["navbar-icon-links"],
+    "show_toc_level": 2
 }
 
 # -- autodoc options ---------------------------------------------------------

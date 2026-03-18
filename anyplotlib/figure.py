@@ -1,3 +1,27 @@
+"""
+figure.py
+=========
+
+Top-level :class:`Figure` widget and the :func:`subplots` factory.
+
+``Figure`` is the only ``anywidget.AnyWidget`` subclass in anyplotlib.
+It owns all traitlets and acts as the Python ↔ JavaScript bridge.
+Use :func:`subplots` (the recommended entry-point) or construct a
+``Figure`` directly and call :meth:`Figure.add_subplot` to attach data.
+
+Example
+-------
+.. code-block:: python
+
+    import numpy as np
+    import anyplotlib as apl
+
+    fig, axs = apl.subplots(1, 2, figsize=(800, 400))
+    axs[0].imshow(np.random.standard_normal((128, 128)))
+    axs[1].plot(np.sin(np.linspace(0, 6.28, 256)))
+    fig
+"""
+
 from __future__ import annotations
 import json, pathlib
 import anywidget, numpy as np, traitlets
