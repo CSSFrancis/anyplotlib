@@ -10,8 +10,7 @@ although the scope is intentionally limited in the following ways:
 no `plt.imshow` or `plt.plot` – instead, you create a Figure object and call methods on it to add data
 and customize the plot. This is a deliberate choice to avoid the pitfalls of the stateful API.
 
-python
-```
+```python
 import anyplotlib as apl
 import matplotlib.pyplot as plt
 
@@ -43,10 +42,11 @@ environment that supports `AnyWidget`, including Jupyter notebooks, JupyterLab, 
 the hood, `AnyWidget` uses a pure-JavaScript implementation of the widget protocol, which allows for fast rendering
 and interactivity.
 
-**Disclaimer**: This project is in the early stages of development.  Additionally many of the
-javascript code was optimized using LLM's. That being said, the javascript/python code is fairly minimal,
-and not too difficult to understand.
+## Getting Started
 
+Install from PyPI:
+```bash
+pip install anyplotlib
+```
 
-**Disclaimer #2**: Mostly this project is to see __if__ something like this is possible, it remains to be
-seen if this can be developed into a full-fledged plotting library.  The hope is that this can be.
+See the [documentation](https://cssfrancis.github.io/anyplotlib/) for more information.

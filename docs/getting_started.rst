@@ -4,11 +4,15 @@ Getting Started
 Installation
 ------------
 
-Clone the repository and install with ``uv`` (or pip)::
+Install via pip from PyPI (recommended)::
 
-    git clone https://github.com/your-org/anyplotlib.git
+    pip install anyplotlib
+
+Or clone the repository and install from source::
+
+    git clone https://github.com/CSSFrancis/anyplotlib.git
     cd anyplotlib
-    uv sync          # installs the project + all dependencies
+    uv sync          # or `pip install -e .`
 
 Quick start
 -----------

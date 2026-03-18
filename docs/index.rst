@@ -50,12 +50,12 @@ although the scope is intentionally limited in the following ways:
    the hood, ``AnyWidget`` uses a pure-JavaScript implementation of the widget protocol, which allows for fast rendering
    and interactivity.
 
-**Disclaimer**: This project is in the early stages of development.  Additionally many of the
-JavaScript code was optimised using LLMs. That being said, the JavaScript/Python code is fairly minimal
-and not too difficult to understand.
+**Status**: anyplotlib v0.1.0 provides a lightweight, interactive alternative to matplotlib's
+pyplot interface for Jupyter notebooks and compatible environments. Performance is optimized for
+real-time interactivity with large datasets on canvas-based rendering.
 
-**Disclaimer #2**: Mostly this project is to see *if* something like this is possible; it remains to be
-seen if this can be developed into a full-fledged plotting library.  The hope is that it can.
+.. toctree::
+   :hidden:
 
 * :ref:`genindex`
 * :ref:`modindex`
