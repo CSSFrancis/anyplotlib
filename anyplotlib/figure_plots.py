@@ -42,21 +42,7 @@ __all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "P
 # ---------------------------------------------------------------------------
 
 class SubplotSpec:
-    """Describes which grid cells a subplot occupies.
-    
-    Parameters
-    ----------
-    gs : GridSpec
-        Parent GridSpec instance.
-    row_start : int
-        Starting row index (0-based).
-    row_stop : int
-        Ending row index (exclusive).
-    col_start : int
-        Starting column index (0-based).
-    col_stop : int
-        Ending column index (exclusive).
-    """
+    """Describes which grid cells a subplot occupies."""
 
     def __init__(self, gs: "GridSpec", row_start: int, row_stop: int,
                  col_start: int, col_stop: int):
@@ -154,23 +140,9 @@ class GridSpec:
 class Axes:
     """A single grid cell in a Figure.
 
-    Represents a single subplot cell within a grid layout. Use plotting methods
-    like :meth:`imshow`, :meth:`plot`, :meth:`bar`, etc. to attach visualization
-    to this axes.
-
-    Returned by :func:`Figure.add_subplot` and :func:`Figure.subplots`.
-
-    Parameters
-    ----------
-    fig : Figure
-        Parent Figure instance.
-    spec : SubplotSpec
-        Layout specification (row/column spans).
-
-    Notes
-    -----
-    Each Axes can hold at most one plot object at a time. Calling another plot
-    method replaces the previous one.
+    Returned by Figure.add_subplot() and Figure.subplots().
+    Call .imshow() or .plot() to attach a data plot and get back
+    a Plot2D or Plot1D object.
     """
 
     def __init__(self, fig: "Figure", spec: SubplotSpec):  # noqa: F821
@@ -514,31 +486,16 @@ def _resample_mesh(data: np.ndarray, x_edges, y_edges) -> np.ndarray:
 class Plot2D:
     """2-D image plot panel.
 
-    Not an anywidget. Holds state in ``_state`` dict; every mutation calls
+    Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
     ``_push()`` which writes to the parent Figure's panel trait.
 
-    The marker API follows matplotlib conventions::
-
+    The marker API follows matplotlib conventions:
         plot.add_circles(offsets, name="g1", facecolors="#f00", radius=5)
-        plot.markers["circles"]["g1"].set(radius=8)  # live update
-
-    Supports interactive 2-D draggable overlays (widgets) via :meth:`add_widget`.
-
-    Parameters
-    ----------
-    data : ndarray, shape (H, W) or (H, W, C)
-        Image data. If 3-D, only the first channel is used.
-    x_axis : array-like, optional
-        X-axis physical coordinates. Length must equal W (width).
-    y_axis : array-like, optional
-        Y-axis physical coordinates. Length must equal H (height).
-    units : str, optional
-        Label for the axes. Default ``"px"``.
+        plot.markers["circles"]["g1"].set(radius=8)
     """
 
     def __init__(self, data: np.ndarray,
                  x_axis=None, y_axis=None, units: str = "px"):
-        #...existing code...
         self._id:  str = ""       # assigned by Axes._attach
         self._fig: object = None  # assigned by Axes._attach
 
@@ -632,24 +589,7 @@ class Plot2D:
     # ------------------------------------------------------------------
     def update(self, data: np.ndarray,
                x_axis=None, y_axis=None, units: str | None = None) -> None:
-        """Replace the image data.
-
-        Parameters
-        ----------
-        data : ndarray, shape (H, W) or (H, W, C)
-            New image data. 3-D arrays use only the first channel.
-        x_axis : array-like, optional
-            New X-axis coordinates. Must match the new image width.
-        y_axis : array-like, optional
-            New Y-axis coordinates. Must match the new image height.
-        units : str, optional
-            Update the axes label. If not provided, keeps the current value.
-
-        Raises
-        ------
-        ValueError
-            If data is not 2-D.
-        """
+        """Replace the image data."""
         data = np.asarray(data)
         if data.ndim == 3:
             data = data[:, :, 0]
@@ -686,44 +626,11 @@ class Plot2D:
     # Display settings
     # ------------------------------------------------------------------
     def set_colormap(self, name: str) -> None:
-        """Set or update the colormap.
-
-        Parameters
-        ----------
-        name : str
-            Matplotlib-style colormap name. Common names include:
-            "viridis", "plasma", "inferno", "magma", "cividis",
-            "hot", "jet", "RdBu", "coolwarm", etc.
-            Aliases to colorcet palettes are used internally for
-            colormap independence.
-
-        Notes
-        -----
-        The colormap is applied to surface Z-values (in Plot3D) or
-        to intensity values (in Plot2D when used with set_clim).
-        """
         self._state["colormap_name"] = name
         self._state["colormap_data"] = _build_colormap_lut(name)
         self._push()
 
     def set_clim(self, vmin=None, vmax=None) -> None:
-        """Set the data range for display normalization.
-
-        Parameters
-        ----------
-        vmin : float, optional
-            Minimum data value to map to the colormap. If not provided,
-            uses the current minimum.
-        vmax : float, optional
-            Maximum data value to map to the colormap. If not provided,
-            uses the current maximum.
-
-        Notes
-        -----
-        This controls the color range display without modifying the
-        underlying data. Useful for emphasizing features in a specific
-        intensity range.
-        """
         if vmin is not None:
             self._state["display_min"] = float(vmin)
         if vmax is not None:
@@ -731,21 +638,6 @@ class Plot2D:
         self._push()
 
     def set_scale_mode(self, mode: str) -> None:
-        """Set the axis scale mode (linear, logarithmic, or symmetric log).
-
-        Parameters
-        ----------
-        mode : str
-            One of ``"linear"``, ``"log"``, or ``"symlog"``.
-            - ``"linear"``: standard linear scale.
-            - ``"log"``: logarithmic scale (data must be positive).
-            - ``"symlog"``: symmetric logarithmic scale (allows negative values).
-
-        Raises
-        ------
-        ValueError
-            If *mode* is not one of the valid options.
-        """
         valid = ("linear", "log", "symlog")
         if mode not in valid:
             raise ValueError(f"mode must be one of {valid}")
@@ -764,40 +656,6 @@ class Plot2D:
     # Overlay Widgets
     # ------------------------------------------------------------------
     def add_widget(self, kind: str, color: str = "#00e5ff", **kwargs) -> Widget:
-        """Add an interactive overlay widget to this plot.
-
-        Parameters
-        ----------
-        kind : str
-            Widget type: ``"circle"``, ``"rectangle"``, ``"annular"``,
-            ``"polygon"``, ``"label"``, or ``"crosshair"``.
-        color : str, optional
-            CSS colour for the widget outline/fill. Default ``"#00e5ff"``.
-        **kwargs : dict
-            Type-specific parameters:
-            - circle: cx, cy, r (center x, y and radius)
-            - rectangle: x, y, w, h (top-left corner and dimensions)
-            - annular: cx, cy, r_outer, r_inner (center and radii)
-            - polygon: vertices (list of [x, y] coordinates)
-            - crosshair: cx, cy (center position)
-            - label: x, y, text, fontsize (position, text, font size in pts)
-
-        Returns
-        -------
-        Widget
-            The created widget object. Register callbacks via
-            ``@widget.on_changed`` or ``@widget.on_release``.
-
-        Raises
-        ------
-        ValueError
-            If *kind* is not recognized.
-
-        Examples
-        --------
-        >>> plot.add_widget("circle", cx=100, cy=100, r=50, color="#ff0000")
-        >>> plot.add_widget("crosshair", cx=64, cy=64)
-        """
         kind = kind.lower()
         valid = ("circle", "rectangle", "annular", "polygon", "label", "crosshair")
         if kind not in valid:
@@ -880,46 +738,13 @@ class Plot2D:
     # Callback API  (Plot2D)
     # ------------------------------------------------------------------
     def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: fires on every pan/zoom/drag frame on this panel.
-
-        Use this for high-frequency updates (e.g., live readout). Keep the
-        handler fast to avoid blocking the UI.
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event with zoom, center_x, center_y.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-
-        Examples
-        --------
-        >>> @plot.on_changed
-        ... def update_readout(event):
-        ...     print(f"zoom={event.zoom:.2f}")
-        """
+        """Decorator: fires on every pan/zoom/drag frame on this panel."""
         cid = self.callbacks.connect("on_changed", fn)
         fn._cid = cid
         return fn
 
     def on_release(self, fn: Callable) -> Callable:
-        """Decorator: fires once when pan/zoom/drag settles on this panel.
-
-        Use this for expensive operations (e.g., recomputation).
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event with final zoom/position.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
+        """Decorator: fires once when pan/zoom/drag settles on this panel."""
         cid = self.callbacks.connect("on_release", fn)
         fn._cid = cid
         return fn
@@ -1060,6 +885,831 @@ class Plot2D:
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
         """Add point markers at (x, y) positions in data coordinates."""
         return self._add_marker("circles", name, offsets=offsets, radius=sizes,
+                                edgecolors=color, facecolors=facecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_hlines(self, y_values, name=None, *,
+                   color="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add static horizontal lines at the given y positions."""
+        return self._add_marker("hlines", name, offsets=y_values,
+                                color=color, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_vlines(self, x_values, name=None, *,
+                   color="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add static vertical lines at the given x positions."""
+        return self._add_marker("vlines", name, offsets=x_values,
+                                color=color, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_arrows(self, offsets, U, V, name=None, *,
+                   edgecolors="#ff0000", linewidths=1.5,
+                   hover_edgecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
+                                edgecolors=edgecolors, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_ellipses(self, offsets, widths, heights, name=None, *,
+                     angles=0, facecolors=None, edgecolors="#ff0000",
+                     linewidths=1.5, alpha=0.3,
+                     hover_edgecolors=None, hover_facecolors=None,
+                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("ellipses", name, offsets=offsets,
+                                widths=widths, heights=heights, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_lines(self, segments, name=None, *,
+                  edgecolors="#ff0000", linewidths=1.5,
+                  hover_edgecolors=None,
+                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("lines", name, segments=segments,
+                                edgecolors=edgecolors, linewidths=linewidths,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def add_rectangles(self, offsets, widths, heights, name=None, *,
+                       angles=0, facecolors=None, edgecolors="#ff0000",
+                       linewidths=1.5, alpha=0.3,
+                       hover_edgecolors=None, hover_facecolors=None,
+                       labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("rectangles", name, offsets=offsets,
+                                widths=widths, heights=heights, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_squares(self, offsets, widths, name=None, *,
+                    angles=0, facecolors=None, edgecolors="#ff0000",
+                    linewidths=1.5, alpha=0.3,
+                    hover_edgecolors=None, hover_facecolors=None,
+                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("squares", name, offsets=offsets,
+                                widths=widths, angles=angles,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_polygons(self, vertices_list, name=None, *,
+                     facecolors=None, edgecolors="#ff0000",
+                     linewidths=1.5, alpha=0.3,
+                     hover_edgecolors=None, hover_facecolors=None,
+                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("polygons", name, vertices_list=vertices_list,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_texts(self, offsets, texts, name=None, *,
+                  color="#ff0000", fontsize=12,
+                  hover_edgecolors=None,
+                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        return self._add_marker("texts", name, offsets=offsets, texts=texts,
+                                color=color, fontsize=fontsize,
+                                hover_edgecolors=hover_edgecolors,
+                                labels=labels, label=label)
+
+    def remove_marker(self, marker_type: str, name: str) -> None:
+        self.markers.remove(marker_type, name)
+
+    def clear_markers(self) -> None:
+        self.markers.clear()
+
+    def list_markers(self) -> list:
+        out = []
+        for mtype, td in self.markers._types.items():
+            for name, g in td.items():
+                out.append({"type": mtype, "name": name, "n": g._count()})
+        return out
+
+    def __repr__(self) -> str:
+        w = self._state.get("image_width", "?")
+        h = self._state.get("image_height", "?")
+        cmap = self._state.get("colormap_name", "?")
+        return f"Plot2D({w}\u00d7{h}, cmap={cmap!r})"
+
+
+# ---------------------------------------------------------------------------
+# PlotMesh  (pcolormesh-style 2-D panel)
+# ---------------------------------------------------------------------------
+
+class PlotMesh(Plot2D):
+    """2-D mesh plot panel created by :meth:`Axes.pcolormesh`.
+
+    Accepts cell *edge* arrays (length N+1 / M+1) rather than centre arrays,
+    matches matplotlib's ``pcolormesh`` convention.  Only ``'circles'`` and
+    ``'lines'`` markers are supported.
+    """
+
+    def __init__(self, data: np.ndarray,
+                 x_edges=None, y_edges=None, units: str = ""):
+        data = np.asarray(data)
+        if data.ndim != 2:
+            raise ValueError(f"data must be 2-D (M x N), got {data.shape}")
+        rows, cols = data.shape
+
+        if x_edges is None:
+            x_edges = np.arange(cols + 1, dtype=float)
+        if y_edges is None:
+            y_edges = np.arange(rows + 1, dtype=float)
+        x_edges = np.asarray(x_edges, dtype=float)
+        y_edges = np.asarray(y_edges, dtype=float)
+
+        if len(x_edges) != cols + 1:
+            raise ValueError(
+                f"x_edges must have length {cols + 1} for {cols} columns, "
+                f"got {len(x_edges)}")
+        if len(y_edges) != rows + 1:
+            raise ValueError(
+                f"y_edges must have length {rows + 1} for {rows} rows, "
+                f"got {len(y_edges)}")
+
+        # Resample to a regular pixel grid for display
+        resampled = _resample_mesh(data, x_edges, y_edges)
+
+        # Use cell centres to initialise the parent (axes will be replaced)
+        x_c = (x_edges[:-1] + x_edges[1:]) / 2.0
+        y_c = (y_edges[:-1] + y_edges[1:]) / 2.0
+        super().__init__(resampled, x_axis=x_c, y_axis=y_c, units=units)
+
+        # Override mesh-specific state
+        self._state["is_mesh"]  = True
+        self._state["has_axes"] = True
+        # Store edges (not centres) so the JS renderer can place grid lines
+        self._state["x_axis"] = x_edges.tolist()
+        self._state["y_axis"] = y_edges.tolist()
+        # Mesh panels have no fixed pixel scale
+        self._state.pop("scale_x", None)
+        self._state.pop("scale_y", None)
+
+        # Restrict markers to circles + lines only
+        self.markers = MarkerRegistry(self._push_markers,
+                                      allowed=MarkerRegistry._KNOWN_MESH)
+
+    # ------------------------------------------------------------------
+    # Data update
+    # ------------------------------------------------------------------
+    def update(self, data: np.ndarray,
+               x_edges=None, y_edges=None, units: str | None = None) -> None:
+        """Replace the mesh data (and optionally the edge arrays)."""
+        data = np.asarray(data)
+        if data.ndim != 2:
+            raise ValueError(f"data must be 2-D, got {data.shape}")
+        rows, cols = data.shape
+
+        cur_xe = np.asarray(self._state["x_axis"], dtype=float)
+        cur_ye = np.asarray(self._state["y_axis"], dtype=float)
+        xe = np.asarray(x_edges, dtype=float) if x_edges is not None else cur_xe
+        ye = np.asarray(y_edges, dtype=float) if y_edges is not None else cur_ye
+
+        if len(xe) != cols + 1:
+            raise ValueError(f"x_edges must have length {cols + 1}")
+        if len(ye) != rows + 1:
+            raise ValueError(f"y_edges must have length {rows + 1}")
+
+        resampled = _resample_mesh(data, xe, ye)
+        img_u8, vmin, vmax = _normalize_image(resampled)
+        self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
+
+        self._state.update({
+            "image_b64":      self._encode_bytes(img_u8),
+            "image_width":    cols,
+            "image_height":   rows,
+            "x_axis":         xe.tolist(),
+            "y_axis":         ye.tolist(),
+            "display_min":    vmin,
+            "display_max":    vmax,
+            "raw_min":        vmin,
+            "raw_max":        vmax,
+            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
+        })
+        if units is not None:
+            self._state["units"] = units
+        self._push()
+
+
+# ---------------------------------------------------------------------------
+# _triangulate_grid helper + Plot3D
+# ---------------------------------------------------------------------------
+
+def _triangulate_grid(rows: int, cols: int) -> list:
+    """Return a flat list of [i0, i1, i2] triangle indices for an (rows×cols) grid."""
+    faces = []
+    for r in range(rows - 1):
+        for c in range(cols - 1):
+            i = r * cols + c
+            faces.append([i,       i + 1,       i + cols])
+            faces.append([i + 1,   i + cols + 1, i + cols])
+    return faces
+
+
+class Plot3D:
+    """3-D plot panel.
+
+    Supports three geometry types matching matplotlib's 3-D Axes API:
+
+    * ``'surface'``  – triangulated surface, Z-coloured via colormap.
+    * ``'scatter'``  – point cloud, single colour.
+    * ``'line'``     – connected line through 3-D points.
+
+    Created by :meth:`Axes.plot_surface`, :meth:`Axes.scatter3d`,
+    and :meth:`Axes.plot3d`.
+
+    Not an anywidget.  Holds state in ``_state`` dict; every mutation
+    calls ``_push()`` which writes to the parent Figure's panel trait.
+    """
+
+    def __init__(self, geom_type: str,
+                 x, y, z, *,
+                 colormap: str = "viridis",
+                 color: str = "#4fc3f7",
+                 point_size: float = 4.0,
+                 linewidth: float = 1.5,
+                 x_label: str = "x",
+                 y_label: str = "y",
+                 z_label: str = "z",
+                 azimuth: float = -60.0,
+                 elevation: float = 30.0,
+                 zoom: float = 1.0):
+        self._id:  str = ""
+        self._fig: object = None
+
+        geom_type = geom_type.lower()
+        if geom_type not in ("surface", "scatter", "line"):
+            raise ValueError("geom_type must be 'surface', 'scatter', or 'line'")
+
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+        z = np.asarray(z, dtype=float)
+
+        if geom_type == "surface":
+            # Accept 2-D grid arrays (meshgrid style) or 1-D flat arrays
+            if x.ndim == 2 and y.ndim == 2 and z.ndim == 2:
+                rows, cols = z.shape
+                xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
+            elif x.ndim == 1 and y.ndim == 1 and z.ndim == 2:
+                rows, cols = z.shape
+                if len(x) != cols or len(y) != rows:
+                    raise ValueError(
+                        "For surface with 1-D x/y: x must have length ncols "
+                        "and y must have length nrows")
+                XX, YY = np.meshgrid(x, y)
+                xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
+            else:
+                raise ValueError(
+                    "Surface x/y/z must be 2-D grids of the same shape, "
+                    "or 1-D x/y centre arrays with 2-D z.")
+            faces = _triangulate_grid(rows, cols)
+            vertices = np.column_stack([xf, yf, zf]).tolist()
+            z_values = zf.tolist()
+        else:
+            if x.ndim != 1 or y.ndim != 1 or z.ndim != 1:
+                raise ValueError("scatter/line x, y, z must be 1-D arrays")
+            if not (len(x) == len(y) == len(z)):
+                raise ValueError("x, y, z must have the same length")
+            vertices = np.column_stack([x, y, z]).tolist()
+            faces    = []
+            z_values = z.tolist()
+
+        # Normalised data bounds for the JS renderer
+        all_x = np.asarray([v[0] for v in vertices])
+        all_y = np.asarray([v[1] for v in vertices])
+        all_z = np.asarray([v[2] for v in vertices])
+        data_bounds = {
+            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
+            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
+            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+        }
+
+        cmap_lut = _build_colormap_lut(colormap)
+
+        self._state: dict = {
+            "kind":        "3d",
+            "geom_type":   geom_type,
+            "vertices":    vertices,
+            "faces":       faces,
+            "z_values":    z_values,
+            "colormap_name": colormap,
+            "colormap_data": cmap_lut,
+            "color":       color,
+            "point_size":  float(point_size),
+            "linewidth":   float(linewidth),
+            "x_label":     x_label,
+            "y_label":     y_label,
+            "z_label":     z_label,
+            "azimuth":     float(azimuth),
+            "elevation":   float(elevation),
+            "zoom":        float(zoom),
+            "data_bounds": data_bounds,
+            "registered_keys": [],
+        }
+        self.callbacks = CallbackRegistry()
+
+    # ------------------------------------------------------------------
+    def _push(self) -> None:
+        if self._fig is None:
+            return
+        self._fig._push(self._id)
+
+    def to_state_dict(self) -> dict:
+        return dict(self._state)
+
+    # ------------------------------------------------------------------
+    # Callback API  (Plot3D)
+    # ------------------------------------------------------------------
+    def on_changed(self, fn: Callable) -> Callable:
+        """Decorator: fires on every rotation/zoom frame."""
+        cid = self.callbacks.connect("on_changed", fn)
+        fn._cid = cid
+        return fn
+
+    def on_release(self, fn: Callable) -> Callable:
+        """Decorator: fires once when rotation/zoom settles."""
+        cid = self.callbacks.connect("on_release", fn)
+        fn._cid = cid
+        return fn
+
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires on click on this panel."""
+        cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
+
+    def on_key(self, key_or_fn=None) -> Callable:
+        """Register a key-press handler for this panel.
+
+        Two call forms are supported::
+
+            @plot.on_key('q')          # fires only when 'q' is pressed
+            def handler(event): ...
+
+            @plot.on_key               # fires for every registered key
+            def handler(event): ...
+
+        The event carries: ``key``, ``mouse_x``, ``mouse_y``, and
+        ``last_widget_id``.
+
+        .. note::
+            Registered keys take priority over the built-in **r** (reset view)
+            shortcut.
+        """
+        if callable(key_or_fn):
+            return self._connect_on_key(None, key_or_fn)
+        key = key_or_fn
+        def _decorator(fn):
+            return self._connect_on_key(key, fn)
+        return _decorator
+
+    def _connect_on_key(self, key, fn) -> Callable:
+        if key is None:
+            if '*' not in self._state['registered_keys']:
+                self._state['registered_keys'].append('*')
+                self._push()
+            cid = self.callbacks.connect("on_key", fn)
+        else:
+            if key not in self._state['registered_keys']:
+                self._state['registered_keys'].append(key)
+                self._push()
+            def _wrapped(event):
+                if event.data.get('key') == key:
+                    fn(event)
+            cid = self.callbacks.connect("on_key", _wrapped)
+            _wrapped._cid = cid
+        fn._cid = cid
+        return fn
+
+    def disconnect(self, cid: int) -> None:
+        """Remove the callback registered under integer *cid*."""
+        self.callbacks.disconnect(cid)
+
+    # ------------------------------------------------------------------
+    # Display settings
+    # ------------------------------------------------------------------
+    def set_colormap(self, name: str) -> None:
+        """Set the surface colormap (ignored for scatter/line)."""
+        self._state["colormap_name"] = name
+        self._state["colormap_data"] = _build_colormap_lut(name)
+        self._push()
+
+    def set_view(self, azimuth: float | None = None,
+                 elevation: float | None = None) -> None:
+        """Set the camera azimuth (°) and/or elevation (°)."""
+        if azimuth   is not None: self._state["azimuth"]   = float(azimuth)
+        if elevation is not None: self._state["elevation"] = float(elevation)
+        self._push()
+
+    def set_zoom(self, zoom: float) -> None:
+        self._state["zoom"] = float(zoom)
+        self._push()
+
+    def update(self, x, y, z) -> None:
+        """Replace the geometry data."""
+        # Re-run the same logic as __init__ for the stored geom_type
+        geom_type = self._state["geom_type"]
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+        z = np.asarray(z, dtype=float)
+
+        if geom_type == "surface":
+            if x.ndim == 2 and y.ndim == 2 and z.ndim == 2:
+                rows, cols = z.shape
+                xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
+            elif x.ndim == 1 and y.ndim == 1 and z.ndim == 2:
+                rows, cols = z.shape
+                XX, YY = np.meshgrid(x, y)
+                xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
+            else:
+                raise ValueError("Surface x/y/z must be 2-D grids or 1-D+2-D.")
+            faces    = _triangulate_grid(rows, cols)
+            vertices = np.column_stack([xf, yf, zf]).tolist()
+            z_values = zf.tolist()
+        else:
+            vertices = np.column_stack([x.ravel(), y.ravel(), z.ravel()]).tolist()
+            faces    = []
+            z_values = z.ravel().tolist()
+
+        all_x = np.asarray([v[0] for v in vertices])
+        all_y = np.asarray([v[1] for v in vertices])
+        all_z = np.asarray([v[2] for v in vertices])
+        data_bounds = {
+            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
+            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
+            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+        }
+
+        self._state.update({
+            "vertices":    vertices,
+            "faces":       faces,
+            "z_values":    z_values,
+            "data_bounds": data_bounds,
+            "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
+        })
+        self._push()
+
+    def __repr__(self) -> str:
+        geom = self._state.get("geom_type", "?")
+        n = len(self._state.get("vertices", []))
+        return f"Plot3D(geom={geom!r}, n_vertices={n})"
+
+
+# ---------------------------------------------------------------------------
+# Plot1D
+# ---------------------------------------------------------------------------
+
+class Plot1D:
+    """1-D line plot panel.
+
+    Holds state in ``_state`` dict; every mutation pushes to Figure trait.
+    Exposes the full Viewer1D-compatible API plus the new marker API.
+    """
+
+    def __init__(self, data: np.ndarray,
+                 x_axis=None,
+                 units: str = "px",
+                 y_units: str = "",
+                 color: str = "#4fc3f7",
+                 linewidth: float = 1.5,
+                 label: str = ""):
+        self._id:  str = ""
+        self._fig: object = None
+
+        data = np.asarray(data, dtype=float)
+        if data.ndim != 1:
+            raise ValueError(f"data must be 1-D, got {data.shape}")
+        n = len(data)
+        if x_axis is None:
+            x_axis = np.arange(n, dtype=float)
+        x_axis = np.asarray(x_axis, dtype=float)
+        if len(x_axis) != n:
+            raise ValueError("x_axis length must match data length")
+
+        dmin = float(np.nanmin(data))
+        dmax = float(np.nanmax(data))
+        pad  = (dmax - dmin) * 0.05 if dmax > dmin else 0.5
+        dmin -= pad; dmax += pad
+
+        self._state: dict = {
+            "kind":          "1d",
+            "data":          data.tolist(),
+            "x_axis":        x_axis.tolist(),
+            "units":         units,
+            "y_units":       y_units,
+            "data_min":      dmin,
+            "data_max":      dmax,
+            "view_x0":       0.0,
+            "view_x1":       1.0,
+            "line_color":    color,
+            "line_linewidth": float(linewidth),
+            "line_label":    label,
+            "extra_lines":   [],
+            "spans":         [],
+            "overlay_widgets": [],
+            "markers":       [],
+            "registered_keys": [],
+        }
+
+        self.markers = MarkerRegistry(self._push_markers,
+                                      allowed=MarkerRegistry._KNOWN_1D)
+        self.callbacks = CallbackRegistry()
+        self._widgets: dict[str, Widget] = {}
+
+    def _push(self) -> None:
+        if self._fig is None:
+            return
+        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        self._fig._push(self._id)
+
+    def _push_markers(self) -> None:
+        self._state["markers"] = self.markers.to_wire_list()
+        self._push()
+
+    def to_state_dict(self) -> dict:
+        d = dict(self._state)
+        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        d["markers"] = self.markers.to_wire_list()
+        return d
+
+    # ------------------------------------------------------------------
+    # Data update
+    # ------------------------------------------------------------------
+    def update(self, data: np.ndarray, x_axis=None,
+               units: str | None = None, y_units: str | None = None) -> None:
+        data = np.asarray(data, dtype=float)
+        if data.ndim != 1:
+            raise ValueError(f"data must be 1-D, got {data.shape}")
+        n = len(data)
+        if x_axis is None:
+            prev = np.asarray(self._state["x_axis"])
+            x_axis = prev if len(prev) == n else np.arange(n, dtype=float)
+        x_axis = np.asarray(x_axis, dtype=float)
+
+        dmin = float(np.nanmin(data))
+        dmax = float(np.nanmax(data))
+        pad  = (dmax - dmin) * 0.05 if dmax > dmin else 0.5
+
+        self._state["data"]    = data.tolist()
+        self._state["x_axis"]  = x_axis.tolist()
+        self._state["data_min"] = dmin - pad
+        self._state["data_max"] = dmax + pad
+        if units    is not None: self._state["units"]   = units
+        if y_units  is not None: self._state["y_units"] = y_units
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Extra lines
+    # ------------------------------------------------------------------
+    def add_line(self, data: np.ndarray, x_axis=None,
+                 color: str = "#ffffff", linewidth: float = 1.5,
+                 label: str = "") -> str:
+        data = np.asarray(data, dtype=float)
+        if data.ndim != 1:
+            raise ValueError("data must be 1-D")
+        xa = (np.asarray(x_axis, float).tolist() if x_axis is not None
+              else self._state["x_axis"])
+        lid = str(_uuid.uuid4())[:8]
+        self._state["extra_lines"].append({
+            "id": lid, "data": data.tolist(), "x_axis": xa,
+            "color": color, "linewidth": float(linewidth), "label": label,
+        })
+        self._push()
+        return lid
+
+    def remove_line(self, lid: str) -> None:
+        before = len(self._state["extra_lines"])
+        self._state["extra_lines"] = [
+            e for e in self._state["extra_lines"] if e["id"] != lid]
+        if len(self._state["extra_lines"]) == before:
+            raise KeyError(lid)
+        self._push()
+
+    def clear_lines(self) -> None:
+        self._state["extra_lines"] = []
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Spans
+    # ------------------------------------------------------------------
+    def add_span(self, v0: float, v1: float,
+                 axis: str = "x", color: str | None = None) -> str:
+        sid = str(_uuid.uuid4())[:8]
+        self._state["spans"].append({
+            "id": sid, "v0": float(v0), "v1": float(v1),
+            "axis": axis, "color": color,
+        })
+        self._push()
+        return sid
+
+    def remove_span(self, sid: str) -> None:
+        before = len(self._state["spans"])
+        self._state["spans"] = [
+            s for s in self._state["spans"] if s["id"] != sid]
+        if len(self._state["spans"]) == before:
+            raise KeyError(sid)
+        self._push()
+
+    def clear_spans(self) -> None:
+        self._state["spans"] = []
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Overlay Widgets
+    # ------------------------------------------------------------------
+    def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
+        widget = _VLineWidget(lambda: None, x=float(x), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
+        widget = _HLineWidget(lambda: None, y=float(y), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_range_widget(self, x0: float, x1: float,
+                         color: str = "#00e5ff") -> _RangeWidget:
+        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def get_widget(self, wid) -> Widget:
+        """Return the Widget object by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        try:
+            return self._widgets[wid]
+        except KeyError:
+            raise KeyError(wid)
+
+    def remove_widget(self, wid) -> None:
+        """Remove a widget by ID string or Widget instance."""
+        if isinstance(wid, Widget):
+            wid = wid.id
+        if wid not in self._widgets:
+            raise KeyError(wid)
+        del self._widgets[wid]
+        self._push()
+
+    def list_widgets(self) -> list:
+        return list(self._widgets.values())
+
+    def clear_widgets(self) -> None:
+        self._widgets.clear()
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Callback API  (Plot1D)
+    # ------------------------------------------------------------------
+    def on_changed(self, fn: Callable) -> Callable:
+        """Decorator: fires on every drag/zoom frame on this panel."""
+        cid = self.callbacks.connect("on_changed", fn)
+        fn._cid = cid
+        return fn
+
+    def on_release(self, fn: Callable) -> Callable:
+        """Decorator: fires once when drag/zoom settles on this panel."""
+        cid = self.callbacks.connect("on_release", fn)
+        fn._cid = cid
+        return fn
+
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires on click on this panel."""
+        cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
+
+    def on_key(self, key_or_fn=None) -> Callable:
+        """Register a key-press handler for this panel.
+
+        Two call forms are supported::
+
+            @plot.on_key('q')          # fires only when 'q' is pressed
+            def handler(event): ...
+
+            @plot.on_key               # fires for every registered key
+            def handler(event): ...
+
+        The event carries: ``key``, ``mouse_x``, ``mouse_y``, ``phys_x``,
+        and ``last_widget_id``.
+
+        .. note::
+            Registered keys take priority over the built-in **r** (reset view)
+            shortcut.
+        """
+        if callable(key_or_fn):
+            return self._connect_on_key(None, key_or_fn)
+        key = key_or_fn
+        def _decorator(fn):
+            return self._connect_on_key(key, fn)
+        return _decorator
+
+    def _connect_on_key(self, key, fn) -> Callable:
+        if key is None:
+            if '*' not in self._state['registered_keys']:
+                self._state['registered_keys'].append('*')
+                self._push()
+            cid = self.callbacks.connect("on_key", fn)
+        else:
+            if key not in self._state['registered_keys']:
+                self._state['registered_keys'].append(key)
+                self._push()
+            def _wrapped(event):
+                if event.data.get('key') == key:
+                    fn(event)
+            cid = self.callbacks.connect("on_key", _wrapped)
+            _wrapped._cid = cid
+        fn._cid = cid
+        return fn
+
+    def disconnect(self, cid: int) -> None:
+        """Remove the callback registered under integer *cid*."""
+        self.callbacks.disconnect(cid)
+
+    # ------------------------------------------------------------------
+    # View control
+    # ------------------------------------------------------------------
+    def set_view(self, x0: float | None = None, x1: float | None = None) -> None:
+        xarr = np.asarray(self._state["x_axis"])
+        if len(xarr) < 2:
+            return
+        xmin, xmax = float(xarr[0]), float(xarr[-1])
+        span = xmax - xmin or 1.0
+        f0 = 0.0 if x0 is None else max(0.0, min(1.0, (float(x0)-xmin)/span))
+        f1 = 1.0 if x1 is None else max(0.0, min(1.0, (float(x1)-xmin)/span))
+        self._state["view_x0"] = f0
+        self._state["view_x1"] = f1
+        self._push()
+
+    def reset_view(self) -> None:
+        self._state["view_x0"] = 0.0
+        self._state["view_x1"] = 1.0
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Marker API  (matplotlib-style kwargs → MarkerRegistry)
+    # ------------------------------------------------------------------
+    def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
+        return self.markers.add(mtype, name, **kwargs)
+
+    def add_circles(self, offsets, name=None, *, radius=5,
+                    facecolors=None, edgecolors="#ff0000",
+                    linewidths=1.5, alpha=0.3,
+                    hover_edgecolors=None, hover_facecolors=None,
+                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        # On 1-D panels the native type is "points" (radius maps to sizes).
+        return self._add_marker("points", name, offsets=offsets, sizes=radius,
+                                facecolors=facecolors, edgecolors=edgecolors,
+                                linewidths=linewidths, alpha=alpha,
+                                hover_edgecolors=hover_edgecolors,
+                                hover_facecolors=hover_facecolors,
+                                labels=labels, label=label)
+
+    def add_points(self, offsets, name=None, *, sizes=5,
+                   color="#ff0000", facecolors=None,
+                   linewidths=1.5, alpha=0.3,
+                   hover_edgecolors=None, hover_facecolors=None,
+                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add point markers at (x, y) positions in data coordinates."""
+        return self._add_marker("points", name, offsets=offsets, sizes=sizes,
                                 edgecolors=color, facecolors=facecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
@@ -1348,21 +1998,7 @@ class PlotBar:
     # Overlay Widgets
     # ------------------------------------------------------------------
     def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
-        """Add a draggable vertical line widget at x position.
-
-        Parameters
-        ----------
-        x : float
-            Initial x-coordinate (in data units).
-        color : str, optional
-            CSS colour for the line. Default ``"#00e5ff"``.
-
-        Returns
-        -------
-        VLineWidget
-            The widget. Register callbacks via ``@widget.on_changed``
-            or ``@widget.on_release``.
-        """
+        """Add a draggable vertical line at data position *x*."""
         widget = _VLineWidget(lambda: None, x=float(x), color=color)
         plot_ref, wid_id = self, widget._id
         def _tp():
@@ -1375,54 +2011,8 @@ class PlotBar:
         return widget
 
     def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
-        """Add a draggable horizontal line widget at y position.
-
-        Parameters
-        ----------
-        y : float
-            Initial y-coordinate (in data units).
-        color : str, optional
-            CSS colour for the line. Default ``"#00e5ff"``.
-
-        Returns
-        -------
-        HLineWidget
-            The widget. Register callbacks via ``@widget.on_changed``
-            or ``@widget.on_release``.
-        """
+        """Add a draggable horizontal line at value-axis position *y*."""
         widget = _HLineWidget(lambda: None, y=float(y), color=color)
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
-
-    def add_range_widget(self, x0: float, x1: float,
-                         color: str = "#00e5ff") -> _RangeWidget:
-        """Add a draggable range (two connected vertical lines) widget.
-
-        Parameters
-        ----------
-        x0, x1 : float
-            Initial left and right x-coordinates (in data units).
-        color : str, optional
-            CSS colour for the lines. Default ``"#00e5ff"``.
-
-        Returns
-        -------
-        RangeWidget
-            The widget. Register callbacks via ``@widget.on_changed``
-            or ``@widget.on_release``.
-
-        Notes
-        -----
-        Dragging either line updates both x0 and x1 in the widget.
-        """
-        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1), color=color)
         plot_ref, wid_id = self, widget._id
         def _tp():
             if plot_ref._fig is not None:
@@ -1459,60 +2049,27 @@ class PlotBar:
         self._push()
 
     # ------------------------------------------------------------------
-    # Callback API  (Plot1D)
+    # Callbacks
     # ------------------------------------------------------------------
-    def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: fires on every drag/zoom frame on this panel.
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires when the user clicks a bar.
 
-        Use this for high-frequency updates (keep the handler fast).
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
+        The :class:`~anyplotlib.callbacks.Event` has ``bar_index``,
+        ``value``, ``x_center``, and ``x_label``.
         """
+        cid = self.callbacks.connect("on_click", fn)
+        fn._cid = cid
+        return fn
+
+    def on_changed(self, fn: Callable) -> Callable:
+        """Decorator: fires on every drag frame (widget drag or hover)."""
         cid = self.callbacks.connect("on_changed", fn)
         fn._cid = cid
         return fn
 
     def on_release(self, fn: Callable) -> Callable:
-        """Decorator: fires once when drag/zoom settles on this panel.
-
-        Use this for expensive operations.
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
+        """Decorator: fires once when a widget drag settles."""
         cid = self.callbacks.connect("on_release", fn)
-        fn._cid = cid
-        return fn
-
-    def on_click(self, fn: Callable) -> Callable:
-        """Decorator: fires on click on this panel.
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
-        cid = self.callbacks.connect("on_click", fn)
         fn._cid = cid
         return fn
 
@@ -1527,12 +2084,8 @@ class PlotBar:
             @plot.on_key               # fires for every registered key
             def handler(event): ...
 
-        The event carries: ``key``, ``mouse_x``, ``mouse_y``, ``phys_x``,
-        and ``last_widget_id``.
-
-        .. note::
-            Registered keys take priority over the built-in **r** (reset view)
-            shortcut.
+        The event carries: ``key``, ``mouse_x``, ``mouse_y``, and
+        ``last_widget_id``.
         """
         if callable(key_or_fn):
             return self._connect_on_key(None, key_or_fn)
@@ -1560,178 +2113,12 @@ class PlotBar:
         return fn
 
     def disconnect(self, cid: int) -> None:
-        """Remove the callback registered under integer *cid*."""
         self.callbacks.disconnect(cid)
-
-    # ------------------------------------------------------------------
-    # View control
-    # ------------------------------------------------------------------
-    def set_view(self, x0: float | None = None, x1: float | None = None) -> None:
-        xarr = np.asarray(self._state["x_axis"])
-        if len(xarr) < 2:
-            return
-        xmin, xmax = float(xarr[0]), float(xarr[-1])
-        span = xmax - xmin or 1.0
-        f0 = 0.0 if x0 is None else max(0.0, min(1.0, (float(x0)-xmin)/span))
-        f1 = 1.0 if x1 is None else max(0.0, min(1.0, (float(x1)-xmin)/span))
-        self._state["view_x0"] = f0
-        self._state["view_x1"] = f1
-        self._push()
-
-    def reset_view(self) -> None:
-        self._state["view_x0"] = 0.0
-        self._state["view_x1"] = 1.0
-        self._push()
-
-    # ------------------------------------------------------------------
-    # Marker API  (matplotlib-style kwargs → MarkerRegistry)
-    # ------------------------------------------------------------------
-    def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
-        return self.markers.add(mtype, name, **kwargs)
-
-    def add_circles(self, offsets, name=None, *, radius=5,
-                    facecolors=None, edgecolors="#ff0000",
-                    linewidths=1.5, alpha=0.3,
-                    hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        # On 1-D panels the native type is "points" (radius maps to sizes).
-        return self._add_marker("points", name, offsets=offsets, sizes=radius,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_points(self, offsets, name=None, *, sizes=5,
-                   color="#ff0000", facecolors=None,
-                   linewidths=1.5, alpha=0.3,
-                   hover_edgecolors=None, hover_facecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add point markers at (x, y) positions in data coordinates."""
-        return self._add_marker("points", name, offsets=offsets, sizes=sizes,
-                                edgecolors=color, facecolors=facecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_hlines(self, y_values, name=None, *,
-                   color="#ff0000", linewidths=1.5,
-                   hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add static horizontal lines at the given y positions."""
-        return self._add_marker("hlines", name, offsets=y_values,
-                                color=color, linewidths=linewidths,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def add_vlines(self, x_values, name=None, *,
-                   color="#ff0000", linewidths=1.5,
-                   hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add static vertical lines at the given x positions."""
-        return self._add_marker("vlines", name, offsets=x_values,
-                                color=color, linewidths=linewidths,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def add_arrows(self, offsets, U, V, name=None, *,
-                   edgecolors="#ff0000", linewidths=1.5,
-                   hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
-                                edgecolors=edgecolors, linewidths=linewidths,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def add_ellipses(self, offsets, widths, heights, name=None, *,
-                     angles=0, facecolors=None, edgecolors="#ff0000",
-                     linewidths=1.5, alpha=0.3,
-                     hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("ellipses", name, offsets=offsets,
-                                widths=widths, heights=heights, angles=angles,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_lines(self, segments, name=None, *,
-                  edgecolors="#ff0000", linewidths=1.5,
-                  hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("lines", name, segments=segments,
-                                edgecolors=edgecolors, linewidths=linewidths,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def add_rectangles(self, offsets, widths, heights, name=None, *,
-                       angles=0, facecolors=None, edgecolors="#ff0000",
-                       linewidths=1.5, alpha=0.3,
-                       hover_edgecolors=None, hover_facecolors=None,
-                       labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("rectangles", name, offsets=offsets,
-                                widths=widths, heights=heights, angles=angles,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_squares(self, offsets, widths, name=None, *,
-                    angles=0, facecolors=None, edgecolors="#ff0000",
-                    linewidths=1.5, alpha=0.3,
-                    hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("squares", name, offsets=offsets,
-                                widths=widths, angles=angles,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_polygons(self, vertices_list, name=None, *,
-                     facecolors=None, edgecolors="#ff0000",
-                     linewidths=1.5, alpha=0.3,
-                     hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("polygons", name, vertices_list=vertices_list,
-                                facecolors=facecolors, edgecolors=edgecolors,
-                                linewidths=linewidths, alpha=alpha,
-                                hover_edgecolors=hover_edgecolors,
-                                hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
-
-    def add_texts(self, offsets, texts, name=None, *,
-                  color="#ff0000", fontsize=12,
-                  hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        return self._add_marker("texts", name, offsets=offsets, texts=texts,
-                                color=color, fontsize=fontsize,
-                                hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
-
-    def remove_marker(self, marker_type: str, name: str) -> None:
-        self.markers.remove(marker_type, name)
-
-    def clear_markers(self) -> None:
-        self.markers.clear()
-
-    def list_markers(self) -> list:
-        out = []
-        for mtype, td in self.markers._types.items():
-            for name, g in td.items():
-                out.append({"type": mtype, "name": name, "n": g._count()})
-        return out
 
     def __repr__(self) -> str:
         n = len(self._state.get("values", []))
         orient = self._state.get("orient", "v")
         return f"PlotBar(n={n}, orient={orient!r})"
-
-
 
 
 
