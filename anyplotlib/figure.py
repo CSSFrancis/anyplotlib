@@ -37,11 +37,44 @@ _ESM_SOURCE = (_HERE / "figure_esm.js").read_text(encoding="utf-8")
 class Figure(anywidget.AnyWidget):
     """Multi-panel interactive figure widget.
 
-    Create via :func:`subplots` or directly::
+    The top-level container for all plots and the only ``anywidget.AnyWidget``
+    subclass in anyplotlib. It owns all traitlets and acts as the Python ↔
+    JavaScript bridge via the ``figure_esm.js`` canvas renderer.
+
+    Create via :func:`subplots` (recommended) or directly::
 
         fig = Figure(2, 2, figsize=(800, 600))
         ax  = fig.add_subplot((0, 0))
         v2d = ax.imshow(data)
+
+    Parameters
+    ----------
+    nrows, ncols : int, optional
+        Grid dimensions. Default 1 row, 1 column.
+    figsize : (width, height), optional
+        Figure size in CSS pixels. Default ``(640, 480)``.
+    width_ratios : list of float, optional
+        Relative column widths. Length must equal *ncols*.
+    height_ratios : list of float, optional
+        Relative row heights. Length must equal *nrows*.
+    sharex, sharey : bool, optional
+        Link pan/zoom across all panels on the respective axis.
+        Default False (independent pan/zoom per panel).
+
+    Attributes
+    ----------
+    fig_width : int
+        Current figure width in pixels (synced with JS).
+    fig_height : int
+        Current figure height in pixels (synced with JS).
+    layout_json : str
+        JSON serialization of the grid layout (synced with JS).
+    event_json : str
+        JSON serialization of interaction events from JS.
+
+    See Also
+    --------
+    subplots : Recommended factory for creating Figure and Axes grid.
     """
 
     layout_json = traitlets.Unicode("{}").tag(sync=True)
@@ -75,11 +108,29 @@ class Figure(anywidget.AnyWidget):
 
         Parameters
         ----------
-        spec : SubplotSpec | int | (row, col) tuple
+        spec : SubplotSpec or int or (row, col) tuple
+            Specifies which grid cell(s) to occupy:
             - ``SubplotSpec``: used directly (e.g. from ``GridSpec[r, c]``).
             - ``int``: converted to ``(row, col)`` via ``divmod(spec, ncols)``,
               matching ``matplotlib.Figure.add_subplot(num)`` numbering.
             - ``(row, col)`` tuple: selects a single cell.
+
+        Returns
+        -------
+        Axes
+            The subplot axes object. Call plotting methods like ``.imshow()``,
+            ``.plot()``, ``.bar()`` to attach data.
+
+        Raises
+        ------
+        TypeError
+            If *spec* is not a SubplotSpec, int, or tuple.
+
+        Examples
+        --------
+        >>> fig = Figure(2, 2)
+        >>> ax1 = fig.add_subplot(0)       # top-left (via numbering)
+        >>> ax2 = fig.add_subplot((0, 1))  # top-right (via tuple)
         """
         if isinstance(spec, SubplotSpec):
             pass  # use as-is
@@ -229,6 +280,14 @@ class Figure(anywidget.AnyWidget):
 
     # ── helpers ───────────────────────────────────────────────────────────────
     def get_axes(self) -> list:
+        """Return a list of all Axes, sorted by grid position.
+
+        Returns
+        -------
+        list of Axes
+            Axes sorted by (row_start, col_start) to match typical left-to-right,
+            top-to-bottom iteration order.
+        """
         return sorted(self._axes_map.values(),
                       key=lambda a: (a._spec.row_start, a._spec.col_start))
 
@@ -238,6 +297,11 @@ class Figure(anywidget.AnyWidget):
         Used by Sphinx Gallery (via :class:`~docs._sg_html_scraper.ViewerScraper`)
         and by any HTML-capable notebook frontend that falls back to
         ``_repr_html_`` instead of the full ipywidgets protocol.
+
+        Returns
+        -------
+        str
+            HTML string containing an embedded iframe with srcdoc attribute.
         """
         from anyplotlib._repr_utils import repr_html_iframe
         return repr_html_iframe(self)
