@@ -99,7 +99,14 @@ class MarkerGroup:
 
     # ------------------------------------------------------------------
     def set(self, **kwargs) -> None:
-        """Update one or more properties and push the change to the plot."""
+        """Update one or more properties and push the change to the plot.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Properties to update (e.g., offsets, radius, facecolors).
+            Matplotlib-style names are translated to wire format.
+        """
         self._data.update(kwargs)
         self._push_fn()
 
@@ -107,6 +114,7 @@ class MarkerGroup:
         return f"MarkerGroup(type={self._type!r}, name={self._name!r}, n={self._count()})"
 
     def _count(self) -> int:
+        """Return the number of markers in this group."""
         offs = self._data.get("offsets")
         if offs is None:
             return 0
@@ -119,7 +127,19 @@ class MarkerGroup:
     # Wire-format serialisation
     # ------------------------------------------------------------------
     def to_wire(self, group_id: str) -> dict:
-        """Return a dict in the JS wire format for this marker group."""
+        """Return a dict in the JS wire format for this marker group.
+
+        Parameters
+        ----------
+        group_id : str
+            Unique identifier for this marker group (usually UUID).
+
+        Returns
+        -------
+        dict
+            Wire-format dict with type-specific structure, ready for JSON
+            serialization and transmission to the JavaScript renderer.
+        """
         d = self._data
         t = self._type
 
@@ -333,6 +353,13 @@ class MarkerTypeDict:
 
     Any modification (``__setitem__``, ``__delitem__``) automatically triggers
     the ``_push_fn`` callback so the plot re-renders.
+
+    Parameters
+    ----------
+    marker_type : str
+        Type of markers (e.g., 'circles', 'arrows', 'lines').
+    push_fn : callable
+        Zero-arg callback to trigger re-render on mutations.
     """
 
     def __init__(self, marker_type: str, push_fn):
@@ -343,38 +370,112 @@ class MarkerTypeDict:
     # ------------------------------------------------------------------
     # dict-like interface
     def __getitem__(self, name: str) -> MarkerGroup:
+        """Return a MarkerGroup by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the marker group.
+
+        Returns
+        -------
+        MarkerGroup
+            The requested marker group.
+
+        Raises
+        ------
+        KeyError
+            If the name is not found.
+        """
         return self._groups[name]
 
     def __setitem__(self, name: str, group: MarkerGroup) -> None:
+        """Register a MarkerGroup and trigger re-render.
+
+        Parameters
+        ----------
+        name : str
+            Name to register the group under.
+        group : MarkerGroup
+            The marker group object.
+        """
         self._groups[name] = group
         self._push_fn()
 
     def __delitem__(self, name: str) -> None:
+        """Remove a MarkerGroup by name and trigger re-render.
+
+        Parameters
+        ----------
+        name : str
+            Name of the group to remove.
+
+        Raises
+        ------
+        KeyError
+            If the name is not found.
+        """
         del self._groups[name]
         self._push_fn()
 
     def __contains__(self, name: object) -> bool:
+        """Check if a named group exists.
+
+        Parameters
+        ----------
+        name : object
+            Name to check.
+
+        Returns
+        -------
+        bool
+            True if the group exists.
+        """
         return name in self._groups
 
     def __iter__(self):
+        """Iterate over group names."""
         return iter(self._groups)
 
     def __len__(self) -> int:
+        """Return the number of groups."""
         return len(self._groups)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"MarkerTypeDict(type={self._type!r}, groups={list(self._groups)})"
 
     def keys(self):
+        """Return group names."""
         return self._groups.keys()
 
     def values(self):
+        """Return MarkerGroup objects."""
         return self._groups.values()
 
     def items(self):
+        """Return (name, MarkerGroup) pairs."""
         return self._groups.items()
 
     def pop(self, name: str, *args):
+        """Remove and return a MarkerGroup by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the group to remove.
+        *args : optional
+            Default value if name is not found.
+
+        Returns
+        -------
+        MarkerGroup
+            The removed group, or default value if provided.
+
+        Raises
+        ------
+        KeyError
+            If name is not found and no default is provided.
+        """
         result = self._groups.pop(name, *args)
         self._push_fn()
         return result
@@ -437,6 +538,23 @@ class MarkerRegistry:
 
     # ------------------------------------------------------------------
     def __getitem__(self, marker_type: str) -> MarkerTypeDict:
+        """Return the MarkerTypeDict for a type, auto-creating if needed.
+
+        Parameters
+        ----------
+        marker_type : str
+            Type name (e.g., 'circles', 'lines', 'arrows').
+
+        Returns
+        -------
+        MarkerTypeDict
+            The dict of named groups for this type.
+
+        Raises
+        ------
+        ValueError
+            If the type is not in the allowed set (if one was provided).
+        """
         if self._allowed is not None and marker_type not in self._allowed:
             raise ValueError(
                 f"Marker type '{marker_type}' is not allowed on this panel. "
@@ -447,9 +565,11 @@ class MarkerRegistry:
         return self._types[marker_type]
 
     def __contains__(self, marker_type: object) -> bool:
+        """Check if a marker type has any registered groups."""
         return marker_type in self._types
 
     def __iter__(self):
+        """Iterate over marker types that have registered groups."""
         return iter(self._types)
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -482,16 +602,23 @@ class MarkerRegistry:
 
         Parameters
         ----------
-        marker_type :
-            Type string, e.g. ``'circles'``.
-        name :
-            Group name.  Auto-generated (``'circles_1'`` etc.) if ``None``.
-        **kwargs :
-            Matplotlib-style kwargs for the group.
+        marker_type : str
+            Type string, e.g. ``'circles'``, ``'lines'``, ``'arrows'``.
+        name : str, optional
+            Group name. Auto-generated (``'circles_1'`` etc.) if ``None``.
+        **kwargs : dict
+            Matplotlib-style kwargs for the group (offsets, radius, colors, etc.).
 
         Returns
         -------
         MarkerGroup
+            The created marker group. Call ``.set()`` to update, or access
+            properties as attributes.
+
+        Examples
+        --------
+        >>> group = registry.add("circles", name="my_circles", offsets=[[10, 20]], radius=5)
+        >>> group.set(radius=8)
         """
         if name is None:
             name = self._auto_name(marker_type)
@@ -501,16 +628,35 @@ class MarkerRegistry:
         return g
 
     def remove(self, marker_type: str, name: str) -> None:
-        """Remove a named group (triggers a push)."""
+        """Remove a named marker group and trigger re-render.
+
+        Parameters
+        ----------
+        marker_type : str
+            Type of the group.
+        name : str
+            Name of the group to remove.
+
+        Raises
+        ------
+        KeyError
+            If the type or name is not found.
+        """
         del self[marker_type][name]     # MarkerTypeDict.__delitem__ pushes
 
     def clear(self) -> None:
-        """Remove all markers of all types."""
+        """Remove all markers of all types and trigger re-render."""
         self._types.clear()
         self._push_fn()
 
     def to_wire_list(self) -> list:
-        """Flatten the full registry to a list of wire-format dicts."""
+        """Flatten the full registry to a list of wire-format dicts.
+
+        Returns
+        -------
+        list of dict
+            Wire-format dicts ready for JSON serialization and JS rendering.
+        """
         out = []
         for td in self._types.values():
             out.extend(td.to_wire_list())
