@@ -13,9 +13,7 @@ requires-python = ">=3.10"
 dependencies = [
     "anywidget>=0.9.0",
     "colorcet>=3.0",
-    "jupyterlab>=4.5.5",
     "numpy>=2.0.0",
-    "pytest>=9.0.2",
     "traitlets>=5.0.0",
 ]
 
@@ -27,10 +25,14 @@ docs = [
     "pillow>=10.0",
     "matplotlib>=3.7",
 ]
+jupyter = [
+    "jupyterlab>=4.5.5",
+]
 
 [dependency-groups]
 dev = [
     "playwright>=1.58.0",
+    "pytest>=9.0.2",
 ]
 
 

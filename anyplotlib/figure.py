@@ -163,7 +163,6 @@ class Figure(anywidget.AnyWidget):
     @traitlets.observe("event_json")
     def _on_event(self, change) -> None:
         """Dispatch a JS interaction event to the relevant plot and widget callbacks."""
-        print("_on_event:", change["new"])
         raw = change["new"]
         if not raw or raw == "{}":
             return

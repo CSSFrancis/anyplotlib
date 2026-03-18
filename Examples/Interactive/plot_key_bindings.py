@@ -4,21 +4,22 @@ Key-Press Widget Placement
 
 Demonstrates the ``on_key`` callback API: press a key while the plot is
 focused to add an overlay widget centred on the current cursor position,
-or press **Delete** to remove the last widget you clicked.
+or press **Backspace / Delete** to remove the last widget you clicked.
 
 **Key bindings**
 
-+-------+---------------------------+
-| Key   | Action                    |
-+=======+===========================+
-| ``q`` | Add a rectangle           |
-+-------+---------------------------+
-| ``w`` | Add a circle              |
-+-------+---------------------------+
-| ``e`` | Add an annulus            |
-+-------+---------------------------+
-| ``Delete`` | Remove last-clicked  |
-+-------+---------------------------+
++-------------------------------+---------------------------+
+| Key                           | Action                    |
++===============================+===========================+
+| ``q``                         | Add a rectangle           |
++-------------------------------+---------------------------+
+| ``w``                         | Add a circle              |
++-------------------------------+---------------------------+
+| ``e``                         | Add an annulus            |
++-------------------------------+---------------------------+
+| ``Backspace`` (macOS ⌫)       | Remove last-clicked       |
+| ``Delete`` (Windows / Linux)  |                           |
++-------------------------------+---------------------------+
 
 **Built-in 2-D shortcuts** (not overridden in this example):
 
@@ -40,7 +41,8 @@ where the cursor was when the key was pressed.
 
 .. note::
    Move the mouse over the image first so the plot panel receives focus,
-   then press a key.
+   then press a key.  On macOS the backspace key (⌫) is used for deletion;
+   on Windows / Linux use the **Delete** key.
 """
 
 import numpy as np
@@ -95,19 +97,25 @@ def add_annulus(event):
     )
 
 
+# macOS sends 'Backspace' for the ⌫ key; Windows/Linux send 'Delete'.
+# Register both so the example works cross-platform.
+@plot.on_key('Backspace')
 @plot.on_key('Delete')
 def delete_last(event):
-    """Press Delete — remove the last widget that was clicked / dragged."""
+    """Press Backspace/Delete — remove the last widget that was clicked."""
     wid = event.last_widget_id
     if wid and wid in {w.id for w in plot.list_widgets()}:
         plot.remove_widget(wid)
 
 
-# ── Catch-all handler (optional) — print every registered key press ──────────
+# ── Catch-all handler (optional) — log every registered key press ─────────────
 
 @plot.on_key
 def log_key(event):
-    print(f"[on_key] key={event.key!r}  img=({event.img_x:.1f}, {event.img_y:.1f})"
+    img_x = getattr(event, 'img_x', None)
+    img_y = getattr(event, 'img_y', None)
+    pos = f"({img_x:.1f}, {img_y:.1f})" if img_x is not None else "n/a"
+    print(f"[on_key] key={event.key!r}  img={pos}"
           f"  last_widget={event.last_widget_id!r}")
 
 fig

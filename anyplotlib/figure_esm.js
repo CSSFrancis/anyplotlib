@@ -84,7 +84,7 @@ function render({ model, el }) {
 
   // ── outer DOM ────────────────────────────────────────────────────────────
   const outerDiv = document.createElement('div');
-  outerDiv.style.cssText = 'position:relative;display:inline-block;user-select:none;';
+  outerDiv.style.cssText = 'position:relative;display:inline-block;user-select:none;z-index:1;isolation:isolate;';
   el.appendChild(outerDiv);
 
   const gridDiv = document.createElement('div');
@@ -95,7 +95,7 @@ function render({ model, el }) {
   const resizeHandle = document.createElement('div');
   resizeHandle.style.cssText =
     'position:absolute;bottom:2px;right:2px;width:16px;height:16px;cursor:nwse-resize;' +
-    'background:linear-gradient(135deg,transparent 50%,#888 50%);border-radius:0 0 4px 0;z-index:20;';
+    'background:linear-gradient(135deg,transparent 50%,#888 50%);border-radius:0 0 4px 0;z-index:100;';
   resizeHandle.title = 'Drag to resize figure';
   outerDiv.appendChild(resizeHandle);
 
@@ -170,7 +170,7 @@ function render({ model, el }) {
 
   function _createPanelDOM(id, kind, pw, ph, spec) {
     const cell = document.createElement('div');
-    cell.style.cssText = 'position:relative;overflow:visible;line-height:0;';
+    cell.style.cssText = 'position:relative;overflow:visible;line-height:0;display:flex;justify-content:center;align-items:flex-start;';
     cell.style.gridRow    = `${spec.row_start+1} / ${spec.row_stop+1}`;
     cell.style.gridColumn = `${spec.col_start+1} / ${spec.col_stop+1}`;
     gridDiv.appendChild(cell);
@@ -1240,14 +1240,14 @@ function render({ model, el }) {
           last_widget_id: p.lastWidgetId || null,
           mouse_x: p.mouseX, mouse_y: p.mouseY,
         });
-        e.preventDefault(); return;
+        e.stopPropagation(); e.preventDefault(); return;
       }
       if (e.key.toLowerCase() === 'r') {
         p.state.azimuth = -60; p.state.elevation = 30; p.state.zoom = 1;
         draw3d(p);
         model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
         model.save_changes();
-        e.preventDefault();
+        e.stopPropagation(); e.preventDefault();
       }
     });
     overlayCanvas.tabIndex = 0;
@@ -1820,26 +1820,26 @@ function render({ model, el }) {
           img_x:imgX, img_y:imgY,
           phys_x:physX, phys_y:physY,
         });
-        e.preventDefault(); return;
+        e.stopPropagation(); e.preventDefault(); return;
       }
       const key=e.key.toLowerCase();
       if(key==='r'){
         st.zoom=1; st.center_x=0.5; st.center_y=0.5;
         draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
-        e.preventDefault();
+        e.stopPropagation(); e.preventDefault();
       } else if(key==='c'){
         st.show_colorbar=!st.show_colorbar;
         draw2d(p);
         model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
-        e.preventDefault();
+        e.stopPropagation(); e.preventDefault();
       } else if(key==='l'){
         st.scale_mode=st.scale_mode==='log'?'linear':'log';
         draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
-        e.preventDefault();
+        e.stopPropagation(); e.preventDefault();
       } else if(key==='s'){
         st.scale_mode=st.scale_mode==='symlog'?'linear':'symlog';
         draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
-        e.preventDefault();
+        e.stopPropagation(); e.preventDefault();
       }
     });
     overlayCanvas.addEventListener('mouseenter',()=>overlayCanvas.focus());
@@ -1933,9 +1933,9 @@ function render({ model, el }) {
           mouse_x:p.mouseX, mouse_y:p.mouseY,
           phys_x:physX,
         });
-        e.preventDefault(); return;
+        e.stopPropagation(); e.preventDefault(); return;
       }
-      if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.preventDefault();}
+      if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.stopPropagation();e.preventDefault();}
     });
     overlayCanvas.tabIndex=0;overlayCanvas.style.outline='none';
     overlayCanvas.addEventListener('mouseenter',()=>overlayCanvas.focus());
@@ -2767,7 +2767,7 @@ function render({ model, el }) {
           last_widget_id: p.lastWidgetId || null,
           mouse_x: p.mouseX, mouse_y: p.mouseY,
         });
-        e.preventDefault();
+        e.stopPropagation(); e.preventDefault();
       }
     });
     overlayCanvas.tabIndex = 0;

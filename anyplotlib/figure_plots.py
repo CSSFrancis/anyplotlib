@@ -404,7 +404,7 @@ _CMAP_ALIASES: dict[str, str] = {
     "plasma":        "fire",      # warm sequential (dark→bright)
     "inferno":       "kb",        # dark→blue→white
     "magma":         "kbc",       # dark→blue→cyan sequential
-    "cividis":       "dimgray",   # accessible, low-chroma sequential
+    "cividis":       "bgy",        # accessible, blue→green→yellow sequential
     "hot":           "fire",
     "afmhot":        "fire",
     "jet":           "rainbow4",
@@ -805,21 +805,58 @@ class Plot2D:
     # ------------------------------------------------------------------
     # View control
     # ------------------------------------------------------------------
-    def set_view(self, x0: float | None = None, x1: float | None = None) -> None:
+    def set_view(self,
+                 x0: float | None = None, x1: float | None = None,
+                 y0: float | None = None, y1: float | None = None) -> None:
+        """Set the viewport to a data-space rectangle.
+
+        Parameters
+        ----------
+        x0, x1 : float, optional
+            Horizontal data-space range to show.  If omitted the full
+            x-extent is used for zoom calculation.
+        y0, y1 : float, optional
+            Vertical data-space range to show.  If omitted the full
+            y-extent is used for zoom calculation.
+
+        Translates the requested rectangle into the ``zoom`` / ``center_x``
+        / ``center_y`` state values used by the 2-D JS renderer.
+        """
         xarr = np.asarray(self._state["x_axis"])
-        if len(xarr) < 2:
+        yarr = np.asarray(self._state["y_axis"])
+        if len(xarr) < 2 or len(yarr) < 2:
             return
+
         xmin, xmax = float(xarr[0]), float(xarr[-1])
-        span = xmax - xmin or 1.0
-        f0 = 0.0 if x0 is None else max(0.0, min(1.0, (float(x0)-xmin)/span))
-        f1 = 1.0 if x1 is None else max(0.0, min(1.0, (float(x1)-xmin)/span))
-        self._state["view_x0"] = f0
-        self._state["view_x1"] = f1
+        ymin, ymax = float(yarr[0]), float(yarr[-1])
+        x_span = xmax - xmin or 1.0
+        y_span = ymax - ymin or 1.0
+
+        zoom_candidates = []
+
+        if x0 is not None and x1 is not None:
+            fx0 = max(0.0, min(1.0, (float(x0) - xmin) / x_span))
+            fx1 = max(0.0, min(1.0, (float(x1) - xmin) / x_span))
+            if fx1 > fx0:
+                self._state["center_x"] = (fx0 + fx1) / 2.0
+                zoom_candidates.append(1.0 / (fx1 - fx0))
+
+        if y0 is not None and y1 is not None:
+            fy0 = max(0.0, min(1.0, (float(y0) - ymin) / y_span))
+            fy1 = max(0.0, min(1.0, (float(y1) - ymin) / y_span))
+            if fy1 > fy0:
+                self._state["center_y"] = (fy0 + fy1) / 2.0
+                zoom_candidates.append(1.0 / (fy1 - fy0))
+
+        if zoom_candidates:
+            self._state["zoom"] = min(zoom_candidates)
         self._push()
 
     def reset_view(self) -> None:
-        self._state["view_x0"] = 0.0
-        self._state["view_x1"] = 1.0
+        """Reset pan and zoom to show the full image."""
+        self._state["zoom"]     = 1.0
+        self._state["center_x"] = 0.5
+        self._state["center_y"] = 0.5
         self._push()
 
     # ------------------------------------------------------------------
@@ -833,8 +870,8 @@ class Plot2D:
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        # On 1-D panels the native type is "points" (radius maps to sizes).
-        return self._add_marker("points", name, offsets=offsets, sizes=radius,
+        """Add circle markers at (x, y) positions in data coordinates."""
+        return self._add_marker("circles", name, offsets=offsets, radius=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
@@ -847,7 +884,7 @@ class Plot2D:
                    hover_edgecolors=None, hover_facecolors=None,
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
         """Add point markers at (x, y) positions in data coordinates."""
-        return self._add_marker("points", name, offsets=offsets, sizes=sizes,
+        return self._add_marker("circles", name, offsets=offsets, radius=sizes,
                                 edgecolors=color, facecolors=facecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
@@ -964,6 +1001,12 @@ class Plot2D:
             for name, g in td.items():
                 out.append({"type": mtype, "name": name, "n": g._count()})
         return out
+
+    def __repr__(self) -> str:
+        w = self._state.get("image_width", "?")
+        h = self._state.get("image_height", "?")
+        cmap = self._state.get("colormap_name", "?")
+        return f"Plot2D({w}\u00d7{h}, cmap={cmap!r})"
 
 
 # ---------------------------------------------------------------------------
@@ -1322,6 +1365,11 @@ class Plot3D:
             "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
         })
         self._push()
+
+    def __repr__(self) -> str:
+        geom = self._state.get("geom_type", "?")
+        n = len(self._state.get("vertices", []))
+        return f"Plot3D(geom={geom!r}, n_vertices={n})"
 
 
 # ---------------------------------------------------------------------------
@@ -1778,6 +1826,11 @@ class Plot1D:
             for name, g in td.items():
                 out.append({"type": mtype, "name": name, "n": g._count()})
         return out
+
+    def __repr__(self) -> str:
+        n = len(self._state.get("data", []))
+        color = self._state.get("line_color", "?")
+        return f"Plot1D(n={n}, color={color!r})"
 
 
 # ---------------------------------------------------------------------------
