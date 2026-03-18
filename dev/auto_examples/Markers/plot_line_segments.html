@@ -46,13 +46,6 @@
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/Markers/plot_line_segments';</script>
-    <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://cssfrancis.github.io/anyplotlib/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
-        DOCUMENTATION_OPTIONS.show_version_warning_banner =
-            false;
-        </script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/Markers/plot_line_segments.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -183,26 +176,6 @@
         </div>
       
       
-        <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-2"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-2"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-2"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-2">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-      
         <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -295,26 +268,6 @@
     
       <div class="sidebar-header-items__end">
         
-          <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-3"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-3"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-3"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-3">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-        
           <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -344,11 +297,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../plot_3d.html">3D Plotting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../plot_spectra1d.html">1D Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_image2d.html">2D Image</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../plot_bar.html">Bar Chart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plot_image2d.html">2D Image with Histogram</a></li>
 </ul>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
 </ul>
 </details></li>
@@ -449,7 +403,7 @@ to download the full example code.</p>
 <section class="sphx-glr-example-title" id="line-segments">
 <span id="sphx-glr-auto-examples-markers-plot-line-segments-py"></span><h1>Line Segments<a class="headerlink" href="#line-segments" title="Link to this heading">#</a></h1>
 <p>Draw line segments on a 2-D image with
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">add_lines()</span></code>.
+<a class="reference internal" href="../../api/figure_plots.html#anyplotlib.figure_plots.Plot2D.add_lines" title="anyplotlib.figure_plots.Plot2D.add_lines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_lines()</span></code></a>.
 Use <code class="docutils literal notranslate"><span class="pre">markers[&quot;lines&quot;][&quot;name&quot;].set(...)</span></code> to update them live.</p>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
@@ -484,7 +438,7 @@ Use <code class="docutils literal notranslate"><span class="pre">markers[&quot;l
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_line_segments_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:inline-block;max-width:100%;"></iframe></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.053 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_line_segments_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:inline-block;max-width:100%;"></iframe></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.054 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-markers-plot-line-segments-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/62435357f4fbdc928148213e668d2acb/plot_line_segments.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_line_segments.ipynb</span></code></a></p>

@@ -46,13 +46,6 @@
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/index';</script>
-    <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://cssfrancis.github.io/anyplotlib/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
-        DOCUMENTATION_OPTIONS.show_version_warning_banner =
-            false;
-        </script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/api/index.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -183,26 +176,6 @@
         </div>
       
       
-        <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-2"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-2"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-2"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-2">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-      
         <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -295,26 +268,6 @@
     
       <div class="sidebar-header-items__end">
         
-          <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-3"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-3"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-3"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-3">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-        
           <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -342,6 +295,10 @@
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="figure.html">Figure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="figure_plots.html">Figure Plots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="markers.html">Markers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="widgets.html">Widgets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="callbacks.html">Callbacks</a></li>
 </ul>
 </div>
 </nav></div>
@@ -403,7 +360,52 @@
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">#</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="figure.html">Figure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="figure.html">Figure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="figure.html#figure-py">figure.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure.html#anyplotlib.figure.Figure"><code class="docutils literal notranslate"><span class="pre">Figure</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure.html#anyplotlib.figure.GridSpec"><code class="docutils literal notranslate"><span class="pre">GridSpec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure.html#anyplotlib.figure.SubplotSpec"><code class="docutils literal notranslate"><span class="pre">SubplotSpec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure.html#anyplotlib.figure.subplots"><code class="docutils literal notranslate"><span class="pre">subplots()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="figure_plots.html">Figure Plots</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#figure-plots-py">figure_plots.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.GridSpec"><code class="docutils literal notranslate"><span class="pre">GridSpec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.SubplotSpec"><code class="docutils literal notranslate"><span class="pre">SubplotSpec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes"><code class="docutils literal notranslate"><span class="pre">Axes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Plot1D"><code class="docutils literal notranslate"><span class="pre">Plot1D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Plot2D"><code class="docutils literal notranslate"><span class="pre">Plot2D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.PlotMesh"><code class="docutils literal notranslate"><span class="pre">PlotMesh</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Plot3D"><code class="docutils literal notranslate"><span class="pre">Plot3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.PlotBar"><code class="docutils literal notranslate"><span class="pre">PlotBar</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="markers.html">Markers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="markers.html#markers-py">markers.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup"><code class="docutils literal notranslate"><span class="pre">MarkerGroup</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerTypeDict"><code class="docutils literal notranslate"><span class="pre">MarkerTypeDict</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerRegistry"><code class="docutils literal notranslate"><span class="pre">MarkerRegistry</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="widgets.html">Widgets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.Widget"><code class="docutils literal notranslate"><span class="pre">Widget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.RectangleWidget"><code class="docutils literal notranslate"><span class="pre">RectangleWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.CircleWidget"><code class="docutils literal notranslate"><span class="pre">CircleWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.AnnularWidget"><code class="docutils literal notranslate"><span class="pre">AnnularWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.CrosshairWidget"><code class="docutils literal notranslate"><span class="pre">CrosshairWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.PolygonWidget"><code class="docutils literal notranslate"><span class="pre">PolygonWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.LabelWidget"><code class="docutils literal notranslate"><span class="pre">LabelWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.VLineWidget"><code class="docutils literal notranslate"><span class="pre">VLineWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.HLineWidget"><code class="docutils literal notranslate"><span class="pre">HLineWidget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="widgets.html#anyplotlib.widgets.RangeWidget"><code class="docutils literal notranslate"><span class="pre">RangeWidget</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="callbacks.html">Callbacks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="callbacks.html#callbacks-py">callbacks.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="callbacks.html#anyplotlib.callbacks.Event"><code class="docutils literal notranslate"><span class="pre">Event</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="callbacks.html#anyplotlib.callbacks.CallbackRegistry"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>

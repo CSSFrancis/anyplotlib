@@ -45,13 +45,6 @@
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/figure';</script>
-    <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://cssfrancis.github.io/anyplotlib/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
-        DOCUMENTATION_OPTIONS.show_version_warning_banner =
-            false;
-        </script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/_modules/anyplotlib/figure.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -180,26 +173,6 @@
         </div>
       
       
-        <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-2"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-2"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-2"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-2">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-      
         <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -290,26 +263,6 @@
     
       <div class="sidebar-header-items__end">
         
-          <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-3"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-3"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-3"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-3">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-        
           <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -386,7 +339,31 @@
                 <article class="bd-article">
                   
   <h1>Source code for anyplotlib.figure</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">figure.py</span>
+<span class="sd">=========</span>
+
+<span class="sd">Top-level :class:`Figure` widget and the :func:`subplots` factory.</span>
+
+<span class="sd">``Figure`` is the only ``anywidget.AnyWidget`` subclass in anyplotlib.</span>
+<span class="sd">It owns all traitlets and acts as the Python ↔ JavaScript bridge.</span>
+<span class="sd">Use :func:`subplots` (the recommended entry-point) or construct a</span>
+<span class="sd">``Figure`` directly and call :meth:`Figure.add_subplot` to attach data.</span>
+
+<span class="sd">Example</span>
+<span class="sd">-------</span>
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    import numpy as np</span>
+<span class="sd">    import anyplotlib as apl</span>
+
+<span class="sd">    fig, axs = apl.subplots(1, 2, figsize=(800, 400))</span>
+<span class="sd">    axs[0].imshow(np.random.standard_normal((128, 128)))</span>
+<span class="sd">    axs[1].plot(np.sin(np.linspace(0, 6.28, 256)))</span>
+<span class="sd">    fig</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pathlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anywidget</span><span class="o">,</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="o">,</span><span class="w"> </span><span class="nn">traitlets</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.figure_plots</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSpec</span><span class="p">,</span> <span class="n">SubplotSpec</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">,</span> <span class="n">Plot3D</span><span class="p">,</span> <span class="n">PlotBar</span>
@@ -488,38 +465,13 @@
         <span class="n">wr</span><span class="p">,</span> <span class="n">hr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_width_ratios</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height_ratios</span>
         <span class="n">wsum</span><span class="p">,</span> <span class="n">hsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">wr</span><span class="p">),</span> <span class="nb">sum</span><span class="p">(</span><span class="n">hr</span><span class="p">)</span>
 
-        <span class="c1"># Step 1: raw pixel size per grid track (float precision)</span>
+        <span class="c1"># Grid tracks are pure ratio math — no aspect-locking.</span>
+        <span class="c1"># Rule: col_px[i] = fw * width_ratios[i] / Σ width_ratios (and analogous</span>
+        <span class="c1"># for rows).  Every panel gets exactly the canvas size its cell specifies;</span>
+        <span class="c1"># images are rendered &quot;contain&quot; (letterboxed) in JS if needed.</span>
         <span class="n">col_px</span> <span class="o">=</span> <span class="p">[</span><span class="n">fw</span> <span class="o">*</span> <span class="n">w</span> <span class="o">/</span> <span class="n">wsum</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wr</span><span class="p">]</span>
         <span class="n">row_px</span> <span class="o">=</span> <span class="p">[</span><span class="n">fh</span> <span class="o">*</span> <span class="n">h</span> <span class="o">/</span> <span class="n">hsum</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hr</span><span class="p">]</span>
 
-        <span class="c1"># Step 2: aspect-lock every 2D panel by shrinking its track(s).</span>
-        <span class="c1"># Multiple passes let interactions between panels converge.</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="p">(</span><span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">)):</span>
-                    <span class="k">continue</span>
-                <span class="n">s</span>  <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">_spec</span>
-                <span class="n">cw</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">col_px</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">:</span><span class="n">s</span><span class="o">.</span><span class="n">col_stop</span><span class="p">])</span>
-                <span class="n">ch</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">row_px</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">:</span><span class="n">s</span><span class="o">.</span><span class="n">row_stop</span><span class="p">])</span>
-                <span class="n">iw</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_width&quot;</span><span class="p">,</span>  <span class="mi">1</span><span class="p">)</span>
-                <span class="n">ih</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_height&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">iw</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ih</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">ar</span> <span class="o">=</span> <span class="n">iw</span> <span class="o">/</span> <span class="n">ih</span>
-                <span class="k">if</span> <span class="n">cw</span> <span class="o">/</span> <span class="n">ch</span> <span class="o">&gt;</span> <span class="n">ar</span><span class="p">:</span>               <span class="c1"># wider than image -&gt; shrink cols</span>
-                    <span class="n">new_cw</span> <span class="o">=</span> <span class="n">ch</span> <span class="o">*</span> <span class="n">ar</span>
-                    <span class="n">span</span>   <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">col_stop</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">col_stop</span><span class="p">):</span>
-                        <span class="n">col_px</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_cw</span> <span class="o">/</span> <span class="n">span</span>
-                <span class="k">else</span><span class="p">:</span>                          <span class="c1"># taller than image -&gt; shrink rows</span>
-                    <span class="n">new_ch</span> <span class="o">=</span> <span class="n">cw</span> <span class="o">/</span> <span class="n">ar</span>
-                    <span class="n">span</span>   <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">row_stop</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">row_stop</span><span class="p">):</span>
-                        <span class="n">row_px</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_ch</span> <span class="o">/</span> <span class="n">span</span>
-
-        <span class="c1"># Step 3: every panel gets the pixel size of its track span.</span>
-        <span class="c1"># All panels sharing a row/col automatically have identical dimensions.</span>
         <span class="n">sizes</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">s</span>  <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">_spec</span>
@@ -581,7 +533,6 @@
     <span class="nd">@traitlets</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;event_json&quot;</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_on_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">change</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch a JS interaction event to the relevant plot and widget callbacks.&quot;&quot;&quot;</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;_on_event:&quot;</span><span class="p">,</span> <span class="n">change</span><span class="p">[</span><span class="s2">&quot;new&quot;</span><span class="p">])</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="n">change</span><span class="p">[</span><span class="s2">&quot;new&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span> <span class="ow">or</span> <span class="n">raw</span> <span class="o">==</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">:</span>
             <span class="k">return</span>

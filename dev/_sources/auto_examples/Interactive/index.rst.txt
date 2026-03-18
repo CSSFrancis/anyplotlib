@@ -19,6 +19,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the on_key callback API: press a key while the plot is focused to add an overlay widget centred on the current cursor position, or press Backspace / Delete to remove the last widget you clicked.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_key_bindings_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_key_bindings`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Key-Press Widget Placement</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel.">
 
 .. only:: html
@@ -44,5 +61,6 @@ interactions to live Python computations.
 .. toctree::
    :hidden:
 
+   /auto_examples/Interactive/plot_key_bindings
    /auto_examples/Interactive/plot_interactive_fft
 

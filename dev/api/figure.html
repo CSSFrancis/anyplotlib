@@ -46,17 +46,10 @@
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/figure';</script>
-    <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://cssfrancis.github.io/anyplotlib/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
-        DOCUMENTATION_OPTIONS.show_version_warning_banner =
-            false;
-        </script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/api/figure.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Examples" href="../auto_examples/index.html" />
+    <link rel="next" title="Figure Plots" href="figure_plots.html" />
     <link rel="prev" title="API Reference" href="index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -183,26 +176,6 @@
         </div>
       
       
-        <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-2"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-2"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-2"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-2">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-      
         <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -295,26 +268,6 @@
     
       <div class="sidebar-header-items__end">
         
-          <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-3"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-3"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-3"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-3">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
-        
           <div class="navbar-item"><ul class="navbar-icon-links"
     aria-label="Icon Links">
         <li class="nav-item">
@@ -342,6 +295,10 @@
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Figure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="figure_plots.html">Figure Plots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="markers.html">Markers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="widgets.html">Widgets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="callbacks.html">Callbacks</a></li>
 </ul>
 </div>
 </nav></div>
@@ -404,6 +361,24 @@
                   
   <section id="module-anyplotlib.figure">
 <span id="figure"></span><h1>Figure<a class="headerlink" href="#module-anyplotlib.figure" title="Link to this heading">#</a></h1>
+<section id="figure-py">
+<h2>figure.py<a class="headerlink" href="#figure-py" title="Link to this heading">#</a></h2>
+<p>Top-level <a class="reference internal" href="#anyplotlib.figure.Figure" title="anyplotlib.figure.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> widget and the <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code></a> factory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Figure</span></code> is the only <code class="docutils literal notranslate"><span class="pre">anywidget.AnyWidget</span></code> subclass in anyplotlib.
+It owns all traitlets and acts as the Python ↔ JavaScript bridge.
+Use <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code></a> (the recommended entry-point) or construct a
+<code class="docutils literal notranslate"><span class="pre">Figure</span></code> directly and call <a class="reference internal" href="#anyplotlib.figure.Figure.add_subplot" title="anyplotlib.figure.Figure.add_subplot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Figure.add_subplot()</span></code></a> to attach data.</p>
+<p class="rubric">Example</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="mi">400</span><span class="p">))</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)))</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">6.28</span><span class="p">,</span> <span class="mi">256</span><span class="p">)))</span>
+<span class="n">fig</span>
+</pre></div>
+</div>
+</section>
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.figure.Figure">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">Figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.Figure" title="Link to this definition">#</a></dt>
@@ -454,7 +429,7 @@ matching <code class="docutils literal notranslate"><span class="pre">matplotlib
 </p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>Axes</em></p>
+<dd class="field-even"><p><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes"><em>Axes</em></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -515,7 +490,7 @@ matching <code class="docutils literal notranslate"><span class="pre">matplotlib
 <dl class="py function">
 <dt class="sig sig-object py" id="anyplotlib.figure.subplots">
 <span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">subplots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nrows</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(640,</span> <span class="pre">480)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gridspec_kw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#subplots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.subplots" title="Link to this definition">#</a></dt>
-<dd><p>Create a <a class="reference internal" href="#anyplotlib.figure.Figure" title="anyplotlib.figure.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> and a grid of <code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code>.</p>
+<dd><p>Create a <a class="reference internal" href="#anyplotlib.figure.Figure" title="anyplotlib.figure.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> and a grid of <a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a>.</p>
 <p>Mirrors <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots.html#matplotlib.pyplot.subplots" title="(in Matplotlib v3.10.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.subplots()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -581,11 +556,11 @@ Recognised keys: <code class="docutils literal notranslate"><span class="pre">wi
       </div>
     </a>
     <a class="right-next"
-       href="../auto_examples/index.html"
+       href="figure_plots.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Examples</p>
+        <p class="prev-next-title">Figure Plots</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -608,6 +583,7 @@ Recognised keys: <code class="docutils literal notranslate"><span class="pre">wi
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#figure-py">figure.py</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure"><code class="docutils literal notranslate"><span class="pre">Figure</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.layout_json"><code class="docutils literal notranslate"><span class="pre">Figure.layout_json</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.event_json"><code class="docutils literal notranslate"><span class="pre">Figure.event_json</span></code></a></li>

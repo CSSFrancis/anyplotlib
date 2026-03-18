@@ -65,23 +65,6 @@ A collection of short, self-contained examples.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Display a 2-D image with physical axes using imshow. The image is a synthetic STEM-like diffraction pattern with a physical length scale in nanometres.  Circle markers highlight the first-order diffraction spots, and an annular integration widget is placed over the central beam.  Pan and zoom with the mouse; press R to reset the view, H to toggle the histogram, L / S to cycle colour-scale modes.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_image2d_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_image2d`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">2D Image</div>
-    </div>
-
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with vertical and horizontal orientations, per-bar colours, category labels, and live data updates via update.">
 
 .. only:: html
@@ -94,6 +77,23 @@ A collection of short, self-contained examples.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">Bar Chart</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Display a 2-D image with physical axes, a colourmap, and an interactive histogram below — all wired together with draggable threshold widgets.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_image2d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_image2d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Image with Histogram</div>
     </div>
 
 
@@ -110,8 +110,8 @@ A collection of short, self-contained examples.
    /auto_examples/plot_3d
    /auto_examples/plot_pcolormesh
    /auto_examples/plot_spectra1d
-   /auto_examples/plot_image2d
    /auto_examples/plot_bar
+   /auto_examples/plot_image2d
 
 Interactive Examples
 ====================
@@ -127,6 +127,23 @@ interactions to live Python computations.
     <div class="sphx-glr-thumbnails">
 
 .. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the on_key callback API: press a key while the plot is focused to add an overlay widget centred on the current cursor position, or press Backspace / Delete to remove the last widget you clicked.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_key_bindings_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_key_bindings`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Key-Press Widget Placement</div>
+    </div>
+
 
 .. raw:: html
 
