@@ -61,16 +61,6 @@ class Figure(anywidget.AnyWidget):
         Link pan/zoom across all panels on the respective axis.
         Default False (independent pan/zoom per panel).
 
-    Attributes
-    ----------
-    fig_width : int
-        Current figure width in pixels (synced with JS).
-    fig_height : int
-        Current figure height in pixels (synced with JS).
-    layout_json : str
-        JSON serialization of the grid layout (synced with JS).
-    event_json : str
-        JSON serialization of interaction events from JS.
 
     See Also
     --------
@@ -80,8 +70,7 @@ class Figure(anywidget.AnyWidget):
     layout_json = traitlets.Unicode("{}").tag(sync=True)
     fig_width   = traitlets.Int(640).tag(sync=True)
     fig_height  = traitlets.Int(480).tag(sync=True)
-    # Bidirectional js. Events have an object id and some
-    # data that
+    # Bidirectional JS event bus: JS writes interaction events here, Python reads them.
     event_json  = traitlets.Unicode("{}").tag(sync=True)
     _esm = _ESM_SOURCE
 
@@ -108,12 +97,12 @@ class Figure(anywidget.AnyWidget):
 
         Parameters
         ----------
-        spec : SubplotSpec or int or (row, col) tuple
-            Specifies which grid cell(s) to occupy:
-            - ``SubplotSpec``: used directly (e.g. from ``GridSpec[r, c]``).
-            - ``int``: converted to ``(row, col)`` via ``divmod(spec, ncols)``,
-              matching ``matplotlib.Figure.add_subplot(num)`` numbering.
-            - ``(row, col)`` tuple: selects a single cell.
+        spec : SubplotSpec or int or tuple of (row, col)
+            Which grid cell(s) to occupy.  A :class:`SubplotSpec` is used
+            directly (e.g. from ``GridSpec[r, c]``).  An :class:`int` is
+            converted via ``divmod(spec, ncols)``, matching
+            ``matplotlib.Figure.add_subplot`` numbering.  A ``(row, col)``
+            tuple selects a single cell.
 
         Returns
         -------
