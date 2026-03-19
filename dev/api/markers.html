@@ -413,8 +413,12 @@ the parent figure trait.</p></li>
 <span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerGroup.set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerGroup.set" title="Link to this definition">#</a></dt>
 <dd><p>Update one or more properties and push the change to the plot.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Properties to update (e.g., offsets, radius, facecolors).
+Matplotlib-style names are translated to wire format.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -425,10 +429,14 @@ the parent figure trait.</p></li>
 <dd><p>Return a dict in the JS wire format for this marker group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>group_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+<dd class="field-odd"><p><strong>group_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Unique identifier for this marker group (usually UUID).</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Wire-format dict with type-specific structure, ready for JSON
+serialization and transmission to the JavaScript renderer.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -444,30 +452,49 @@ the parent figure trait.</p></li>
 the <code class="docutils literal notranslate"><span class="pre">_push_fn</span></code> callback so the plot re-renders.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Type of markers (e.g., ‘circles’, ‘arrows’, ‘lines’).</p></li>
+<li><p><strong>push_fn</strong> (<em>callable</em>) – Zero-arg callback to trigger re-render on mutations.</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.markers.MarkerTypeDict.keys">
 <span class="sig-name descname"><span class="pre">keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerTypeDict.keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerTypeDict.keys" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Return group names.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.markers.MarkerTypeDict.values">
 <span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerTypeDict.values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerTypeDict.values" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Return MarkerGroup objects.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.markers.MarkerTypeDict.items">
 <span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerTypeDict.items"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerTypeDict.items" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Return (name, MarkerGroup) pairs.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.markers.MarkerTypeDict.pop">
 <span class="sig-name descname"><span class="pre">pop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerTypeDict.pop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerTypeDict.pop" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove and return a MarkerGroup by name.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the group to remove.</p></li>
+<li><p><strong>*args</strong> (<em>optional</em>) – Default value if name is not found.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The removed group, or default value if provided.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><strong>KeyError</strong></a> – If name is not found and no default is provided.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -508,30 +535,42 @@ the <code class="docutils literal notranslate"><span class="pre">_push_fn</span>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Type string, e.g. <code class="docutils literal notranslate"><span class="pre">'circles'</span></code>.</p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – Group name.  Auto-generated (<code class="docutils literal notranslate"><span class="pre">'circles_1'</span></code> etc.) if <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
-<li><p><strong>**kwargs</strong> – Matplotlib-style kwargs for the group.</p></li>
+<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Type string, e.g. <code class="docutils literal notranslate"><span class="pre">'circles'</span></code>, <code class="docutils literal notranslate"><span class="pre">'lines'</span></code>, <code class="docutils literal notranslate"><span class="pre">'arrows'</span></code>.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Group name. Auto-generated (<code class="docutils literal notranslate"><span class="pre">'circles_1'</span></code> etc.) if <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Matplotlib-style kwargs for the group (offsets, radius, colors, etc.).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created marker group. Call <code class="docutils literal notranslate"><span class="pre">.set()</span></code> to update, or access
+properties as attributes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">group</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;circles&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my_circles&quot;</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="p">[[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">]],</span> <span class="n">radius</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">group</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.markers.MarkerRegistry.remove">
 <span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">marker_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerRegistry.remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerRegistry.remove" title="Link to this definition">#</a></dt>
-<dd><p>Remove a named group (triggers a push).</p>
+<dd><p>Remove a named marker group and trigger re-render.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Type of the group.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the group to remove.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><strong>KeyError</strong></a> – If the type or name is not found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -539,7 +578,7 @@ the <code class="docutils literal notranslate"><span class="pre">_push_fn</span>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.markers.MarkerRegistry.clear">
 <span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerRegistry.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerRegistry.clear" title="Link to this definition">#</a></dt>
-<dd><p>Remove all markers of all types.</p>
+<dd><p>Remove all markers of all types and trigger re-render.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -552,8 +591,11 @@ the <code class="docutils literal notranslate"><span class="pre">_push_fn</span>
 <span class="sig-name descname"><span class="pre">to_wire_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerRegistry.to_wire_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.markers.MarkerRegistry.to_wire_list" title="Link to this definition">#</a></dt>
 <dd><p>Flatten the full registry to a list of wire-format dicts.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Wire-format dicts ready for JSON serialization and JS rendering.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>

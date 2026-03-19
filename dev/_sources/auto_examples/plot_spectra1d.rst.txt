@@ -78,7 +78,7 @@ to reset the view.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:inline-block;max-width:100%;"></iframe></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fa7b153c6" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:336px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fa7b153c6'),ifr=wrap.querySelector('iframe'),nw=636,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}r();window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -112,7 +112,7 @@ curves — useful for comparing reference spectra or fits.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:inline-block;max-width:100%;"></iframe></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fa11cc69d" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:336px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fa11cc69d'),ifr=wrap.querySelector('iframe'),nw=636,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}r();window.addEventListener('resize',r);})()</script></div>
 
 
 

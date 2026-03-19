@@ -374,7 +374,28 @@
 <div class="viewcode-block" id="Widget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Widget</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for all overlay widgets.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for all overlay widgets.</span>
+
+<span class="sd">    Provides attribute-based state access, callbacks for interaction events,</span>
+<span class="sd">    and automatic synchronization with the JavaScript renderer.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    wtype : str</span>
+<span class="sd">        Widget type (e.g., &#39;rectangle&#39;, &#39;circle&#39;, &#39;crosshair&#39;).</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Zero-arg callback to send position updates to the JavaScript renderer.</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        Initial widget state (position, size, color, etc.).</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    callbacks : CallbackRegistry</span>
+<span class="sd">        Event callback registry. Register handlers via:</span>
+<span class="sd">        - ``@widget.on_changed`` — fires on every drag frame</span>
+<span class="sd">        - ``@widget.on_release`` — fires once when drag settles</span>
+<span class="sd">        - ``@widget.on_click`` — fires on click event</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
@@ -388,6 +409,7 @@
     <span class="c1"># ── attribute read ────────────────────────────────────────────────</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Access widget properties as attributes (read-only).&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -401,6 +423,7 @@
     <span class="c1"># ── attribute write — routes public assignments through set() ────</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update widget properties via attribute assignment.&quot;&quot;&quot;</span>
         <span class="c1"># Private attrs and &#39;callbacks&#39; bypass set()</span>
         <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;callbacks&quot;</span><span class="p">:</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
@@ -418,10 +441,20 @@
 <div class="viewcode-block" id="Widget.set">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.set">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update properties.  Sends a targeted event_json update to JS</span>
-<span class="sd">        (not a full panel push).  Fires on_changed callbacks.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update properties and send targeted update to JavaScript.</span>
 
-<span class="sd">        Use _push=False internally (e.g. _update_from_js) to avoid echo.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        _push : bool, optional</span>
+<span class="sd">            Whether to push update to renderer. Default True.</span>
+<span class="sd">            Set to False internally to avoid echo loops.</span>
+<span class="sd">        **kwargs : dict</span>
+<span class="sd">            Properties to update (e.g., x=100, y=50, radius=20).</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Updates are sent as targeted widget updates, not full panel re-renders.</span>
+<span class="sd">        This is more efficient for frequent updates during dragging.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
@@ -432,12 +465,33 @@
 <div class="viewcode-block" id="Widget.get">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.get">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a widget property by name.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            Property name.</span>
+<span class="sd">        default : optional</span>
+<span class="sd">            Default value if property not found.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        object</span>
+<span class="sd">            The property value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Widget.to_dict">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a dict copy of the widget state.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            All widget properties including id and type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span></div>
 
 
@@ -446,7 +500,20 @@
 <div class="viewcode-block" id="Widget.on_changed">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.on_changed">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on every drag frame.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on every drag frame.</span>
+
+<span class="sd">        Use this for high-frequency updates (keep handler fast).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fn : Callable</span>
+<span class="sd">            Handler function receiving an Event.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Callable</span>
+<span class="sd">            The decorated function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_changed&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
         <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
         <span class="k">return</span> <span class="n">fn</span></div>
@@ -455,7 +522,20 @@
 <div class="viewcode-block" id="Widget.on_release">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.on_release">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire once when drag settles.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire once when drag settles.</span>
+
+<span class="sd">        Use this for expensive operations triggered after user stops dragging.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fn : Callable</span>
+<span class="sd">            Handler function receiving an Event.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Callable</span>
+<span class="sd">            The decorated function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_release&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
         <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
         <span class="k">return</span> <span class="n">fn</span></div>
@@ -464,7 +544,18 @@
 <div class="viewcode-block" id="Widget.on_click">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.on_click">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on click.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on widget click.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fn : Callable</span>
+<span class="sd">            Handler function receiving an Event.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Callable</span>
+<span class="sd">            The decorated function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_click&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
         <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
         <span class="k">return</span> <span class="n">fn</span></div>
@@ -475,8 +566,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove the callback registered under *cid*.</span>
 
-<span class="sd">        Accepts either the integer CID returned by ``callbacks.connect()``,</span>
-<span class="sd">        or the decorated function itself (which carries a ``._cid`` attribute).</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cid : int or Callable</span>
+<span class="sd">            Either the integer CID returned by ``callbacks.connect()``,</span>
+<span class="sd">            or the decorated function itself (carries a ``._cid`` attribute).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="s2">&quot;_cid&quot;</span><span class="p">):</span>
             <span class="n">cid</span> <span class="o">=</span> <span class="n">cid</span><span class="o">.</span><span class="n">_cid</span>
@@ -487,8 +581,23 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_update_from_js</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;on_changed&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply incoming JS state without pushing back (avoids echo).</span>
-<span class="sd">        Fires self.callbacks with event_type.  Returns True if data changed.</span>
-<span class="sd">        Always fires for on_release / on_click even when nothing changed.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        new_data : dict</span>
+<span class="sd">            Updated widget properties from JavaScript.</span>
+<span class="sd">        event_type : str, optional</span>
+<span class="sd">            Type of event that triggered the update.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            True if any state changed.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Always fires on_release / on_click callbacks even if nothing changed.</span>
+<span class="sd">        Only fires on_changed if state actually changed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">new_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -514,6 +623,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the widget&#39;s unique identifier.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id</span></div>
 
 
@@ -525,6 +635,19 @@
 <div class="viewcode-block" id="RectangleWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.RectangleWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RectangleWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable rectangle overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x, y : float</span>
+<span class="sd">        Top-left corner position in pixel/data coordinates.</span>
+<span class="sd">    w, h : float</span>
+<span class="sd">        Width and height in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the rectangle outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
@@ -535,6 +658,19 @@
 <div class="viewcode-block" id="CircleWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.CircleWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CircleWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable circle overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    cx, cy : float</span>
+<span class="sd">        Center position in pixel/data coordinates.</span>
+<span class="sd">    r : float</span>
+<span class="sd">        Radius in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the circle outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;circle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span> <span class="n">r</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
@@ -544,6 +680,25 @@
 <div class="viewcode-block" id="AnnularWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.AnnularWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AnnularWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable annular (ring) overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    cx, cy : float</span>
+<span class="sd">        Center position in pixel/data coordinates.</span>
+<span class="sd">    r_outer, r_inner : float</span>
+<span class="sd">        Outer and inner radii in pixel/data coordinates.</span>
+<span class="sd">        Inner radius must be less than outer radius.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the ring outline. Default ``&quot;#00e5ff&quot;``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If r_inner &gt;= r_outer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r_outer</span><span class="p">,</span> <span class="n">r_inner</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">r_inner</span> <span class="o">&gt;=</span> <span class="n">r_outer</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;r_inner must be &lt; r_outer&quot;</span><span class="p">)</span>
@@ -557,6 +712,17 @@
 <div class="viewcode-block" id="CrosshairWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.CrosshairWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CrosshairWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable crosshair overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    cx, cy : float</span>
+<span class="sd">        Center position in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the crosshair. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
@@ -566,6 +732,23 @@
 <div class="viewcode-block" id="PolygonWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.PolygonWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PolygonWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable polygon overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    vertices : list of (x, y) tuples</span>
+<span class="sd">        Polygon vertices in pixel/data coordinates.</span>
+<span class="sd">        Must have at least 3 vertices.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the polygon outline. Default ``&quot;#00e5ff&quot;``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If fewer than 3 vertices provided.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="n">verts</span> <span class="o">=</span> <span class="p">[[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)]</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">verts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
@@ -577,6 +760,21 @@
 <div class="viewcode-block" id="LabelWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.LabelWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LabelWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Text label overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x, y : float</span>
+<span class="sd">        Label position in pixel/data coordinates.</span>
+<span class="sd">    text : str, optional</span>
+<span class="sd">        Label text. Default ``&quot;Label&quot;``.</span>
+<span class="sd">    fontsize : int, optional</span>
+<span class="sd">        Font size in points. Default 14.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the text. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Label&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
                  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
@@ -592,6 +790,20 @@
 <div class="viewcode-block" id="VLineWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.VLineWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">VLineWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable vertical line overlay widget for 1-D plots.</span>
+
+<span class="sd">    Allows interactive selection of a single x-axis value. The line can be</span>
+<span class="sd">    dragged left/right to change the selected position.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x : float</span>
+<span class="sd">        Initial x-position in data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the line. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;vline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
 
@@ -600,6 +812,20 @@
 <div class="viewcode-block" id="HLineWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.HLineWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">HLineWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable horizontal line overlay widget for bar charts.</span>
+
+<span class="sd">    Allows interactive selection of a single y-axis value. The line can be</span>
+<span class="sd">    dragged up/down to change the selected value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    y : float</span>
+<span class="sd">        Initial y-position in data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the line. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;hline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
 
@@ -608,6 +834,21 @@
 <div class="viewcode-block" id="RangeWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.RangeWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RangeWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable range selection widget (two connected vertical lines).</span>
+
+<span class="sd">    Allows interactive selection of a range on the x-axis. Both lines</span>
+<span class="sd">    move together when dragging, maintaining the range width. Either end</span>
+<span class="sd">    can be dragged independently to resize the range.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x0, x1 : float</span>
+<span class="sd">        Initial left and right positions in data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for both lines. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;range&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
 

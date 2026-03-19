@@ -384,11 +384,36 @@ Use <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyp
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">Figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.Figure" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnyWidget</span></code></p>
 <p>Multi-panel interactive figure widget.</p>
-<p>Create via <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code></a> or directly:</p>
+<p>The top-level container for all plots and the only <code class="docutils literal notranslate"><span class="pre">anywidget.AnyWidget</span></code>
+subclass in anyplotlib. It owns all traitlets and acts as the Python ↔
+JavaScript bridge via the <code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code> canvas renderer.</p>
+<p>Create via <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code></a> (recommended) or directly:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">Figure</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="mi">600</span><span class="p">))</span>
 <span class="n">ax</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 <span class="n">v2d</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nrows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Grid dimensions. Default 1 row, 1 column.</p></li>
+<li><p><strong>ncols</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Grid dimensions. Default 1 row, 1 column.</p></li>
+<li><p><strong>figsize</strong> (<em>(</em><em>width</em><em>, </em><em>height</em><em>)</em><em>, </em><em>optional</em>) – Figure size in CSS pixels. Default <code class="docutils literal notranslate"><span class="pre">(640,</span> <span class="pre">480)</span></code>.</p></li>
+<li><p><strong>width_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative column widths. Length must equal <em>ncols</em>.</p></li>
+<li><p><strong>height_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative row heights. Length must equal <em>nrows</em>.</p></li>
+<li><p><strong>sharex</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Link pan/zoom across all panels on the respective axis.
+Default False (independent pan/zoom per panel).</p></li>
+<li><p><strong>sharey</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Link pan/zoom across all panels on the respective axis.
+Default False (independent pan/zoom per panel).</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subplots</span></code></a></dt><dd><p>Recommended factory for creating Figure and Axes grid.</p>
+</dd>
+</dl>
 </div>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="anyplotlib.figure.Figure.layout_json">
@@ -420,26 +445,42 @@ Use <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyp
 <dd><p>Add a subplot cell and return its <code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>spec</strong> (<a class="reference internal" href="#anyplotlib.figure.SubplotSpec" title="anyplotlib.figure.SubplotSpec"><em>SubplotSpec</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> | </em><em>(</em><em>row</em><em>, </em><em>col</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a>) – <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">SubplotSpec</span></code>: used directly (e.g. from <code class="docutils literal notranslate"><span class="pre">GridSpec[r,</span> <span class="pre">c]</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">int</span></code>: converted to <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code> via <code class="docutils literal notranslate"><span class="pre">divmod(spec,</span> <span class="pre">ncols)</span></code>,
-matching <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure.add_subplot(num)</span></code> numbering.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code> tuple: selects a single cell.</p></li>
-</ul>
-</p>
+<dd class="field-odd"><p><strong>spec</strong> (<a class="reference internal" href="#anyplotlib.figure.SubplotSpec" title="anyplotlib.figure.SubplotSpec"><em>SubplotSpec</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><em>(</em><em>row</em><em>, </em><em>col</em><em>)</em>) – Which grid cell(s) to occupy.  A <a class="reference internal" href="#anyplotlib.figure.SubplotSpec" title="anyplotlib.figure.SubplotSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubplotSpec</span></code></a> is used
+directly (e.g. from <code class="docutils literal notranslate"><span class="pre">GridSpec[r,</span> <span class="pre">c]</span></code>).  An <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> is
+converted via <code class="docutils literal notranslate"><span class="pre">divmod(spec,</span> <span class="pre">ncols)</span></code>, matching
+<code class="docutils literal notranslate"><span class="pre">matplotlib.Figure.add_subplot</span></code> numbering.  A <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code>
+tuple selects a single cell.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes"><em>Axes</em></a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The subplot axes object. Call plotting methods like <code class="docutils literal notranslate"><span class="pre">.imshow()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">.plot()</span></code>, <code class="docutils literal notranslate"><span class="pre">.bar()</span></code> to attach data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes">Axes</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <em>spec</em> is not a SubplotSpec, int, or tuple.</p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">Figure</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>       <span class="c1"># top-left (via numbering)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># top-right (via tuple)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure.Figure.get_axes">
 <span class="sig-name descname"><span class="pre">get_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure.get_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.Figure.get_axes" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+<dd><p>Return a list of all Axes, sorted by grid position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Axes sorted by (row_start, col_start) to match typical left-to-right,
+top-to-bottom iteration order.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes">Axes</a></p>
 </dd>
 </dl>
 </dd></dl>

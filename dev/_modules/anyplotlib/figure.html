@@ -380,18 +380,40 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">Figure</span><span class="p">(</span><span class="n">anywidget</span><span class="o">.</span><span class="n">AnyWidget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-panel interactive figure widget.</span>
 
-<span class="sd">    Create via :func:`subplots` or directly::</span>
+<span class="sd">    The top-level container for all plots and the only ``anywidget.AnyWidget``</span>
+<span class="sd">    subclass in anyplotlib. It owns all traitlets and acts as the Python ↔</span>
+<span class="sd">    JavaScript bridge via the ``figure_esm.js`` canvas renderer.</span>
+
+<span class="sd">    Create via :func:`subplots` (recommended) or directly::</span>
 
 <span class="sd">        fig = Figure(2, 2, figsize=(800, 600))</span>
 <span class="sd">        ax  = fig.add_subplot((0, 0))</span>
 <span class="sd">        v2d = ax.imshow(data)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nrows, ncols : int, optional</span>
+<span class="sd">        Grid dimensions. Default 1 row, 1 column.</span>
+<span class="sd">    figsize : (width, height), optional</span>
+<span class="sd">        Figure size in CSS pixels. Default ``(640, 480)``.</span>
+<span class="sd">    width_ratios : list of float, optional</span>
+<span class="sd">        Relative column widths. Length must equal *ncols*.</span>
+<span class="sd">    height_ratios : list of float, optional</span>
+<span class="sd">        Relative row heights. Length must equal *nrows*.</span>
+<span class="sd">    sharex, sharey : bool, optional</span>
+<span class="sd">        Link pan/zoom across all panels on the respective axis.</span>
+<span class="sd">        Default False (independent pan/zoom per panel).</span>
+
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    subplots : Recommended factory for creating Figure and Axes grid.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">layout_json</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">fig_width</span>   <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">640</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">fig_height</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">480</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="c1"># Bidirectional js. Events have an object id and some</span>
-    <span class="c1"># data that</span>
+    <span class="c1"># Bidirectional JS event bus: JS writes interaction events here, Python reads them.</span>
     <span class="n">event_json</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">_esm</span> <span class="o">=</span> <span class="n">_ESM_SOURCE</span>
 
@@ -420,11 +442,29 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        spec : SubplotSpec | int | (row, col) tuple</span>
-<span class="sd">            - ``SubplotSpec``: used directly (e.g. from ``GridSpec[r, c]``).</span>
-<span class="sd">            - ``int``: converted to ``(row, col)`` via ``divmod(spec, ncols)``,</span>
-<span class="sd">              matching ``matplotlib.Figure.add_subplot(num)`` numbering.</span>
-<span class="sd">            - ``(row, col)`` tuple: selects a single cell.</span>
+<span class="sd">        spec : SubplotSpec or int or tuple of (row, col)</span>
+<span class="sd">            Which grid cell(s) to occupy.  A :class:`SubplotSpec` is used</span>
+<span class="sd">            directly (e.g. from ``GridSpec[r, c]``).  An :class:`int` is</span>
+<span class="sd">            converted via ``divmod(spec, ncols)``, matching</span>
+<span class="sd">            ``matplotlib.Figure.add_subplot`` numbering.  A ``(row, col)``</span>
+<span class="sd">            tuple selects a single cell.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Axes</span>
+<span class="sd">            The subplot axes object. Call plotting methods like ``.imshow()``,</span>
+<span class="sd">            ``.plot()``, ``.bar()`` to attach data.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If *spec* is not a SubplotSpec, int, or tuple.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; fig = Figure(2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; ax1 = fig.add_subplot(0)       # top-left (via numbering)</span>
+<span class="sd">        &gt;&gt;&gt; ax2 = fig.add_subplot((0, 1))  # top-right (via tuple)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">SubplotSpec</span><span class="p">):</span>
             <span class="k">pass</span>  <span class="c1"># use as-is</span>
@@ -577,6 +617,14 @@
 <div class="viewcode-block" id="Figure.get_axes">
 <a class="viewcode-back" href="../../api/figure.html#anyplotlib.figure.Figure.get_axes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of all Axes, sorted by grid position.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of Axes</span>
+<span class="sd">            Axes sorted by (row_start, col_start) to match typical left-to-right,</span>
+<span class="sd">            top-to-bottom iteration order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
                       <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">row_start</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">col_start</span><span class="p">))</span></div>
 
@@ -587,6 +635,11 @@
 <span class="sd">        Used by Sphinx Gallery (via :class:`~docs._sg_html_scraper.ViewerScraper`)</span>
 <span class="sd">        and by any HTML-capable notebook frontend that falls back to</span>
 <span class="sd">        ``_repr_html_`` instead of the full ipywidgets protocol.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            HTML string containing an embedded iframe with srcdoc attribute.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._repr_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">repr_html_iframe</span>
         <span class="k">return</span> <span class="n">repr_html_iframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
