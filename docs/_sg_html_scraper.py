@@ -129,19 +129,26 @@ def _iframe_html(src: str, w: int, h: int) -> str:
     # Inline JS: re-scale whenever the window is resized.
     # Uses the wrapper's parent width as the available space so the figure
     # always fills (but never overflows) the content column.
+    #
+    # requestAnimationFrame defers the first call until after the browser has
+    # finished its initial layout pass, so offsetWidth is always non-zero.
+    # The !avail guard ensures a partially-laid-out parent (offsetWidth==0)
+    # never collapses the wrapper — the CSS-baked initial scale stays intact
+    # until a valid measurement is available.
     js = (
         f"(function(){{"
         f"var wrap=document.getElementById('{uid}'),"
         f"ifr=wrap.querySelector('iframe'),"
         f"nw={w},nh={h};"
         f"function r(){{"
-        f"var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;"
+        f"var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;"
+        f"if(!avail)return;"
         f"var s=Math.min(1,avail/nw);"
         f"wrap.style.width=Math.round(nw*s)+'px';"
         f"wrap.style.height=Math.round(nh*s)+'px';"
         f"ifr.style.transform='scale('+s+')';"
         f"}}"
-        f"r();window.addEventListener('resize',r);"
+        f"requestAnimationFrame(r);window.addEventListener('resize',r);"
         f"}})()"
     )
 

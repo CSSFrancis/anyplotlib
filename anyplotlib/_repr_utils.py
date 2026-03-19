@@ -24,6 +24,11 @@ import json
 from html import escape
 from uuid import uuid4
 
+# Maximum display width (px) for the non-resizable notebook embed.
+# Figures wider than this are scaled down proportionally via CSS transform.
+# 860 px fits comfortably in a standard JupyterLab / VS Code notebook cell.
+MAX_NOTEBOOK_WIDTH = 860
+
 
 # ---------------------------------------------------------------------------
 # Trait serialisation
@@ -204,8 +209,9 @@ def build_standalone_html(widget, *, resizable: bool = True) -> str:
 
 
 def repr_html_iframe(widget, *, resizable: bool = False,
+                     max_width: int = MAX_NOTEBOOK_WIDTH,
                      max_height: int = 800) -> str:
-    """Return a centred ``<iframe srcdoc=...>`` embedding *widget*.
+    """Return a centred, responsive ``<iframe srcdoc=...>`` embedding *widget*.
 
     Parameters
     ----------
@@ -215,9 +221,13 @@ def repr_html_iframe(widget, *, resizable: bool = False,
         Passed to :func:`build_standalone_html`.  Default ``False`` for
         documentation embeds — hides the resize handle and sizes the iframe
         exactly to the widget.
+    max_width : int
+        Maximum display width in pixels.  Figures wider than this are scaled
+        down proportionally via ``transform:scale()`` so they never overflow
+        the notebook cell.  Default ``MAX_NOTEBOOK_WIDTH`` (860 px).
     max_height : int
-        Upper bound on iframe height in pixels (only applied when
-        ``resizable=True`` and auto-sizing is used).
+        Upper bound on iframe height in pixels (only used when
+        ``resizable=True``).
     """
     inner_html = build_standalone_html(widget, resizable=resizable)
     escaped    = escape(inner_html, quote=True)
@@ -226,19 +236,54 @@ def repr_html_iframe(widget, *, resizable: bool = False,
     w, h = _widget_px(widget)
 
     if not resizable:
-        # Fixed size — iframe is exactly the widget's natural dimensions.
-        # Centred via a block wrapper with auto margins.
+        # ── Responsive fixed-size embed ────────────────────────────────────
+        # The iframe always renders at its native resolution so the widget
+        # is pixel-perfect on wide screens.  On narrower cells a CSS
+        # transform:scale() shrinks it proportionally — CSS transforms
+        # correctly route pointer events so interaction still works.
+        #
+        # The static scale (baked into the style attribute) renders correctly
+        # before JS runs.  requestAnimationFrame defers the first JS
+        # measurement until after layout is complete so offsetWidth is
+        # always valid; the !avail guard prevents a not-yet-reflowed parent
+        # from collapsing the wrapper.
+        init_scale = min(1.0, max_width / w)
+        init_w     = round(w * init_scale)
+        init_h     = round(h * init_scale)
+        scale_css  = f"{init_scale:.6f}".rstrip("0").rstrip(".")
+
+        js = (
+            f"(function(){{"
+            f"var wrap=document.getElementById('vw-{uid}'),"
+            f"ifr=wrap.querySelector('iframe'),"
+            f"nw={w},nh={h};"
+            f"function r(){{"
+            f"var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;"
+            f"if(!avail)return;"
+            f"var s=Math.min(1,avail/nw);"
+            f"wrap.style.width=Math.round(nw*s)+'px';"
+            f"wrap.style.height=Math.round(nh*s)+'px';"
+            f"ifr.style.transform='scale('+s+')';"
+            f"}}"
+            f"requestAnimationFrame(r);window.addEventListener('resize',r);"
+            f"}})()"
+        )
+
         return (
-            f'<div style="display:block;text-align:center;line-height:0;">'
-            f'<iframe id="vw-{uid}" srcdoc="{escaped}" frameborder="0" '
-            f'scrolling="no" '
-            f'style="width:{w}px;height:{h}px;border:none;overflow:hidden;'
-            f'display:inline-block;max-width:100%;">'
+            f'<div style="display:block;text-align:center;line-height:0;margin:8px 0;">'
+            f'<div id="vw-{uid}" style="display:inline-block;overflow:hidden;'
+            f'position:relative;width:{init_w}px;height:{init_h}px;">'
+            f'<iframe srcdoc="{escaped}" frameborder="0" scrolling="no" '
+            f'style="width:{w}px;height:{h}px;border:none;overflow:hidden;display:block;'
+            f'transform-origin:top left;transform:scale({scale_css});'
+            f'position:absolute;top:0;left:0;">'
             f'</iframe>'
+            f'</div>'
+            f'<script>{js}</script>'
             f'</div>'
         )
     else:
-        # Resizable — fill container width, auto-resize height after render.
+        # ── Resizable embed (fills cell width, auto-sizes height) ──────────
         return (
             f'<iframe id="vw-{uid}" srcdoc="{escaped}" frameborder="0" '
             f'style="width:100%;height:{h}px;border:none;overflow:hidden;" '
