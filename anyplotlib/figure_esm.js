@@ -83,9 +83,16 @@ function render({ model, el }) {
   }
 
   // ── outer DOM ────────────────────────────────────────────────────────────
+  // Static layout styles live in the _css traitlet (.apl-scale-wrap /
+  // .apl-outer).  Only the two dynamic properties — transform and
+  // marginBottom — are ever written here at runtime.
+  const scaleWrap = document.createElement('div');
+  scaleWrap.classList.add('apl-scale-wrap');
+  el.appendChild(scaleWrap);
+
   const outerDiv = document.createElement('div');
-  outerDiv.style.cssText = 'position:relative;display:inline-block;user-select:none;z-index:1;isolation:isolate;';
-  el.appendChild(outerDiv);
+  outerDiv.classList.add('apl-outer');
+  scaleWrap.appendChild(outerDiv);
 
   const gridDiv = document.createElement('div');
   gridDiv.style.cssText = `display:grid;gap:4px;background:${theme.bg};padding:8px;border-radius:4px;`;
@@ -2801,75 +2808,53 @@ function render({ model, el }) {
     for(const p of panels.values()) _redrawPanel(p);
   }
 
-  // ── cell-aware layout: redraw when the notebook cell changes size ─────────
-  // We observe `el` (the anywidget mount point) directly. The notebook sets
-  // its width; we never write to it, so there is no feedback loop.
-  // Only triggers when the cell is narrower than the current widget — we
-  // never upscale beyond the stored fig_width / fig_height.
+  // ── cell-aware CSS scaling ────────────────────────────────────────────────
+  // When the notebook cell (or any container) is narrower than the figure's
+  // native size, apply CSS transform:scale() to outerDiv so it shrinks
+  // proportionally without re-rendering canvases or writing to the model.
+  // Full canvas resolution is preserved; CSS transforms correctly route
+  // pointer events so all interactive features (drag, zoom, pan) keep working.
+  // Also called after layout/resize changes so the scale stays in sync.
+  function _applyScale() {
+    const cellW = el.getBoundingClientRect().width;
+    if (!cellW) return;
+    // offsetWidth is the pre-transform layout width — unaffected by any
+    // currently applied transform, so it always reflects the native figure size.
+    const nativeW = outerDiv.offsetWidth;
+    const nativeH = outerDiv.offsetHeight;
+    if (!nativeW) return;
+    const s = Math.min(1.0, cellW / nativeW);
+    // transform-origin:top left (set in _css) means scale(s) shrinks the
+    // figure from the top-left corner.  With width:100% on scaleWrap the
+    // scaled figure (nativeW*s ≤ cellW) always fits — no overflow, no
+    // clipping, no cross-browser layout-box vs visual-box discrepancies.
+    outerDiv.style.transform = s < 1 ? `scale(${s})` : '';
+    // transform:scale does not affect layout — outerDiv still occupies
+    // nativeH px in the flow even when visually shorter.  A negative
+    // marginBottom compensates exactly, pulling subsequent content up by
+    // the difference without ever touching scaleWrap's own dimensions.
+    // This eliminates any ResizeObserver feedback loop.
+    outerDiv.style.marginBottom = (s < 1 && nativeH)
+      ? Math.round(nativeH * (s - 1)) + 'px'
+      : '';
+  }
+
   if (typeof ResizeObserver !== 'undefined') {
-    let _roTimer = null;
-    let _roActive = false;            // prevent re-entry
     let _lastCellW = 0;
-
-    const _ro = new ResizeObserver(entries => {
-      if (_roActive || isResizing || _suppressLayoutUpdate) return;
+    new ResizeObserver(entries => {
+      // React only to width changes to avoid a feedback loop: our own
+      // scaleWrap height updates would otherwise re-trigger the observer.
       const cellW = entries[0].contentRect.width;
-      if (!cellW || cellW === _lastCellW) return;
+      if (cellW === _lastCellW) return;
       _lastCellW = cellW;
-
-      // Measure the widget's natural width (what it would like to be)
-      const gridW = gridDiv.scrollWidth || gridDiv.getBoundingClientRect().width;
-      if (!gridW || cellW >= gridW - 2) return;  // fits — nothing to do
-
-      clearTimeout(_roTimer);
-      _roTimer = setTimeout(() => {
-        if (_roActive || isResizing || _suppressLayoutUpdate) return;
-
-        // Re-read the cell width inside the timeout (may have changed)
-        const availW = el.getBoundingClientRect().width;
-        if (!availW) return;
-
-        let layout;
-        try { layout = JSON.parse(model.get('layout_json')); } catch(_) { return; }
-
-        const curW = layout.fig_width || model.get('fig_width');
-        const curH = layout.fig_height || model.get('fig_height');
-        if (!curW || availW >= curW) return;   // already fits
-
-        const scale = availW / curW;
-        const nfw = Math.max(200, Math.round(curW * scale));
-        const nfh = Math.max(100, Math.round(curH * scale));
-
-        _roActive = true;
-        _suppressLayoutUpdate = true;
-        _cachedLayout = layout;        // reuse cached layout for the resize
-        _applyFigResize(nfw, nfh);
-
-        // Persist the new size into the model so it survives kernel restarts
-        try {
-          layout.fig_width  = nfw;
-          layout.fig_height = nfh;
-          for (const spec of layout.panel_specs) {
-            const p = panels.get(spec.id);
-            if (p) { spec.panel_width = p.pw; spec.panel_height = p.ph; }
-          }
-          model.set('layout_json', JSON.stringify(layout));
-        } catch(_) {}
-        _suppressLayoutUpdate = false;
-        model.set('fig_width',  nfw);
-        model.set('fig_height', nfh);
-        model.save_changes();
-
-        _roActive = false;
-      }, 150);
-    });
-
-    _ro.observe(el);
+      requestAnimationFrame(_applyScale);
+    }).observe(el);
+    requestAnimationFrame(_applyScale);
   }
 
   // ── model listeners ───────────────────────────────────────────────────────
-  model.on('change:layout_json', () => { applyLayout(); redrawAll(); });
-  model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); });
+  model.on('change:layout_json', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
+  model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
 
   // Python→JS targeted widget update (source:"python" in event_json).
   // Applies changed fields directly to the widget in overlay_widgets and

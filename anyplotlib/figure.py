@@ -73,6 +73,31 @@ class Figure(anywidget.AnyWidget):
     # Bidirectional JS event bus: JS writes interaction events here, Python reads them.
     event_json  = traitlets.Unicode("{}").tag(sync=True)
     _esm = _ESM_SOURCE
+    # Static CSS injected by anywidget alongside _esm.
+    # .apl-scale-wrap  — outer container; width:100% means it always fills
+    #                    the cell without any JS width updates.
+    # .apl-outer       — the figure root; will-change:transform pre-promotes
+    #                    it to a GPU compositing layer so transform:scale()
+    #                    changes cost zero layout/paint passes.
+    _css = """\
+.apl-scale-wrap {
+    display: block;
+    width: 100%;
+    overflow: visible;
+    position: relative;
+    line-height: 0;
+}
+.apl-outer {
+    display: inline-block;
+    position: relative;
+    user-select: none;
+    z-index: 1;
+    isolation: isolate;
+    will-change: transform;
+    transform-origin: top left;
+    vertical-align: top;
+}
+"""
 
     def __init__(self, nrows=1, ncols=1, figsize=(640, 480),
                  width_ratios=None, height_ratios=None,
