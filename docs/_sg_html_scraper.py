@@ -17,6 +17,13 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
+from uuid import uuid4
+
+# Maximum iframe width (px) that fits comfortably inside the pydata-sphinx-theme
+# content column on a desktop browser.  Figures wider than this are scaled down
+# proportionally via CSS transform; a JS resize listener makes the embed fully
+# responsive so it also looks correct on tablets and phones.
+MAX_DOC_WIDTH = 684
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +106,63 @@ def _make_thumbnail_png(widget) -> bytes:
     return buf.read()
 
 
+def _iframe_html(src: str, w: int, h: int) -> str:
+    """Return a single-line HTML snippet that embeds *src* responsively.
+
+    The iframe is always rendered at its native resolution (``w × h`` px) so
+    the interactive widget is pixel-perfect on wide screens.  On narrower
+    viewports (docs sidebar layout, tablet, phone) a CSS ``transform:scale()``
+    shrinks the whole iframe proportionally — CSS transforms correctly
+    translate pointer events, so dragging and scrolling continue to work.
+
+    A tiny inline script re-runs the scale calculation on every ``resize``
+    event so the embed reflows without a page reload.
+    """
+    uid = f"f{uuid4().hex[:8]}"
+
+    # Static initial scale so the page renders correctly before JS runs
+    init_scale = min(1.0, MAX_DOC_WIDTH / w)
+    init_w = round(w * init_scale)
+    init_h = round(h * init_scale)
+    scale_css = f"{init_scale:.6f}".rstrip("0").rstrip(".")
+
+    # Inline JS: re-scale whenever the window is resized.
+    # Uses the wrapper's parent width as the available space so the figure
+    # always fills (but never overflows) the content column.
+    js = (
+        f"(function(){{"
+        f"var wrap=document.getElementById('{uid}'),"
+        f"ifr=wrap.querySelector('iframe'),"
+        f"nw={w},nh={h};"
+        f"function r(){{"
+        f"var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;"
+        f"var s=Math.min(1,avail/nw);"
+        f"wrap.style.width=Math.round(nw*s)+'px';"
+        f"wrap.style.height=Math.round(nh*s)+'px';"
+        f"ifr.style.transform='scale('+s+')';"
+        f"}}"
+        f"r();window.addEventListener('resize',r);"
+        f"}})()"
+    )
+
+    # The wrapper is sized to the *scaled* dimensions and clips overflow.
+    # The iframe is absolutely positioned at (0,0) at its full native size;
+    # CSS transform scales it to fit exactly inside the wrapper.
+    return (
+        f'<div style="display:block;text-align:center;line-height:0;margin:12px 0;">'
+        f'<div id="{uid}" style="display:inline-block;overflow:hidden;'
+        f'position:relative;width:{init_w}px;height:{init_h}px;">'
+        f'<iframe src="{src}" frameborder="0" scrolling="no" '
+        f'style="width:{w}px;height:{h}px;border:none;overflow:hidden;display:block;'
+        f'transform-origin:top left;transform:scale({scale_css});'
+        f'position:absolute;top:0;left:0;">'
+        f'</iframe>'
+        f'</div>'
+        f'<script>{js}</script>'
+        f'</div>'
+    )
+
+
 # ---------------------------------------------------------------------------
 # Scraper
 # ---------------------------------------------------------------------------
@@ -155,35 +219,18 @@ class ViewerScraper:
 
         # ── 3. Return rST ──────────────────────────────────────────────────
         if interactive:
-            # Compute the relative path from the *built* HTML page back up to
-            # _static/viewer_widgets/.
-            #
-            # The PNG (and its sibling HTML) sits at e.g.:
-            #   <build>/auto_examples/Markers/images/sphx_glr_plot_circles_001.png
-            # The built page for this example is at:
-            #   <build>/auto_examples/Markers/plot_circles.html
-            # _static/viewer_widgets/ lives at:
-            #   <build>/_static/viewer_widgets/
-            #
-            # We derive depth by counting the parts of the gallery output path
-            # relative to the Sphinx source dir (which mirrors the build root).
             try:
                 src_dir = Path(gallery_conf["src_dir"])
-                # png_path is inside the gallery output images/ subdir.
-                # The page itself is one directory above images/.
                 page_dir = png_path.parent.parent  # strip /images
                 rel_parts = page_dir.relative_to(src_dir).parts
-                depth = len(rel_parts)  # e.g. 2 for auto_examples/Markers
+                depth = len(rel_parts)
             except Exception:
                 depth = 1
             prefix = "../" * depth
             src = f"{prefix}_static/viewer_widgets/{html_name}"
             return (
                 "\n\n.. raw:: html\n\n"
-                f'    <div style="display:block;text-align:center;line-height:0;margin:12px 0;">'
-                f'<iframe src="{src}" frameborder="0" scrolling="no"'
-                f' style="width:{w}px;height:{h}px;border:none;overflow:hidden;'
-                f'display:inline-block;max-width:100%;"></iframe></div>\n\n'
+                "    " + _iframe_html(src, w, h) + "\n\n"
             )
         else:
             rel_png = png_path.name
