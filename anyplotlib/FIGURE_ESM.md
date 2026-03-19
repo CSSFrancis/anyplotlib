@@ -174,9 +174,9 @@ st.share_axes
 | **`_imgFitRect(iw,ih,cw,ch)`** | **465** | **Returns `{x,y,w,h,s}` — the largest rect of aspect `iw:ih` centred in `cw×ch`. `s` = canvas-px per image-px. All 2-D coordinate functions derive from this.** |
 | `_buildLut32(st)` | 471 | Build 256-entry `Uint32Array` LUT from colormap + scale mode |
 | `_lutKey(st)` | 499 | String cache key (invalidates when colormap/range changes) |
-| `_imgToCanvas2d(ix,iy,st,pw,ph)` | 503 | Image pixel → canvas pixel using `_imgFitRect` + zoom/pan |
+| `_imgToCanvas2d(ix,iy,st,pw,ph)` | 503 | Image pixel → canvas pixel. **zoom≥1**: uses pan/crop formula. **zoom<1**: maps through the centred-shrink geometry (`dstX = x+(w-w·zoom)/2`) — must match `_blit2d` exactly. |
 | `_imgScale2d(st,pw,ph)` | 514 | Returns `_imgFitRect(…).s * zoom` — canvas-px per image-px at current zoom |
-| `_blit2d(bitmap,st,pw,ph,ctx)` | 518 | **Contain render**: clears canvas to `bgCanvas`, draws image inside fit-rect. zoom≥1 → crops + fills fit-rect; zoom<1 → shrinks fit-rect proportionally |
+| `_blit2d(bitmap,st,pw,ph,ctx)` | 518 | **Contain render**: clears canvas to `bgCanvas`, draws image inside fit-rect. zoom≥1 → crops + fills fit-rect; zoom<1 → shrinks fit-rect proportionally (centred) |
 | `draw2d(p)` | 540 | Main 2D render: decode bytes → LUT → ImageBitmap → `_blit2d`; then axes, scale bar, colorbar, overlay, markers |
 | `drawScaleBar2d(p)` | 587 | Physical scale bar using `fr.w` (fit-rect width) for pixel sizing |
 | `drawColorbar2d(p)` | 663 | Colorbar strip with gradient + tick labels |
@@ -251,8 +251,9 @@ Writes to `model.event_json` + `save_changes()`.
 
 ### Panel-level event handlers (lines 1618–1805)
 - **`_attachPanelEvents(p)`** (line 1619) — dispatches to kind-specific attach fn.
-- **`_canvasToImg2d(px,py,st,pw,ph)`** (line 1626) — inverts `_imgToCanvas2d`;
-  derives fit-rect geometry from `_imgFitRect` so both directions are consistent.
+- **`_canvasToImg2d(px,py,st,pw,ph)`** (line 1626) — inverts `_imgToCanvas2d` exactly;
+  uses the zoom≥1 pan/crop formula or the zoom<1 centred-shrink inverse so both
+  directions are always consistent with `_blit2d`.
 - **`_attachEvents2d(p)`** (line 1636) — 2D mouse events:
   - **Wheel zoom** — calls `_canvasToImg2d` to find the image-space anchor
     before zoom; recomputes `center_x/y` via `_imgFitRect` so the same image
