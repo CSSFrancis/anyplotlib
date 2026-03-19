@@ -506,6 +506,13 @@ function render({ model, el }) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
     const iw = st.image_width, ih = st.image_height;
+    if (zoom < 1.0) {
+      // Zoom-out path: full image drawn centred inside a scaled-down fit-rect
+      // (mirrors the zoom<1 branch in _blit2d exactly).
+      const dstW = w * zoom, dstH = h * zoom;
+      const dstX = x + (w - dstW) / 2, dstY = y + (h - dstH) / 2;
+      return [dstX + (ix / iw) * dstW, dstY + (iy / ih) * dstH];
+    }
     const visW = iw / zoom, visH = ih / zoom;
     const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
     const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
@@ -1647,6 +1654,12 @@ function render({ model, el }) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
     const iw = st.image_width, ih = st.image_height;
+    if (zoom < 1.0) {
+      // Zoom-out path: inverse of the centred-shrink in _blit2d.
+      const dstW = w * zoom, dstH = h * zoom;
+      const dstX = x + (w - dstW) / 2, dstY = y + (h - dstH) / 2;
+      return [(px - dstX) / dstW * iw, (py - dstY) / dstH * ih];
+    }
     const visW = iw / zoom, visH = ih / zoom;
     const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
     const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
