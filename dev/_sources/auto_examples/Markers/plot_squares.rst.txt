@@ -56,7 +56,7 @@ Use ``markers["squares"]["name"].set(...)`` to update them live.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fb7c94ef6" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_squares_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fb7c94ef6'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}r();window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fec38dbde" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_squares_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fec38dbde'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -84,7 +84,7 @@ Increase size and swap colour.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f7d42891f" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_squares_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f7d42891f'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}r();window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fec132f8c" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_squares_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fec132f8c'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -94,7 +94,7 @@ Increase size and swap colour.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.060 seconds)
+   **Total running time of the script:** (0 minutes 0.057 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Markers_plot_squares.py:

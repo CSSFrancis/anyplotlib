@@ -70,7 +70,7 @@ each cell can have a different width/height in data coordinates.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fcbbd7007" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_pcolormesh_001.html" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fcbbd7007'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}r();window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fc2ad9583" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_pcolormesh_001.html" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fc2ad9583'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -101,7 +101,7 @@ Only ``add_circles`` and ``add_lines`` are available on a pcolormesh panel.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f21e37e8a" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_pcolormesh_002.html" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f21e37e8a'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}r();window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f2a86aecf" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_pcolormesh_002.html" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f2a86aecf'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -130,7 +130,7 @@ Add line-segment markers
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fa24f2c53" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_pcolormesh_003.html" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fa24f2c53'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:nw;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}r();window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f4cdddb49" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_pcolormesh_003.html" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f4cdddb49'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -140,7 +140,7 @@ Add line-segment markers
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.063 seconds)
+   **Total running time of the script:** (0 minutes 0.065 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_pcolormesh.py:

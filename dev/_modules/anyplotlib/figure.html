@@ -416,6 +416,31 @@
     <span class="c1"># Bidirectional JS event bus: JS writes interaction events here, Python reads them.</span>
     <span class="n">event_json</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">_esm</span> <span class="o">=</span> <span class="n">_ESM_SOURCE</span>
+    <span class="c1"># Static CSS injected by anywidget alongside _esm.</span>
+    <span class="c1"># .apl-scale-wrap  — outer container; width:100% means it always fills</span>
+    <span class="c1">#                    the cell without any JS width updates.</span>
+    <span class="c1"># .apl-outer       — the figure root; will-change:transform pre-promotes</span>
+    <span class="c1">#                    it to a GPU compositing layer so transform:scale()</span>
+    <span class="c1">#                    changes cost zero layout/paint passes.</span>
+    <span class="n">_css</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">.apl-scale-wrap {</span>
+<span class="s2">    display: block;</span>
+<span class="s2">    width: 100%;</span>
+<span class="s2">    overflow: visible;</span>
+<span class="s2">    position: relative;</span>
+<span class="s2">    line-height: 0;</span>
+<span class="s2">}</span>
+<span class="s2">.apl-outer {</span>
+<span class="s2">    display: inline-block;</span>
+<span class="s2">    position: relative;</span>
+<span class="s2">    user-select: none;</span>
+<span class="s2">    z-index: 1;</span>
+<span class="s2">    isolation: isolate;</span>
+<span class="s2">    will-change: transform;</span>
+<span class="s2">    transform-origin: top left;</span>
+<span class="s2">    vertical-align: top;</span>
+<span class="s2">}</span>
+<span class="s2">&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">480</span><span class="p">),</span>
                  <span class="n">width_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
