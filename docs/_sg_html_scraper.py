@@ -7,7 +7,10 @@ by ``image_path_iterator`` — otherwise it raises ``ExtensionError``.
 This scraper:
 1. Finds a anyplotlib widget in ``example_globals`` (any object from the ``anyplotlib``
    package that has ``_repr_html_``).
-2. Renders a **static thumbnail PNG** via matplotlib for the gallery index.
+2. Renders a **pixel-accurate dark-theme thumbnail PNG** by loading the widget's
+   standalone HTML in headless Chromium (Playwright) — the exact same renderer
+   the user sees in a notebook.  Falls back to a plain matplotlib placeholder
+   if Playwright is not installed.
 3. Writes the **full interactive HTML** (iframe + widget JS) alongside the PNG.
 4. Returns rST that embeds both: the PNG as a fallback image AND an iframe for
    interactive use, using a ``.. raw:: html`` block.
@@ -40,64 +43,95 @@ def _find_viewer(globals_dict: dict):
 
 
 def _make_thumbnail_png(widget) -> bytes:
-    """Render a small static thumbnail PNG for the gallery index card."""
+    """Render a thumbnail PNG of *widget* using headless Chromium (Playwright).
+
+    The widget is rendered at its native size with the dark theme forced on.
+    Falls back to a minimal matplotlib placeholder if Playwright is not
+    available in the current environment.
+    """
+    try:
+        return _playwright_thumbnail(widget)
+    except Exception:
+        return _matplotlib_fallback_png(widget)
+
+
+def _playwright_thumbnail(widget) -> bytes:
+    """Render *widget* in headless Chromium and return dark-theme PNG bytes.
+
+    Mirrors the ``_screenshot_widget`` helper in ``tests/conftest.py`` but
+    forces the dark Dracula theme by:
+
+    * Replacing the page background with ``#1e1e2e`` so ``_isDarkBg()``
+      inside the widget JS immediately detects a dark parent.
+    * Calling ``page.emulate_media(color_scheme='dark')`` so the
+      ``prefers-color-scheme`` media query also resolves to dark (the
+      fallback path in ``_isDarkBg`` when no explicit background is set).
+    """
+    import tempfile
+    from playwright.sync_api import sync_playwright
+    from anyplotlib._repr_utils import build_standalone_html
+
+    # Build the fully self-contained HTML page.
+    html = build_standalone_html(widget, resizable=False)
+
+    # Inject the render-complete sentinel exactly as conftest.py does so
+    # Playwright can wait for the canvas to be fully painted.
+    html = html.replace(
+        "renderFn({ model, el });",
+        "renderFn({ model, el }); window._aplReady = true;",
+    )
+
+    # Override the transparent page background with the dark theme colour.
+    # This makes _isDarkBg() in figure_esm.js immediately return True and
+    # avoids a flash of the light theme before the media-query listener fires.
+    html = html.replace("background: transparent;", "background: #1e1e2e;")
+
+    with tempfile.NamedTemporaryFile(
+        suffix=".html", mode="w", encoding="utf-8", delete=False
+    ) as fh:
+        fh.write(html)
+        tmp_path = Path(fh.name)
+
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
+            try:
+                page = browser.new_page()
+                # Set OS-level dark preference so every media query agrees.
+                page.emulate_media(color_scheme="dark")
+                page.goto(tmp_path.as_uri())
+                page.wait_for_function(
+                    "() => window._aplReady === true", timeout=15_000
+                )
+                # Two rAFs: first lets the compositor flush canvas pixels;
+                # second ensures element bounds are stable (mirrors conftest.py).
+                page.evaluate(
+                    "() => new Promise(r =>"
+                    " requestAnimationFrame(() => requestAnimationFrame(r)))"
+                )
+                png_bytes = page.locator("#widget-root").screenshot()
+            finally:
+                page.close()
+                browser.close()
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    return png_bytes
+
+
+def _matplotlib_fallback_png(widget) -> bytes:
+    """Minimal dark-background placeholder used when Playwright is unavailable."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import numpy as np
 
+    kind = type(widget).__name__
     fig, ax = plt.subplots(figsize=(4, 3), dpi=72)
     ax.set_facecolor("#1e1e2e")
     fig.patch.set_facecolor("#1e1e2e")
-    ax.tick_params(colors="#cdd6f4")
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#44475a")
-
-    kind = type(widget).__name__
-
-    try:
-        if kind == "Viewer2D":
-            import json
-            raw = widget._raw_u8
-            cmap = widget.colormap_name or "gray"
-            ax.imshow(raw, cmap=cmap, aspect="auto", interpolation="nearest")
-            ax.set_title("Viewer2D", color="#cdd6f4", fontsize=9)
-            ax.set_xticks([]); ax.set_yticks([])
-
-        elif kind == "Viewer1D":
-            import json
-            data   = np.array(json.loads(widget.data_json))
-            x_axis = np.array(json.loads(widget.x_axis_json))
-            ax.plot(x_axis, data, color="#4fc3f7", linewidth=1)
-            ax.set_title("Viewer1D", color="#cdd6f4", fontsize=9)
-            ax.set_facecolor("#181825")
-
-        elif kind == "Figure":
-            from anyplotlib.figure_plots import Plot2D, Plot1D
-            import json
-            plots = list(widget._plots_map.values())
-            ax.set_title(f"Figure ({widget._nrows}×{widget._ncols})",
-                         color="#cdd6f4", fontsize=9)
-            if plots:
-                p = plots[0]
-                if isinstance(p, Plot2D):
-                    ax.imshow(p._raw_u8, cmap=p._state.get("colormap_name", "gray"),
-                              aspect="auto", interpolation="nearest")
-                elif isinstance(p, Plot1D):
-                    d = np.asarray(p._state.get("data", []))
-                    x = np.asarray(p._state.get("x_axis", np.arange(len(d))))
-                    ax.plot(x, d, color=p._state.get("line_color", "#4fc3f7"), linewidth=1)
-            ax.set_xticks([]); ax.set_yticks([])
-        else:
-            ax.text(0.5, 0.5, kind, ha="center", va="center",
-                    color="#cdd6f4", transform=ax.transAxes)
-            ax.axis("off")
-
-    except Exception:
-        ax.text(0.5, 0.5, kind, ha="center", va="center",
-                color="#cdd6f4", transform=ax.transAxes)
-        ax.axis("off")
-
+    ax.text(0.5, 0.5, kind, ha="center", va="center",
+            color="#cdd6f4", transform=ax.transAxes, fontsize=12)
+    ax.axis("off")
     plt.tight_layout(pad=0.3)
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=72, facecolor=fig.get_facecolor())
