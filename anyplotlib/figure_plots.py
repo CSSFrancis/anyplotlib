@@ -153,14 +153,33 @@ class Axes:
     # ------------------------------------------------------------------
     def imshow(self, data: np.ndarray,
                axes: list | None = None,
-               units: str = "px") -> "Plot2D":
+               units: str = "px",
+               cmap: str | None = None,
+               vmin: float | None = None,
+               vmax: float | None = None,
+               origin: str = "upper") -> "Plot2D":
         """Attach a 2-D image to this axes cell.
 
         Parameters
         ----------
-        data : np.ndarray  shape (H, W) or (H, W, C)
+        data : np.ndarray, shape (H, W) or (H, W, C)
+            Image data.  RGB/RGBA arrays use only the first channel.
         axes : [x_axis, y_axis], optional
+            Physical coordinate arrays for each axis.
         units : str, optional
+            Axis units label.  Default ``"px"``.
+        cmap : str, optional
+            Colormap name (e.g. ``"viridis"``, ``"inferno"``).
+            Defaults to ``"gray"``.
+        vmin, vmax : float, optional
+            Colormap clipping limits in data units.  Values outside this
+            range are clamped to the colormap endpoints.  Defaults to the
+            data min / max.
+        origin : ``"upper"`` | ``"lower"``, optional
+            Where row 0 of the array is placed.  ``"upper"`` (default)
+            puts row 0 at the top, matching the usual image convention.
+            ``"lower"`` puts row 0 at the bottom, matching the matplotlib
+            convention for matrices / scientific plots.
 
         Returns
         -------
@@ -168,7 +187,8 @@ class Axes:
         """
         x_axis = axes[0] if axes and len(axes) > 0 else None
         y_axis = axes[1] if axes and len(axes) > 1 else None
-        plot = Plot2D(data, x_axis=x_axis, y_axis=y_axis, units=units)
+        plot = Plot2D(data, x_axis=x_axis, y_axis=y_axis, units=units,
+                      cmap=cmap, vmin=vmin, vmax=vmax, origin=origin)
         self._attach(plot)
         return plot
 
@@ -495,9 +515,20 @@ class Plot2D:
     """
 
     def __init__(self, data: np.ndarray,
-                 x_axis=None, y_axis=None, units: str = "px"):
+                 x_axis=None, y_axis=None, units: str = "px",
+                 cmap: str | None = None,
+                 vmin: float | None = None,
+                 vmax: float | None = None,
+                 origin: str = "upper"):
         self._id:  str = ""       # assigned by Axes._attach
         self._fig: object = None  # assigned by Axes._attach
+
+        _valid_origins = ("upper", "lower")
+        if origin not in _valid_origins:
+            raise ValueError(
+                f"origin must be one of {_valid_origins!r}, got {origin!r}"
+            )
+        self._origin: str = origin
 
         data = np.asarray(data)
         if data.ndim == 3:
@@ -506,6 +537,14 @@ class Plot2D:
             raise ValueError(f"data must be 2-D (H x W), got {data.shape}")
 
         h, w = data.shape
+
+        # origin='lower' — row 0 at the bottom, matching matplotlib's matrix
+        # convention.  Flip the data so our renderer (which always draws row 0
+        # at the top) shows the correct orientation, and reverse the y-axis so
+        # tick values increase upward.
+        if origin == "lower":
+            data = np.flipud(data)
+
         x_axis_given = x_axis is not None
         y_axis_given = y_axis is not None
         if x_axis is None:
@@ -515,12 +554,20 @@ class Plot2D:
         x_axis = np.asarray(x_axis, dtype=float)
         y_axis = np.asarray(y_axis, dtype=float)
 
-        img_u8, vmin, vmax = _normalize_image(data)
-        self._raw_u8   = img_u8
-        self._raw_vmin = vmin
-        self._raw_vmax = vmax
+        if origin == "lower":
+            y_axis = y_axis[::-1]
 
-        cmap_lut = _build_colormap_lut("gray")
+        img_u8, raw_vmin, raw_vmax = _normalize_image(data)
+        self._raw_u8   = img_u8
+        self._raw_vmin = raw_vmin
+        self._raw_vmax = raw_vmax
+
+        cmap_name = cmap if cmap is not None else "gray"
+        cmap_lut  = _build_colormap_lut(cmap_name)
+
+        # vmin/vmax clip the colormap in data units; default to the full range.
+        disp_min = float(vmin) if vmin is not None else raw_vmin
+        disp_max = float(vmax) if vmax is not None else raw_vmax
 
         # Compute physical pixel scale (data-units per pixel) from axis arrays
         scale_x = float(abs(x_axis[-1] - x_axis[0]) / max(w - 1, 1)) if len(x_axis) >= 2 else 1.0
@@ -538,14 +585,14 @@ class Plot2D:
             "units":             units,
             "scale_x":           scale_x,
             "scale_y":           scale_y,
-            "display_min":       vmin,
-            "display_max":       vmax,
-            "raw_min":           vmin,
-            "raw_max":           vmax,
+            "display_min":       disp_min,
+            "display_max":       disp_max,
+            "raw_min":           raw_vmin,
+            "raw_max":           raw_vmax,
             "show_colorbar":     False,
             "log_scale":         False,
             "scale_mode":        "linear",
-            "colormap_name":     "gray",
+            "colormap_name":     cmap_name,
             "colormap_data":     cmap_lut,
             "zoom":              1.0,
             "center_x":          0.5,
@@ -589,13 +636,21 @@ class Plot2D:
     # ------------------------------------------------------------------
     def update(self, data: np.ndarray,
                x_axis=None, y_axis=None, units: str | None = None) -> None:
-        """Replace the image data."""
+        """Replace the image data.
+
+        The ``origin`` supplied at construction is automatically re-applied
+        so the new data is displayed with the same orientation.
+        """
         data = np.asarray(data)
         if data.ndim == 3:
             data = data[:, :, 0]
         if data.ndim != 2:
             raise ValueError(f"data must be 2-D, got {data.shape}")
         h, w = data.shape
+
+        if self._origin == "lower":
+            data = np.flipud(data)
+
         img_u8, vmin, vmax = _normalize_image(data)
         self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
 
@@ -604,21 +659,24 @@ class Plot2D:
             self._state["image_width"] = w
             self._state["has_axes"] = True
         if y_axis is not None:
-            self._state["y_axis"] = np.asarray(y_axis, float).tolist()
+            ya = np.asarray(y_axis, float)
+            if self._origin == "lower":
+                ya = ya[::-1]
+            self._state["y_axis"] = ya.tolist()
             self._state["image_height"] = h
             self._state["has_axes"] = True
         if units is not None:
             self._state["units"] = units
 
         self._state.update({
-            "image_b64":   self._encode_bytes(img_u8),
+            "image_b64":    self._encode_bytes(img_u8),
             "image_width":  w,
             "image_height": h,
-            "display_min": vmin,
-            "display_max": vmax,
-            "raw_min":     vmin,
-            "raw_max":     vmax,
-            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
+            "display_min":  vmin,
+            "display_max":  vmax,
+            "raw_min":      vmin,
+            "raw_max":      vmax,
+            "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
         })
         self._push()
 
