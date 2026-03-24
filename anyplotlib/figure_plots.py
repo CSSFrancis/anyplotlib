@@ -1544,27 +1544,39 @@ class Plot1D:
     Set at construction time via :meth:`Axes.plot` or updated afterwards
     with the corresponding setter:
 
-    +-----------------+---------------+-----------------------------------------------+
-    | Parameter       | Default       | Description                                   |
-    +=================+===============+===============================================+
-    | ``color``       | ``"#4fc3f7"`` | CSS colour string for the primary line.       |
-    +-----------------+---------------+-----------------------------------------------+
-    | ``linewidth``   | ``1.5``       | Stroke width in pixels.                       |
-    +-----------------+---------------+-----------------------------------------------+
-    | ``linestyle``   | ``"solid"``   | ``"solid"``, ``"dashed"``, ``"dotted"``,      |
-    |                 |               | ``"dashdot"`` (or shorthands ``-``, ``--``,   |
-    |                 |               | ``:``, ``-.``).                               |
-    +-----------------+---------------+-----------------------------------------------+
-    | ``alpha``       | ``1.0``       | Line opacity (0–1).                           |
-    +-----------------+---------------+-----------------------------------------------+
-    | ``marker``      | ``"none"``    | Per-point symbol: ``"o"``, ``"s"``,           |
-    |                 |               | ``"^"``, ``"v"``, ``"D"``, ``"+"``, ``"x"``, |
-    |                 |               | or ``"none"``.                                |
-    +-----------------+---------------+-----------------------------------------------+
-    | ``markersize``  | ``4.0``       | Marker radius / half-side in pixels.          |
-    +-----------------+---------------+-----------------------------------------------+
-    | ``label``       | ``""``        | Legend label (empty = no legend entry).       |
-    +-----------------+---------------+-----------------------------------------------+
+    .. list-table::
+       :header-rows: 1
+       :widths: 18 18 64
+
+       * - Parameter
+         - Default
+         - Description
+       * - ``color``
+         - ``"#4fc3f7"``
+         - CSS colour string for the primary line.
+       * - ``linewidth``
+         - ``1.5``
+         - Stroke width in pixels.
+       * - ``linestyle`` (``ls``)
+         - ``"solid"``
+         - Dash pattern: ``"solid"``, ``"dashed"``, ``"dotted"``,
+           ``"dashdot"``.  Shorthands ``"-"``, ``"--"``, ``":"``,
+           ``"-."`` also accepted.
+       * - ``alpha``
+         - ``1.0``
+         - Line opacity (0 = transparent, 1 = fully opaque).
+       * - ``marker``
+         - ``"none"``
+         - Per-point symbol: ``"o"`` (circle), ``"s"`` (square),
+           ``"^"``/``"v"`` (triangles), ``"D"`` (diamond),
+           ``"+"``/``"x"`` (stroke-only), or ``"none"``.
+       * - ``markersize``
+         - ``4.0``
+         - Marker radius / half-side in pixels.
+       * - ``label``
+         - ``""``
+         - Legend label (empty string = no legend entry).
+
 
     Public API summary
     ------------------
