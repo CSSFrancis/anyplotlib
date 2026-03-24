@@ -1338,22 +1338,115 @@ function render({ model, el }) {
     // Clip
     ctx.save(); ctx.beginPath(); ctx.rect(r.x,r.y,r.w,r.h); ctx.clip();
 
-    function _drawLine(yData,lineXArr,color,lw){
-      if(!yData||!yData.length) return;
-      const n=yData.length;
-      ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.lineJoin='round';
-      let first=true;
-      for(let i=0;i<n;i++){
-        const xFrac=lineXArr.length>=2?(lineXArr[i]-lineXArr[0])/((lineXArr[lineXArr.length-1]-lineXArr[0])||1):i/((n-1)||1);
-        const px=_fracToPx1d(xFrac,x0,x1,r), py=_valToPy1d(yData[i],dMin,dMax,r);
-        if(first){ctx.moveTo(px,py);first=false;}else{ctx.lineTo(px,py);}
+    // Linestyle → canvas dash pattern
+    const _LINESTYLE_DASH = {
+      'solid':   [],
+      'dashed':  [6, 3],
+      'dotted':  [2, 3],
+      'dashdot': [6, 3, 2, 3],
+    };
+
+    // Draw a single marker symbol centred at (px, py) with half-size ms.
+    // The caller is responsible for beginPath() before and fill()/stroke() after.
+    function _drawMarkerSymbol(mctx, marker, px, py, ms) {
+      switch (marker) {
+        case 'o':
+          mctx.arc(px, py, ms, 0, Math.PI * 2);
+          break;
+        case 's':
+          mctx.rect(px - ms, py - ms, ms * 2, ms * 2);
+          break;
+        case '^':
+          mctx.moveTo(px, py - ms);
+          mctx.lineTo(px + ms, py + ms);
+          mctx.lineTo(px - ms, py + ms);
+          mctx.closePath();
+          break;
+        case 'v':
+          mctx.moveTo(px, py + ms);
+          mctx.lineTo(px + ms, py - ms);
+          mctx.lineTo(px - ms, py - ms);
+          mctx.closePath();
+          break;
+        case 'D':
+          mctx.moveTo(px, py - ms);
+          mctx.lineTo(px + ms, py);
+          mctx.lineTo(px, py + ms);
+          mctx.lineTo(px - ms, py);
+          mctx.closePath();
+          break;
+        case '+':
+          mctx.moveTo(px - ms, py); mctx.lineTo(px + ms, py);
+          mctx.moveTo(px, py - ms); mctx.lineTo(px, py + ms);
+          break;
+        case 'x':
+          mctx.moveTo(px - ms, py - ms); mctx.lineTo(px + ms, py + ms);
+          mctx.moveTo(px + ms, py - ms); mctx.lineTo(px - ms, py + ms);
+          break;
+        default:
+          mctx.arc(px, py, ms, 0, Math.PI * 2);
       }
-      ctx.stroke();
     }
 
-    _drawLine(st.data,xArr,st.line_color||'#4fc3f7',st.line_linewidth||1.5);
-    for(const ex of (st.extra_lines||[])){
-      _drawLine(ex.data||[],ex.x_axis||xArr,ex.color||(theme.dark?'#fff':'#333'),ex.linewidth||1.5);
+    // Stroke-only markers (no meaningful fill area)
+    const _MARKER_STROKE_ONLY = new Set(['+', 'x']);
+
+    function _drawLine(yData, lineXArr, color, lw, linestyle, alpha, marker, markersize) {
+      if (!yData || !yData.length) return;
+      const n = yData.length;
+      const dash = _LINESTYLE_DASH[linestyle || 'solid'] || [];
+      const eff_alpha = (alpha != null && alpha < 1.0) ? alpha : 1.0;
+      const ms = Math.max(1, markersize || 4);
+      const doMarker = marker && marker !== 'none';
+
+      ctx.save();
+      if (eff_alpha < 1.0) ctx.globalAlpha = eff_alpha;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+
+      const pts = doMarker ? [] : null;
+      let first = true;
+      for (let i = 0; i < n; i++) {
+        const xFrac = lineXArr.length >= 2
+          ? (lineXArr[i] - lineXArr[0]) / ((lineXArr[lineXArr.length - 1] - lineXArr[0]) || 1)
+          : i / ((n - 1) || 1);
+        const px = _fracToPx1d(xFrac, x0, x1, r);
+        const py = _valToPy1d(yData[i], dMin, dMax, r);
+        if (first) { ctx.moveTo(px, py); first = false; } else { ctx.lineTo(px, py); }
+        if (pts) pts.push([px, py]);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Per-point marker symbols
+      if (doMarker && pts && pts.length) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle   = color;
+        ctx.lineWidth   = Math.max(1, lw * 0.8);
+        const strokeOnly = _MARKER_STROKE_ONLY.has(marker);
+        for (const [px, py] of pts) {
+          ctx.beginPath();
+          _drawMarkerSymbol(ctx, marker, px, py, ms);
+          if (!strokeOnly) ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    _drawLine(st.data, xArr,
+      st.line_color || '#4fc3f7', st.line_linewidth || 1.5,
+      st.line_linestyle || 'solid',
+      st.line_alpha != null ? st.line_alpha : 1.0,
+      st.line_marker || 'none', st.line_markersize || 4);
+    for (const ex of (st.extra_lines || [])) {
+      _drawLine(ex.data || [], ex.x_axis || xArr,
+        ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth || 1.5,
+        ex.linestyle || 'solid',
+        ex.alpha != null ? ex.alpha : 1.0,
+        ex.marker || 'none', ex.markersize || 4);
     }
     ctx.restore();
 
@@ -1400,12 +1493,28 @@ function render({ model, el }) {
 
     // Legend
     const labels=[];
-    if(st.line_label) labels.push({color:st.line_color||'#4fc3f7',text:st.line_label});
-    for(const ex of (st.extra_lines||[])) if(ex.label) labels.push({color:ex.color||(theme.dark?'#fff':'#333'),text:ex.label});
+    if(st.line_label) labels.push({
+      color: st.line_color||'#4fc3f7', text: st.line_label,
+      linestyle: st.line_linestyle||'solid',
+      marker: st.line_marker||'none', ms: st.line_markersize||4,
+    });
+    for(const ex of (st.extra_lines||[])) if(ex.label) labels.push({
+      color: ex.color||(theme.dark?'#fff':'#333'), text: ex.label,
+      linestyle: ex.linestyle||'solid',
+      marker: ex.marker||'none', ms: ex.markersize||4,
+    });
     if(labels.length){
       ctx.font='10px monospace'; let ly=r.y+6;
       for(const lb of labels){
-        ctx.strokeStyle=lb.color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(r.x+8,ly+5);ctx.lineTo(r.x+24,ly+5);ctx.stroke();
+        const ldash=_LINESTYLE_DASH[lb.linestyle||'solid']||[];
+        ctx.strokeStyle=lb.color; ctx.lineWidth=2;
+        ctx.setLineDash(ldash);
+        ctx.beginPath(); ctx.moveTo(r.x+8,ly+5); ctx.lineTo(r.x+24,ly+5); ctx.stroke();
+        ctx.setLineDash([]);
+        if(lb.marker && lb.marker!=='none'){
+          ctx.strokeStyle=lb.color; ctx.fillStyle=lb.color; ctx.lineWidth=1.5;
+          ctx.beginPath(); _drawMarkerSymbol(ctx,lb.marker,r.x+16,ly+5,Math.min(lb.ms||4,4)); ctx.fill(); ctx.stroke();
+        }
         ctx.fillStyle=theme.tickText;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(lb.text,r.x+28,ly);ly+=16;
       }
     }

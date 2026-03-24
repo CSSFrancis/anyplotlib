@@ -118,6 +118,57 @@ class TestVisual:
         arr = take_screenshot(fig)
         _check("plot1d_multi", arr, update_baselines)
 
+    def test_plot1d_dashed(self, take_screenshot, update_baselines):
+        """Dashed primary line — exercises linestyle→setLineDash path."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 240))
+        t = np.linspace(0.0, 2.0 * np.pi, 256)
+        ax.plot(np.sin(t), color="#ff7043", linestyle="dashed", linewidth=2)
+        arr = take_screenshot(fig)
+        _check("plot1d_dashed", arr, update_baselines)
+
+    def test_plot1d_alpha(self, take_screenshot, update_baselines):
+        """Semi-transparent overlapping lines — exercises globalAlpha path."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 240))
+        t = np.linspace(0.0, 2.0 * np.pi, 256)
+        plot = ax.plot(np.sin(t), color="#4fc3f7", alpha=0.4)
+        plot.add_line(np.cos(t), color="#ff7043", alpha=0.4)
+        arr = take_screenshot(fig)
+        _check("plot1d_alpha", arr, update_baselines)
+
+    def test_plot1d_markers(self, take_screenshot, update_baselines):
+        """Circle markers along a sparse line — exercises marker render path."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 240))
+        t = np.linspace(0.0, 2.0 * np.pi, 24)
+        ax.plot(np.sin(t), color="#4fc3f7", marker="o", markersize=4)
+        arr = take_screenshot(fig)
+        _check("plot1d_markers", arr, update_baselines)
+
+    def test_plot1d_all_linestyles(self, take_screenshot, update_baselines):
+        """All four linestyles on one panel — exercises every dash pattern."""
+        fig, ax = apl.subplots(1, 1, figsize=(440, 300))
+        t = np.linspace(0.0, 2.0 * np.pi, 256)
+        plot = ax.plot(np.sin(t),         color="#4fc3f7", linestyle="solid",   label="solid")
+        plot.add_line(np.sin(t) + 0.6,    color="#ff7043", linestyle="dashed",  label="dashed")
+        plot.add_line(np.sin(t) + 1.2,    color="#aed581", linestyle="dotted",  label="dotted")
+        plot.add_line(np.sin(t) + 1.8,    color="#ce93d8", linestyle="dashdot", label="dashdot")
+        arr = take_screenshot(fig)
+        _check("plot1d_all_linestyles", arr, update_baselines)
+
+    def test_plot1d_marker_symbols(self, take_screenshot, update_baselines):
+        """All seven marker symbols on one panel."""
+        fig, ax = apl.subplots(1, 1, figsize=(440, 380))
+        t = np.linspace(0.0, 2.0 * np.pi, 20)
+        symbols = [("o", "#4fc3f7"), ("s", "#ff7043"), ("^", "#aed581"),
+                   ("v", "#ce93d8"), ("D", "#ffcc02"), ("+", "#80cbc4"),
+                   ("x", "#ef9a9a")]
+        plot = ax.plot(np.sin(t) - 3.0, color=symbols[0][1],
+                       marker=symbols[0][0], markersize=5, label=symbols[0][0])
+        for i, (sym, col) in enumerate(symbols[1:], 1):
+            plot.add_line(np.sin(t) + (i - 3) * 1.0, color=col,
+                          marker=sym, markersize=5, label=sym)
+        arr = take_screenshot(fig)
+        _check("plot1d_marker_symbols", arr, update_baselines)
+
     # ── pcolormesh ─────────────────────────────────────────────────────────
 
     def test_pcolormesh_uniform(self, take_screenshot, update_baselines):
