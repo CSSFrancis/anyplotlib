@@ -34,7 +34,46 @@ from anyplotlib.widgets import (
 )
 
 __all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D",
-           "PlotBar", "_resample_mesh"]
+           "PlotBar", "_resample_mesh", "_norm_linestyle"]
+
+
+# ---------------------------------------------------------------------------
+# Linestyle normalisation
+# ---------------------------------------------------------------------------
+
+_LINESTYLE_ALIASES: dict[str, str] = {
+    "-":        "solid",
+    "--":       "dashed",
+    ":":        "dotted",
+    "-.":       "dashdot",
+    "solid":    "solid",
+    "dashed":   "dashed",
+    "dotted":   "dotted",
+    "dashdot":  "dashdot",
+}
+
+
+def _norm_linestyle(ls: str) -> str:
+    """Normalise a linestyle name or shorthand to its canonical form.
+
+    Accepted values
+    ---------------
+    ``"solid"`` / ``"-"``,  ``"dashed"`` / ``"--"``,
+    ``"dotted"`` / ``":"``,  ``"dashdot"`` / ``"-."``.
+
+    Raises
+    ------
+    ValueError
+        If *ls* is not a recognised name or shorthand.
+    """
+    canonical = _LINESTYLE_ALIASES.get(ls)
+    if canonical is None:
+        raise ValueError(
+            f"Unknown linestyle {ls!r}. Expected one of: "
+            "'solid', 'dashed', 'dotted', 'dashdot', "
+            "or shorthands '-', '--', ':', '-.'."
+        )
+    return canonical
 
 
 # ---------------------------------------------------------------------------
@@ -305,6 +344,11 @@ class Axes:
              y_units: str = "",
              color: str = "#4fc3f7",
              linewidth: float = 1.5,
+             linestyle: str = "solid",
+             ls: str | None = None,
+             alpha: float = 1.0,
+             marker: str = "none",
+             markersize: float = 4.0,
              label: str = "") -> "Plot1D":
         """Attach a 1-D line to this axes cell.
 
@@ -326,6 +370,21 @@ class Axes:
             etc.).  Default ``"#4fc3f7"``.
         linewidth : float, optional
             Stroke width in pixels.  Default ``1.5``.
+        linestyle : str, optional
+            Dash pattern.  Accepted values: ``"solid"`` (``"-"``),
+            ``"dashed"`` (``"--"``), ``"dotted"`` (``":"``),
+            ``"dashdot"`` (``"-."``) .  Default ``"solid"``.
+        ls : str, optional
+            Short alias for *linestyle*.  Takes precedence if both are given.
+        alpha : float, optional
+            Line opacity in the range 0–1.  Default ``1.0`` (fully opaque).
+        marker : str, optional
+            Per-point marker symbol.  Supported values: ``"o"`` (circle),
+            ``"s"`` (square), ``"^"`` (triangle-up), ``"v"`` (triangle-down),
+            ``"D"`` (diamond), ``"+"`` (plus), ``"x"`` (cross),
+            ``"none"`` (no markers).  Default ``"none"``.
+        markersize : float, optional
+            Marker radius / half-side in pixels.  Default ``4.0``.
         label : str, optional
             Legend label.  A legend is only drawn when at least one line has
             a non-empty label.  Default ``""`` (no legend entry).
@@ -335,18 +394,6 @@ class Axes:
         Plot1D
             Live plot object.  Call methods on it to update data, add
             overlays, register callbacks, etc.
-
-        Notes
-        -----
-        **Not yet supported** (planned for a future release):
-
-        * ``linestyle`` / ``ls`` — dashed, dotted, or dash-dot lines.
-        * ``alpha`` — line opacity.
-        * ``marker`` / ``markersize`` — per-point symbols along the line.
-
-        Use :meth:`Plot1D.add_points` (or the other ``add_*`` marker
-        methods) to place independent marker collections at explicit data
-        coordinates in the meantime.
 
         Examples
         --------
@@ -361,13 +408,21 @@ class Axes:
                         color="#ff7043", linewidth=2, label="sin")
             v  # display in a Jupyter cell
 
+        Dashed line with semi-transparent markers::
+
+            v = ax.plot(data, linestyle="dashed", alpha=0.7,
+                        marker="o", markersize=4)
+
         Overlay a second curve with :meth:`Plot1D.add_line`::
 
             v.add_line(np.cos(x), x_axis=x, color="#aed581", label="cos")
         """
         x_axis = axes[0] if axes and len(axes) > 0 else None
         plot = Plot1D(data, x_axis=x_axis, units=units, y_units=y_units,
-                     color=color, linewidth=linewidth, label=label)
+                     color=color, linewidth=linewidth,
+                     linestyle=ls if ls is not None else linestyle,
+                     alpha=alpha, marker=marker, markersize=markersize,
+                     label=label)
         self._attach(plot)
         return plot
 
@@ -1489,20 +1544,27 @@ class Plot1D:
     Set at construction time via :meth:`Axes.plot` or updated afterwards
     with the corresponding setter:
 
-    +--------------+---------------+-------------------------------------------+
-    | Parameter    | Default       | Description                               |
-    +==============+===============+===========================================+
-    | ``color``    | ``"#4fc3f7"`` | CSS colour string for the primary line.   |
-    +--------------+---------------+-------------------------------------------+
-    | ``linewidth``| ``1.5``       | Stroke width in pixels.                   |
-    +--------------+---------------+-------------------------------------------+
-    | ``label``    | ``""``        | Legend label (empty = no legend entry).   |
-    +--------------+---------------+-------------------------------------------+
-
-    .. note::
-        **Not yet supported**: ``linestyle``, ``alpha``, ``marker``,
-        ``markersize``.  Use :meth:`add_points` or the other ``add_*``
-        marker methods to place symbols at explicit data coordinates.
+    +-----------------+---------------+-----------------------------------------------+
+    | Parameter       | Default       | Description                                   |
+    +=================+===============+===============================================+
+    | ``color``       | ``"#4fc3f7"`` | CSS colour string for the primary line.       |
+    +-----------------+---------------+-----------------------------------------------+
+    | ``linewidth``   | ``1.5``       | Stroke width in pixels.                       |
+    +-----------------+---------------+-----------------------------------------------+
+    | ``linestyle``   | ``"solid"``   | ``"solid"``, ``"dashed"``, ``"dotted"``,      |
+    |                 |               | ``"dashdot"`` (or shorthands ``-``, ``--``,   |
+    |                 |               | ``:``, ``-.``).                               |
+    +-----------------+---------------+-----------------------------------------------+
+    | ``alpha``       | ``1.0``       | Line opacity (0–1).                           |
+    +-----------------+---------------+-----------------------------------------------+
+    | ``marker``      | ``"none"``    | Per-point symbol: ``"o"``, ``"s"``,           |
+    |                 |               | ``"^"``, ``"v"``, ``"D"``, ``"+"``, ``"x"``, |
+    |                 |               | or ``"none"``.                                |
+    +-----------------+---------------+-----------------------------------------------+
+    | ``markersize``  | ``4.0``       | Marker radius / half-side in pixels.          |
+    +-----------------+---------------+-----------------------------------------------+
+    | ``label``       | ``""``        | Legend label (empty = no legend entry).       |
+    +-----------------+---------------+-----------------------------------------------+
 
     Public API summary
     ------------------
@@ -1552,6 +1614,10 @@ class Plot1D:
                  y_units: str = "",
                  color: str = "#4fc3f7",
                  linewidth: float = 1.5,
+                 linestyle: str = "solid",
+                 alpha: float = 1.0,
+                 marker: str = "none",
+                 markersize: float = 4.0,
                  label: str = ""):
         self._id:  str = ""
         self._fig: object = None
@@ -1572,23 +1638,27 @@ class Plot1D:
         dmin -= pad; dmax += pad
 
         self._state: dict = {
-            "kind":          "1d",
-            "data":          data.tolist(),
-            "x_axis":        x_axis.tolist(),
-            "units":         units,
-            "y_units":       y_units,
-            "data_min":      dmin,
-            "data_max":      dmax,
-            "view_x0":       0.0,
-            "view_x1":       1.0,
-            "line_color":    color,
-            "line_linewidth": float(linewidth),
-            "line_label":    label,
-            "extra_lines":   [],
-            "spans":         [],
-            "overlay_widgets": [],
-            "markers":       [],
-            "registered_keys": [],
+            "kind":             "1d",
+            "data":             data.tolist(),
+            "x_axis":           x_axis.tolist(),
+            "units":            units,
+            "y_units":          y_units,
+            "data_min":         dmin,
+            "data_max":         dmax,
+            "view_x0":          0.0,
+            "view_x1":          1.0,
+            "line_color":       color,
+            "line_linewidth":   float(linewidth),
+            "line_linestyle":   _norm_linestyle(linestyle),
+            "line_alpha":       float(alpha),
+            "line_marker":      marker if marker is not None else "none",
+            "line_markersize":  float(markersize),
+            "line_label":       label,
+            "extra_lines":      [],
+            "spans":            [],
+            "overlay_widgets":  [],
+            "markers":          [],
+            "registered_keys":  [],
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -1657,13 +1727,36 @@ class Plot1D:
         if y_units  is not None: self._state["y_units"] = y_units
         self._push()
 
+    def _recompute_data_range(self) -> None:
+        """Recompute data_min/data_max across the primary line and all overlays.
+
+        Called automatically whenever the set of lines changes so that every
+        curve stays fully visible.
+        """
+        all_vals = [np.asarray(self._state["data"], dtype=float)]
+        for ex in self._state["extra_lines"]:
+            if ex.get("data"):
+                all_vals.append(np.asarray(ex["data"], dtype=float))
+        combined = np.concatenate(all_vals)
+        dmin = float(np.nanmin(combined))
+        dmax = float(np.nanmax(combined))
+        pad  = (dmax - dmin) * 0.05 if dmax > dmin else 0.5
+        self._state["data_min"] = dmin - pad
+        self._state["data_max"] = dmax + pad
+
     # ------------------------------------------------------------------
     # Extra lines
     # ------------------------------------------------------------------
     def add_line(self, data: np.ndarray, x_axis=None,
                  color: str = "#ffffff", linewidth: float = 1.5,
+                 linestyle: str = "solid", ls: str | None = None,
+                 alpha: float = 1.0,
+                 marker: str = "none", markersize: float = 4.0,
                  label: str = "") -> str:
         """Overlay an additional curve on this panel.
+
+        The y-axis range is automatically expanded to include the new data so
+        all lines remain fully visible.
 
         Parameters
         ----------
@@ -1675,6 +1768,18 @@ class Plot1D:
             CSS colour string.  Default ``"#ffffff"``.
         linewidth : float, optional
             Stroke width in pixels.  Default ``1.5``.
+        linestyle : str, optional
+            Dash pattern: ``"solid"``, ``"dashed"``, ``"dotted"``,
+            ``"dashdot"`` (or shorthands).  Default ``"solid"``.
+        ls : str, optional
+            Short alias for *linestyle*.
+        alpha : float, optional
+            Line opacity (0–1).  Default ``1.0``.
+        marker : str, optional
+            Per-point marker symbol (see :class:`Plot1D`).  Default
+            ``"none"``.
+        markersize : float, optional
+            Marker radius / half-side in pixels.  Default ``4.0``.
         label : str, optional
             Legend label.  Default ``""`` (no legend entry).
 
@@ -1699,14 +1804,25 @@ class Plot1D:
               else self._state["x_axis"])
         lid = str(_uuid.uuid4())[:8]
         self._state["extra_lines"].append({
-            "id": lid, "data": data.tolist(), "x_axis": xa,
-            "color": color, "linewidth": float(linewidth), "label": label,
+            "id":         lid,
+            "data":       data.tolist(),
+            "x_axis":     xa,
+            "color":      color,
+            "linewidth":  float(linewidth),
+            "linestyle":  _norm_linestyle(ls if ls is not None else linestyle),
+            "alpha":      float(alpha),
+            "marker":     marker if marker is not None else "none",
+            "markersize": float(markersize),
+            "label":      label,
         })
+        self._recompute_data_range()
         self._push()
         return lid
 
     def remove_line(self, lid: str) -> None:
         """Remove an overlay line by its ID.
+
+        The y-axis range is recomputed after removal.
 
         Parameters
         ----------
@@ -1723,11 +1839,16 @@ class Plot1D:
             e for e in self._state["extra_lines"] if e["id"] != lid]
         if len(self._state["extra_lines"]) == before:
             raise KeyError(lid)
+        self._recompute_data_range()
         self._push()
 
     def clear_lines(self) -> None:
-        """Remove all overlay lines, leaving the primary line intact."""
+        """Remove all overlay lines, leaving the primary line intact.
+
+        The y-axis range is recomputed after clearing.
+        """
         self._state["extra_lines"] = []
+        self._recompute_data_range()
         self._push()
 
     # ------------------------------------------------------------------
@@ -1996,6 +2117,71 @@ class Plot1D:
         """Reset the view to show the full x range of the primary line."""
         self._state["view_x0"] = 0.0
         self._state["view_x1"] = 1.0
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Primary-line property setters
+    # ------------------------------------------------------------------
+
+    def set_color(self, color: str) -> None:
+        """Set the primary line colour.
+
+        Parameters
+        ----------
+        color : str
+            Any CSS colour string (hex, ``rgb()``, named colour, etc.).
+        """
+        self._state["line_color"] = color
+        self._push()
+
+    def set_linewidth(self, linewidth: float) -> None:
+        """Set the primary line stroke width.
+
+        Parameters
+        ----------
+        linewidth : float
+            Stroke width in pixels.
+        """
+        self._state["line_linewidth"] = float(linewidth)
+        self._push()
+
+    def set_linestyle(self, linestyle: str) -> None:
+        """Set the primary line dash pattern.
+
+        Parameters
+        ----------
+        linestyle : str
+            ``"solid"`` (``"-"``), ``"dashed"`` (``"--"``),
+            ``"dotted"`` (``":"``), or ``"dashdot"`` (``"-."``)
+        """
+        self._state["line_linestyle"] = _norm_linestyle(linestyle)
+        self._push()
+
+    def set_alpha(self, alpha: float) -> None:
+        """Set the primary line opacity.
+
+        Parameters
+        ----------
+        alpha : float
+            Opacity in the range 0 (transparent) to 1 (fully opaque).
+        """
+        self._state["line_alpha"] = float(alpha)
+        self._push()
+
+    def set_marker(self, marker: str, markersize: float | None = None) -> None:
+        """Set the primary line per-point marker symbol.
+
+        Parameters
+        ----------
+        marker : str
+            ``"o"``, ``"s"``, ``"^"``, ``"v"``, ``"D"``, ``"+"``,
+            ``"x"``, or ``"none"``.
+        markersize : float, optional
+            Marker radius / half-side in pixels.  Unchanged if not supplied.
+        """
+        self._state["line_marker"] = marker if marker is not None else "none"
+        if markersize is not None:
+            self._state["line_markersize"] = float(markersize)
         self._push()
 
     # ------------------------------------------------------------------
