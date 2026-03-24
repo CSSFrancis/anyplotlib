@@ -310,17 +310,60 @@ class Axes:
 
         Parameters
         ----------
-        data : np.ndarray  shape (N,)
-        axes : [x_axis], optional
+        data : array-like, shape (N,)
+            Y values.  Must be 1-D.
+        axes : list, optional
+            ``[x_axis]`` — a one-element list containing the x-coordinates
+            (shape ``(N,)``).  If omitted the x-axis defaults to
+            ``0, 1, …, N-1``.
         units : str, optional
+            Label for the x-axis (e.g. ``"eV"``, ``"s"``).  Default
+            ``"px"``.
         y_units : str, optional
+            Label for the y-axis.  Default ``""`` (no label).
         color : str, optional
+            CSS colour string for the line (hex, ``rgb()``, named colour,
+            etc.).  Default ``"#4fc3f7"``.
         linewidth : float, optional
+            Stroke width in pixels.  Default ``1.5``.
         label : str, optional
+            Legend label.  A legend is only drawn when at least one line has
+            a non-empty label.  Default ``""`` (no legend entry).
 
         Returns
         -------
         Plot1D
+            Live plot object.  Call methods on it to update data, add
+            overlays, register callbacks, etc.
+
+        Notes
+        -----
+        **Not yet supported** (planned for a future release):
+
+        * ``linestyle`` / ``ls`` — dashed, dotted, or dash-dot lines.
+        * ``alpha`` — line opacity.
+        * ``marker`` / ``markersize`` — per-point symbols along the line.
+
+        Use :meth:`Plot1D.add_points` (or the other ``add_*`` marker
+        methods) to place independent marker collections at explicit data
+        coordinates in the meantime.
+
+        Examples
+        --------
+        Basic sine wave with a physical x-axis::
+
+            import numpy as np
+            import anyplotlib as vw
+
+            x = np.linspace(0, 4 * np.pi, 512)
+            fig, ax = vw.subplots(1, 1, figsize=(620, 320))
+            v = ax.plot(np.sin(x), axes=[x], units="rad",
+                        color="#ff7043", linewidth=2, label="sin")
+            v  # display in a Jupyter cell
+
+        Overlay a second curve with :meth:`Plot1D.add_line`::
+
+            v.add_line(np.cos(x), x_axis=x, color="#aed581", label="cos")
         """
         x_axis = axes[0] if axes and len(axes) > 0 else None
         plot = Plot1D(data, x_axis=x_axis, units=units, y_units=y_units,
@@ -1435,10 +1478,72 @@ class Plot3D:
 # ---------------------------------------------------------------------------
 
 class Plot1D:
-    """1-D line plot panel.
+    """1-D line plot panel returned by :meth:`Axes.plot`.
 
-    Holds state in ``_state`` dict; every mutation pushes to Figure trait.
-    Exposes the full Viewer1D-compatible API plus the new marker API.
+    All display state is stored in a plain ``_state`` dict.  Every mutation
+    ends with :meth:`_push`, which serialises the state to the parent
+    ``Figure`` trait so the JS renderer picks up the change immediately.
+
+    Supported line properties
+    -------------------------
+    Set at construction time via :meth:`Axes.plot` or updated afterwards
+    with the corresponding setter:
+
+    +--------------+---------------+-------------------------------------------+
+    | Parameter    | Default       | Description                               |
+    +==============+===============+===========================================+
+    | ``color``    | ``"#4fc3f7"`` | CSS colour string for the primary line.   |
+    +--------------+---------------+-------------------------------------------+
+    | ``linewidth``| ``1.5``       | Stroke width in pixels.                   |
+    +--------------+---------------+-------------------------------------------+
+    | ``label``    | ``""``        | Legend label (empty = no legend entry).   |
+    +--------------+---------------+-------------------------------------------+
+
+    .. note::
+        **Not yet supported**: ``linestyle``, ``alpha``, ``marker``,
+        ``markersize``.  Use :meth:`add_points` or the other ``add_*``
+        marker methods to place symbols at explicit data coordinates.
+
+    Public API summary
+    ------------------
+
+    **Data**
+        :meth:`update` — replace y-data (and optionally the x-axis /
+        units) without recreating the panel.
+
+    **Overlay lines**
+        :meth:`add_line` / :meth:`remove_line` / :meth:`clear_lines` —
+        overlay additional curves on the same axes.
+
+    **Shaded spans**
+        :meth:`add_span` / :meth:`remove_span` / :meth:`clear_spans` —
+        highlight a region along the x- or y-axis.
+
+    **View control**
+        :meth:`set_view` / :meth:`reset_view` — programmatic pan/zoom
+        (users can also pan/zoom interactively with the mouse; press **R**
+        to reset).
+
+    **Interactive widgets**
+        :meth:`add_vline_widget` / :meth:`add_hline_widget` /
+        :meth:`add_range_widget` — draggable overlays that report their
+        position back to Python via callbacks.  Manage them with
+        :meth:`get_widget`, :meth:`remove_widget`, :meth:`list_widgets`,
+        and :meth:`clear_widgets`.
+
+    **Static marker collections**
+        :meth:`add_points` / :meth:`add_circles` / :meth:`add_vlines` /
+        :meth:`add_hlines` / :meth:`add_arrows` / :meth:`add_ellipses` /
+        :meth:`add_lines` / :meth:`add_rectangles` / :meth:`add_squares` /
+        :meth:`add_polygons` / :meth:`add_texts` — fixed overlays
+        positioned at explicit data coordinates.  Access them via
+        ``plot.markers[type][name]`` and manage with :meth:`remove_marker`,
+        :meth:`clear_markers`, and :meth:`list_markers`.
+
+    **Callbacks**
+        :meth:`on_changed` / :meth:`on_release` / :meth:`on_click` /
+        :meth:`on_key` — react to pan/zoom frames, mouse clicks, and
+        key-presses.  Remove a handler with :meth:`disconnect`.
     """
 
     def __init__(self, data: np.ndarray,
@@ -1512,6 +1617,25 @@ class Plot1D:
     # ------------------------------------------------------------------
     def update(self, data: np.ndarray, x_axis=None,
                units: str | None = None, y_units: str | None = None) -> None:
+        """Replace the primary line's y-data and optionally its x-axis / units.
+
+        The y-axis range (``data_min`` / ``data_max``) is recomputed
+        automatically.  The viewport is **not** reset — call
+        :meth:`reset_view` explicitly if needed.
+
+        Parameters
+        ----------
+        data : array-like, shape (N,)
+            New y values.  Must be 1-D.
+        x_axis : array-like, shape (N,), optional
+            New x coordinates.  If omitted and the length of *data* matches
+            the current x-axis, the existing x-axis is reused; otherwise it
+            is reset to ``0, 1, …, N-1``.
+        units : str, optional
+            New x-axis label.  Unchanged if not supplied.
+        y_units : str, optional
+            New y-axis label.  Unchanged if not supplied.
+        """
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
             raise ValueError(f"data must be 1-D, got {data.shape}")
@@ -1539,6 +1663,35 @@ class Plot1D:
     def add_line(self, data: np.ndarray, x_axis=None,
                  color: str = "#ffffff", linewidth: float = 1.5,
                  label: str = "") -> str:
+        """Overlay an additional curve on this panel.
+
+        Parameters
+        ----------
+        data : array-like, shape (N,)
+            Y values for the new line.  Must be 1-D.
+        x_axis : array-like, shape (N,), optional
+            X coordinates.  Defaults to the primary line's x-axis.
+        color : str, optional
+            CSS colour string.  Default ``"#ffffff"``.
+        linewidth : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        label : str, optional
+            Legend label.  Default ``""`` (no legend entry).
+
+        Returns
+        -------
+        str
+            An 8-character ID string.  Pass it to :meth:`remove_line` to
+            delete this line later.
+
+        Examples
+        --------
+        ::
+
+            lid = v.add_line(fit, x_axis=x, color="#ffcc00", label="fit")
+            # … later …
+            v.remove_line(lid)
+        """
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
             raise ValueError("data must be 1-D")
@@ -1553,6 +1706,18 @@ class Plot1D:
         return lid
 
     def remove_line(self, lid: str) -> None:
+        """Remove an overlay line by its ID.
+
+        Parameters
+        ----------
+        lid : str
+            The ID returned by :meth:`add_line`.
+
+        Raises
+        ------
+        KeyError
+            If *lid* does not match any overlay line.
+        """
         before = len(self._state["extra_lines"])
         self._state["extra_lines"] = [
             e for e in self._state["extra_lines"] if e["id"] != lid]
@@ -1561,6 +1726,7 @@ class Plot1D:
         self._push()
 
     def clear_lines(self) -> None:
+        """Remove all overlay lines, leaving the primary line intact."""
         self._state["extra_lines"] = []
         self._push()
 
@@ -1569,6 +1735,24 @@ class Plot1D:
     # ------------------------------------------------------------------
     def add_span(self, v0: float, v1: float,
                  axis: str = "x", color: str | None = None) -> str:
+        """Add a shaded span along the x- or y-axis.
+
+        Parameters
+        ----------
+        v0, v1 : float
+            Start and end of the span in data coordinates.
+        axis : ``"x"`` | ``"y"``, optional
+            Which axis the span runs along.  Default ``"x"``.
+        color : str, optional
+            CSS colour string (supports alpha, e.g.
+            ``"rgba(255,200,0,0.2)"``).  Defaults to a theme-appropriate
+            yellow tint.
+
+        Returns
+        -------
+        str
+            Span ID for use with :meth:`remove_span`.
+        """
         sid = str(_uuid.uuid4())[:8]
         self._state["spans"].append({
             "id": sid, "v0": float(v0), "v1": float(v1),
@@ -1578,6 +1762,18 @@ class Plot1D:
         return sid
 
     def remove_span(self, sid: str) -> None:
+        """Remove a shaded span by its ID.
+
+        Parameters
+        ----------
+        sid : str
+            The ID returned by :meth:`add_span`.
+
+        Raises
+        ------
+        KeyError
+            If *sid* does not match any span.
+        """
         before = len(self._state["spans"])
         self._state["spans"] = [
             s for s in self._state["spans"] if s["id"] != sid]
@@ -1586,6 +1782,7 @@ class Plot1D:
         self._push()
 
     def clear_spans(self) -> None:
+        """Remove all shaded spans."""
         self._state["spans"] = []
         self._push()
 
@@ -1593,6 +1790,21 @@ class Plot1D:
     # Overlay Widgets
     # ------------------------------------------------------------------
     def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
+        """Add a draggable vertical-line overlay.
+
+        Parameters
+        ----------
+        x : float
+            Initial x position in data coordinates.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+
+        Returns
+        -------
+        VLineWidget
+            Widget object.  Register position callbacks with
+            :meth:`on_changed` / :meth:`on_release`.
+        """
         widget = _VLineWidget(lambda: None, x=float(x), color=color)
         plot_ref, wid_id = self, widget._id
         def _tp():
@@ -1605,6 +1817,21 @@ class Plot1D:
         return widget
 
     def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
+        """Add a draggable horizontal-line overlay.
+
+        Parameters
+        ----------
+        y : float
+            Initial y position in data coordinates.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+
+        Returns
+        -------
+        HLineWidget
+            Widget object.  Register position callbacks with
+            :meth:`on_changed` / :meth:`on_release`.
+        """
         widget = _HLineWidget(lambda: None, y=float(y), color=color)
         plot_ref, wid_id = self, widget._id
         def _tp():
@@ -1618,6 +1845,21 @@ class Plot1D:
 
     def add_range_widget(self, x0: float, x1: float,
                          color: str = "#00e5ff") -> _RangeWidget:
+        """Add a draggable range (two vertical lines + shaded fill) overlay.
+
+        Parameters
+        ----------
+        x0, x1 : float
+            Initial left and right edges in data coordinates.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+
+        Returns
+        -------
+        RangeWidget
+            Widget object.  Register position callbacks with
+            :meth:`on_changed` / :meth:`on_release`.
+        """
         widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1), color=color)
         plot_ref, wid_id = self, widget._id
         def _tp():
@@ -1648,9 +1890,11 @@ class Plot1D:
         self._push()
 
     def list_widgets(self) -> list:
+        """Return a list of all active widget objects on this panel."""
         return list(self._widgets.values())
 
     def clear_widgets(self) -> None:
+        """Remove all interactive overlay widgets from this panel."""
         self._widgets.clear()
         self._push()
 
@@ -1726,6 +1970,17 @@ class Plot1D:
     # View control
     # ------------------------------------------------------------------
     def set_view(self, x0: float | None = None, x1: float | None = None) -> None:
+        """Programmatically set the visible x range.
+
+        Parameters
+        ----------
+        x0 : float, optional
+            Left edge of the view in data coordinates.  ``None`` keeps the
+            current left edge.
+        x1 : float, optional
+            Right edge of the view in data coordinates.  ``None`` keeps the
+            current right edge.
+        """
         xarr = np.asarray(self._state["x_axis"])
         if len(xarr) < 2:
             return
@@ -1738,6 +1993,7 @@ class Plot1D:
         self._push()
 
     def reset_view(self) -> None:
+        """Reset the view to show the full x range of the primary line."""
         self._state["view_x0"] = 0.0
         self._state["view_x1"] = 1.0
         self._push()
@@ -1753,6 +2009,40 @@ class Plot1D:
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add circle markers at explicit (x, y) positions.
+
+        On 1-D panels circles are rendered as filled/stroked discs; *radius*
+        is in canvas pixels (not data units).
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Marker positions as ``[[x0, y0], [x1, y1], …]`` in data
+            coordinates.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        radius : float or array-like, optional
+            Radius in pixels.  Scalar or per-marker array.  Default ``5``.
+        facecolors : str or None, optional
+            Fill colour.  ``None`` = no fill.
+        edgecolors : str, optional
+            Stroke colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        alpha : float, optional
+            Fill opacity (0–1).  Default ``0.3``.
+        hover_edgecolors, hover_facecolors : str, optional
+            Colour overrides applied on mouse-hover.
+        labels : list of str, optional
+            Per-marker tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+            Live group object.  Call ``.set(**kwargs)`` to update in place.
+        """
         # On 1-D panels the native type is "points" (radius maps to sizes).
         return self._add_marker("points", name, offsets=offsets, sizes=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -1766,7 +2056,35 @@ class Plot1D:
                    linewidths=1.5, alpha=0.3,
                    hover_edgecolors=None, hover_facecolors=None,
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add point markers at (x, y) positions in data coordinates."""
+        """Add point markers at (x, y) positions in data coordinates.
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Marker positions as ``[[x0, y0], [x1, y1], …]``.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        sizes : float or array-like, optional
+            Radius in pixels.  Scalar or per-marker array.  Default ``5``.
+        color : str, optional
+            Stroke colour.  Default ``"#ff0000"``.
+        facecolors : str or None, optional
+            Fill colour.  ``None`` = no fill.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        alpha : float, optional
+            Fill opacity (0–1).  Default ``0.3``.
+        hover_edgecolors, hover_facecolors : str, optional
+            Colour overrides applied on mouse-hover.
+        labels : list of str, optional
+            Per-marker tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("points", name, offsets=offsets, sizes=sizes,
                                 edgecolors=color, facecolors=facecolors,
                                 linewidths=linewidths, alpha=alpha,
@@ -1778,7 +2096,29 @@ class Plot1D:
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add static horizontal lines at the given y positions."""
+        """Add static horizontal lines spanning the full x range.
+
+        Parameters
+        ----------
+        y_values : array-like, shape (N,)
+            Y positions of each line in data coordinates.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        color : str, optional
+            Line colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        hover_edgecolors : str, optional
+            Colour override applied on mouse-hover.
+        labels : list of str, optional
+            Per-line tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("hlines", name, offsets=y_values,
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
@@ -1788,7 +2128,29 @@ class Plot1D:
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
-        """Add static vertical lines at the given x positions."""
+        """Add static vertical lines spanning the full y range.
+
+        Parameters
+        ----------
+        x_values : array-like, shape (N,)
+            X positions of each line in data coordinates.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        color : str, optional
+            Line colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        hover_edgecolors : str, optional
+            Colour override applied on mouse-hover.
+        labels : list of str, optional
+            Per-line tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("vlines", name, offsets=x_values,
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
@@ -1798,6 +2160,31 @@ class Plot1D:
                    edgecolors="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add arrow markers at explicit (x, y) positions.
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Arrow tail positions as ``[[x0, y0], …]`` in data coordinates.
+        U, V : array-like, shape (N,)
+            X and Y components of each arrow vector (in data units).
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        edgecolors : str, optional
+            Arrow colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        hover_edgecolors : str, optional
+            Colour override applied on mouse-hover.
+        labels : list of str, optional
+            Per-arrow tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
@@ -1808,6 +2195,37 @@ class Plot1D:
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add ellipse markers at explicit (x, y) positions.
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Centre positions in data coordinates.
+        widths, heights : float or array-like
+            Full width and height of each ellipse in canvas pixels.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        angles : float or array-like, optional
+            Rotation angle(s) in degrees.  Default ``0``.
+        facecolors : str or None, optional
+            Fill colour.  ``None`` = no fill.
+        edgecolors : str, optional
+            Stroke colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        alpha : float, optional
+            Fill opacity (0–1).  Default ``0.3``.
+        hover_edgecolors, hover_facecolors : str, optional
+            Colour overrides applied on mouse-hover.
+        labels : list of str, optional
+            Per-marker tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("ellipses", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -1820,6 +2238,29 @@ class Plot1D:
                   edgecolors="#ff0000", linewidths=1.5,
                   hover_edgecolors=None,
                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add line-segment markers (static, not draggable).
+
+        Parameters
+        ----------
+        segments : array-like, shape (N, 2, 2)
+            Each segment is ``[[x0, y0], [x1, y1]]`` in data coordinates.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        edgecolors : str, optional
+            Line colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        hover_edgecolors : str, optional
+            Colour override applied on mouse-hover.
+        labels : list of str, optional
+            Per-segment tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("lines", name, segments=segments,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
@@ -1830,6 +2271,37 @@ class Plot1D:
                        linewidths=1.5, alpha=0.3,
                        hover_edgecolors=None, hover_facecolors=None,
                        labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add rectangle markers at explicit (x, y) positions.
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Centre positions in data coordinates.
+        widths, heights : float or array-like
+            Full width and height of each rectangle in canvas pixels.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        angles : float or array-like, optional
+            Rotation angle(s) in degrees.  Default ``0``.
+        facecolors : str or None, optional
+            Fill colour.  ``None`` = no fill.
+        edgecolors : str, optional
+            Stroke colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        alpha : float, optional
+            Fill opacity (0–1).  Default ``0.3``.
+        hover_edgecolors, hover_facecolors : str, optional
+            Colour overrides applied on mouse-hover.
+        labels : list of str, optional
+            Per-marker tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("rectangles", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -1843,6 +2315,37 @@ class Plot1D:
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add square markers at explicit (x, y) positions.
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Centre positions in data coordinates.
+        widths : float or array-like
+            Side length of each square in canvas pixels.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        angles : float or array-like, optional
+            Rotation angle(s) in degrees.  Default ``0``.
+        facecolors : str or None, optional
+            Fill colour.  ``None`` = no fill.
+        edgecolors : str, optional
+            Stroke colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        alpha : float, optional
+            Fill opacity (0–1).  Default ``0.3``.
+        hover_edgecolors, hover_facecolors : str, optional
+            Colour overrides applied on mouse-hover.
+        labels : list of str, optional
+            Per-marker tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("squares", name, offsets=offsets,
                                 widths=widths, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -1856,6 +2359,34 @@ class Plot1D:
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add polygon markers defined by explicit vertex lists.
+
+        Parameters
+        ----------
+        vertices_list : list of array-like, each shape (K, 2)
+            One polygon per element; each is a list of ``[x, y]`` vertices
+            in data coordinates.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        facecolors : str or None, optional
+            Fill colour.  ``None`` = no fill.
+        edgecolors : str, optional
+            Stroke colour.  Default ``"#ff0000"``.
+        linewidths : float, optional
+            Stroke width in pixels.  Default ``1.5``.
+        alpha : float, optional
+            Fill opacity (0–1).  Default ``0.3``.
+        hover_edgecolors, hover_facecolors : str, optional
+            Colour overrides applied on mouse-hover.
+        labels : list of str, optional
+            Per-polygon tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("polygons", name, vertices_list=vertices_list,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
@@ -1867,18 +2398,61 @@ class Plot1D:
                   color="#ff0000", fontsize=12,
                   hover_edgecolors=None,
                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+        """Add text annotations at explicit (x, y) positions.
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Anchor positions in data coordinates.
+        texts : list of str
+            One string per position.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        color : str, optional
+            Text colour.  Default ``"#ff0000"``.
+        fontsize : int, optional
+            Font size in pixels.  Default ``12``.
+        hover_edgecolors : str, optional
+            Colour override applied on mouse-hover.
+        labels : list of str, optional
+            Per-annotation tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+
+        Returns
+        -------
+        MarkerGroup
+        """
         return self._add_marker("texts", name, offsets=offsets, texts=texts,
                                 color=color, fontsize=fontsize,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label)
 
     def remove_marker(self, marker_type: str, name: str) -> None:
+        """Remove a named marker collection by type and name.
+
+        Parameters
+        ----------
+        marker_type : str
+            Collection type, e.g. ``"points"``, ``"vlines"``.
+        name : str
+            The name used when the collection was created.
+        """
         self.markers.remove(marker_type, name)
 
     def clear_markers(self) -> None:
+        """Remove all marker collections from this panel."""
         self.markers.clear()
 
     def list_markers(self) -> list:
+        """Return a summary list of all marker collections on this panel.
+
+        Returns
+        -------
+        list of dict
+            Each dict has keys ``"type"``, ``"name"``, and ``"n"``
+            (number of markers in the collection).
+        """
         out = []
         for mtype, td in self.markers._types.items():
             for name, g in td.items():
