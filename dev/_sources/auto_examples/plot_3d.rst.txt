@@ -53,7 +53,7 @@ Drag to rotate, scroll to zoom, press **R** to reset the view.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fa58870d0" style="display:inline-block;overflow:hidden;position:relative;width:536px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_001.html" frameborder="0" scrolling="no" style="width:536px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fa58870d0'),ifr=wrap.querySelector('iframe'),nw=536,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f8239ef28" style="display:inline-block;overflow:hidden;position:relative;width:536px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_001.html" frameborder="0" scrolling="no" style="width:536px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f8239ef28'),ifr=wrap.querySelector('iframe'),nw=536,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -92,7 +92,7 @@ Scatter plot
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f28e8f60f" style="display:inline-block;overflow:hidden;position:relative;width:496px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_002.html" frameborder="0" scrolling="no" style="width:496px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f28e8f60f'),ifr=wrap.querySelector('iframe'),nw=496,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f43794452" style="display:inline-block;overflow:hidden;position:relative;width:496px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_002.html" frameborder="0" scrolling="no" style="width:496px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f43794452'),ifr=wrap.querySelector('iframe'),nw=496,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -127,7 +127,7 @@ Scatter plot
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f22f0c1f0" style="display:inline-block;overflow:hidden;position:relative;width:496px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_003.html" frameborder="0" scrolling="no" style="width:496px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f22f0c1f0'),ifr=wrap.querySelector('iframe'),nw=496,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fad28e019" style="display:inline-block;overflow:hidden;position:relative;width:496px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_003.html" frameborder="0" scrolling="no" style="width:496px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fad28e019'),ifr=wrap.querySelector('iframe'),nw=496,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -158,7 +158,7 @@ without recreating the panel.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="ff7223093" style="display:inline-block;overflow:hidden;position:relative;width:496px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_004.html" frameborder="0" scrolling="no" style="width:496px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('ff7223093'),ifr=wrap.querySelector('iframe'),nw=496,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fcc8806da" style="display:inline-block;overflow:hidden;position:relative;width:496px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_3d_004.html" frameborder="0" scrolling="no" style="width:496px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fcc8806da'),ifr=wrap.querySelector('iframe'),nw=496,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -168,7 +168,7 @@ without recreating the panel.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.467 seconds)
+   **Total running time of the script:** (0 minutes 2.237 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_3d.py:

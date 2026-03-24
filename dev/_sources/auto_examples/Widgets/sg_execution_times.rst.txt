@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:00.247** total execution time for 9 files **from auto_examples/Widgets**:
+**00:03.746** total execution time for 9 files **from auto_examples/Widgets**:
 
 .. container::
 
@@ -32,30 +32,30 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_rectangle.py` (``plot_widget2d_rectangle.py``)
-     - 00:00.030
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_polygon.py` (``plot_widget2d_polygon.py``)
-     - 00:00.030
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_label.py` (``plot_widget2d_label.py``)
-     - 00:00.030
-     - 0.0
    * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_annular.py` (``plot_widget2d_annular.py``)
-     - 00:00.029
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_crosshair.py` (``plot_widget2d_crosshair.py``)
-     - 00:00.029
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_circle.py` (``plot_widget2d_circle.py``)
-     - 00:00.029
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_range.py` (``plot_widget1d_range.py``)
-     - 00:00.023
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_vline.py` (``plot_widget1d_vline.py``)
-     - 00:00.023
+     - 00:00.427
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_hline.py` (``plot_widget1d_hline.py``)
-     - 00:00.023
+     - 00:00.423
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_range.py` (``plot_widget1d_range.py``)
+     - 00:00.417
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_vline.py` (``plot_widget1d_vline.py``)
+     - 00:00.415
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_rectangle.py` (``plot_widget2d_rectangle.py``)
+     - 00:00.414
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_crosshair.py` (``plot_widget2d_crosshair.py``)
+     - 00:00.413
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_circle.py` (``plot_widget2d_circle.py``)
+     - 00:00.413
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_label.py` (``plot_widget2d_label.py``)
+     - 00:00.412
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_polygon.py` (``plot_widget2d_polygon.py``)
+     - 00:00.412
      - 0.0
