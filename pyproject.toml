@@ -24,6 +24,7 @@ docs = [
     "sphinx-gallery>=0.18",
     "pillow>=10.0",
     "matplotlib>=3.7",
+    "playwright>=1.58.0",
 ]
 jupyter = [
     "jupyterlab>=4.5.5",
