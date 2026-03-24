@@ -375,7 +375,46 @@
 <span class="p">)</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GridSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;SubplotSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;Axes&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot1D&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot2D&quot;</span><span class="p">,</span> <span class="s2">&quot;PlotMesh&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot3D&quot;</span><span class="p">,</span>
-           <span class="s2">&quot;PlotBar&quot;</span><span class="p">,</span> <span class="s2">&quot;_resample_mesh&quot;</span><span class="p">]</span>
+           <span class="s2">&quot;PlotBar&quot;</span><span class="p">,</span> <span class="s2">&quot;_resample_mesh&quot;</span><span class="p">,</span> <span class="s2">&quot;_norm_linestyle&quot;</span><span class="p">]</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Linestyle normalisation</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+<span class="n">_LINESTYLE_ALIASES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;-&quot;</span><span class="p">:</span>        <span class="s2">&quot;solid&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--&quot;</span><span class="p">:</span>       <span class="s2">&quot;dashed&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;:&quot;</span><span class="p">:</span>        <span class="s2">&quot;dotted&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;-.&quot;</span><span class="p">:</span>       <span class="s2">&quot;dashdot&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;solid&quot;</span><span class="p">:</span>    <span class="s2">&quot;solid&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dashed&quot;</span><span class="p">:</span>   <span class="s2">&quot;dashed&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dotted&quot;</span><span class="p">:</span>   <span class="s2">&quot;dotted&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dashdot&quot;</span><span class="p">:</span>  <span class="s2">&quot;dashdot&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_norm_linestyle</span><span class="p">(</span><span class="n">ls</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalise a linestyle name or shorthand to its canonical form.</span>
+
+<span class="sd">    Accepted values</span>
+<span class="sd">    ---------------</span>
+<span class="sd">    ``&quot;solid&quot;`` / ``&quot;-&quot;``,  ``&quot;dashed&quot;`` / ``&quot;--&quot;``,</span>
+<span class="sd">    ``&quot;dotted&quot;`` / ``&quot;:&quot;``,  ``&quot;dashdot&quot;`` / ``&quot;-.&quot;``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If *ls* is not a recognised name or shorthand.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">canonical</span> <span class="o">=</span> <span class="n">_LINESTYLE_ALIASES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ls</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">canonical</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Unknown linestyle </span><span class="si">{</span><span class="n">ls</span><span class="si">!r}</span><span class="s2">. Expected one of: &quot;</span>
+            <span class="s2">&quot;&#39;solid&#39;, &#39;dashed&#39;, &#39;dotted&#39;, &#39;dashdot&#39;, &quot;</span>
+            <span class="s2">&quot;or shorthands &#39;-&#39;, &#39;--&#39;, &#39;:&#39;, &#39;-.&#39;.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">canonical</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -504,14 +543,33 @@
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Axes.imshow">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
                <span class="n">axes</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-               <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;px&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Plot2D&quot;</span><span class="p">:</span>
+               <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;px&quot;</span><span class="p">,</span>
+               <span class="n">cmap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">vmin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">vmax</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">origin</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;upper&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Plot2D&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Attach a 2-D image to this axes cell.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        data : np.ndarray  shape (H, W) or (H, W, C)</span>
+<span class="sd">        data : np.ndarray, shape (H, W) or (H, W, C)</span>
+<span class="sd">            Image data.  RGB/RGBA arrays use only the first channel.</span>
 <span class="sd">        axes : [x_axis, y_axis], optional</span>
+<span class="sd">            Physical coordinate arrays for each axis.</span>
 <span class="sd">        units : str, optional</span>
+<span class="sd">            Axis units label.  Default ``&quot;px&quot;``.</span>
+<span class="sd">        cmap : str, optional</span>
+<span class="sd">            Colormap name (e.g. ``&quot;viridis&quot;``, ``&quot;inferno&quot;``).</span>
+<span class="sd">            Defaults to ``&quot;gray&quot;``.</span>
+<span class="sd">        vmin, vmax : float, optional</span>
+<span class="sd">            Colormap clipping limits in data units.  Values outside this</span>
+<span class="sd">            range are clamped to the colormap endpoints.  Defaults to the</span>
+<span class="sd">            data min / max.</span>
+<span class="sd">        origin : ``&quot;upper&quot;`` | ``&quot;lower&quot;``, optional</span>
+<span class="sd">            Where row 0 of the array is placed.  ``&quot;upper&quot;`` (default)</span>
+<span class="sd">            puts row 0 at the top, matching the usual image convention.</span>
+<span class="sd">            ``&quot;lower&quot;`` puts row 0 at the bottom, matching the matplotlib</span>
+<span class="sd">            convention for matrices / scientific plots.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -519,7 +577,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x_axis</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">axes</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="n">y_axis</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">axes</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="n">plot</span> <span class="o">=</span> <span class="n">Plot2D</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="n">y_axis</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="n">Plot2D</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="n">y_axis</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span>
+                      <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">origin</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_attach</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">plot</span></div>
 
@@ -651,26 +710,85 @@
              <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
              <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span>
              <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+             <span class="n">linestyle</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;solid&quot;</span><span class="p">,</span>
+             <span class="n">ls</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+             <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+             <span class="n">markersize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">,</span>
              <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Plot1D&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Attach a 1-D line to this axes cell.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        data : np.ndarray  shape (N,)</span>
-<span class="sd">        axes : [x_axis], optional</span>
+<span class="sd">        data : array-like, shape (N,)</span>
+<span class="sd">            Y values.  Must be 1-D.</span>
+<span class="sd">        axes : list, optional</span>
+<span class="sd">            ``[x_axis]`` — a one-element list containing the x-coordinates</span>
+<span class="sd">            (shape ``(N,)``).  If omitted the x-axis defaults to</span>
+<span class="sd">            ``0, 1, …, N-1``.</span>
 <span class="sd">        units : str, optional</span>
+<span class="sd">            Label for the x-axis (e.g. ``&quot;eV&quot;``, ``&quot;s&quot;``).  Default</span>
+<span class="sd">            ``&quot;px&quot;``.</span>
 <span class="sd">        y_units : str, optional</span>
+<span class="sd">            Label for the y-axis.  Default ``&quot;&quot;`` (no label).</span>
 <span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string for the line (hex, ``rgb()``, named colour,</span>
+<span class="sd">            etc.).  Default ``&quot;#4fc3f7&quot;``.</span>
 <span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        linestyle : str, optional</span>
+<span class="sd">            Dash pattern.  Accepted values: ``&quot;solid&quot;`` (``&quot;-&quot;``),</span>
+<span class="sd">            ``&quot;dashed&quot;`` (``&quot;--&quot;``), ``&quot;dotted&quot;`` (``&quot;:&quot;``),</span>
+<span class="sd">            ``&quot;dashdot&quot;`` (``&quot;-.&quot;``) .  Default ``&quot;solid&quot;``.</span>
+<span class="sd">        ls : str, optional</span>
+<span class="sd">            Short alias for *linestyle*.  Takes precedence if both are given.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Line opacity in the range 0–1.  Default ``1.0`` (fully opaque).</span>
+<span class="sd">        marker : str, optional</span>
+<span class="sd">            Per-point marker symbol.  Supported values: ``&quot;o&quot;`` (circle),</span>
+<span class="sd">            ``&quot;s&quot;`` (square), ``&quot;^&quot;`` (triangle-up), ``&quot;v&quot;`` (triangle-down),</span>
+<span class="sd">            ``&quot;D&quot;`` (diamond), ``&quot;+&quot;`` (plus), ``&quot;x&quot;`` (cross),</span>
+<span class="sd">            ``&quot;none&quot;`` (no markers).  Default ``&quot;none&quot;``.</span>
+<span class="sd">        markersize : float, optional</span>
+<span class="sd">            Marker radius / half-side in pixels.  Default ``4.0``.</span>
 <span class="sd">        label : str, optional</span>
+<span class="sd">            Legend label.  A legend is only drawn when at least one line has</span>
+<span class="sd">            a non-empty label.  Default ``&quot;&quot;`` (no legend entry).</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        Plot1D</span>
+<span class="sd">            Live plot object.  Call methods on it to update data, add</span>
+<span class="sd">            overlays, register callbacks, etc.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        Basic sine wave with a physical x-axis::</span>
+
+<span class="sd">            import numpy as np</span>
+<span class="sd">            import anyplotlib as vw</span>
+
+<span class="sd">            x = np.linspace(0, 4 * np.pi, 512)</span>
+<span class="sd">            fig, ax = vw.subplots(1, 1, figsize=(620, 320))</span>
+<span class="sd">            v = ax.plot(np.sin(x), axes=[x], units=&quot;rad&quot;,</span>
+<span class="sd">                        color=&quot;#ff7043&quot;, linewidth=2, label=&quot;sin&quot;)</span>
+<span class="sd">            v  # display in a Jupyter cell</span>
+
+<span class="sd">        Dashed line with semi-transparent markers::</span>
+
+<span class="sd">            v = ax.plot(data, linestyle=&quot;dashed&quot;, alpha=0.7,</span>
+<span class="sd">                        marker=&quot;o&quot;, markersize=4)</span>
+
+<span class="sd">        Overlay a second curve with :meth:`Plot1D.add_line`::</span>
+
+<span class="sd">            v.add_line(np.cos(x), x_axis=x, color=&quot;#aed581&quot;, label=&quot;cos&quot;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x_axis</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">axes</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="n">plot</span> <span class="o">=</span> <span class="n">Plot1D</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="n">y_units</span><span class="p">,</span>
-                     <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+                     <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
+                     <span class="n">linestyle</span><span class="o">=</span><span class="n">ls</span> <span class="k">if</span> <span class="n">ls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">linestyle</span><span class="p">,</span>
+                     <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="n">markersize</span><span class="p">,</span>
+                     <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_attach</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">plot</span></div>
 
@@ -868,9 +986,20 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-                 <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;px&quot;</span><span class="p">):</span>
+                 <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;px&quot;</span><span class="p">,</span>
+                 <span class="n">cmap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">vmin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">vmax</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">origin</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;upper&quot;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">:</span>  <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>       <span class="c1"># assigned by Axes._attach</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># assigned by Axes._attach</span>
+
+        <span class="n">_valid_origins</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;upper&quot;</span><span class="p">,</span> <span class="s2">&quot;lower&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">origin</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_valid_origins</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;origin must be one of </span><span class="si">{</span><span class="n">_valid_origins</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">origin</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">origin</span>
 
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
@@ -879,6 +1008,14 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data must be 2-D (H x W), got </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># origin=&#39;lower&#39; — row 0 at the bottom, matching matplotlib&#39;s matrix</span>
+        <span class="c1"># convention.  Flip the data so our renderer (which always draws row 0</span>
+        <span class="c1"># at the top) shows the correct orientation, and reverse the y-axis so</span>
+        <span class="c1"># tick values increase upward.</span>
+        <span class="k">if</span> <span class="n">origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
         <span class="n">x_axis_given</span> <span class="o">=</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">y_axis_given</span> <span class="o">=</span> <span class="n">y_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -888,12 +1025,20 @@
         <span class="n">x_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="n">y_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
-        <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_u8</span>   <span class="o">=</span> <span class="n">img_u8</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmin</span> <span class="o">=</span> <span class="n">vmin</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmax</span> <span class="o">=</span> <span class="n">vmax</span>
+        <span class="k">if</span> <span class="n">origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
+            <span class="n">y_axis</span> <span class="o">=</span> <span class="n">y_axis</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="n">cmap_lut</span> <span class="o">=</span> <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+        <span class="n">img_u8</span><span class="p">,</span> <span class="n">raw_vmin</span><span class="p">,</span> <span class="n">raw_vmax</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_u8</span>   <span class="o">=</span> <span class="n">img_u8</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmin</span> <span class="o">=</span> <span class="n">raw_vmin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmax</span> <span class="o">=</span> <span class="n">raw_vmax</span>
+
+        <span class="n">cmap_name</span> <span class="o">=</span> <span class="n">cmap</span> <span class="k">if</span> <span class="n">cmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;gray&quot;</span>
+        <span class="n">cmap_lut</span>  <span class="o">=</span> <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="n">cmap_name</span><span class="p">)</span>
+
+        <span class="c1"># vmin/vmax clip the colormap in data units; default to the full range.</span>
+        <span class="n">disp_min</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmin</span><span class="p">)</span> <span class="k">if</span> <span class="n">vmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">raw_vmin</span>
+        <span class="n">disp_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmax</span><span class="p">)</span> <span class="k">if</span> <span class="n">vmax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">raw_vmax</span>
 
         <span class="c1"># Compute physical pixel scale (data-units per pixel) from axis arrays</span>
         <span class="n">scale_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x_axis</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_axis</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_axis</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="mf">1.0</span>
@@ -911,14 +1056,14 @@
             <span class="s2">&quot;units&quot;</span><span class="p">:</span>             <span class="n">units</span><span class="p">,</span>
             <span class="s2">&quot;scale_x&quot;</span><span class="p">:</span>           <span class="n">scale_x</span><span class="p">,</span>
             <span class="s2">&quot;scale_y&quot;</span><span class="p">:</span>           <span class="n">scale_y</span><span class="p">,</span>
-            <span class="s2">&quot;display_min&quot;</span><span class="p">:</span>       <span class="n">vmin</span><span class="p">,</span>
-            <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>       <span class="n">vmax</span><span class="p">,</span>
-            <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>           <span class="n">vmin</span><span class="p">,</span>
-            <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>           <span class="n">vmax</span><span class="p">,</span>
+            <span class="s2">&quot;display_min&quot;</span><span class="p">:</span>       <span class="n">disp_min</span><span class="p">,</span>
+            <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>       <span class="n">disp_max</span><span class="p">,</span>
+            <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>           <span class="n">raw_vmin</span><span class="p">,</span>
+            <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>           <span class="n">raw_vmax</span><span class="p">,</span>
             <span class="s2">&quot;show_colorbar&quot;</span><span class="p">:</span>     <span class="kc">False</span><span class="p">,</span>
             <span class="s2">&quot;log_scale&quot;</span><span class="p">:</span>         <span class="kc">False</span><span class="p">,</span>
             <span class="s2">&quot;scale_mode&quot;</span><span class="p">:</span>        <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;colormap_name&quot;</span><span class="p">:</span>     <span class="s2">&quot;gray&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;colormap_name&quot;</span><span class="p">:</span>     <span class="n">cmap_name</span><span class="p">,</span>
             <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span>     <span class="n">cmap_lut</span><span class="p">,</span>
             <span class="s2">&quot;zoom&quot;</span><span class="p">:</span>              <span class="mf">1.0</span><span class="p">,</span>
             <span class="s2">&quot;center_x&quot;</span><span class="p">:</span>          <span class="mf">0.5</span><span class="p">,</span>
@@ -967,13 +1112,21 @@
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot2D.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
                <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the image data.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the image data.</span>
+
+<span class="sd">        The ``origin`` supplied at construction is automatically re-applied</span>
+<span class="sd">        so the new data is displayed with the same orientation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data must be 2-D, got </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
         <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_raw_u8</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmax</span> <span class="o">=</span> <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
 
@@ -982,21 +1135,24 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;has_axes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="n">y_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;y_axis&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_axis</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">ya</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_axis</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
+                <span class="n">ya</span> <span class="o">=</span> <span class="n">ya</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;y_axis&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ya</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;has_axes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">units</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-            <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span>   <span class="bp">self</span><span class="o">.</span><span class="n">_encode_bytes</span><span class="p">(</span><span class="n">img_u8</span><span class="p">),</span>
+            <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">_encode_bytes</span><span class="p">(</span><span class="n">img_u8</span><span class="p">),</span>
             <span class="s2">&quot;image_width&quot;</span><span class="p">:</span>  <span class="n">w</span><span class="p">,</span>
             <span class="s2">&quot;image_height&quot;</span><span class="p">:</span> <span class="n">h</span><span class="p">,</span>
-            <span class="s2">&quot;display_min&quot;</span><span class="p">:</span> <span class="n">vmin</span><span class="p">,</span>
-            <span class="s2">&quot;display_max&quot;</span><span class="p">:</span> <span class="n">vmax</span><span class="p">,</span>
-            <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>     <span class="n">vmin</span><span class="p">,</span>
-            <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>     <span class="n">vmax</span><span class="p">,</span>
-            <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span>  <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;colormap_name&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;display_min&quot;</span><span class="p">:</span>  <span class="n">vmin</span><span class="p">,</span>
+            <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>  <span class="n">vmax</span><span class="p">,</span>
+            <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>      <span class="n">vmin</span><span class="p">,</span>
+            <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>      <span class="n">vmax</span><span class="p">,</span>
+            <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span> <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;colormap_name&quot;</span><span class="p">]),</span>
         <span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
@@ -1885,10 +2041,91 @@
 <div class="viewcode-block" id="Plot1D">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Plot1D</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;1-D line plot panel.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;1-D line plot panel returned by :meth:`Axes.plot`.</span>
 
-<span class="sd">    Holds state in ``_state`` dict; every mutation pushes to Figure trait.</span>
-<span class="sd">    Exposes the full Viewer1D-compatible API plus the new marker API.</span>
+<span class="sd">    All display state is stored in a plain ``_state`` dict.  Every mutation</span>
+<span class="sd">    ends with :meth:`_push`, which serialises the state to the parent</span>
+<span class="sd">    ``Figure`` trait so the JS renderer picks up the change immediately.</span>
+
+<span class="sd">    Supported line properties</span>
+<span class="sd">    -------------------------</span>
+<span class="sd">    Set at construction time via :meth:`Axes.plot` or updated afterwards</span>
+<span class="sd">    with the corresponding setter:</span>
+
+<span class="sd">    .. list-table::</span>
+<span class="sd">       :header-rows: 1</span>
+<span class="sd">       :widths: 18 18 64</span>
+
+<span class="sd">       * - Parameter</span>
+<span class="sd">         - Default</span>
+<span class="sd">         - Description</span>
+<span class="sd">       * - ``color``</span>
+<span class="sd">         - ``&quot;#4fc3f7&quot;``</span>
+<span class="sd">         - CSS colour string for the primary line.</span>
+<span class="sd">       * - ``linewidth``</span>
+<span class="sd">         - ``1.5``</span>
+<span class="sd">         - Stroke width in pixels.</span>
+<span class="sd">       * - ``linestyle`` (``ls``)</span>
+<span class="sd">         - ``&quot;solid&quot;``</span>
+<span class="sd">         - Dash pattern: ``&quot;solid&quot;``, ``&quot;dashed&quot;``, ``&quot;dotted&quot;``,</span>
+<span class="sd">           ``&quot;dashdot&quot;``.  Shorthands ``&quot;-&quot;``, ``&quot;--&quot;``, ``&quot;:&quot;``,</span>
+<span class="sd">           ``&quot;-.&quot;`` also accepted.</span>
+<span class="sd">       * - ``alpha``</span>
+<span class="sd">         - ``1.0``</span>
+<span class="sd">         - Line opacity (0 = transparent, 1 = fully opaque).</span>
+<span class="sd">       * - ``marker``</span>
+<span class="sd">         - ``&quot;none&quot;``</span>
+<span class="sd">         - Per-point symbol: ``&quot;o&quot;`` (circle), ``&quot;s&quot;`` (square),</span>
+<span class="sd">           ``&quot;^&quot;``/``&quot;v&quot;`` (triangles), ``&quot;D&quot;`` (diamond),</span>
+<span class="sd">           ``&quot;+&quot;``/``&quot;x&quot;`` (stroke-only), or ``&quot;none&quot;``.</span>
+<span class="sd">       * - ``markersize``</span>
+<span class="sd">         - ``4.0``</span>
+<span class="sd">         - Marker radius / half-side in pixels.</span>
+<span class="sd">       * - ``label``</span>
+<span class="sd">         - ``&quot;&quot;``</span>
+<span class="sd">         - Legend label (empty string = no legend entry).</span>
+
+
+<span class="sd">    Public API summary</span>
+<span class="sd">    ------------------</span>
+
+<span class="sd">    **Data**</span>
+<span class="sd">        :meth:`update` — replace y-data (and optionally the x-axis /</span>
+<span class="sd">        units) without recreating the panel.</span>
+
+<span class="sd">    **Overlay lines**</span>
+<span class="sd">        :meth:`add_line` / :meth:`remove_line` / :meth:`clear_lines` —</span>
+<span class="sd">        overlay additional curves on the same axes.</span>
+
+<span class="sd">    **Shaded spans**</span>
+<span class="sd">        :meth:`add_span` / :meth:`remove_span` / :meth:`clear_spans` —</span>
+<span class="sd">        highlight a region along the x- or y-axis.</span>
+
+<span class="sd">    **View control**</span>
+<span class="sd">        :meth:`set_view` / :meth:`reset_view` — programmatic pan/zoom</span>
+<span class="sd">        (users can also pan/zoom interactively with the mouse; press **R**</span>
+<span class="sd">        to reset).</span>
+
+<span class="sd">    **Interactive widgets**</span>
+<span class="sd">        :meth:`add_vline_widget` / :meth:`add_hline_widget` /</span>
+<span class="sd">        :meth:`add_range_widget` — draggable overlays that report their</span>
+<span class="sd">        position back to Python via callbacks.  Manage them with</span>
+<span class="sd">        :meth:`get_widget`, :meth:`remove_widget`, :meth:`list_widgets`,</span>
+<span class="sd">        and :meth:`clear_widgets`.</span>
+
+<span class="sd">    **Static marker collections**</span>
+<span class="sd">        :meth:`add_points` / :meth:`add_circles` / :meth:`add_vlines` /</span>
+<span class="sd">        :meth:`add_hlines` / :meth:`add_arrows` / :meth:`add_ellipses` /</span>
+<span class="sd">        :meth:`add_lines` / :meth:`add_rectangles` / :meth:`add_squares` /</span>
+<span class="sd">        :meth:`add_polygons` / :meth:`add_texts` — fixed overlays</span>
+<span class="sd">        positioned at explicit data coordinates.  Access them via</span>
+<span class="sd">        ``plot.markers[type][name]`` and manage with :meth:`remove_marker`,</span>
+<span class="sd">        :meth:`clear_markers`, and :meth:`list_markers`.</span>
+
+<span class="sd">    **Callbacks**</span>
+<span class="sd">        :meth:`on_changed` / :meth:`on_release` / :meth:`on_click` /</span>
+<span class="sd">        :meth:`on_key` — react to pan/zoom frames, mouse clicks, and</span>
+<span class="sd">        key-presses.  Remove a handler with :meth:`disconnect`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -1897,6 +2134,10 @@
                  <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
                  <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span>
                  <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+                 <span class="n">linestyle</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;solid&quot;</span><span class="p">,</span>
+                 <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+                 <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                 <span class="n">markersize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">,</span>
                  <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">:</span>  <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1917,23 +2158,27 @@
         <span class="n">dmin</span> <span class="o">-=</span> <span class="n">pad</span><span class="p">;</span> <span class="n">dmax</span> <span class="o">+=</span> <span class="n">pad</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;kind&quot;</span><span class="p">:</span>          <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;data&quot;</span><span class="p">:</span>          <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>        <span class="n">x_axis</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;units&quot;</span><span class="p">:</span>         <span class="n">units</span><span class="p">,</span>
-            <span class="s2">&quot;y_units&quot;</span><span class="p">:</span>       <span class="n">y_units</span><span class="p">,</span>
-            <span class="s2">&quot;data_min&quot;</span><span class="p">:</span>      <span class="n">dmin</span><span class="p">,</span>
-            <span class="s2">&quot;data_max&quot;</span><span class="p">:</span>      <span class="n">dmax</span><span class="p">,</span>
-            <span class="s2">&quot;view_x0&quot;</span><span class="p">:</span>       <span class="mf">0.0</span><span class="p">,</span>
-            <span class="s2">&quot;view_x1&quot;</span><span class="p">:</span>       <span class="mf">1.0</span><span class="p">,</span>
-            <span class="s2">&quot;line_color&quot;</span><span class="p">:</span>    <span class="n">color</span><span class="p">,</span>
-            <span class="s2">&quot;line_linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
-            <span class="s2">&quot;line_label&quot;</span><span class="p">:</span>    <span class="n">label</span><span class="p">,</span>
-            <span class="s2">&quot;extra_lines&quot;</span><span class="p">:</span>   <span class="p">[],</span>
-            <span class="s2">&quot;spans&quot;</span><span class="p">:</span>         <span class="p">[],</span>
-            <span class="s2">&quot;overlay_widgets&quot;</span><span class="p">:</span> <span class="p">[],</span>
-            <span class="s2">&quot;markers&quot;</span><span class="p">:</span>       <span class="p">[],</span>
-            <span class="s2">&quot;registered_keys&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;kind&quot;</span><span class="p">:</span>             <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span>             <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>           <span class="n">x_axis</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;units&quot;</span><span class="p">:</span>            <span class="n">units</span><span class="p">,</span>
+            <span class="s2">&quot;y_units&quot;</span><span class="p">:</span>          <span class="n">y_units</span><span class="p">,</span>
+            <span class="s2">&quot;data_min&quot;</span><span class="p">:</span>         <span class="n">dmin</span><span class="p">,</span>
+            <span class="s2">&quot;data_max&quot;</span><span class="p">:</span>         <span class="n">dmax</span><span class="p">,</span>
+            <span class="s2">&quot;view_x0&quot;</span><span class="p">:</span>          <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">&quot;view_x1&quot;</span><span class="p">:</span>          <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">&quot;line_color&quot;</span><span class="p">:</span>       <span class="n">color</span><span class="p">,</span>
+            <span class="s2">&quot;line_linewidth&quot;</span><span class="p">:</span>   <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+            <span class="s2">&quot;line_linestyle&quot;</span><span class="p">:</span>   <span class="n">_norm_linestyle</span><span class="p">(</span><span class="n">linestyle</span><span class="p">),</span>
+            <span class="s2">&quot;line_alpha&quot;</span><span class="p">:</span>       <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span>
+            <span class="s2">&quot;line_marker&quot;</span><span class="p">:</span>      <span class="n">marker</span> <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;line_markersize&quot;</span><span class="p">:</span>  <span class="nb">float</span><span class="p">(</span><span class="n">markersize</span><span class="p">),</span>
+            <span class="s2">&quot;line_label&quot;</span><span class="p">:</span>       <span class="n">label</span><span class="p">,</span>
+            <span class="s2">&quot;extra_lines&quot;</span><span class="p">:</span>      <span class="p">[],</span>
+            <span class="s2">&quot;spans&quot;</span><span class="p">:</span>            <span class="p">[],</span>
+            <span class="s2">&quot;overlay_widgets&quot;</span><span class="p">:</span>  <span class="p">[],</span>
+            <span class="s2">&quot;markers&quot;</span><span class="p">:</span>          <span class="p">[],</span>
+            <span class="s2">&quot;registered_keys&quot;</span><span class="p">:</span>  <span class="p">[],</span>
         <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span> <span class="o">=</span> <span class="n">MarkerRegistry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_push_markers</span><span class="p">,</span>
@@ -1967,6 +2212,25 @@
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the primary line&#39;s y-data and optionally its x-axis / units.</span>
+
+<span class="sd">        The y-axis range (``data_min`` / ``data_max``) is recomputed</span>
+<span class="sd">        automatically.  The viewport is **not** reset — call</span>
+<span class="sd">        :meth:`reset_view` explicitly if needed.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : array-like, shape (N,)</span>
+<span class="sd">            New y values.  Must be 1-D.</span>
+<span class="sd">        x_axis : array-like, shape (N,), optional</span>
+<span class="sd">            New x coordinates.  If omitted and the length of *data* matches</span>
+<span class="sd">            the current x-axis, the existing x-axis is reused; otherwise it</span>
+<span class="sd">            is reset to ``0, 1, …, N-1``.</span>
+<span class="sd">        units : str, optional</span>
+<span class="sd">            New x-axis label.  Unchanged if not supplied.</span>
+<span class="sd">        y_units : str, optional</span>
+<span class="sd">            New y-axis label.  Unchanged if not supplied.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data must be 1-D, got </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1989,6 +2253,23 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_recompute_data_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recompute data_min/data_max across the primary line and all overlays.</span>
+
+<span class="sd">        Called automatically whenever the set of lines changes so that every</span>
+<span class="sd">        curve stays fully visible.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">all_vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">ex</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">):</span>
+                <span class="n">all_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+        <span class="n">combined</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">all_vals</span><span class="p">)</span>
+        <span class="n">dmin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">combined</span><span class="p">))</span>
+        <span class="n">dmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">combined</span><span class="p">))</span>
+        <span class="n">pad</span>  <span class="o">=</span> <span class="p">(</span><span class="n">dmax</span> <span class="o">-</span> <span class="n">dmin</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span> <span class="k">if</span> <span class="n">dmax</span> <span class="o">&gt;</span> <span class="n">dmin</span> <span class="k">else</span> <span class="mf">0.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmin</span> <span class="o">-</span> <span class="n">pad</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmax</span> <span class="o">+</span> <span class="n">pad</span>
+
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="c1"># Extra lines</span>
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -1996,7 +2277,54 @@
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.add_line">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+                 <span class="n">linestyle</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;solid&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+                 <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">,</span>
                  <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Overlay an additional curve on this panel.</span>
+
+<span class="sd">        The y-axis range is automatically expanded to include the new data so</span>
+<span class="sd">        all lines remain fully visible.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : array-like, shape (N,)</span>
+<span class="sd">            Y values for the new line.  Must be 1-D.</span>
+<span class="sd">        x_axis : array-like, shape (N,), optional</span>
+<span class="sd">            X coordinates.  Defaults to the primary line&#39;s x-axis.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#ffffff&quot;``.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        linestyle : str, optional</span>
+<span class="sd">            Dash pattern: ``&quot;solid&quot;``, ``&quot;dashed&quot;``, ``&quot;dotted&quot;``,</span>
+<span class="sd">            ``&quot;dashdot&quot;`` (or shorthands).  Default ``&quot;solid&quot;``.</span>
+<span class="sd">        ls : str, optional</span>
+<span class="sd">            Short alias for *linestyle*.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Line opacity (0–1).  Default ``1.0``.</span>
+<span class="sd">        marker : str, optional</span>
+<span class="sd">            Per-point marker symbol (see :class:`Plot1D`).  Default</span>
+<span class="sd">            ``&quot;none&quot;``.</span>
+<span class="sd">        markersize : float, optional</span>
+<span class="sd">            Marker radius / half-side in pixels.  Default ``4.0``.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Legend label.  Default ``&quot;&quot;`` (no legend entry).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            An 8-character ID string.  Pass it to :meth:`remove_line` to</span>
+<span class="sd">            delete this line later.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        ::</span>
+
+<span class="sd">            lid = v.add_line(fit, x_axis=x, color=&quot;#ffcc00&quot;, label=&quot;fit&quot;)</span>
+<span class="sd">            # … later …</span>
+<span class="sd">            v.remove_line(lid)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data must be 1-D&quot;</span><span class="p">)</span>
@@ -2004,9 +2332,18 @@
               <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">])</span>
         <span class="n">lid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">lid</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span> <span class="n">xa</span><span class="p">,</span>
-            <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span> <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span>         <span class="n">lid</span><span class="p">,</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span>       <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>     <span class="n">xa</span><span class="p">,</span>
+            <span class="s2">&quot;color&quot;</span><span class="p">:</span>      <span class="n">color</span><span class="p">,</span>
+            <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span>  <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+            <span class="s2">&quot;linestyle&quot;</span><span class="p">:</span>  <span class="n">_norm_linestyle</span><span class="p">(</span><span class="n">ls</span> <span class="k">if</span> <span class="n">ls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">linestyle</span><span class="p">),</span>
+            <span class="s2">&quot;alpha&quot;</span><span class="p">:</span>      <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span>
+            <span class="s2">&quot;marker&quot;</span><span class="p">:</span>     <span class="n">marker</span> <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;markersize&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">markersize</span><span class="p">),</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span>      <span class="n">label</span><span class="p">,</span>
         <span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recompute_data_range</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">lid</span></div>
 
@@ -2014,18 +2351,38 @@
 <div class="viewcode-block" id="Plot1D.remove_line">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.remove_line">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove an overlay line by its ID.</span>
+
+<span class="sd">        The y-axis range is recomputed after removal.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        lid : str</span>
+<span class="sd">            The ID returned by :meth:`add_line`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If *lid* does not match any overlay line.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lid</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="n">before</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">lid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recompute_data_range</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.clear_lines">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.clear_lines">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove all overlay lines, leaving the primary line intact.</span>
+
+<span class="sd">        The y-axis range is recomputed after clearing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recompute_data_range</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
@@ -2036,6 +2393,24 @@
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.add_span">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_span</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">v1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
                  <span class="n">axis</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a shaded span along the x- or y-axis.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        v0, v1 : float</span>
+<span class="sd">            Start and end of the span in data coordinates.</span>
+<span class="sd">        axis : ``&quot;x&quot;`` | ``&quot;y&quot;``, optional</span>
+<span class="sd">            Which axis the span runs along.  Default ``&quot;x&quot;``.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string (supports alpha, e.g.</span>
+<span class="sd">            ``&quot;rgba(255,200,0,0.2)&quot;``).  Defaults to a theme-appropriate</span>
+<span class="sd">            yellow tint.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            Span ID for use with :meth:`remove_span`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">sid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;spans&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
             <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">sid</span><span class="p">,</span> <span class="s2">&quot;v0&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">v0</span><span class="p">),</span> <span class="s2">&quot;v1&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">v1</span><span class="p">),</span>
@@ -2048,6 +2423,18 @@
 <div class="viewcode-block" id="Plot1D.remove_span">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.remove_span">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove_span</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove a shaded span by its ID.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sid : str</span>
+<span class="sd">            The ID returned by :meth:`add_span`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If *sid* does not match any span.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;spans&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;spans&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;spans&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">sid</span><span class="p">]</span>
@@ -2059,6 +2446,7 @@
 <div class="viewcode-block" id="Plot1D.clear_spans">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.clear_spans">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_spans</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove all shaded spans.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;spans&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
@@ -2069,6 +2457,21 @@
 <div class="viewcode-block" id="Plot1D.add_vline_widget">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.add_vline_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_vline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_VLineWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable vertical-line overlay.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : float</span>
+<span class="sd">            Initial x position in data coordinates.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        VLineWidget</span>
+<span class="sd">            Widget object.  Register position callbacks with</span>
+<span class="sd">            :meth:`on_changed` / :meth:`on_release`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_VLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
         <span class="n">plot_ref</span><span class="p">,</span> <span class="n">wid_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">_id</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">_tp</span><span class="p">():</span>
@@ -2084,6 +2487,21 @@
 <div class="viewcode-block" id="Plot1D.add_hline_widget">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.add_hline_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_hline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_HLineWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable horizontal-line overlay.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        y : float</span>
+<span class="sd">            Initial y position in data coordinates.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        HLineWidget</span>
+<span class="sd">            Widget object.  Register position callbacks with</span>
+<span class="sd">            :meth:`on_changed` / :meth:`on_release`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_HLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
         <span class="n">plot_ref</span><span class="p">,</span> <span class="n">wid_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">_id</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">_tp</span><span class="p">():</span>
@@ -2100,6 +2518,21 @@
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.add_range_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_range_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_RangeWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable range (two vertical lines + shaded fill) overlay.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x0, x1 : float</span>
+<span class="sd">            Initial left and right edges in data coordinates.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        RangeWidget</span>
+<span class="sd">            Widget object.  Register position callbacks with</span>
+<span class="sd">            :meth:`on_changed` / :meth:`on_release`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_RangeWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
         <span class="n">plot_ref</span><span class="p">,</span> <span class="n">wid_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">_id</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">_tp</span><span class="p">():</span>
@@ -2139,12 +2572,14 @@
 <div class="viewcode-block" id="Plot1D.list_widgets">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.list_widgets">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_widgets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of all active widget objects on this panel.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.clear_widgets">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.clear_widgets">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_widgets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove all interactive overlay widgets from this panel.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
@@ -2238,6 +2673,17 @@
 <div class="viewcode-block" id="Plot1D.set_view">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.set_view">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Programmatically set the visible x range.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x0 : float, optional</span>
+<span class="sd">            Left edge of the view in data coordinates.  ``None`` keeps the</span>
+<span class="sd">            current left edge.</span>
+<span class="sd">        x1 : float, optional</span>
+<span class="sd">            Right edge of the view in data coordinates.  ``None`` keeps the</span>
+<span class="sd">            current right edge.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">xarr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">])</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xarr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">return</span>
@@ -2253,8 +2699,89 @@
 <div class="viewcode-block" id="Plot1D.reset_view">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.reset_view">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reset_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the view to show the full x range of the primary line.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;view_x0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;view_x1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Primary-line property setters</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Plot1D.set_color">
+<a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.set_color">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the primary line colour.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        color : str</span>
+<span class="sd">            Any CSS colour string (hex, ``rgb()``, named colour, etc.).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;line_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.set_linewidth">
+<a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.set_linewidth">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_linewidth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the primary line stroke width.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        linewidth : float</span>
+<span class="sd">            Stroke width in pixels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;line_linewidth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.set_linestyle">
+<a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.set_linestyle">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_linestyle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">linestyle</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the primary line dash pattern.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        linestyle : str</span>
+<span class="sd">            ``&quot;solid&quot;`` (``&quot;-&quot;``), ``&quot;dashed&quot;`` (``&quot;--&quot;``),</span>
+<span class="sd">            ``&quot;dotted&quot;`` (``&quot;:&quot;``), or ``&quot;dashdot&quot;`` (``&quot;-.&quot;``)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;line_linestyle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_norm_linestyle</span><span class="p">(</span><span class="n">linestyle</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.set_alpha">
+<a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.set_alpha">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the primary line opacity.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        alpha : float</span>
+<span class="sd">            Opacity in the range 0 (transparent) to 1 (fully opaque).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;line_alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.set_marker">
+<a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.set_marker">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_marker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">markersize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the primary line per-point marker symbol.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        marker : str</span>
+<span class="sd">            ``&quot;o&quot;``, ``&quot;s&quot;``, ``&quot;^&quot;``, ``&quot;v&quot;``, ``&quot;D&quot;``, ``&quot;+&quot;``,</span>
+<span class="sd">            ``&quot;x&quot;``, or ``&quot;none&quot;``.</span>
+<span class="sd">        markersize : float, optional</span>
+<span class="sd">            Marker radius / half-side in pixels.  Unchanged if not supplied.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;line_marker&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">marker</span> <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;none&quot;</span>
+        <span class="k">if</span> <span class="n">markersize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;line_markersize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">markersize</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
@@ -2271,6 +2798,40 @@
                     <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add circle markers at explicit (x, y) positions.</span>
+
+<span class="sd">        On 1-D panels circles are rendered as filled/stroked discs; *radius*</span>
+<span class="sd">        is in canvas pixels (not data units).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Marker positions as ``[[x0, y0], [x1, y1], …]`` in data</span>
+<span class="sd">            coordinates.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        radius : float or array-like, optional</span>
+<span class="sd">            Radius in pixels.  Scalar or per-marker array.  Default ``5``.</span>
+<span class="sd">        facecolors : str or None, optional</span>
+<span class="sd">            Fill colour.  ``None`` = no fill.</span>
+<span class="sd">        edgecolors : str, optional</span>
+<span class="sd">            Stroke colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Fill opacity (0–1).  Default ``0.3``.</span>
+<span class="sd">        hover_edgecolors, hover_facecolors : str, optional</span>
+<span class="sd">            Colour overrides applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-marker tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">            Live group object.  Call ``.set(**kwargs)`` to update in place.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># On 1-D panels the native type is &quot;points&quot; (radius maps to sizes).</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">sizes</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2287,7 +2848,35 @@
                    <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add point markers at (x, y) positions in data coordinates.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add point markers at (x, y) positions in data coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Marker positions as ``[[x0, y0], [x1, y1], …]``.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        sizes : float or array-like, optional</span>
+<span class="sd">            Radius in pixels.  Scalar or per-marker array.  Default ``5``.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            Stroke colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        facecolors : str or None, optional</span>
+<span class="sd">            Fill colour.  ``None`` = no fill.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Fill opacity (0–1).  Default ``0.3``.</span>
+<span class="sd">        hover_edgecolors, hover_facecolors : str, optional</span>
+<span class="sd">            Colour overrides applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-marker tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">sizes</span><span class="o">=</span><span class="n">sizes</span><span class="p">,</span>
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span>
                                 <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
@@ -2302,7 +2891,29 @@
                    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add static horizontal lines at the given y positions.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add static horizontal lines spanning the full x range.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        y_values : array-like, shape (N,)</span>
+<span class="sd">            Y positions of each line in data coordinates.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            Line colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        hover_edgecolors : str, optional</span>
+<span class="sd">            Colour override applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-line tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;hlines&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">y_values</span><span class="p">,</span>
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
@@ -2315,7 +2926,29 @@
                    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add static vertical lines at the given x positions.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add static vertical lines spanning the full y range.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_values : array-like, shape (N,)</span>
+<span class="sd">            X positions of each line in data coordinates.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            Line colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        hover_edgecolors : str, optional</span>
+<span class="sd">            Colour override applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-line tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;vlines&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">x_values</span><span class="p">,</span>
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
@@ -2328,6 +2961,31 @@
                    <span class="n">edgecolors</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arrow markers at explicit (x, y) positions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Arrow tail positions as ``[[x0, y0], …]`` in data coordinates.</span>
+<span class="sd">        U, V : array-like, shape (N,)</span>
+<span class="sd">            X and Y components of each arrow vector (in data units).</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        edgecolors : str, optional</span>
+<span class="sd">            Arrow colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        hover_edgecolors : str, optional</span>
+<span class="sd">            Colour override applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-arrow tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;arrows&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span> <span class="n">V</span><span class="o">=</span><span class="n">V</span><span class="p">,</span>
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
@@ -2341,6 +2999,37 @@
                      <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                      <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add ellipse markers at explicit (x, y) positions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Centre positions in data coordinates.</span>
+<span class="sd">        widths, heights : float or array-like</span>
+<span class="sd">            Full width and height of each ellipse in canvas pixels.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        angles : float or array-like, optional</span>
+<span class="sd">            Rotation angle(s) in degrees.  Default ``0``.</span>
+<span class="sd">        facecolors : str or None, optional</span>
+<span class="sd">            Fill colour.  ``None`` = no fill.</span>
+<span class="sd">        edgecolors : str, optional</span>
+<span class="sd">            Stroke colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Fill opacity (0–1).  Default ``0.3``.</span>
+<span class="sd">        hover_edgecolors, hover_facecolors : str, optional</span>
+<span class="sd">            Colour overrides applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-marker tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;ellipses&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
                                 <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span> <span class="n">angles</span><span class="o">=</span><span class="n">angles</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2356,6 +3045,29 @@
                   <span class="n">edgecolors</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add line-segment markers (static, not draggable).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        segments : array-like, shape (N, 2, 2)</span>
+<span class="sd">            Each segment is ``[[x0, y0], [x1, y1]]`` in data coordinates.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        edgecolors : str, optional</span>
+<span class="sd">            Line colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        hover_edgecolors : str, optional</span>
+<span class="sd">            Colour override applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-segment tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">segments</span><span class="o">=</span><span class="n">segments</span><span class="p">,</span>
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
@@ -2369,6 +3081,37 @@
                        <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                        <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add rectangle markers at explicit (x, y) positions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Centre positions in data coordinates.</span>
+<span class="sd">        widths, heights : float or array-like</span>
+<span class="sd">            Full width and height of each rectangle in canvas pixels.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        angles : float or array-like, optional</span>
+<span class="sd">            Rotation angle(s) in degrees.  Default ``0``.</span>
+<span class="sd">        facecolors : str or None, optional</span>
+<span class="sd">            Fill colour.  ``None`` = no fill.</span>
+<span class="sd">        edgecolors : str, optional</span>
+<span class="sd">            Stroke colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Fill opacity (0–1).  Default ``0.3``.</span>
+<span class="sd">        hover_edgecolors, hover_facecolors : str, optional</span>
+<span class="sd">            Colour overrides applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-marker tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;rectangles&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
                                 <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span> <span class="n">angles</span><span class="o">=</span><span class="n">angles</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2385,6 +3128,37 @@
                     <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add square markers at explicit (x, y) positions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Centre positions in data coordinates.</span>
+<span class="sd">        widths : float or array-like</span>
+<span class="sd">            Side length of each square in canvas pixels.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        angles : float or array-like, optional</span>
+<span class="sd">            Rotation angle(s) in degrees.  Default ``0``.</span>
+<span class="sd">        facecolors : str or None, optional</span>
+<span class="sd">            Fill colour.  ``None`` = no fill.</span>
+<span class="sd">        edgecolors : str, optional</span>
+<span class="sd">            Stroke colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Fill opacity (0–1).  Default ``0.3``.</span>
+<span class="sd">        hover_edgecolors, hover_facecolors : str, optional</span>
+<span class="sd">            Colour overrides applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-marker tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;squares&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
                                 <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">angles</span><span class="o">=</span><span class="n">angles</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2401,6 +3175,34 @@
                      <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                      <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add polygon markers defined by explicit vertex lists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vertices_list : list of array-like, each shape (K, 2)</span>
+<span class="sd">            One polygon per element; each is a list of ``[x, y]`` vertices</span>
+<span class="sd">            in data coordinates.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        facecolors : str or None, optional</span>
+<span class="sd">            Fill colour.  ``None`` = no fill.</span>
+<span class="sd">        edgecolors : str, optional</span>
+<span class="sd">            Stroke colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        linewidths : float, optional</span>
+<span class="sd">            Stroke width in pixels.  Default ``1.5``.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Fill opacity (0–1).  Default ``0.3``.</span>
+<span class="sd">        hover_edgecolors, hover_facecolors : str, optional</span>
+<span class="sd">            Colour overrides applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-polygon tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;polygons&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vertices_list</span><span class="o">=</span><span class="n">vertices_list</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
                                 <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
@@ -2415,6 +3217,31 @@
                   <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add text annotations at explicit (x, y) positions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Anchor positions in data coordinates.</span>
+<span class="sd">        texts : list of str</span>
+<span class="sd">            One string per position.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            Text colour.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        fontsize : int, optional</span>
+<span class="sd">            Font size in pixels.  Default ``12``.</span>
+<span class="sd">        hover_edgecolors : str, optional</span>
+<span class="sd">            Colour override applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-annotation tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;texts&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span>
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
@@ -2424,18 +3251,36 @@
 <div class="viewcode-block" id="Plot1D.remove_marker">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.remove_marker">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove_marker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">marker_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove a named marker collection by type and name.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        marker_type : str</span>
+<span class="sd">            Collection type, e.g. ``&quot;points&quot;``, ``&quot;vlines&quot;``.</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name used when the collection was created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">marker_type</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.clear_markers">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.clear_markers">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove all marker collections from this panel.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.list_markers">
 <a class="viewcode-back" href="../../api/figure_plots.html#anyplotlib.figure.Plot1D.list_markers">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a summary list of all marker collections on this panel.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of dict</span>
+<span class="sd">            Each dict has keys ``&quot;type&quot;``, ``&quot;name&quot;``, and ``&quot;n&quot;``</span>
+<span class="sd">            (number of markers in the collection).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">mtype</span><span class="p">,</span> <span class="n">td</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">_types</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">td</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>

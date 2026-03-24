@@ -49,8 +49,8 @@
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/plot_spectra1d.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Bar Chart" href="plot_bar.html" />
-    <link rel="prev" title="pcolormesh — non-linear axes" href="plot_pcolormesh.html" />
+    <link rel="next" title="2D Image with Histogram" href="plot_image2d.html" />
+    <link rel="prev" title="Bar Chart" href="plot_bar.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -296,9 +296,10 @@
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">1D Spectra</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">1D Spectra</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_image2d.html">2D Image with Histogram</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -402,9 +403,12 @@ to download the full example code.</p>
 <p>Plot a 1-D spectrum with a physical x-axis (energy in eV) using
 <a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Axes.plot" title="anyplotlib.figure_plots.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot()</span></code></a>.</p>
 <p>The spectrum contains a broad background and three Gaussian peaks.
-Circle markers highlight the peak positions, and a range widget
-selects a region of interest.  Pan and zoom with the mouse; press <strong>R</strong>
-to reset the view.</p>
+Circle markers highlight the peak positions using
+<a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Plot1D.add_points" title="anyplotlib.figure_plots.Plot1D.add_points"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_points()</span></code></a>, and a range widget
+selects a region of interest.  A model fit is overlaid with a dashed line,
+and the background component is shown as a semi-transparent dotted curve with
+diamond markers.</p>
+<p>Pan and zoom with the mouse; press <strong>R</strong> to reset the view.</p>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
 
@@ -416,9 +420,11 @@ to reset the view.</p>
 <span class="k">def</span><span class="w"> </span><span class="nf">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">amp</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">amp</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">background</span></a> <span class="o">=</span> <span class="mf">0.4</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.08</span> <span class="o">*</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">-</span> <span class="mi">280</span><span class="p">))</span>
+
 <span class="c1"># Background + three peaks (C 1s region)</span>
 <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectrum</span></a> <span class="o">=</span> <span class="p">(</span>
-    <span class="mf">0.4</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.08</span> <span class="o">*</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">-</span> <span class="mi">280</span><span class="p">))</span>     <span class="c1"># exponential background</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">background</span></a>
     <span class="o">+</span> <span class="n">gaussian</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span> <span class="mf">284.8</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>      <span class="c1"># C–C / C–H</span>
     <span class="o">+</span> <span class="n">gaussian</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span> <span class="mf">286.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">)</span>     <span class="c1"># C–O</span>
     <span class="o">+</span> <span class="n">gaussian</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span> <span class="mf">288.0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.18</span><span class="p">)</span>     <span class="c1"># C=O</span>
@@ -426,10 +432,11 @@ to reset the view.</p>
 <span class="p">)</span>
 
 <span class="c1"># ── Plot ──────────────────────────────────────────────────────────────────────</span>
-<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">620</span><span class="p">,</span> <span class="mi">320</span><span class="p">))</span>
-<span class="n">v</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectrum</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;eV&quot;</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Intensity (a.u.)&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">620</span><span class="p">,</span> <span class="mi">340</span><span class="p">))</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectrum</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;eV&quot;</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Intensity (a.u.)&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
 
-<span class="c1"># ── Peak markers ──────────────────────────────────────────────────────────────</span>
+<span class="c1"># ── Peak markers (add_points collection) ──────────────────────────────────────</span>
 <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">peak_energies</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span><span class="mf">284.8</span><span class="p">,</span> <span class="mf">286.2</span><span class="p">,</span> <span class="mf">288.0</span><span class="p">])</span>
 <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">peak_offsets</span></a>  <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html#numpy.column_stack" title="numpy.column_stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span></a><span class="p">([</span>
     <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">peak_energies</span></a><span class="p">,</span>
@@ -445,22 +452,60 @@ to reset the view.</p>
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f4ae0d8a4" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:336px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f4ae0d8a4'),ifr=wrap.querySelector('iframe'),nw=636,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="overlay-a-second-spectrum">
-<h2>Overlay a second spectrum<a class="headerlink" href="#overlay-a-second-spectrum" title="Link to this heading">#</a></h2>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f91629543" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f91629543'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="overlay-a-model-fit-linestyle-and-alpha">
+<h2>Overlay a model fit — linestyle and alpha<a class="headerlink" href="#overlay-a-model-fit-linestyle-and-alpha" title="Link to this heading">#</a></h2>
 <p>Use <a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Plot1D.add_line" title="anyplotlib.figure_plots.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_line()</span></code></a> to overlay additional
-curves — useful for comparing reference spectra or fits.</p>
+curves.  Here the noiseless model fit is drawn as a <strong>dashed</strong> line so it
+is visually distinct from the noisy measured spectrum.  The <code class="docutils literal notranslate"><span class="pre">alpha</span></code>
+parameter makes the fit semi-transparent so the data underneath remains
+readable.</p>
+<p>The y-axis range is expanded automatically to accommodate any overlay line
+whose values fall outside the current bounds.</p>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fit</span></a> <span class="o">=</span> <span class="p">(</span>
-    <span class="mf">0.4</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.08</span> <span class="o">*</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">-</span> <span class="mi">280</span><span class="p">))</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">background</span></a>
     <span class="o">+</span> <span class="n">gaussian</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span> <span class="mf">284.8</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
     <span class="o">+</span> <span class="n">gaussian</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span> <span class="mf">286.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">)</span>
     <span class="o">+</span> <span class="n">gaussian</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span> <span class="mf">288.0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.18</span><span class="p">)</span>
 <span class="p">)</span>
-<span class="n">v</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fit</span></a><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffcc00&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;fit&quot;</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fit</span></a><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">,</span>
+           <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffcc00&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+           <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.85</span><span class="p">,</span>
+           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;fit&quot;</span><span class="p">)</span>
 
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f97204bb3" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:336px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f97204bb3'),ifr=wrap.querySelector('iframe'),nw=636,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.043 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fae2bda67" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fae2bda67'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="background-component-dotted-line-with-markers">
+<h2>Background component — dotted line with markers<a class="headerlink" href="#background-component-dotted-line-with-markers" title="Link to this heading">#</a></h2>
+<p>Draw the exponential background component as a <strong>dotted</strong> curve.  Passing
+<code class="docutils literal notranslate"><span class="pre">marker=&quot;D&quot;</span></code> places a diamond at every data point (useful when the line
+is sparse or when you want to emphasise individual sample positions).
+<code class="docutils literal notranslate"><span class="pre">markersize</span></code> controls the half-size of the symbol in pixels.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sub-sample to keep the marker plot readable</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">step</span></a> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">v</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">background</span></a><span class="p">[::</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">step</span></a><span class="p">],</span> <span class="n">x_axis</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">[::</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">step</span></a><span class="p">],</span>
+           <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ce93d8&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span>
+           <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dotted&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+           <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;background&quot;</span><span class="p">)</span>
+
+<span class="n">fig</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f329773b6" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_003.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f329773b6'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="post-construction-setters">
+<h2>Post-construction setters<a class="headerlink" href="#post-construction-setters" title="Link to this heading">#</a></h2>
+<p>All primary-line style properties can be changed after the panel is created
+without rebuilding it.  This is useful in interactive notebooks where you
+want to tweak the appearance of the main trace.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span><span class="o">.</span><span class="n">set_alpha</span><span class="p">(</span><span class="mf">0.9</span><span class="p">)</span>          <span class="c1"># slightly reduce primary-line opacity</span>
+<span class="n">v</span><span class="o">.</span><span class="n">set_linewidth</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>      <span class="c1"># thicker stroke for the main spectrum</span>
+
+<span class="n">fig</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f25616c74" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_004.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f25616c74'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.087 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plot-spectra1d-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../_downloads/d21d159f249d730725dfa6634f9562bf/plot_spectra1d.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_spectra1d.ipynb</span></code></a></p>
@@ -487,20 +532,20 @@ curves — useful for comparing reference spectra or fits.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="plot_pcolormesh.html"
+       href="plot_bar.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">pcolormesh — non-linear axes</p>
+        <p class="prev-next-title">Bar Chart</p>
       </div>
     </a>
     <a class="right-next"
-       href="plot_bar.html"
+       href="plot_image2d.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Bar Chart</p>
+        <p class="prev-next-title">2D Image with Histogram</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -523,7 +568,9 @@ curves — useful for comparing reference spectra or fits.</p>
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overlay-a-second-spectrum">Overlay a second spectrum</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overlay-a-model-fit-linestyle-and-alpha">Overlay a model fit — linestyle and alpha</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#background-component-dotted-line-with-markers">Background component — dotted line with markers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#post-construction-setters">Post-construction setters</a></li>
 </ul>
   </nav></div>
 

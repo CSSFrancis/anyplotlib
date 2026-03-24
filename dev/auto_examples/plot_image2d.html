@@ -49,8 +49,8 @@
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/plot_image2d.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Interactive Examples" href="Interactive/index.html" />
-    <link rel="prev" title="Bar Chart" href="plot_bar.html" />
+    <link rel="next" title="1D Line Styles" href="plot_line_styles.html" />
+    <link rel="prev" title="1D Spectra" href="plot_spectra1d.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -296,9 +296,10 @@
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">2D Image with Histogram</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -410,6 +411,21 @@ on top and a bar-chart histogram below.  Two
 image colour scale in real time.</p>
 <p>Key bindings on the image panel: <strong>R</strong> reset view · <strong>C</strong> toggle colorbar ·
 <strong>L</strong> / <strong>S</strong> cycle colour-scale modes.</p>
+</section>
+<section id="new-imshow-parameters">
+<h2>New <code class="docutils literal notranslate"><span class="pre">imshow</span></code> parameters<a class="headerlink" href="#new-imshow-parameters" title="Link to this heading">#</a></h2>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">cmap</span></code></dt><dd><p>Colormap name passed directly to <a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Axes.imshow" title="anyplotlib.figure_plots.Axes.imshow"><code class="xref py py-meth docutils literal notranslate"><span class="pre">imshow()</span></code></a>
+(e.g. <code class="docutils literal notranslate"><span class="pre">&quot;viridis&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;inferno&quot;</span></code>).  Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;gray&quot;</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">vmin</span></code> / <code class="docutils literal notranslate"><span class="pre">vmax</span></code></dt><dd><p>Colormap clipping limits in data units.  Values outside the range are
+clamped to the colormap endpoints.  Defaults to the data min/max.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">origin</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">&quot;upper&quot;</span></code> (default) places row 0 at the top (image convention).
+<code class="docutils literal notranslate"><span class="pre">&quot;lower&quot;</span></code> places row 0 at the bottom (scientific / matrix convention)
+and automatically reverses the y-axis so tick values increase upward.</p>
+</dd>
+</dl>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
 
@@ -441,13 +457,14 @@ image colour scale in real time.</p>
 <span class="n">ax_img</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 <span class="n">ax_hist</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 
-<span class="c1"># ── Image panel ───────────────────────────────────────────────────────────────</span>
-<span class="n">v</span> <span class="o">=</span> <span class="n">ax_img</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;nm&quot;</span><span class="p">)</span>
-<span class="n">v</span><span class="o">.</span><span class="n">set_colormap</span><span class="p">(</span><span class="s2">&quot;inferno&quot;</span><span class="p">)</span>
-
+<span class="c1"># ── Image panel — cmap, vmin, vmax supplied directly to imshow ────────────────</span>
 <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">vmin_init</span></a> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="o">.</span><span class="n">min</span><span class="p">())</span>
 <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">vmax_init</span></a> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="o">.</span><span class="n">max</span><span class="p">())</span>
-<span class="n">v</span><span class="o">.</span><span class="n">set_clim</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">vmin_init</span></a><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">vmax_init</span></a><span class="p">)</span>
+
+<span class="c1"># Pass cmap, vmin, and vmax directly — no separate set_colormap / set_clim call</span>
+<span class="c1"># needed for the initial display.</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">ax_img</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;nm&quot;</span><span class="p">,</span>
+                  <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">vmin_init</span></a><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">vmax_init</span></a><span class="p">)</span>
 
 <span class="c1"># First-order spot markers</span>
 <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">dx</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -492,18 +509,33 @@ image colour scale in real time.</p>
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd6acd07c" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_001.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd6acd07c'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
-<section id="adjust-colour-map">
-<h2>Adjust colour map<a class="headerlink" href="#adjust-colour-map" title="Link to this heading">#</a></h2>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe9747182" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_001.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe9747182'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="adjust-colour-map-and-display-range">
+<h2>Adjust colour map and display range<a class="headerlink" href="#adjust-colour-map-and-display-range" title="Link to this heading">#</a></h2>
 <p><a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Plot2D.set_colormap" title="anyplotlib.figure_plots.Plot2D.set_colormap"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_colormap()</span></code></a> switches the palette;
-<a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Plot2D.set_clim" title="anyplotlib.figure_plots.Plot2D.set_clim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_clim()</span></code></a> adjusts the display range.</p>
+<a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Plot2D.set_clim" title="anyplotlib.figure_plots.Plot2D.set_clim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_clim()</span></code></a> adjusts the display range.
+Both are equivalent to passing <code class="docutils literal notranslate"><span class="pre">cmap</span></code> / <code class="docutils literal notranslate"><span class="pre">vmin</span></code> / <code class="docutils literal notranslate"><span class="pre">vmax</span></code> at construction.</p>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span><span class="o">.</span><span class="n">set_colormap</span><span class="p">(</span><span class="s2">&quot;viridis&quot;</span><span class="p">)</span>
 <span class="n">v</span><span class="o">.</span><span class="n">set_clim</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
 
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="faa2642b8" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_002.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('faa2642b8'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.102 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="ffdea45b5" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_002.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('ffdea45b5'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="origin-lower-scientific-matrix-convention">
+<h2>origin=’lower’ — scientific / matrix convention<a class="headerlink" href="#origin-lower-scientific-matrix-convention" title="Link to this heading">#</a></h2>
+<p>Passing <code class="docutils literal notranslate"><span class="pre">origin='lower'</span></code> places row 0 of the data at the <em>bottom</em> of the
+image, matching the matplotlib / scientific convention.  The y-axis is
+automatically reversed so tick values still increase upward.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mat</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>   <span class="c1"># row 0 = small values</span>
+
+<span class="n">fig2</span><span class="p">,</span> <span class="n">ax2</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">v2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mat</span></a><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;plasma&quot;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;lower&quot;</span><span class="p">)</span>
+
+<span class="n">fig2</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f9402c195" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_003.html" frameborder="0" scrolling="no" style="width:656px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f9402c195'),ifr=wrap.querySelector('iframe'),nw=656,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.125 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plot-image2d-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../_downloads/273195527168752db8a2069c74334d7e/plot_image2d.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_image2d.ipynb</span></code></a></p>
@@ -530,20 +562,20 @@ image colour scale in real time.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="plot_bar.html"
+       href="plot_spectra1d.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Bar Chart</p>
+        <p class="prev-next-title">1D Spectra</p>
       </div>
     </a>
     <a class="right-next"
-       href="Interactive/index.html"
+       href="plot_line_styles.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Interactive Examples</p>
+        <p class="prev-next-title">1D Line Styles</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -567,7 +599,9 @@ image colour scale in real time.</p>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#layout">Layout</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#adjust-colour-map">Adjust colour map</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#new-imshow-parameters">New <code class="docutils literal notranslate"><span class="pre">imshow</span></code> parameters</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#adjust-colour-map-and-display-range">Adjust colour map and display range</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#origin-lower-scientific-matrix-convention">origin=’lower’ — scientific / matrix convention</a></li>
 </ul>
   </nav></div>
 

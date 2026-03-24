@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:00.725** total execution time for 5 files **from auto_examples**:
+**00:00.950** total execution time for 6 files **from auto_examples**:
 
 .. container::
 
@@ -33,17 +33,20 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_plot_3d.py` (``plot_3d.py``)
-     - 00:00.446
+     - 00:00.467
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plot_line_styles.py` (``plot_line_styles.py``)
+     - 00:00.131
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plot_image2d.py` (``plot_image2d.py``)
-     - 00:00.102
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_plot_bar.py` (``plot_bar.py``)
-     - 00:00.070
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_plot_pcolormesh.py` (``plot_pcolormesh.py``)
-     - 00:00.065
+     - 00:00.125
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plot_spectra1d.py` (``plot_spectra1d.py``)
-     - 00:00.043
+     - 00:00.087
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plot_bar.py` (``plot_bar.py``)
+     - 00:00.074
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plot_pcolormesh.py` (``plot_pcolormesh.py``)
+     - 00:00.067
      - 0.0

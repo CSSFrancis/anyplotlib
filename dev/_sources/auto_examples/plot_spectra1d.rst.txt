@@ -25,11 +25,15 @@ Plot a 1-D spectrum with a physical x-axis (energy in eV) using
 :meth:`~anyplotlib.figure_plots.Axes.plot`.
 
 The spectrum contains a broad background and three Gaussian peaks.
-Circle markers highlight the peak positions, and a range widget
-selects a region of interest.  Pan and zoom with the mouse; press **R**
-to reset the view.
+Circle markers highlight the peak positions using
+:meth:`~anyplotlib.figure_plots.Plot1D.add_points`, and a range widget
+selects a region of interest.  A model fit is overlaid with a dashed line,
+and the background component is shown as a semi-transparent dotted curve with
+diamond markers.
 
-.. GENERATED FROM PYTHON SOURCE LINES 13-52
+Pan and zoom with the mouse; press **R** to reset the view.
+
+.. GENERATED FROM PYTHON SOURCE LINES 17-59
 
 .. code-block:: Python
 
@@ -44,9 +48,11 @@ to reset the view.
     def gaussian(x, mu, sigma, amp):
         return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
+    background = 0.4 * np.exp(-0.08 * (energy - 280))
+
     # Background + three peaks (C 1s region)
     spectrum = (
-        0.4 * np.exp(-0.08 * (energy - 280))     # exponential background
+        background
         + gaussian(energy, 284.8, 0.4, 1.0)      # C–C / C–H
         + gaussian(energy, 286.2, 0.4, 0.35)     # C–O
         + gaussian(energy, 288.0, 0.4, 0.18)     # C=O
@@ -54,10 +60,11 @@ to reset the view.
     )
 
     # ── Plot ──────────────────────────────────────────────────────────────────────
-    fig, ax = vw.subplots(1, 1, figsize=(620, 320))
-    v = ax.plot(spectrum, axes=[energy], units="eV", y_units="Intensity (a.u.)")
+    fig, ax = vw.subplots(1, 1, figsize=(620, 340))
+    v = ax.plot(spectrum, axes=[energy], units="eV", y_units="Intensity (a.u.)",
+                color="#4fc3f7", linewidth=1.5)
 
-    # ── Peak markers ──────────────────────────────────────────────────────────────
+    # ── Peak markers (add_points collection) ──────────────────────────────────────
     peak_energies = np.array([284.8, 286.2, 288.0])
     peak_offsets  = np.column_stack([
         peak_energies,
@@ -78,32 +85,109 @@ to reset the view.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f4ae0d8a4" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:336px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f4ae0d8a4'),ifr=wrap.querySelector('iframe'),nw=636,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f91629543" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f91629543'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 53-57
+.. GENERATED FROM PYTHON SOURCE LINES 60-70
 
-Overlay a second spectrum
--------------------------
+Overlay a model fit — linestyle and alpha
+-----------------------------------------
 Use :meth:`~anyplotlib.figure_plots.Plot1D.add_line` to overlay additional
-curves — useful for comparing reference spectra or fits.
+curves.  Here the noiseless model fit is drawn as a **dashed** line so it
+is visually distinct from the noisy measured spectrum.  The ``alpha``
+parameter makes the fit semi-transparent so the data underneath remains
+readable.
 
-.. GENERATED FROM PYTHON SOURCE LINES 57-67
+The y-axis range is expanded automatically to accommodate any overlay line
+whose values fall outside the current bounds.
+
+.. GENERATED FROM PYTHON SOURCE LINES 70-84
 
 .. code-block:: Python
 
 
     fit = (
-        0.4 * np.exp(-0.08 * (energy - 280))
+        background
         + gaussian(energy, 284.8, 0.4, 1.0)
         + gaussian(energy, 286.2, 0.4, 0.35)
         + gaussian(energy, 288.0, 0.4, 0.18)
     )
-    v.add_line(fit, x_axis=energy, color="#ffcc00", linewidth=1.5, label="fit")
+    v.add_line(fit, x_axis=energy,
+               color="#ffcc00", linewidth=2.0,
+               linestyle="dashed", alpha=0.85,
+               label="fit")
+
+    fig
+
+
+
+
+
+.. raw:: html
+
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fae2bda67" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fae2bda67'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+
+
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 85-91
+
+Background component — dotted line with markers
+------------------------------------------------
+Draw the exponential background component as a **dotted** curve.  Passing
+``marker="D"`` places a diamond at every data point (useful when the line
+is sparse or when you want to emphasise individual sample positions).
+``markersize`` controls the half-size of the symbol in pixels.
+
+.. GENERATED FROM PYTHON SOURCE LINES 91-102
+
+.. code-block:: Python
+
+
+    # Sub-sample to keep the marker plot readable
+    step = 32
+    v.add_line(background[::step], x_axis=energy[::step],
+               color="#ce93d8", linewidth=1.2,
+               linestyle="dotted", alpha=0.9,
+               marker="D", markersize=3,
+               label="background")
+
+    fig
+
+
+
+
+
+.. raw:: html
+
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f329773b6" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_003.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f329773b6'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+
+
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 103-108
+
+Post-construction setters
+-------------------------
+All primary-line style properties can be changed after the panel is created
+without rebuilding it.  This is useful in interactive notebooks where you
+want to tweak the appearance of the main trace.
+
+.. GENERATED FROM PYTHON SOURCE LINES 108-113
+
+.. code-block:: Python
+
+
+    v.set_alpha(0.9)          # slightly reduce primary-line opacity
+    v.set_linewidth(2.0)      # thicker stroke for the main spectrum
 
     fig
 
@@ -112,7 +196,7 @@ curves — useful for comparing reference spectra or fits.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f97204bb3" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:336px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f97204bb3'),ifr=wrap.querySelector('iframe'),nw=636,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f25616c74" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_004.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f25616c74'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -122,7 +206,7 @@ curves — useful for comparing reference spectra or fits.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.043 seconds)
+   **Total running time of the script:** (0 minutes 0.087 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_spectra1d.py:

@@ -48,23 +48,6 @@ A collection of short, self-contained examples.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Plot a 1-D spectrum with a physical x-axis (energy in eV) using plot.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_spectra1d_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_spectra1d`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">1D Spectra</div>
-    </div>
-
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with vertical and horizontal orientations, per-bar colours, category labels, and live data updates via update.">
 
 .. only:: html
@@ -77,6 +60,23 @@ A collection of short, self-contained examples.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">Bar Chart</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Plot a 1-D spectrum with a physical x-axis (energy in eV) using plot.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_spectra1d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_spectra1d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Spectra</div>
     </div>
 
 
@@ -97,6 +97,23 @@ A collection of short, self-contained examples.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the line-style, opacity, and per-point marker parameters available on plot and add_line.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_line_styles_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_line_styles`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Line Styles</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -109,9 +126,10 @@ A collection of short, self-contained examples.
 
    /auto_examples/plot_3d
    /auto_examples/plot_pcolormesh
-   /auto_examples/plot_spectra1d
    /auto_examples/plot_bar
+   /auto_examples/plot_spectra1d
    /auto_examples/plot_image2d
+   /auto_examples/plot_line_styles
 
 Interactive Examples
 ====================

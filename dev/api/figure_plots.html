@@ -434,14 +434,26 @@ a Plot2D or Plot1D object.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Axes.imshow">
-<span class="sig-name descname"><span class="pre">imshow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Axes.imshow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Axes.imshow" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">imshow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'upper'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Axes.imshow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Axes.imshow" title="Link to this definition">#</a></dt>
 <dd><p>Attach a 2-D image to this axes cell.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>np.ndarray  shape</em><em> (</em><em>H</em><em>, </em><em>W</em><em>) or </em><em>(</em><em>H</em><em>, </em><em>W</em><em>, </em><em>C</em><em>)</em>)</p></li>
-<li><p><strong>axes</strong> (<em>[</em><em>x_axis</em><em>, </em><em>y_axis</em><em>]</em><em>, </em><em>optional</em>)</p></li>
-<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>)</p></li>
+<li><p><strong>data</strong> (<em>np.ndarray</em><em>, </em><em>shape</em><em> (</em><em>H</em><em>, </em><em>W</em><em>) or </em><em>(</em><em>H</em><em>, </em><em>W</em><em>, </em><em>C</em><em>)</em>) – Image data.  RGB/RGBA arrays use only the first channel.</p></li>
+<li><p><strong>axes</strong> (<em>[</em><em>x_axis</em><em>, </em><em>y_axis</em><em>]</em><em>, </em><em>optional</em>) – Physical coordinate arrays for each axis.</p></li>
+<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Axis units label.  Default <code class="docutils literal notranslate"><span class="pre">&quot;px&quot;</span></code>.</p></li>
+<li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colormap name (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;viridis&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;inferno&quot;</span></code>).
+Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;gray&quot;</span></code>.</p></li>
+<li><p><strong>vmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Colormap clipping limits in data units.  Values outside this
+range are clamped to the colormap endpoints.  Defaults to the
+data min / max.</p></li>
+<li><p><strong>vmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Colormap clipping limits in data units.  Values outside this
+range are clamped to the colormap endpoints.  Defaults to the
+data min / max.</p></li>
+<li><p><strong>origin</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;upper&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;lower&quot;</span></code>, optional) – Where row 0 of the array is placed.  <code class="docutils literal notranslate"><span class="pre">&quot;upper&quot;</span></code> (default)
+puts row 0 at the top, matching the usual image convention.
+<code class="docutils literal notranslate"><span class="pre">&quot;lower&quot;</span></code> puts row 0 at the bottom, matching the matplotlib
+convention for matrices / scientific plots.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -554,24 +566,64 @@ or 1-D centre arrays for X/Y with a 2-D Z.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Axes.plot">
-<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Axes.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Axes.plot" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linestyle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markersize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Axes.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Axes.plot" title="Link to this definition">#</a></dt>
 <dd><p>Attach a 1-D line to this axes cell.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>np.ndarray  shape</em><em> (</em><em>N</em><em>,</em><em>)</em>)</p></li>
-<li><p><strong>axes</strong> (<em>[</em><em>x_axis</em><em>]</em><em>, </em><em>optional</em>)</p></li>
-<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>)</p></li>
-<li><p><strong>y_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>)</p></li>
-<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>)</p></li>
-<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>)</p></li>
-<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>)</p></li>
+<li><p><strong>data</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em>) – Y values.  Must be 1-D.</p></li>
+<li><p><strong>axes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>, </em><em>optional</em>) – <code class="docutils literal notranslate"><span class="pre">[x_axis]</span></code> — a one-element list containing the x-coordinates
+(shape <code class="docutils literal notranslate"><span class="pre">(N,)</span></code>).  If omitted the x-axis defaults to
+<code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">…,</span> <span class="pre">N-1</span></code>.</p></li>
+<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Label for the x-axis (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;eV&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>).  Default
+<code class="docutils literal notranslate"><span class="pre">&quot;px&quot;</span></code>.</p></li>
+<li><p><strong>y_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Label for the y-axis.  Default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> (no label).</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string for the line (hex, <code class="docutils literal notranslate"><span class="pre">rgb()</span></code>, named colour,
+etc.).  Default <code class="docutils literal notranslate"><span class="pre">&quot;#4fc3f7&quot;</span></code>.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>linestyle</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Dash pattern.  Accepted values: <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;-&quot;</span></code>),
+<code class="docutils literal notranslate"><span class="pre">&quot;dashed&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;--&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;dotted&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;:&quot;</span></code>),
+<code class="docutils literal notranslate"><span class="pre">&quot;dashdot&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;-.&quot;</span></code>) .  Default <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code>.</p></li>
+<li><p><strong>ls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Short alias for <em>linestyle</em>.  Takes precedence if both are given.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Line opacity in the range 0–1.  Default <code class="docutils literal notranslate"><span class="pre">1.0</span></code> (fully opaque).</p></li>
+<li><p><strong>marker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-point marker symbol.  Supported values: <code class="docutils literal notranslate"><span class="pre">&quot;o&quot;</span></code> (circle),
+<code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code> (square), <code class="docutils literal notranslate"><span class="pre">&quot;^&quot;</span></code> (triangle-up), <code class="docutils literal notranslate"><span class="pre">&quot;v&quot;</span></code> (triangle-down),
+<code class="docutils literal notranslate"><span class="pre">&quot;D&quot;</span></code> (diamond), <code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code> (plus), <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> (cross),
+<code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> (no markers).  Default <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.</p></li>
+<li><p><strong>markersize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Marker radius / half-side in pixels.  Default <code class="docutils literal notranslate"><span class="pre">4.0</span></code>.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Legend label.  A legend is only drawn when at least one line has
+a non-empty label.  Default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> (no legend entry).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D" title="anyplotlib.figure_plots.Plot1D">Plot1D</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Live plot object.  Call methods on it to update data, add
+overlays, register callbacks, etc.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D" title="anyplotlib.figure_plots.Plot1D">Plot1D</a></p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<p>Basic sine wave with a physical x-axis:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">512</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">620</span><span class="p">,</span> <span class="mi">320</span><span class="p">))</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;rad&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;sin&quot;</span><span class="p">)</span>
+<span class="n">v</span>  <span class="c1"># display in a Jupyter cell</span>
+</pre></div>
+</div>
+<p>Dashed line with semi-transparent markers:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+            <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Overlay a second curve with <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_line" title="anyplotlib.figure_plots.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Plot1D.add_line()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">v</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">x_axis</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#aed581&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;cos&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -605,21 +657,98 @@ instead of numeric tick values.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure_plots.</span></span><span class="sig-name descname"><span class="pre">Plot1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure_plots.</span></span><span class="sig-name descname"><span class="pre">Plot1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linestyle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markersize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>1-D line plot panel.</p>
-<p>Holds state in <code class="docutils literal notranslate"><span class="pre">_state</span></code> dict; every mutation pushes to Figure trait.
-Exposes the full Viewer1D-compatible API plus the new marker API.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>np.ndarray</em>)</p></li>
-<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>y_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-</ul>
+<p>1-D line plot panel returned by <a class="reference internal" href="#anyplotlib.figure_plots.Axes.plot" title="anyplotlib.figure_plots.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Axes.plot()</span></code></a>.</p>
+<p>All display state is stored in a plain <code class="docutils literal notranslate"><span class="pre">_state</span></code> dict.  Every mutation
+ends with <code class="xref py py-meth docutils literal notranslate"><span class="pre">_push()</span></code>, which serialises the state to the parent
+<code class="docutils literal notranslate"><span class="pre">Figure</span></code> trait so the JS renderer picks up the change immediately.</p>
+<section id="supported-line-properties">
+<h2>Supported line properties<a class="headerlink" href="#supported-line-properties" title="Link to this heading">#</a></h2>
+<p>Set at construction time via <a class="reference internal" href="#anyplotlib.figure_plots.Axes.plot" title="anyplotlib.figure_plots.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Axes.plot()</span></code></a> or updated afterwards
+with the corresponding setter:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 64.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">color</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;#4fc3f7&quot;</span></code></p></td>
+<td><p>CSS colour string for the primary line.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">linewidth</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.5</span></code></p></td>
+<td><p>Stroke width in pixels.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">linestyle</span></code> (<code class="docutils literal notranslate"><span class="pre">ls</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code></p></td>
+<td><p>Dash pattern: <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;dashed&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;dotted&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;dashdot&quot;</span></code>.  Shorthands <code class="docutils literal notranslate"><span class="pre">&quot;-&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;--&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;:&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;-.&quot;</span></code> also accepted.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.0</span></code></p></td>
+<td><p>Line opacity (0 = transparent, 1 = fully opaque).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">marker</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code></p></td>
+<td><p>Per-point symbol: <code class="docutils literal notranslate"><span class="pre">&quot;o&quot;</span></code> (circle), <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code> (square),
+<code class="docutils literal notranslate"><span class="pre">&quot;^&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;v&quot;</span></code> (triangles), <code class="docutils literal notranslate"><span class="pre">&quot;D&quot;</span></code> (diamond),
+<code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> (stroke-only), or <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">markersize</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">4.0</span></code></p></td>
+<td><p>Marker radius / half-side in pixels.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Legend label (empty string = no legend entry).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="public-api-summary">
+<h2>Public API summary<a class="headerlink" href="#public-api-summary" title="Link to this heading">#</a></h2>
+<dl class="simple">
+<dt><strong>Data</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.update" title="anyplotlib.figure_plots.Plot1D.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> — replace y-data (and optionally the x-axis /
+units) without recreating the panel.</p>
+</dd>
+<dt><strong>Overlay lines</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_line" title="anyplotlib.figure_plots.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_line()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.remove_line" title="anyplotlib.figure_plots.Plot1D.remove_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_line()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.clear_lines" title="anyplotlib.figure_plots.Plot1D.clear_lines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_lines()</span></code></a> —
+overlay additional curves on the same axes.</p>
+</dd>
+<dt><strong>Shaded spans</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_span" title="anyplotlib.figure_plots.Plot1D.add_span"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_span()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.remove_span" title="anyplotlib.figure_plots.Plot1D.remove_span"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_span()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.clear_spans" title="anyplotlib.figure_plots.Plot1D.clear_spans"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_spans()</span></code></a> —
+highlight a region along the x- or y-axis.</p>
+</dd>
+<dt><strong>View control</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.set_view" title="anyplotlib.figure_plots.Plot1D.set_view"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_view()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.reset_view" title="anyplotlib.figure_plots.Plot1D.reset_view"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset_view()</span></code></a> — programmatic pan/zoom
+(users can also pan/zoom interactively with the mouse; press <strong>R</strong>
+to reset).</p>
+</dd>
+<dt><strong>Interactive widgets</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_vline_widget" title="anyplotlib.figure_plots.Plot1D.add_vline_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_vline_widget()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_hline_widget" title="anyplotlib.figure_plots.Plot1D.add_hline_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_hline_widget()</span></code></a> /
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_range_widget" title="anyplotlib.figure_plots.Plot1D.add_range_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_range_widget()</span></code></a> — draggable overlays that report their
+position back to Python via callbacks.  Manage them with
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.get_widget" title="anyplotlib.figure_plots.Plot1D.get_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_widget()</span></code></a>, <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.remove_widget" title="anyplotlib.figure_plots.Plot1D.remove_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_widget()</span></code></a>, <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.list_widgets" title="anyplotlib.figure_plots.Plot1D.list_widgets"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_widgets()</span></code></a>,
+and <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.clear_widgets" title="anyplotlib.figure_plots.Plot1D.clear_widgets"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_widgets()</span></code></a>.</p>
+</dd>
+<dt><strong>Static marker collections</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_points" title="anyplotlib.figure_plots.Plot1D.add_points"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_points()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_circles" title="anyplotlib.figure_plots.Plot1D.add_circles"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_circles()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_vlines" title="anyplotlib.figure_plots.Plot1D.add_vlines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_vlines()</span></code></a> /
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_hlines" title="anyplotlib.figure_plots.Plot1D.add_hlines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_hlines()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_arrows" title="anyplotlib.figure_plots.Plot1D.add_arrows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_arrows()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_ellipses" title="anyplotlib.figure_plots.Plot1D.add_ellipses"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_ellipses()</span></code></a> /
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_lines" title="anyplotlib.figure_plots.Plot1D.add_lines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_lines()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_rectangles" title="anyplotlib.figure_plots.Plot1D.add_rectangles"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_rectangles()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_squares" title="anyplotlib.figure_plots.Plot1D.add_squares"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_squares()</span></code></a> /
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_polygons" title="anyplotlib.figure_plots.Plot1D.add_polygons"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_polygons()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_texts" title="anyplotlib.figure_plots.Plot1D.add_texts"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_texts()</span></code></a> — fixed overlays
+positioned at explicit data coordinates.  Access them via
+<code class="docutils literal notranslate"><span class="pre">plot.markers[type][name]</span></code> and manage with <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.remove_marker" title="anyplotlib.figure_plots.Plot1D.remove_marker"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_marker()</span></code></a>,
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.clear_markers" title="anyplotlib.figure_plots.Plot1D.clear_markers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_markers()</span></code></a>, and <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.list_markers" title="anyplotlib.figure_plots.Plot1D.list_markers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_markers()</span></code></a>.</p>
+</dd>
+<dt><strong>Callbacks</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_changed" title="anyplotlib.figure_plots.Plot1D.on_changed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_changed()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_release" title="anyplotlib.figure_plots.Plot1D.on_release"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_release()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_click" title="anyplotlib.figure_plots.Plot1D.on_click"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_click()</span></code></a> /
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_key" title="anyplotlib.figure_plots.Plot1D.on_key"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_key()</span></code></a> — react to pan/zoom frames, mouse clicks, and
+key-presses.  Remove a handler with <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.disconnect" title="anyplotlib.figure_plots.Plot1D.disconnect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">disconnect()</span></code></a>.</p>
 </dd>
 </dl>
 <dl class="py method">
@@ -635,12 +764,19 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.update">
 <span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.update" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Replace the primary line’s y-data and optionally its x-axis / units.</p>
+<p>The y-axis range (<code class="docutils literal notranslate"><span class="pre">data_min</span></code> / <code class="docutils literal notranslate"><span class="pre">data_max</span></code>) is recomputed
+automatically.  The viewport is <strong>not</strong> reset — call
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.reset_view" title="anyplotlib.figure_plots.Plot1D.reset_view"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset_view()</span></code></a> explicitly if needed.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a>)</p></li>
-<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>y_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>data</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em>) – New y values.  Must be 1-D.</p></li>
+<li><p><strong>x_axis</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em><em>, </em><em>optional</em>) – New x coordinates.  If omitted and the length of <em>data</em> matches
+the current x-axis, the existing x-axis is reused; otherwise it
+is reset to <code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">…,</span> <span class="pre">N-1</span></code>.</p></li>
+<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – New x-axis label.  Unchanged if not supplied.</p></li>
+<li><p><strong>y_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – New y-axis label.  Unchanged if not supplied.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -651,31 +787,57 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_line">
-<span class="sig-name descname"><span class="pre">add_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ffffff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_line" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<span class="sig-name descname"><span class="pre">add_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ffffff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linestyle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markersize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_line" title="Link to this definition">#</a></dt>
+<dd><p>Overlay an additional curve on this panel.</p>
+<p>The y-axis range is automatically expanded to include the new data so
+all lines remain fully visible.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a>)</p></li>
-<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>data</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em>) – Y values for the new line.  Must be 1-D.</p></li>
+<li><p><strong>x_axis</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em><em>, </em><em>optional</em>) – X coordinates.  Defaults to the primary line’s x-axis.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ffffff&quot;</span></code>.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>linestyle</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Dash pattern: <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;dashed&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;dotted&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;dashdot&quot;</span></code> (or shorthands).  Default <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code>.</p></li>
+<li><p><strong>ls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Short alias for <em>linestyle</em>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Line opacity (0–1).  Default <code class="docutils literal notranslate"><span class="pre">1.0</span></code>.</p></li>
+<li><p><strong>marker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-point marker symbol (see <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D" title="anyplotlib.figure_plots.Plot1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot1D</span></code></a>).  Default
+<code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.</p></li>
+<li><p><strong>markersize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Marker radius / half-side in pixels.  Default <code class="docutils literal notranslate"><span class="pre">4.0</span></code>.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Legend label.  Default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> (no legend entry).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An 8-character ID string.  Pass it to <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.remove_line" title="anyplotlib.figure_plots.Plot1D.remove_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_line()</span></code></a> to
+delete this line later.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">lid</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffcc00&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;fit&quot;</span><span class="p">)</span>
+<span class="c1"># … later …</span>
+<span class="n">v</span><span class="o">.</span><span class="n">remove_line</span><span class="p">(</span><span class="n">lid</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.remove_line">
 <span class="sig-name descname"><span class="pre">remove_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.remove_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.remove_line" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove an overlay line by its ID.</p>
+<p>The y-axis range is recomputed after removal.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>lid</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+<dd class="field-odd"><p><strong>lid</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The ID returned by <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_line" title="anyplotlib.figure_plots.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_line()</span></code></a>.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><strong>KeyError</strong></a> – If <em>lid</em> does not match any overlay line.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -683,7 +845,9 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.clear_lines">
 <span class="sig-name descname"><span class="pre">clear_lines</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.clear_lines"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.clear_lines" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove all overlay lines, leaving the primary line intact.</p>
+<p>The y-axis range is recomputed after clearing.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
@@ -693,17 +857,23 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_span">
 <span class="sig-name descname"><span class="pre">add_span</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_span"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_span" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Add a shaded span along the x- or y-axis.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>v0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>v1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>axis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>v0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Start and end of the span in data coordinates.</p></li>
+<li><p><strong>v1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Start and end of the span in data coordinates.</p></li>
+<li><p><strong>axis</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code>, optional) – Which axis the span runs along.  Default <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code>.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string (supports alpha, e.g.
+<code class="docutils literal notranslate"><span class="pre">&quot;rgba(255,200,0,0.2)&quot;</span></code>).  Defaults to a theme-appropriate
+yellow tint.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Span ID for use with <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.remove_span" title="anyplotlib.figure_plots.Plot1D.remove_span"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_span()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -711,12 +881,16 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.remove_span">
 <span class="sig-name descname"><span class="pre">remove_span</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.remove_span"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.remove_span" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove a shaded span by its ID.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sid</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+<dd class="field-odd"><p><strong>sid</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The ID returned by <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.add_span" title="anyplotlib.figure_plots.Plot1D.add_span"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_span()</span></code></a>.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><strong>KeyError</strong></a> – If <em>sid</em> does not match any span.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -724,7 +898,8 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.clear_spans">
 <span class="sig-name descname"><span class="pre">clear_spans</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.clear_spans"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.clear_spans" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove all shaded spans.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
@@ -734,15 +909,20 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_vline_widget">
 <span class="sig-name descname"><span class="pre">add_vline_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_vline_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_vline_widget" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Add a draggable vertical-line overlay.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initial x position in data coordinates.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="widgets.html#anyplotlib.widgets.VLineWidget" title="anyplotlib.widgets.VLineWidget"><em>VLineWidget</em></a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Widget object.  Register position callbacks with
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_changed" title="anyplotlib.figure_plots.Plot1D.on_changed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_changed()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_release" title="anyplotlib.figure_plots.Plot1D.on_release"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_release()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="widgets.html#anyplotlib.widgets.VLineWidget" title="anyplotlib.widgets.VLineWidget">VLineWidget</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -750,15 +930,20 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_hline_widget">
 <span class="sig-name descname"><span class="pre">add_hline_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_hline_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_hline_widget" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Add a draggable horizontal-line overlay.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initial y position in data coordinates.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="widgets.html#anyplotlib.widgets.HLineWidget" title="anyplotlib.widgets.HLineWidget"><em>HLineWidget</em></a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Widget object.  Register position callbacks with
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_changed" title="anyplotlib.figure_plots.Plot1D.on_changed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_changed()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_release" title="anyplotlib.figure_plots.Plot1D.on_release"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_release()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="widgets.html#anyplotlib.widgets.HLineWidget" title="anyplotlib.widgets.HLineWidget">HLineWidget</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -766,16 +951,21 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_range_widget">
 <span class="sig-name descname"><span class="pre">add_range_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_range_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_range_widget" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Add a draggable range (two vertical lines + shaded fill) overlay.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>x1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>x0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initial left and right edges in data coordinates.</p></li>
+<li><p><strong>x1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initial left and right edges in data coordinates.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="widgets.html#anyplotlib.widgets.RangeWidget" title="anyplotlib.widgets.RangeWidget"><em>RangeWidget</em></a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Widget object.  Register position callbacks with
+<a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_changed" title="anyplotlib.figure_plots.Plot1D.on_changed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_changed()</span></code></a> / <a class="reference internal" href="#anyplotlib.figure_plots.Plot1D.on_release" title="anyplotlib.figure_plots.Plot1D.on_release"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_release()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="widgets.html#anyplotlib.widgets.RangeWidget" title="anyplotlib.widgets.RangeWidget">RangeWidget</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -805,7 +995,8 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.list_widgets">
 <span class="sig-name descname"><span class="pre">list_widgets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.list_widgets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.list_widgets" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Return a list of all active widget objects on this panel.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
 </dd>
@@ -815,7 +1006,8 @@ Exposes the full Viewer1D-compatible API plus the new marker API.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.clear_widgets">
 <span class="sig-name descname"><span class="pre">clear_widgets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.clear_widgets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.clear_widgets" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove all interactive overlay widgets from this panel.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
@@ -907,11 +1099,14 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.set_view">
 <span class="sig-name descname"><span class="pre">set_view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.set_view"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.set_view" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Programmatically set the visible x range.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>x1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>x0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Left edge of the view in data coordinates.  <code class="docutils literal notranslate"><span class="pre">None</span></code> keeps the
+current left edge.</p></li>
+<li><p><strong>x1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Right edge of the view in data coordinates.  <code class="docutils literal notranslate"><span class="pre">None</span></code> keeps the
+current right edge.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -923,7 +1118,8 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.reset_view">
 <span class="sig-name descname"><span class="pre">reset_view</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.reset_view"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.reset_view" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Reset the view to show the full x range of the primary line.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
@@ -931,9 +1127,106 @@ shortcut.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.set_color">
+<span class="sig-name descname"><span class="pre">set_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.set_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.set_color" title="Link to this definition">#</a></dt>
+<dd><p>Set the primary line colour.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Any CSS colour string (hex, <code class="docutils literal notranslate"><span class="pre">rgb()</span></code>, named colour, etc.).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.set_linewidth">
+<span class="sig-name descname"><span class="pre">set_linewidth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">linewidth</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.set_linewidth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.set_linewidth" title="Link to this definition">#</a></dt>
+<dd><p>Set the primary line stroke width.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Stroke width in pixels.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.set_linestyle">
+<span class="sig-name descname"><span class="pre">set_linestyle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">linestyle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.set_linestyle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.set_linestyle" title="Link to this definition">#</a></dt>
+<dd><p>Set the primary line dash pattern.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>linestyle</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;-&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;dashed&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;--&quot;</span></code>),
+<code class="docutils literal notranslate"><span class="pre">&quot;dotted&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;:&quot;</span></code>), or <code class="docutils literal notranslate"><span class="pre">&quot;dashdot&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;-.&quot;</span></code>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.set_alpha">
+<span class="sig-name descname"><span class="pre">set_alpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.set_alpha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.set_alpha" title="Link to this definition">#</a></dt>
+<dd><p>Set the primary line opacity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Opacity in the range 0 (transparent) to 1 (fully opaque).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.set_marker">
+<span class="sig-name descname"><span class="pre">set_marker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">marker</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markersize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.set_marker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.set_marker" title="Link to this definition">#</a></dt>
+<dd><p>Set the primary line per-point marker symbol.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>marker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – <code class="docutils literal notranslate"><span class="pre">&quot;o&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;^&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;v&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;D&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.</p></li>
+<li><p><strong>markersize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Marker radius / half-side in pixels.  Unchanged if not supplied.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_circles">
 <span class="sig-name descname"><span class="pre">add_circles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_circles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_circles" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Add circle markers at explicit (x, y) positions.</p>
+<p>On 1-D panels circles are rendered as filled/stroked discs; <em>radius</em>
+is in canvas pixels (not data units).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>)</em>) – Marker positions as <code class="docutils literal notranslate"><span class="pre">[[x0,</span> <span class="pre">y0],</span> <span class="pre">[x1,</span> <span class="pre">y1],</span> <span class="pre">…]</span></code> in data
+coordinates.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Radius in pixels.  Scalar or per-marker array.  Default <code class="docutils literal notranslate"><span class="pre">5</span></code>.</p></li>
+<li><p><strong>facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Fill colour.  <code class="docutils literal notranslate"><span class="pre">None</span></code> = no fill.</p></li>
+<li><p><strong>edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Stroke colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fill opacity (0–1).  Default <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>hover_facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-marker tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Live group object.  Call <code class="docutils literal notranslate"><span class="pre">.set(**kwargs)</span></code> to update in place.</p>
+</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
@@ -945,8 +1238,23 @@ shortcut.</p>
 <span class="sig-name descname"><span class="pre">add_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sizes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_points"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_points" title="Link to this definition">#</a></dt>
 <dd><p>Add point markers at (x, y) positions in data coordinates.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>)</em>) – Marker positions as <code class="docutils literal notranslate"><span class="pre">[[x0,</span> <span class="pre">y0],</span> <span class="pre">[x1,</span> <span class="pre">y1],</span> <span class="pre">…]</span></code>.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>sizes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Radius in pixels.  Scalar or per-marker array.  Default <code class="docutils literal notranslate"><span class="pre">5</span></code>.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Stroke colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Fill colour.  <code class="docutils literal notranslate"><span class="pre">None</span></code> = no fill.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fill opacity (0–1).  Default <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>hover_facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-marker tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -954,10 +1262,21 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_hlines">
 <span class="sig-name descname"><span class="pre">add_hlines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_hlines"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_hlines" title="Link to this definition">#</a></dt>
-<dd><p>Add static horizontal lines at the given y positions.</p>
+<dd><p>Add static horizontal lines spanning the full x range.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_values</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em>) – Y positions of each line in data coordinates.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Line colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour override applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-line tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -965,10 +1284,21 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_vlines">
 <span class="sig-name descname"><span class="pre">add_vlines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_vlines"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_vlines" title="Link to this definition">#</a></dt>
-<dd><p>Add static vertical lines at the given x positions.</p>
+<dd><p>Add static vertical lines spanning the full y range.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_values</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em>) – X positions of each line in data coordinates.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Line colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour override applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-line tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -976,9 +1306,23 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_arrows">
 <span class="sig-name descname"><span class="pre">add_arrows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_arrows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_arrows" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dd><p>Add arrow markers at explicit (x, y) positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>)</em>) – Arrow tail positions as <code class="docutils literal notranslate"><span class="pre">[[x0,</span> <span class="pre">y0],</span> <span class="pre">…]</span></code> in data coordinates.</p></li>
+<li><p><strong>U</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em>) – X and Y components of each arrow vector (in data units).</p></li>
+<li><p><strong>V</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>,</em><em>)</em>) – X and Y components of each arrow vector (in data units).</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Arrow colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour override applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-arrow tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -986,9 +1330,27 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_ellipses">
 <span class="sig-name descname"><span class="pre">add_ellipses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_ellipses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_ellipses" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dd><p>Add ellipse markers at explicit (x, y) positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>)</em>) – Centre positions in data coordinates.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em>) – Full width and height of each ellipse in canvas pixels.</p></li>
+<li><p><strong>heights</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em>) – Full width and height of each ellipse in canvas pixels.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>angles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Rotation angle(s) in degrees.  Default <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p><strong>facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Fill colour.  <code class="docutils literal notranslate"><span class="pre">None</span></code> = no fill.</p></li>
+<li><p><strong>edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Stroke colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fill opacity (0–1).  Default <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>hover_facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-marker tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -996,9 +1358,21 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_lines">
 <span class="sig-name descname"><span class="pre">add_lines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segments</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_lines"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_lines" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dd><p>Add line-segment markers (static, not draggable).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>segments</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>, </em><em>2</em><em>)</em>) – Each segment is <code class="docutils literal notranslate"><span class="pre">[[x0,</span> <span class="pre">y0],</span> <span class="pre">[x1,</span> <span class="pre">y1]]</span></code> in data coordinates.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Line colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour override applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-segment tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1006,9 +1380,27 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_rectangles">
 <span class="sig-name descname"><span class="pre">add_rectangles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_rectangles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_rectangles" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dd><p>Add rectangle markers at explicit (x, y) positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>)</em>) – Centre positions in data coordinates.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em>) – Full width and height of each rectangle in canvas pixels.</p></li>
+<li><p><strong>heights</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em>) – Full width and height of each rectangle in canvas pixels.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>angles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Rotation angle(s) in degrees.  Default <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p><strong>facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Fill colour.  <code class="docutils literal notranslate"><span class="pre">None</span></code> = no fill.</p></li>
+<li><p><strong>edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Stroke colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fill opacity (0–1).  Default <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>hover_facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-marker tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1016,9 +1408,26 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_squares">
 <span class="sig-name descname"><span class="pre">add_squares</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_squares"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_squares" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dd><p>Add square markers at explicit (x, y) positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>)</em>) – Centre positions in data coordinates.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em>) – Side length of each square in canvas pixels.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>angles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Rotation angle(s) in degrees.  Default <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p><strong>facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Fill colour.  <code class="docutils literal notranslate"><span class="pre">None</span></code> = no fill.</p></li>
+<li><p><strong>edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Stroke colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fill opacity (0–1).  Default <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>hover_facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-marker tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1026,9 +1435,25 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_polygons">
 <span class="sig-name descname"><span class="pre">add_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vertices_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_facecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_polygons"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_polygons" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dd><p>Add polygon markers defined by explicit vertex lists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vertices_list</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><em>array-like</em><em>, </em><em>each shape</em><em> (</em><em>K</em><em>, </em><em>2</em><em>)</em>) – One polygon per element; each is a list of <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">y]</span></code> vertices
+in data coordinates.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Fill colour.  <code class="docutils literal notranslate"><span class="pre">None</span></code> = no fill.</p></li>
+<li><p><strong>edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Stroke colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>linewidths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in pixels.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fill opacity (0–1).  Default <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>hover_facecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour overrides applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-polygon tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1036,9 +1461,22 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.add_texts">
 <span class="sig-name descname"><span class="pre">add_texts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">texts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff0000'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hover_edgecolors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.add_texts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.add_texts" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
+<dd><p>Add text annotations at explicit (x, y) positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>N</em><em>, </em><em>2</em><em>)</em>) – Anchor positions in data coordinates.</p></li>
+<li><p><strong>texts</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – One string per position.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Registry key.  Auto-generated if omitted.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Text colour.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#ff0000&quot;</span></code>.</p></li>
+<li><p><strong>fontsize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Font size in pixels.  Default <code class="docutils literal notranslate"><span class="pre">12</span></code>.</p></li>
+<li><p><strong>hover_edgecolors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colour override applied on mouse-hover.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-annotation tooltip labels.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Collection-level tooltip label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="markers.html#anyplotlib.markers.MarkerGroup" title="anyplotlib.markers.MarkerGroup">MarkerGroup</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1046,11 +1484,12 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.remove_marker">
 <span class="sig-name descname"><span class="pre">remove_marker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">marker_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.remove_marker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.remove_marker" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove a named marker collection by type and name.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Collection type, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;points&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;vlines&quot;</span></code>.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The name used when the collection was created.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1062,7 +1501,8 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.clear_markers">
 <span class="sig-name descname"><span class="pre">clear_markers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.clear_markers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.clear_markers" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove all marker collections from this panel.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
@@ -1072,18 +1512,40 @@ shortcut.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot1D.list_markers">
 <span class="sig-name descname"><span class="pre">list_markers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot1D.list_markers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot1D.list_markers" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+<dd><p>Return a summary list of all marker collections on this panel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Each dict has keys <code class="docutils literal notranslate"><span class="pre">&quot;type&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;n&quot;</span></code>
+(number of markers in the collection).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>
 
+</section>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>np.ndarray</em>)</p></li>
+<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>y_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>linestyle</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>marker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>markersize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot2D">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure_plots.</span></span><span class="sig-name descname"><span class="pre">Plot2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot2D" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure_plots.</span></span><span class="sig-name descname"><span class="pre">Plot2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'upper'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot2D" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>2-D image plot panel.</p>
 <p>Not an anywidget.  Holds state in <code class="docutils literal notranslate"><span class="pre">_state</span></code> dict; every mutation calls
@@ -1098,6 +1560,10 @@ plot.markers[“circles”][“g1”].set(radius=8)</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> (<em>np.ndarray</em>)</p></li>
 <li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>vmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>vmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>origin</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -1116,6 +1582,8 @@ plot.markers[“circles”][“g1”].set(radius=8)</p>
 <dt class="sig sig-object py" id="anyplotlib.figure_plots.Plot2D.update">
 <span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#Plot2D.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure_plots.Plot2D.update" title="Link to this definition">#</a></dt>
 <dd><p>Replace the image data.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">origin</span></code> supplied at construction is automatically re-applied
+so the new data is displayed with the same orientation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2042,6 +2510,11 @@ shortcut.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.disconnect"><code class="docutils literal notranslate"><span class="pre">Plot1D.disconnect()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.set_view"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_view()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.reset_view"><code class="docutils literal notranslate"><span class="pre">Plot1D.reset_view()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.set_color"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_color()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.set_linewidth"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_linewidth()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.set_linestyle"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_linestyle()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.set_alpha"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_alpha()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.set_marker"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_marker()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.add_circles"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_circles()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.add_points"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_points()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure_plots.Plot1D.add_hlines"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_hlines()</span></code></a></li>

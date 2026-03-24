@@ -15,6 +15,19 @@ image colour scale in real time.
 
 Key bindings on the image panel: **R** reset view · **C** toggle colorbar ·
 **L** / **S** cycle colour-scale modes.
+
+New ``imshow`` parameters
+-------------------------
+``cmap``
+    Colormap name passed directly to :meth:`~anyplotlib.figure_plots.Axes.imshow`
+    (e.g. ``"viridis"``, ``"inferno"``).  Defaults to ``"gray"``.
+``vmin`` / ``vmax``
+    Colormap clipping limits in data units.  Values outside the range are
+    clamped to the colormap endpoints.  Defaults to the data min/max.
+``origin``
+    ``"upper"`` (default) places row 0 at the top (image convention).
+    ``"lower"`` places row 0 at the bottom (scientific / matrix convention)
+    and automatically reverses the y-axis so tick values increase upward.
 """
 import numpy as np
 import anyplotlib as apl
@@ -47,13 +60,14 @@ fig = apl.Figure(figsize=(500, 640))
 ax_img  = fig.add_subplot(gs[0, 0])
 ax_hist = fig.add_subplot(gs[1, 0])
 
-# ── Image panel ───────────────────────────────────────────────────────────────
-v = ax_img.imshow(image, axes=[x, y], units="nm")
-v.set_colormap("inferno")
-
+# ── Image panel — cmap, vmin, vmax supplied directly to imshow ────────────────
 vmin_init = float(image.min())
 vmax_init = float(image.max())
-v.set_clim(vmin=vmin_init, vmax=vmax_init)
+
+# Pass cmap, vmin, and vmax directly — no separate set_colormap / set_clim call
+# needed for the initial display.
+v = ax_img.imshow(image, axes=[x, y], units="nm",
+                  cmap="inferno", vmin=vmin_init, vmax=vmax_init)
 
 # First-order spot markers
 dx = x[1] - x[0]
@@ -98,12 +112,28 @@ def _apply_high(event):
 fig
 
 # %%
-# Adjust colour map
-# ------------------
+# Adjust colour map and display range
+# ------------------------------------
 # :meth:`~anyplotlib.figure_plots.Plot2D.set_colormap` switches the palette;
 # :meth:`~anyplotlib.figure_plots.Plot2D.set_clim` adjusts the display range.
+# Both are equivalent to passing ``cmap`` / ``vmin`` / ``vmax`` at construction.
 
 v.set_colormap("viridis")
 v.set_clim(vmin=0.0, vmax=0.8)
 
 fig
+
+# %%
+# origin='lower' — scientific / matrix convention
+# ------------------------------------------------
+# Passing ``origin='lower'`` places row 0 of the data at the *bottom* of the
+# image, matching the matplotlib / scientific convention.  The y-axis is
+# automatically reversed so tick values still increase upward.
+
+mat = np.arange(64, dtype=float).reshape(8, 8)   # row 0 = small values
+
+fig2, ax2 = apl.subplots()
+v2 = ax2.imshow(mat, cmap="plasma", origin="lower")
+
+fig2
+

@@ -1,0 +1,694 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>1D Line Styles &#8212; anyplotlib 0.1.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/plot_line_styles';</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/plot_line_styles.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Interactive Examples" href="Interactive/index.html" />
+    <link rel="prev" title="2D Image with Histogram" href="plot_image2d.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="../_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot_image2d.html">2D Image with Histogram</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">1D Line Styles</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="Markers/index.html">Markers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_horizontal_lines.html">Horizontal Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_vertical_lines.html">Vertical Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_points.html">Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_texts.html">Text Labels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_arrows.html">Arrows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_circles.html">Circles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_rectangles.html">Rectangles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_line_segments.html">Line Segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_ellipses.html">Ellipses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_squares.html">Squares</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Markers/plot_polygons.html">Polygons</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="Widgets/index.html">Widgets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget1d_hline.html">1D Horizontal Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget1d_vline.html">1D Vertical Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget1d_range.html">1D Range Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget2d_crosshair.html">2D Crosshair Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget2d_circle.html">2D Circle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget2d_rectangle.html">2D Rectangle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget2d_annular.html">2D Annular Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget2d_label.html">2D Label Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Widgets/plot_widget2d_polygon.html">2D Polygon Widget</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Examples</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">1D Line Styles</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-plot-line-styles-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="d-line-styles">
+<span id="sphx-glr-auto-examples-plot-line-styles-py"></span><h1>1D Line Styles<a class="headerlink" href="#d-line-styles" title="Link to this heading">#</a></h1>
+<p>Demonstrates the line-style, opacity, and per-point marker parameters
+available on <a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Axes.plot" title="anyplotlib.figure_plots.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot()</span></code></a> and
+<a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Plot1D.add_line" title="anyplotlib.figure_plots.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_line()</span></code></a>.</p>
+<p>Four separate figures are shown:</p>
+<ol class="arabic simple">
+<li><p><strong>Linestyles</strong> – all four dash patterns on one panel with a legend.</p></li>
+<li><p><strong>Alpha (transparency)</strong> – two overlapping sine waves, each at 40 % opacity.</p></li>
+<li><p><strong>Marker symbols</strong> – all seven supported symbols, each on its own offset
+curve.</p></li>
+<li><p><strong>Combined</strong> – dashed + semi-transparent + circle-marker overlay on a solid
+primary line; demonstrates post-construction setters.</p></li>
+</ol>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">pi</span></a><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>   <span class="c1"># dense — good for dashes / alpha</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t24</span></a>  <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">pi</span></a><span class="p">,</span>  <span class="mi">24</span><span class="p">)</span>   <span class="c1"># sparse — makes markers visible</span>
+
+<span class="c1"># ── 1. Linestyles ─────────────────────────────────────────────────────────────</span>
+<span class="n">fig1</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">580</span><span class="p">,</span> <span class="mi">300</span><span class="p">))</span>
+
+<span class="n">plot1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">),</span>         <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;solid&quot;</span><span class="p">,</span>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;solid&quot;</span><span class="p">)</span>
+<span class="n">plot1</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">)</span> <span class="o">+</span> <span class="mf">0.6</span><span class="p">,</span>    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+               <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;dashed  (</span><span class="se">\&quot;</span><span class="s2">--</span><span class="se">\&quot;</span><span class="s2">)&quot;</span><span class="p">)</span>
+<span class="n">plot1</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">)</span> <span class="o">+</span> <span class="mf">1.2</span><span class="p">,</span>    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#aed581&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+               <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dotted&quot;</span><span class="p">,</span>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;dotted  (</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">)&quot;</span><span class="p">)</span>
+<span class="n">plot1</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">)</span> <span class="o">+</span> <span class="mf">1.8</span><span class="p">,</span>    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ce93d8&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+               <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashdot&quot;</span><span class="p">,</span>   <span class="n">label</span><span class="o">=</span><span class="s2">&quot;dashdot (</span><span class="se">\&quot;</span><span class="s2">-.</span><span class="se">\&quot;</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<span class="n">fig1</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f0b0124c9" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_001.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f0b0124c9'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="the-ls-shorthand">
+<h2>The <code class="docutils literal notranslate"><span class="pre">ls</span></code> shorthand<a class="headerlink" href="#the-ls-shorthand" title="Link to this heading">#</a></h2>
+<p>Each linestyle has a single-character (or two-character) shorthand that
+matches the matplotlib convention:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;-&quot;</span></code>  → <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;--&quot;</span></code> → <code class="docutils literal notranslate"><span class="pre">&quot;dashed&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;:&quot;</span></code>  → <code class="docutils literal notranslate"><span class="pre">&quot;dotted&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;-.&quot;</span></code> → <code class="docutils literal notranslate"><span class="pre">&quot;dashdot&quot;</span></code></p></li>
+</ul>
+<p>The shorthands work on both <a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Axes.plot" title="anyplotlib.figure_plots.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot()</span></code></a>
+and <a class="reference internal" href="../api/figure_plots.html#anyplotlib.figure_plots.Plot1D.add_line" title="anyplotlib.figure_plots.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_line()</span></code></a>:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fig2a</span><span class="p">,</span> <span class="n">ax2a</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">440</span><span class="p">,</span> <span class="mi">220</span><span class="p">))</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">ax2a</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">),</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;ls=&quot;-&quot;&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">)</span> <span class="o">+</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;ls=&quot;--&quot;&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">)</span> <span class="o">+</span> <span class="mf">1.6</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;:&quot;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#aed581&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;ls=&quot;:&quot;&#39;</span><span class="p">)</span>
+<span class="n">fig2a</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f1597777c" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_002.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f1597777c'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="alpha-opacity">
+<h2>Alpha (opacity)<a class="headerlink" href="#alpha-opacity" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">alpha</span></code> controls line opacity on a 0–1 scale.  Values below 1 let
+overlapping curves show through each other — useful for comparing signals
+that share the same amplitude range.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fig2</span><span class="p">,</span> <span class="n">ax2</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">580</span><span class="p">,</span> <span class="mi">300</span><span class="p">))</span>
+
+<span class="n">plot2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                 <span class="n">label</span><span class="o">=</span><span class="s2">&quot;sin  α=0.4&quot;</span><span class="p">)</span>
+<span class="n">plot2</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">cos</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">),</span>   <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+               <span class="n">label</span><span class="o">=</span><span class="s2">&quot;cos  α=0.4&quot;</span><span class="p">)</span>
+
+<span class="n">fig2</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f7e59267c" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_003.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f7e59267c'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="marker-symbols">
+<h2>Marker symbols<a class="headerlink" href="#marker-symbols" title="Link to this heading">#</a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">marker</span></code> to place a symbol at every data point.  Use a <strong>sparse</strong>
+x-axis (few points) so the individual markers are legible.
+<code class="docutils literal notranslate"><span class="pre">markersize</span></code> is the radius (circles / diamonds) or half-side-length
+(squares, triangles) in canvas pixels.</p>
+<p>Supported symbols:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;o&quot;</span></code>  — circle</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>  — square</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;^&quot;</span></code>  — triangle-up</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;v&quot;</span></code>  — triangle-down</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;D&quot;</span></code>  — diamond</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code>  — plus (stroke-only)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code>  — cross (stroke-only)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> — no marker (default)</p></li>
+</ul>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SYMBOLS</span></a> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;#4fc3f7&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff7043&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;^&quot;</span><span class="p">,</span> <span class="s2">&quot;#aed581&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;#ce93d8&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="s2">&quot;#ffcc02&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="s2">&quot;#80cbc4&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;#ef9a9a&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="n">fig3</span><span class="p">,</span> <span class="n">ax3</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">580</span><span class="p">,</span> <span class="mi">380</span><span class="p">))</span>
+
+<span class="n">plot3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t24</span></a><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">0</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SYMBOLS</span></a><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">marker</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SYMBOLS</span></a><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;marker=&quot;</span><span class="si">{</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SYMBOLS</span></a><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">for</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a><span class="p">,</span> <span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sym</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">col</span></a><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SYMBOLS</span></a><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="n">plot3</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t24</span></a><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a> <span class="o">-</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">col</span></a><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+        <span class="n">marker</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sym</span></a><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;marker=&quot;</span><span class="si">{</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sym</span></a><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="n">fig3</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fb9c122c2" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:396px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_004.html" frameborder="0" scrolling="no" style="width:596px;height:396px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fb9c122c2'),ifr=wrap.querySelector('iframe'),nw=596,nh=396;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="combined-linestyle-alpha-marker">
+<h2>Combined — linestyle + alpha + marker<a class="headerlink" href="#combined-linestyle-alpha-marker" title="Link to this heading">#</a></h2>
+<p>All three style parameters can be combined freely on the same line or on
+separate overlay lines.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fig4</span><span class="p">,</span> <span class="n">ax4</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">580</span><span class="p">,</span> <span class="mi">300</span><span class="p">))</span>
+
+<span class="c1"># Dense solid primary line</span>
+<span class="n">plot4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">label</span><span class="o">=</span><span class="s2">&quot;sin (solid)&quot;</span><span class="p">)</span>
+
+<span class="c1"># Sparse dashed overlay with circle markers and reduced opacity</span>
+<span class="n">plot4</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">cos</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t24</span></a><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+               <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+               <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+               <span class="n">label</span><span class="o">=</span><span class="s2">&quot;cos (dashed, α=0.75, marker=&#39;o&#39;)&quot;</span><span class="p">)</span>
+
+<span class="n">fig4</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fb5408c54" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_005.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fb5408c54'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="post-construction-setters">
+<h2>Post-construction setters<a class="headerlink" href="#post-construction-setters" title="Link to this heading">#</a></h2>
+<p>Every primary-line style property has a matching setter method.  These
+mutate <code class="docutils literal notranslate"><span class="pre">_state</span></code> and push the change to the canvas immediately — no
+need to recreate the panel.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fig5</span><span class="p">,</span> <span class="n">ax5</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">440</span><span class="p">,</span> <span class="mi">220</span><span class="p">))</span>
+<span class="n">plot5</span> <span class="o">=</span> <span class="n">ax5</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t256</span></a><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+
+<span class="c1"># Change style via setters</span>
+<span class="n">plot5</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">)</span>
+<span class="n">plot5</span><span class="o">.</span><span class="n">set_linewidth</span><span class="p">(</span><span class="mf">2.5</span><span class="p">)</span>
+<span class="n">plot5</span><span class="o">.</span><span class="n">set_linestyle</span><span class="p">(</span><span class="s2">&quot;dashdot&quot;</span><span class="p">)</span>   <span class="c1"># equivalent: plot5.set_linestyle(&quot;-.&quot;)</span>
+<span class="n">plot5</span><span class="o">.</span><span class="n">set_alpha</span><span class="p">(</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">plot5</span><span class="o">.</span><span class="n">set_marker</span><span class="p">(</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="n">fig5</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f25a57d60" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_006.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f25a57d60'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.131 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plot-line-styles-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/d915175c883aee0477cca58f1f934d6a/plot_line_styles.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_line_styles.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/c9d3efa3f89d6d6fb88e8ce8c1556779/plot_line_styles.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_line_styles.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/6a27e3f48b9a2290321243bb25de5d34/plot_line_styles.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">plot_line_styles.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="plot_image2d.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">2D Image with Histogram</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="Interactive/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Interactive Examples</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-ls-shorthand">The <code class="docutils literal notranslate"><span class="pre">ls</span></code> shorthand</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#alpha-opacity">Alpha (opacity)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#marker-symbols">Marker symbols</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#combined-linestyle-alpha-marker">Combined — linestyle + alpha + marker</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#post-construction-setters">Post-construction setters</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/auto_examples/plot_line_styles.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -66,7 +66,7 @@ Three separate figures are shown:
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f7b992786" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_001.html" frameborder="0" scrolling="no" style="width:656px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f7b992786'),ifr=wrap.querySelector('iframe'),nw=656,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fb2c87b62" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_001.html" frameborder="0" scrolling="no" style="width:656px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fb2c87b62'),ifr=wrap.querySelector('iframe'),nw=656,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -113,7 +113,7 @@ annotate each bar with its numeric value.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fddea71eb" style="display:inline-block;overflow:hidden;position:relative;width:556px;height:416px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_002.html" frameborder="0" scrolling="no" style="width:556px;height:416px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fddea71eb'),ifr=wrap.querySelector('iframe'),nw=556,nh=416;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd97b94c7" style="display:inline-block;overflow:hidden;position:relative;width:556px;height:416px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_002.html" frameborder="0" scrolling="no" style="width:556px;height:416px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd97b94c7'),ifr=wrap.querySelector('iframe'),nw=556,nh=416;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -171,7 +171,7 @@ right panel, demonstrating how the axis range re-calculates automatically.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f84b89626" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_003.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f84b89626'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="ff5e2d8a6" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_003.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('ff5e2d8a6'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -202,7 +202,7 @@ in-bar value annotations.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="ff18bf08a" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_004.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('ff18bf08a'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f06e73e14" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_004.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f06e73e14'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -212,7 +212,7 @@ in-bar value annotations.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.070 seconds)
+   **Total running time of the script:** (0 minutes 0.074 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_bar.py:
