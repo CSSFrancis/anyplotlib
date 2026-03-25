@@ -9,8 +9,7 @@ This scraper:
    package that has ``_repr_html_``).
 2. Renders a **pixel-accurate dark-theme thumbnail PNG** by loading the widget's
    standalone HTML in headless Chromium (Playwright) — the exact same renderer
-   the user sees in a notebook.  Falls back to a plain matplotlib placeholder
-   if Playwright is not installed.
+   the user sees in a notebook.
 3. Writes the **full interactive HTML** (iframe + widget JS) alongside the PNG.
 4. Returns rST that embeds both: the PNG as a fallback image AND an iframe for
    interactive use, using a ``.. raw:: html`` block.
@@ -18,7 +17,7 @@ This scraper:
 
 from __future__ import annotations
 
-import io
+import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -43,20 +42,7 @@ def _find_viewer(globals_dict: dict):
 
 
 def _make_thumbnail_png(widget) -> bytes:
-    """Render a thumbnail PNG of *widget* using headless Chromium (Playwright).
-
-    The widget is rendered at its native size with the dark theme forced on.
-    Falls back to a minimal matplotlib placeholder if Playwright is not
-    available in the current environment.
-    """
-    try:
-        return _playwright_thumbnail(widget)
-    except Exception:
-        return _matplotlib_fallback_png(widget)
-
-
-def _playwright_thumbnail(widget) -> bytes:
-    """Render *widget* in headless Chromium and return dark-theme PNG bytes.
+    """Render *widget* in headless Chromium and return a dark-theme PNG screenshot.
 
     Mirrors the ``_screenshot_widget`` helper in ``tests/conftest.py`` but
     forces the dark Dracula theme by:
@@ -67,7 +53,6 @@ def _playwright_thumbnail(widget) -> bytes:
       ``prefers-color-scheme`` media query also resolves to dark (the
       fallback path in ``_isDarkBg`` when no explicit background is set).
     """
-    import tempfile
     from playwright.sync_api import sync_playwright
     from anyplotlib._repr_utils import build_standalone_html
 
@@ -117,27 +102,6 @@ def _playwright_thumbnail(widget) -> bytes:
         tmp_path.unlink(missing_ok=True)
 
     return png_bytes
-
-
-def _matplotlib_fallback_png(widget) -> bytes:
-    """Minimal dark-background placeholder used when Playwright is unavailable."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    kind = type(widget).__name__
-    fig, ax = plt.subplots(figsize=(4, 3), dpi=72)
-    ax.set_facecolor("#1e1e2e")
-    fig.patch.set_facecolor("#1e1e2e")
-    ax.text(0.5, 0.5, kind, ha="center", va="center",
-            color="#cdd6f4", transform=ax.transAxes, fontsize=12)
-    ax.axis("off")
-    plt.tight_layout(pad=0.3)
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=72, facecolor=fig.get_facecolor())
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
 
 
 def _iframe_html(src: str, w: int, h: int) -> str:
