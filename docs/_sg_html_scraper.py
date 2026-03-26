@@ -79,7 +79,11 @@ def _make_thumbnail_png(widget) -> bytes:
 
     try:
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True)
+            # --no-sandbox is required on Linux CI runners (GitHub Actions,
+            # etc.) where the kernel user-namespace sandbox is not available.
+            browser = pw.chromium.launch(
+                headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"]
+            )
             try:
                 page = browser.new_page()
                 # Set OS-level dark preference so every media query agrees.

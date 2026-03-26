@@ -39,11 +39,15 @@ jobs:
 
       # ── Dependencies ───────────────────────────────────────────────────────
       # Install the package itself plus the [docs] optional-dependency group
-      # (sphinx, pydata-sphinx-theme, sphinx-gallery, pillow).
-      # sphinx-gallery transitively brings in matplotlib, which the custom
-      # scraper (docs/_sg_html_scraper.py) needs to render thumbnails.
+      # (sphinx, pydata-sphinx-theme, sphinx-gallery, pillow, playwright).
       - name: Install dependencies (with docs extras)
         run: uv sync --extra docs
+
+      # Playwright ships the Python bindings but NOT the browser binaries.
+      # --with-deps also installs the OS-level shared libraries Chromium needs
+      # (libglib2, libnss3, etc.) on bare Ubuntu runners.
+      - name: Install Playwright browser
+        run: uv run playwright install chromium --with-deps
 
       # ── Determine deployment target ─────────────────────────────────────────
       # Release tag  (refs/tags/v1.2.3) → destination = "v1.2.3"
