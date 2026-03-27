@@ -140,7 +140,7 @@ New ``imshow`` parameters
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fc8a1db89" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_001.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fc8a1db89'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fdac52c9a" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_001.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fdac52c9a'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -171,7 +171,7 @@ Both are equivalent to passing ``cmap`` / ``vmin`` / ``vmax`` at construction.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f8a9198a4" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_002.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f8a9198a4'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f9c5e7786" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:656px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_002.html" frameborder="0" scrolling="no" style="width:516px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f9c5e7786'),ifr=wrap.querySelector('iframe'),nw=516,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -204,7 +204,7 @@ automatically reversed so tick values still increase upward.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f32b1c7db" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_003.html" frameborder="0" scrolling="no" style="width:656px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f32b1c7db'),ifr=wrap.querySelector('iframe'),nw=656,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f1afff70d" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:496px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_image2d_003.html" frameborder="0" scrolling="no" style="width:656px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f1afff70d'),ifr=wrap.querySelector('iframe'),nw=656,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -214,7 +214,7 @@ automatically reversed so tick values still increase upward.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 2.145 seconds)
+   **Total running time of the script:** (0 minutes 2.259 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_image2d.py:
