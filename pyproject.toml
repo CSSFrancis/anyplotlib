@@ -21,6 +21,7 @@ dependencies = [
 docs = [
     "sphinx>=8.0",
     "pydata-sphinx-theme>=0.16",
+    "sphinx-design>=0.6",
     "sphinx-gallery>=0.18",
     "pillow>=10.0",
     "matplotlib>=3.7",
