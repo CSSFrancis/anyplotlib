@@ -1,0 +1,6 @@
+﻿anyplotlib.markers.MarkerRegistry
+=================================
+
+.. currentmodule:: anyplotlib.markers
+
+.. autoclass:: MarkerRegistry

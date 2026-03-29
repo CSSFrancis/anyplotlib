@@ -378,7 +378,7 @@
 
 
 <div class="viewcode-block" id="Event">
-<a class="viewcode-back" href="../../api/callbacks.html#anyplotlib.callbacks.Event">[docs]</a>
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Event.html#anyplotlib.callbacks.Event">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Event</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A single interactive event.</span>
@@ -417,7 +417,7 @@
 
 
 <div class="viewcode-block" id="CallbackRegistry">
-<a class="viewcode-back" href="../../api/callbacks.html#anyplotlib.callbacks.CallbackRegistry">[docs]</a>
+<a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CallbackRegistry</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-object registry for on_click / on_changed / on_release callbacks.&quot;&quot;&quot;</span>
 
@@ -426,7 +426,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="CallbackRegistry.connect">
-<a class="viewcode-back" href="../../api/callbacks.html#anyplotlib.callbacks.CallbackRegistry.connect">[docs]</a>
+<a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.connect">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Register fn for event_type.  Returns integer CID.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">event_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_VALID_EVENT_TYPES</span><span class="p">:</span>
@@ -440,14 +440,14 @@
 
 
 <div class="viewcode-block" id="CallbackRegistry.disconnect">
-<a class="viewcode-back" href="../../api/callbacks.html#anyplotlib.callbacks.CallbackRegistry.disconnect">[docs]</a>
+<a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.disconnect">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove handler for cid.  Silent if not found.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CallbackRegistry.fire">
-<a class="viewcode-back" href="../../api/callbacks.html#anyplotlib.callbacks.CallbackRegistry.fire">[docs]</a>
+<a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.fire">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch event to all handlers matching event.event_type.&quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">_cid</span><span class="p">,</span> <span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>

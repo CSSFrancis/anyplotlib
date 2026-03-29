@@ -1,0 +1,6 @@
+﻿anyplotlib.PlotMesh
+===================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: PlotMesh

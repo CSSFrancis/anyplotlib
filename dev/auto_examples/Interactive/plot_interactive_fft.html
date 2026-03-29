@@ -412,11 +412,11 @@ of the selected region, displayed in a side-by-side panel.</p>
 <li><p>The left panel shows a synthetic real-space image (a periodic lattice with
 noise, similar to an atomic-resolution STEM image).</p></li>
 <li><p>A yellow rectangle widget marks the region-of-interest (ROI).</p></li>
-<li><p>Whenever the ROI is moved or resized the <a class="reference internal" href="../../api/figure_plots.html#anyplotlib.figure_plots.Plot2D.on_release" title="anyplotlib.figure_plots.Plot2D.on_release"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_release()</span></code></a>
+<li><p>Whenever the ROI is moved or resized the <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_release()</span></code>
 callback re-computes <code class="docutils literal notranslate"><span class="pre">numpy.fft.fft2</span></code> on the cropped pixels, applies a
 Hann window to reduce edge ringing, takes the log-magnitude, and pushes the
 result into the right panel with
-<a class="reference internal" href="../../api/figure_plots.html#anyplotlib.figure_plots.Plot2D.update" title="anyplotlib.figure_plots.Plot2D.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a>.</p></li>
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code>.</p></li>
 <li><p>A second <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_change()</span></code> callback updates
 a lightweight text readout (ROI size in pixels) on every drag frame without
 re-running the FFT.</p></li>
@@ -432,7 +432,7 @@ re-running the FFT.</p></li>
 <p>The <code class="docutils literal notranslate"><span class="pre">on_release</span></code> / <code class="docutils literal notranslate"><span class="pre">on_change</span></code> callbacks are pure Python — no kernel
 restart is needed after editing them.</p>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f3b40424a" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:355px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_interactive_fft_001.html" frameborder="0" scrolling="no" style="width:916px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.746725);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f3b40424a'),ifr=wrap.querySelector('iframe'),nw=916,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fbd220216" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:355px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_interactive_fft_001.html" frameborder="0" scrolling="no" style="width:916px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.746725);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fbd220216'),ifr=wrap.querySelector('iframe'),nw=916,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
 
 <span class="c1"># ── Synthetic real-space image ────────────────────────────────────────────────</span>
@@ -583,7 +583,7 @@ restart is needed after editing them.</p>
 <span class="n">fig</span>
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.789 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.737 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-interactive-plot-interactive-fft-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/03fec7ca5c282063f3da953906d3c05e/plot_interactive_fft.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_interactive_fft.ipynb</span></code></a></p>

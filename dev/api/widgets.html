@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; anyplotlib 0.1.0 documentation</title>
+    <title>Interactive Widgets &#8212; anyplotlib 0.1.0 documentation</title>
   
   
   
@@ -299,8 +299,47 @@
 <li class="toctree-l1"><a class="reference internal" href="figure.html">Figure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="figure_plots.html">Figure Plots</a></li>
 <li class="toctree-l1"><a class="reference internal" href="markers.html">Markers</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Widgets</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Interactive Widgets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="callbacks.html">Callbacks</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Figure.html">anyplotlib.Figure</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.subplots.html">anyplotlib.subplots</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Axes.html">anyplotlib.Axes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot1D.html">anyplotlib.Plot1D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot2D.html">anyplotlib.Plot2D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PlotMesh.html">anyplotlib.PlotMesh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot3D.html">anyplotlib.Plot3D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PlotBar.html">anyplotlib.PlotBar</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.GridSpec.html">anyplotlib.GridSpec</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.SubplotSpec.html">anyplotlib.SubplotSpec</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerGroup.html">anyplotlib.markers.MarkerGroup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerTypeDict.html">anyplotlib.markers.MarkerTypeDict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerRegistry.html">anyplotlib.markers.MarkerRegistry</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Widget.html">anyplotlib.Widget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.RectangleWidget.html">anyplotlib.RectangleWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CircleWidget.html">anyplotlib.CircleWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.AnnularWidget.html">anyplotlib.AnnularWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CrosshairWidget.html">anyplotlib.CrosshairWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PolygonWidget.html">anyplotlib.PolygonWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.LabelWidget.html">anyplotlib.LabelWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.VLineWidget.html">anyplotlib.VLineWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.HLineWidget.html">anyplotlib.HLineWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.RangeWidget.html">anyplotlib.RangeWidget</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CallbackRegistry.html">anyplotlib.CallbackRegistry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Event.html">anyplotlib.Event</a></li>
 </ul>
 </div>
 </nav></div>
@@ -344,7 +383,7 @@
     
     <li class="breadcrumb-item"><a href="index.html" class="nav-link">API Reference</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Widgets</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Interactive Widgets</span></li>
   </ul>
 </nav>
 </div>
@@ -362,7 +401,7 @@
                 <article class="bd-article">
                   
   <section id="module-anyplotlib.widgets">
-<span id="widgets"></span><h1>Widgets<a class="headerlink" href="#module-anyplotlib.widgets" title="Link to this heading">#</a></h1>
+<span id="interactive-widgets"></span><h1>Interactive Widgets<a class="headerlink" href="#module-anyplotlib.widgets" title="Link to this heading">#</a></h1>
 <p>widgets.py — Interactive overlay widget classes.</p>
 <p>Each widget has a .callbacks (CallbackRegistry).  Register handlers via:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@rect</span><span class="o">.</span><span class="n">on_changed</span>        <span class="c1"># every drag frame</span>
@@ -378,9 +417,52 @@
 <span class="n">rect</span><span class="o">.</span><span class="n">x</span>                  <span class="c1"># always reflects current JS position</span>
 </pre></div>
 </div>
+<p class="rubric">Base Class</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.Widget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Widget</span></code></a></p></td>
+<td><p>Base class for all overlay widgets.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Concrete Widgets</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.RectangleWidget.html#anyplotlib.RectangleWidget" title="anyplotlib.RectangleWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RectangleWidget</span></code></a></p></td>
+<td><p>Draggable rectangle overlay widget for 2-D plots.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/anyplotlib.CircleWidget.html#anyplotlib.CircleWidget" title="anyplotlib.CircleWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CircleWidget</span></code></a></p></td>
+<td><p>Draggable circle overlay widget for 2-D plots.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.AnnularWidget.html#anyplotlib.AnnularWidget" title="anyplotlib.AnnularWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AnnularWidget</span></code></a></p></td>
+<td><p>Draggable annular (ring) overlay widget for 2-D plots.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/anyplotlib.CrosshairWidget.html#anyplotlib.CrosshairWidget" title="anyplotlib.CrosshairWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CrosshairWidget</span></code></a></p></td>
+<td><p>Draggable crosshair overlay widget for 2-D plots.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.PolygonWidget.html#anyplotlib.PolygonWidget" title="anyplotlib.PolygonWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PolygonWidget</span></code></a></p></td>
+<td><p>Draggable polygon overlay widget for 2-D plots.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/anyplotlib.LabelWidget.html#anyplotlib.LabelWidget" title="anyplotlib.LabelWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LabelWidget</span></code></a></p></td>
+<td><p>Text label overlay widget for 2-D plots.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.VLineWidget.html#anyplotlib.VLineWidget" title="anyplotlib.VLineWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VLineWidget</span></code></a></p></td>
+<td><p>Draggable vertical line overlay widget for 1-D plots.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/anyplotlib.HLineWidget.html#anyplotlib.HLineWidget" title="anyplotlib.HLineWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HLineWidget</span></code></a></p></td>
+<td><p>Draggable horizontal line overlay widget for bar charts.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.RangeWidget.html#anyplotlib.RangeWidget" title="anyplotlib.RangeWidget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RangeWidget</span></code></a></p></td>
+<td><p>Draggable range selection widget (two connected vertical lines).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Full Reference</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">Widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">Widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for all overlay widgets.</p>
 <p>Provides attribute-based state access, callbacks for interaction events,
@@ -395,22 +477,22 @@ and automatic synchronization with the JavaScript renderer.</p>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.callbacks">
-<span class="sig-name descname"><span class="pre">callbacks</span></span><a class="headerlink" href="#anyplotlib.widgets.Widget.callbacks" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">callbacks</span></span></dt>
 <dd><p>Event callback registry. Register handlers via:
 - <code class="docutils literal notranslate"><span class="pre">&#64;widget.on_changed</span></code> — fires on every drag frame
 - <code class="docutils literal notranslate"><span class="pre">&#64;widget.on_release</span></code> — fires once when drag settles
 - <code class="docutils literal notranslate"><span class="pre">&#64;widget.on_click</span></code> — fires on click event</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="callbacks.html#anyplotlib.callbacks.CallbackRegistry" title="anyplotlib.callbacks.CallbackRegistry">CallbackRegistry</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="generated/anyplotlib.CallbackRegistry.html#anyplotlib.CallbackRegistry" title="anyplotlib.CallbackRegistry">CallbackRegistry</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.set">
-<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget.set" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.set"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Update properties and send targeted update to JavaScript.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -430,8 +512,8 @@ This is more efficient for frequent updates during dragging.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.get">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget.get" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Get a widget property by name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -450,8 +532,8 @@ This is more efficient for frequent updates during dragging.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget.to_dict" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Return a dict copy of the widget state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -464,8 +546,8 @@ This is more efficient for frequent updates during dragging.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.on_changed">
-<span class="sig-name descname"><span class="pre">on_changed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.on_changed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget.on_changed" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">on_changed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.on_changed"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Decorator: register fn to fire on every drag frame.</p>
 <p>Use this for high-frequency updates (keep handler fast).</p>
 <dl class="field-list simple">
@@ -482,8 +564,8 @@ This is more efficient for frequent updates during dragging.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.on_release">
-<span class="sig-name descname"><span class="pre">on_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.on_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget.on_release" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">on_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.on_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Decorator: register fn to fire once when drag settles.</p>
 <p>Use this for expensive operations triggered after user stops dragging.</p>
 <dl class="field-list simple">
@@ -500,8 +582,8 @@ This is more efficient for frequent updates during dragging.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.on_click">
-<span class="sig-name descname"><span class="pre">on_click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.on_click"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget.on_click" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">on_click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.on_click"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Decorator: register fn to fire on widget click.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -517,8 +599,8 @@ This is more efficient for frequent updates during dragging.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.disconnect">
-<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.Widget.disconnect" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#Widget.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Remove the callback registered under <em>cid</em>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -532,17 +614,17 @@ or the decorated function itself (carries a <code class="docutils literal notran
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="anyplotlib.widgets.Widget.id">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.widgets.Widget.id" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></dt>
 <dd><p>Return the widget’s unique identifier.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.RectangleWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">RectangleWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#RectangleWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.RectangleWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">RectangleWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#RectangleWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable rectangle overlay widget for 2-D plots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -559,9 +641,9 @@ or the decorated function itself (carries a <code class="docutils literal notran
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.CircleWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">CircleWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#CircleWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.CircleWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">CircleWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#CircleWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable circle overlay widget for 2-D plots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -577,9 +659,9 @@ or the decorated function itself (carries a <code class="docutils literal notran
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.AnnularWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">AnnularWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_outer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_inner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#AnnularWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.AnnularWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">AnnularWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_outer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_inner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#AnnularWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable annular (ring) overlay widget for 2-D plots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -601,9 +683,9 @@ Inner radius must be less than outer radius.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.CrosshairWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">CrosshairWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#CrosshairWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.CrosshairWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">CrosshairWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#CrosshairWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable crosshair overlay widget for 2-D plots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -618,9 +700,9 @@ Inner radius must be less than outer radius.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.PolygonWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">PolygonWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#PolygonWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.PolygonWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">PolygonWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#PolygonWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable polygon overlay widget for 2-D plots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -638,9 +720,9 @@ Must have at least 3 vertices.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.LabelWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">LabelWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Label'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">14</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#LabelWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.LabelWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">LabelWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Label'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">14</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#LabelWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Text label overlay widget for 2-D plots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -657,9 +739,9 @@ Must have at least 3 vertices.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.VLineWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">VLineWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#VLineWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.VLineWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">VLineWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#VLineWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable vertical line overlay widget for 1-D plots.</p>
 <p>Allows interactive selection of a single x-axis value. The line can be
 dragged left/right to change the selected position.</p>
@@ -675,9 +757,9 @@ dragged left/right to change the selected position.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.HLineWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">HLineWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#HLineWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.HLineWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">HLineWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#HLineWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable horizontal line overlay widget for bar charts.</p>
 <p>Allows interactive selection of a single y-axis value. The line can be
 dragged up/down to change the selected value.</p>
@@ -693,9 +775,9 @@ dragged up/down to change the selected value.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.widgets.RangeWidget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">RangeWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#RangeWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.widgets.RangeWidget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#anyplotlib.widgets.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.widgets.</span></span><span class="sig-name descname"><span class="pre">RangeWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/widgets.html#RangeWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a></p>
 <p>Draggable range selection widget (two connected vertical lines).</p>
 <p>Allows interactive selection of a range on the x-axis. Both lines
 move together when dragging, maintaining the range width. Either end
@@ -752,38 +834,6 @@ can be dragged independently to resize the range.</p>
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
-
-  <div class="sidebar-secondary-item">
-<div
-    id="pst-page-navigation-heading-2"
-    class="page-toc tocsection onthispage">
-    <i class="fa-solid fa-list"></i> On this page
-  </div>
-  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
-    <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget"><code class="docutils literal notranslate"><span class="pre">Widget</span></code></a><ul class="visible nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.callbacks"><code class="docutils literal notranslate"><span class="pre">Widget.callbacks</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.set"><code class="docutils literal notranslate"><span class="pre">Widget.set()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.get"><code class="docutils literal notranslate"><span class="pre">Widget.get()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.to_dict"><code class="docutils literal notranslate"><span class="pre">Widget.to_dict()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.on_changed"><code class="docutils literal notranslate"><span class="pre">Widget.on_changed()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.on_release"><code class="docutils literal notranslate"><span class="pre">Widget.on_release()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.on_click"><code class="docutils literal notranslate"><span class="pre">Widget.on_click()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.disconnect"><code class="docutils literal notranslate"><span class="pre">Widget.disconnect()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.Widget.id"><code class="docutils literal notranslate"><span class="pre">Widget.id</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.RectangleWidget"><code class="docutils literal notranslate"><span class="pre">RectangleWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.CircleWidget"><code class="docutils literal notranslate"><span class="pre">CircleWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.AnnularWidget"><code class="docutils literal notranslate"><span class="pre">AnnularWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.CrosshairWidget"><code class="docutils literal notranslate"><span class="pre">CrosshairWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.PolygonWidget"><code class="docutils literal notranslate"><span class="pre">PolygonWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.LabelWidget"><code class="docutils literal notranslate"><span class="pre">LabelWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.VLineWidget"><code class="docutils literal notranslate"><span class="pre">VLineWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.HLineWidget"><code class="docutils literal notranslate"><span class="pre">HLineWidget</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.widgets.RangeWidget"><code class="docutils literal notranslate"><span class="pre">RangeWidget</span></code></a></li>
-</ul>
-  </nav></div>
 
   <div class="sidebar-secondary-item">
   <div role="note" aria-label="source link">

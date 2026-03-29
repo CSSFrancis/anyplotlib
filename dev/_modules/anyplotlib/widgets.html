@@ -374,7 +374,7 @@
 
 
 <div class="viewcode-block" id="Widget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Widget</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for all overlay widgets.</span>
 
@@ -441,7 +441,7 @@
     <span class="c1"># ── set / get ─────────────────────────────────────────────────────</span>
 
 <div class="viewcode-block" id="Widget.set">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.set">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.set">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update properties and send targeted update to JavaScript.</span>
 
@@ -465,7 +465,7 @@
 
 
 <div class="viewcode-block" id="Widget.get">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.get">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.get">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a widget property by name.</span>
 
@@ -485,7 +485,7 @@
 
 
 <div class="viewcode-block" id="Widget.to_dict">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.to_dict">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a dict copy of the widget state.</span>
 
@@ -500,7 +500,7 @@
     <span class="c1"># ── callback decorator methods ────────────────────────────────────</span>
 
 <div class="viewcode-block" id="Widget.on_changed">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.on_changed">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.on_changed">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on every drag frame.</span>
 
@@ -522,7 +522,7 @@
 
 
 <div class="viewcode-block" id="Widget.on_release">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.on_release">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.on_release">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire once when drag settles.</span>
 
@@ -544,7 +544,7 @@
 
 
 <div class="viewcode-block" id="Widget.on_click">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.on_click">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.on_click">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on widget click.</span>
 
@@ -564,7 +564,7 @@
 
 
 <div class="viewcode-block" id="Widget.disconnect">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.Widget.disconnect">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.disconnect">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove the callback registered under *cid*.</span>
 
@@ -635,7 +635,7 @@
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
 <div class="viewcode-block" id="RectangleWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.RectangleWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.RectangleWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RectangleWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable rectangle overlay widget for 2-D plots.</span>
 
@@ -658,7 +658,7 @@
 
 
 <div class="viewcode-block" id="CircleWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.CircleWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.CircleWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CircleWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable circle overlay widget for 2-D plots.</span>
 
@@ -680,7 +680,7 @@
 
 
 <div class="viewcode-block" id="AnnularWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.AnnularWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.AnnularWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AnnularWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable annular (ring) overlay widget for 2-D plots.</span>
 
@@ -712,7 +712,7 @@
 
 
 <div class="viewcode-block" id="CrosshairWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.CrosshairWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.CrosshairWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CrosshairWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable crosshair overlay widget for 2-D plots.</span>
 
@@ -732,7 +732,7 @@
 
 
 <div class="viewcode-block" id="PolygonWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.PolygonWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.PolygonWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PolygonWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable polygon overlay widget for 2-D plots.</span>
 
@@ -760,7 +760,7 @@
 
 
 <div class="viewcode-block" id="LabelWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.LabelWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.LabelWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LabelWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Text label overlay widget for 2-D plots.</span>
 
@@ -790,7 +790,7 @@
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
 <div class="viewcode-block" id="VLineWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.VLineWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.VLineWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">VLineWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable vertical line overlay widget for 1-D plots.</span>
 
@@ -812,7 +812,7 @@
 
 
 <div class="viewcode-block" id="HLineWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.HLineWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.HLineWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">HLineWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable horizontal line overlay widget for bar charts.</span>
 
@@ -834,7 +834,7 @@
 
 
 <div class="viewcode-block" id="RangeWidget">
-<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.widgets.RangeWidget">[docs]</a>
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.RangeWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RangeWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable range selection widget (two connected vertical lines).</span>
 

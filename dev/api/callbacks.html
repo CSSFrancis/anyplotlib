@@ -51,8 +51,8 @@
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/api/callbacks.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Examples" href="../auto_examples/index.html" />
-    <link rel="prev" title="Widgets" href="widgets.html" />
+    <link rel="next" title="anyplotlib.Figure" href="generated/anyplotlib.Figure.html" />
+    <link rel="prev" title="Interactive Widgets" href="widgets.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -299,8 +299,47 @@
 <li class="toctree-l1"><a class="reference internal" href="figure.html">Figure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="figure_plots.html">Figure Plots</a></li>
 <li class="toctree-l1"><a class="reference internal" href="markers.html">Markers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="widgets.html">Widgets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="widgets.html">Interactive Widgets</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Callbacks</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Figure.html">anyplotlib.Figure</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.subplots.html">anyplotlib.subplots</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Axes.html">anyplotlib.Axes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot1D.html">anyplotlib.Plot1D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot2D.html">anyplotlib.Plot2D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PlotMesh.html">anyplotlib.PlotMesh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot3D.html">anyplotlib.Plot3D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PlotBar.html">anyplotlib.PlotBar</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.GridSpec.html">anyplotlib.GridSpec</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.SubplotSpec.html">anyplotlib.SubplotSpec</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerGroup.html">anyplotlib.markers.MarkerGroup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerTypeDict.html">anyplotlib.markers.MarkerTypeDict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerRegistry.html">anyplotlib.markers.MarkerRegistry</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Widget.html">anyplotlib.Widget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.RectangleWidget.html">anyplotlib.RectangleWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CircleWidget.html">anyplotlib.CircleWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.AnnularWidget.html">anyplotlib.AnnularWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CrosshairWidget.html">anyplotlib.CrosshairWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PolygonWidget.html">anyplotlib.PolygonWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.LabelWidget.html">anyplotlib.LabelWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.VLineWidget.html">anyplotlib.VLineWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.HLineWidget.html">anyplotlib.HLineWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.RangeWidget.html">anyplotlib.RangeWidget</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CallbackRegistry.html">anyplotlib.CallbackRegistry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Event.html">anyplotlib.Event</a></li>
 </ul>
 </div>
 </nav></div>
@@ -367,11 +406,11 @@
 <h2>callbacks.py<a class="headerlink" href="#callbacks-py" title="Link to this heading">#</a></h2>
 <p>Lightweight two-class event system used by every plot object and widget.</p>
 <dl class="simple">
-<dt><a class="reference internal" href="#anyplotlib.callbacks.CallbackRegistry" title="anyplotlib.callbacks.CallbackRegistry"><code class="xref py py-class docutils literal notranslate"><span class="pre">CallbackRegistry</span></code></a></dt><dd><p>Per-object store of named callbacks.  Every plot object and widget
+<dt><a class="reference internal" href="generated/anyplotlib.CallbackRegistry.html#anyplotlib.CallbackRegistry" title="anyplotlib.callbacks.CallbackRegistry"><code class="xref py py-class docutils literal notranslate"><span class="pre">CallbackRegistry</span></code></a></dt><dd><p>Per-object store of named callbacks.  Every plot object and widget
 exposes <code class="docutils literal notranslate"><span class="pre">on_changed</span></code>, <code class="docutils literal notranslate"><span class="pre">on_release</span></code>, <code class="docutils literal notranslate"><span class="pre">on_click</span></code>, and <code class="docutils literal notranslate"><span class="pre">on_key</span></code>
 decorator methods that connect handlers through this registry.</p>
 </dd>
-<dt><a class="reference internal" href="#anyplotlib.callbacks.Event" title="anyplotlib.callbacks.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a></dt><dd><p>Immutable data-carrier passed to every callback.  All keys in the
+<dt><a class="reference internal" href="generated/anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.callbacks.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a></dt><dd><p>Immutable data-carrier passed to every callback.  All keys in the
 raw JS payload are accessible as attributes (<code class="docutils literal notranslate"><span class="pre">event.zoom</span></code>,
 <code class="docutils literal notranslate"><span class="pre">event.cx</span></code>, etc.) in addition to the typed <code class="docutils literal notranslate"><span class="pre">event_type</span></code>,
 <code class="docutils literal notranslate"><span class="pre">source</span></code>, and <code class="docutils literal notranslate"><span class="pre">data</span></code> fields.</p>
@@ -387,50 +426,29 @@ raw JS payload are accessible as attributes (<code class="docutils literal notra
 </pre></div>
 </div>
 </section>
+<p class="rubric">Classes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.CallbackRegistry.html#anyplotlib.CallbackRegistry" title="anyplotlib.CallbackRegistry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CallbackRegistry</span></code></a></p></td>
+<td><p>Per-object registry for on_click / on_changed / on_release callbacks.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.Event"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Event</span></code></a></p></td>
+<td><p>A single interactive event.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Full Reference</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.Event">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.callbacks.</span></span><span class="sig-name descname"><span class="pre">Event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#Event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.callbacks.Event" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A single interactive event.
-event_type: one of on_click / on_changed / on_release
-source: the originating Python object (Widget, Plot, or None)
-data: full state dict; all keys also accessible as event.x</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>event_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>)</p></li>
-<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.Event.event_type">
-<span class="sig-name descname"><span class="pre">event_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.callbacks.Event.event_type" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.Event.source">
-<span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span><a class="headerlink" href="#anyplotlib.callbacks.Event.source" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.Event.data">
-<span class="sig-name descname"><span class="pre">data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span><a class="headerlink" href="#anyplotlib.callbacks.Event.data" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.CallbackRegistry">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.callbacks.</span></span><span class="sig-name descname"><span class="pre">CallbackRegistry</span></span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.callbacks.CallbackRegistry" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.callbacks.</span></span><span class="sig-name descname"><span class="pre">CallbackRegistry</span></span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Per-object registry for on_click / on_changed / on_release callbacks.</p>
 <dl class="field-list simple">
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.CallbackRegistry.connect">
-<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry.connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.callbacks.CallbackRegistry.connect" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry.connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Register fn for event_type.  Returns integer CID.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -446,8 +464,8 @@ data: full state dict; all keys also accessible as event.x</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.CallbackRegistry.disconnect">
-<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.callbacks.CallbackRegistry.disconnect" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Remove handler for cid.  Silent if not found.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -460,8 +478,8 @@ data: full state dict; all keys also accessible as event.x</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.callbacks.CallbackRegistry.fire">
-<span class="sig-name descname"><span class="pre">fire</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry.fire"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.callbacks.CallbackRegistry.fire" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">fire</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#CallbackRegistry.fire"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Dispatch event to all handlers matching event.event_type.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -469,6 +487,40 @@ data: full state dict; all keys also accessible as event.x</p>
 </dd>
 </dl>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.callbacks.</span></span><span class="sig-name descname"><span class="pre">Event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/callbacks.html#Event"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A single interactive event.
+event_type: one of on_click / on_changed / on_release
+source: the originating Python object (Widget, Plot, or None)
+data: full state dict; all keys also accessible as event.x</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>)</p></li>
+<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">event_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -490,15 +542,15 @@ data: full state dict; all keys also accessible as event.x</p>
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Widgets</p>
+        <p class="prev-next-title">Interactive Widgets</p>
       </div>
     </a>
     <a class="right-next"
-       href="../auto_examples/index.html"
+       href="generated/anyplotlib.Figure.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Examples</p>
+        <p class="prev-next-title">anyplotlib.Figure</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -522,18 +574,6 @@ data: full state dict; all keys also accessible as event.x</p>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#callbacks-py">callbacks.py</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.Event"><code class="docutils literal notranslate"><span class="pre">Event</span></code></a><ul class="visible nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.Event.event_type"><code class="docutils literal notranslate"><span class="pre">Event.event_type</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.Event.source"><code class="docutils literal notranslate"><span class="pre">Event.source</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.Event.data"><code class="docutils literal notranslate"><span class="pre">Event.data</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.CallbackRegistry"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry</span></code></a><ul class="visible nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.CallbackRegistry.connect"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.connect()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.CallbackRegistry.disconnect"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.disconnect()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.callbacks.CallbackRegistry.fire"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.fire()</span></code></a></li>
-</ul>
-</li>
 </ul>
   </nav></div>
 

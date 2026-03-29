@@ -299,8 +299,47 @@
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Figure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="figure_plots.html">Figure Plots</a></li>
 <li class="toctree-l1"><a class="reference internal" href="markers.html">Markers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="widgets.html">Widgets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="widgets.html">Interactive Widgets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="callbacks.html">Callbacks</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Figure.html">anyplotlib.Figure</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.subplots.html">anyplotlib.subplots</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Axes.html">anyplotlib.Axes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot1D.html">anyplotlib.Plot1D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot2D.html">anyplotlib.Plot2D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PlotMesh.html">anyplotlib.PlotMesh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Plot3D.html">anyplotlib.Plot3D</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PlotBar.html">anyplotlib.PlotBar</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.GridSpec.html">anyplotlib.GridSpec</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.SubplotSpec.html">anyplotlib.SubplotSpec</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerGroup.html">anyplotlib.markers.MarkerGroup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerTypeDict.html">anyplotlib.markers.MarkerTypeDict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.markers.MarkerRegistry.html">anyplotlib.markers.MarkerRegistry</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Widget.html">anyplotlib.Widget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.RectangleWidget.html">anyplotlib.RectangleWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CircleWidget.html">anyplotlib.CircleWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.AnnularWidget.html">anyplotlib.AnnularWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CrosshairWidget.html">anyplotlib.CrosshairWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.PolygonWidget.html">anyplotlib.PolygonWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.LabelWidget.html">anyplotlib.LabelWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.VLineWidget.html">anyplotlib.VLineWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.HLineWidget.html">anyplotlib.HLineWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.RangeWidget.html">anyplotlib.RangeWidget</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.CallbackRegistry.html">anyplotlib.CallbackRegistry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/anyplotlib.Event.html">anyplotlib.Event</a></li>
 </ul>
 </div>
 </nav></div>
@@ -365,11 +404,11 @@
 <span id="figure"></span><h1>Figure<a class="headerlink" href="#module-anyplotlib.figure" title="Link to this heading">#</a></h1>
 <section id="figure-py">
 <h2>figure.py<a class="headerlink" href="#figure-py" title="Link to this heading">#</a></h2>
-<p>Top-level <a class="reference internal" href="#anyplotlib.figure.Figure" title="anyplotlib.figure.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> widget and the <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code></a> factory.</p>
+<p>Top-level <a class="reference internal" href="generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.figure.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> widget and the <code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code> factory.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Figure</span></code> is the only <code class="docutils literal notranslate"><span class="pre">anywidget.AnyWidget</span></code> subclass in anyplotlib.
 It owns all traitlets and acts as the Python ↔ JavaScript bridge.
-Use <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code></a> (the recommended entry-point) or construct a
-<code class="docutils literal notranslate"><span class="pre">Figure</span></code> directly and call <a class="reference internal" href="#anyplotlib.figure.Figure.add_subplot" title="anyplotlib.figure.Figure.add_subplot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Figure.add_subplot()</span></code></a> to attach data.</p>
+Use <code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code> (the recommended entry-point) or construct a
+<code class="docutils literal notranslate"><span class="pre">Figure</span></code> directly and call <code class="xref py py-meth docutils literal notranslate"><span class="pre">Figure.add_subplot()</span></code> to attach data.</p>
 <p class="rubric">Example</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
@@ -381,15 +420,34 @@ Use <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyp
 </pre></div>
 </div>
 </section>
+<p class="rubric">Classes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Figure</span></code></a></p></td>
+<td><p>Multi-panel interactive figure widget.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Functions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.subplots.html#anyplotlib.subplots" title="anyplotlib.subplots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subplots</span></code></a></p></td>
+<td><p>Create a <a class="reference internal" href="generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> and a grid of <a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.figure_plots.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Full Reference</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.figure.Figure">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">Figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.Figure" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">Figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnyWidget</span></code></p>
 <p>Multi-panel interactive figure widget.</p>
 <p>The top-level container for all plots and the only <code class="docutils literal notranslate"><span class="pre">anywidget.AnyWidget</span></code>
 subclass in anyplotlib. It owns all traitlets and acts as the Python ↔
 JavaScript bridge via the <code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code> canvas renderer.</p>
-<p>Create via <a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code></a> (recommended) or directly:</p>
+<p>Create via <code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code> (recommended) or directly:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">Figure</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="mi">600</span><span class="p">))</span>
 <span class="n">ax</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 <span class="n">v2d</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
@@ -413,41 +471,41 @@ Default False (independent pan/zoom per panel).</p></li>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="#anyplotlib.figure.subplots" title="anyplotlib.figure.subplots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subplots</span></code></a></dt><dd><p>Recommended factory for creating Figure and Axes grid.</p>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">subplots</span></code></dt><dd><p>Recommended factory for creating Figure and Axes grid.</p>
 </dd>
 </dl>
 </div>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.figure.Figure.layout_json">
-<span class="sig-name descname"><span class="pre">layout_json</span></span><a class="headerlink" href="#anyplotlib.figure.Figure.layout_json" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">layout_json</span></span></dt>
 <dd><p>A trait for unicode strings.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.figure.Figure.event_json">
-<span class="sig-name descname"><span class="pre">event_json</span></span><a class="headerlink" href="#anyplotlib.figure.Figure.event_json" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">event_json</span></span></dt>
 <dd><p>A trait for unicode strings.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.figure.Figure.fig_width">
-<span class="sig-name descname"><span class="pre">fig_width</span></span><a class="headerlink" href="#anyplotlib.figure.Figure.fig_width" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">fig_width</span></span></dt>
 <dd><p>An int trait.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="anyplotlib.figure.Figure.fig_height">
-<span class="sig-name descname"><span class="pre">fig_height</span></span><a class="headerlink" href="#anyplotlib.figure.Figure.fig_height" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">fig_height</span></span></dt>
 <dd><p>An int trait.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.figure.Figure.add_subplot">
-<span class="sig-name descname"><span class="pre">add_subplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure.add_subplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.Figure.add_subplot" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">add_subplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure.add_subplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a subplot cell and return its <code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>spec</strong> (<a class="reference internal" href="#anyplotlib.figure.SubplotSpec" title="anyplotlib.figure.SubplotSpec"><em>SubplotSpec</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><em>(</em><em>row</em><em>, </em><em>col</em><em>)</em>) – Which grid cell(s) to occupy.  A <a class="reference internal" href="#anyplotlib.figure.SubplotSpec" title="anyplotlib.figure.SubplotSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubplotSpec</span></code></a> is used
+<dd class="field-odd"><p><strong>spec</strong> (<a class="reference internal" href="generated/anyplotlib.SubplotSpec.html#anyplotlib.SubplotSpec" title="anyplotlib.SubplotSpec"><em>SubplotSpec</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><em>(</em><em>row</em><em>, </em><em>col</em><em>)</em>) – Which grid cell(s) to occupy.  A <code class="xref py py-class docutils literal notranslate"><span class="pre">SubplotSpec</span></code> is used
 directly (e.g. from <code class="docutils literal notranslate"><span class="pre">GridSpec[r,</span> <span class="pre">c]</span></code>).  An <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> is
 converted via <code class="docutils literal notranslate"><span class="pre">divmod(spec,</span> <span class="pre">ncols)</span></code>, matching
 <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure.add_subplot</span></code> numbering.  A <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code>
@@ -458,7 +516,7 @@ tuple selects a single cell.</p>
 <code class="docutils literal notranslate"><span class="pre">.plot()</span></code>, <code class="docutils literal notranslate"><span class="pre">.bar()</span></code> to attach data.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes">Axes</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes">Axes</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <em>spec</em> is not a SubplotSpec, int, or tuple.</p>
@@ -473,8 +531,8 @@ tuple selects a single cell.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.figure.Figure.get_axes">
-<span class="sig-name descname"><span class="pre">get_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure.get_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.Figure.get_axes" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure.get_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Return a list of all Axes, sorted by grid position.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -482,58 +540,17 @@ tuple selects a single cell.</p>
 top-to-bottom iteration order.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes">Axes</a></p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes">Axes</a></p>
 </dd>
 </dl>
 </dd></dl>
 
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.figure.GridSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">GridSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nrows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#GridSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.GridSpec" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Define a grid of subplot cells.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>nrows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Grid dimensions.</p></li>
-<li><p><strong>ncols</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Grid dimensions.</p></li>
-<li><p><strong>width_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative column widths (length ncols).  Defaults to equal widths.</p></li>
-<li><p><strong>height_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative row heights (length nrows).  Defaults to equal heights.</p></li>
-</ul>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSpec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>          <span class="c1"># top row spanning all columns</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>        <span class="c1"># bottom-right 2 columns</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="anyplotlib.figure.SubplotSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">SubplotSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row_stop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_stop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#SubplotSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.SubplotSpec" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Describes which grid cells a subplot occupies.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>gs</strong> (<a class="reference internal" href="#anyplotlib.figure.GridSpec" title="anyplotlib.figure.GridSpec"><em>GridSpec</em></a>)</p></li>
-<li><p><strong>row_start</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
-<li><p><strong>row_stop</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
-<li><p><strong>col_start</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
-<li><p><strong>col_stop</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
-</ul>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="anyplotlib.figure.subplots">
-<span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">subplots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nrows</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(640,</span> <span class="pre">480)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gridspec_kw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#subplots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.figure.subplots" title="Link to this definition">#</a></dt>
-<dd><p>Create a <a class="reference internal" href="#anyplotlib.figure.Figure" title="anyplotlib.figure.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> and a grid of <a class="reference internal" href="figure_plots.html#anyplotlib.figure_plots.Axes" title="anyplotlib.figure_plots.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a>.</p>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">subplots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nrows</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(640,</span> <span class="pre">480)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_ratios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gridspec_kw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#subplots"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Create a <a class="reference internal" href="generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.figure.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> and a grid of <a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.figure_plots.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a>.</p>
 <p>Mirrors <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots.html#matplotlib.pyplot.subplots" title="(in Matplotlib v3.10.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.subplots()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -547,7 +564,7 @@ top-to-bottom iteration order.</p>
 <code class="docutils literal notranslate"><span class="pre">gridspec_kw={&quot;width_ratios&quot;:</span> <span class="pre">...}</span></code>.</p></li>
 <li><p><strong>height_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative row heights.  Equivalent to
 <code class="docutils literal notranslate"><span class="pre">gridspec_kw={&quot;height_ratios&quot;:</span> <span class="pre">...}</span></code>.</p></li>
-<li><p><strong>gridspec_kw</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Extra keyword arguments forwarded to <a class="reference internal" href="#anyplotlib.figure.GridSpec" title="anyplotlib.figure.GridSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridSpec</span></code></a>.
+<li><p><strong>gridspec_kw</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Extra keyword arguments forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">GridSpec</span></code>.
 Recognised keys: <code class="docutils literal notranslate"><span class="pre">width_ratios</span></code>, <code class="docutils literal notranslate"><span class="pre">height_ratios</span></code>.</p></li>
 </ul>
 </dd>
@@ -627,18 +644,6 @@ Recognised keys: <code class="docutils literal notranslate"><span class="pre">wi
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#figure-py">figure.py</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure"><code class="docutils literal notranslate"><span class="pre">Figure</span></code></a><ul class="visible nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.layout_json"><code class="docutils literal notranslate"><span class="pre">Figure.layout_json</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.event_json"><code class="docutils literal notranslate"><span class="pre">Figure.event_json</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.fig_width"><code class="docutils literal notranslate"><span class="pre">Figure.fig_width</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.fig_height"><code class="docutils literal notranslate"><span class="pre">Figure.fig_height</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.add_subplot"><code class="docutils literal notranslate"><span class="pre">Figure.add_subplot()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.Figure.get_axes"><code class="docutils literal notranslate"><span class="pre">Figure.get_axes()</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.GridSpec"><code class="docutils literal notranslate"><span class="pre">GridSpec</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.SubplotSpec"><code class="docutils literal notranslate"><span class="pre">SubplotSpec</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.figure.subplots"><code class="docutils literal notranslate"><span class="pre">subplots()</span></code></a></li>
 </ul>
   </nav></div>
 
