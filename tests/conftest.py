@@ -133,3 +133,83 @@ def take_screenshot(_pw_browser):
     def _take(widget):
         return _screenshot_widget(_pw_browser, widget)
     return _take
+
+
+# ---------------------------------------------------------------------------
+# Interaction helper + fixture
+# ---------------------------------------------------------------------------
+
+def _build_interact_html(widget):
+    """Like _build_ready_html but also exposes ``window._aplModel``.
+
+    Injecting the model reference into ``window`` lets Playwright tests read
+    back any traitlet value via ``page.evaluate()`` after a simulated
+    mouse interaction without needing a live Python kernel.
+    """
+    html = _build_ready_html(widget)
+    # The template renders "const model   = makeModel(STATE);" exactly once.
+    html = html.replace(
+        "const model   = makeModel(STATE);",
+        "const model   = makeModel(STATE);\nwindow._aplModel = model;",
+    )
+    return html
+
+
+@pytest.fixture
+def interact_page(_pw_browser):
+    """Fixture returning a callable ``open_widget(fig) → page``.
+
+    Opens the widget HTML in a new headless Chromium page, waits for
+    ``window._aplReady``, then returns the live ``Page`` object so the test
+    can fire mouse events and read back model state.  All pages are closed
+    and temp files removed automatically when the test ends.
+
+    Usage::
+
+        def test_something(interact_page):
+            fig, ax = apl.subplots(1, 1, figsize=(400, 240))
+            plot = ax.plot(np.zeros(100))
+            vline = plot.add_vline_widget(50.0)
+
+            page = interact_page(fig)
+            page.mouse.move(233, 113)
+            page.mouse.down()
+            page.mouse.move(133, 113, steps=10)
+            page.mouse.up()
+            ...
+    """
+    import pathlib
+    import tempfile
+
+    _pages: list = []
+    _paths: list = []
+
+    def _open(widget):
+        html = _build_interact_html(widget)
+        with tempfile.NamedTemporaryFile(
+            suffix=".html", mode="w", encoding="utf-8", delete=False
+        ) as fh:
+            fh.write(html)
+            tmp = pathlib.Path(fh.name)
+        _paths.append(tmp)
+
+        page = _pw_browser.new_page()
+        _pages.append(page)
+        page.goto(tmp.as_uri())
+        page.wait_for_function("() => window._aplReady === true", timeout=15_000)
+        # Two rAFs: let the initial canvas draw settle before any mouse event.
+        page.evaluate(
+            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+        return page
+
+    yield _open
+
+    for page in _pages:
+        try:
+            page.close()
+        except Exception:
+            pass
+    for path in _paths:
+        path.unlink(missing_ok=True)
+

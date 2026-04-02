@@ -26,7 +26,7 @@ __all__ = [
     "Widget",
     "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget",
-    "VLineWidget", "HLineWidget", "RangeWidget",
+    "VLineWidget", "HLineWidget", "RangeWidget", "PointWidget",
 ]
 
 
@@ -460,3 +460,25 @@ class RangeWidget(Widget):
     """
     def __init__(self, push_fn, *, x0, x1, color="#00e5ff"):
         super().__init__("range", push_fn, x0=float(x0), x1=float(x1), color=color)
+
+
+class PointWidget(Widget):
+    """Draggable point (control point) overlay widget for 1-D plots.
+
+    A free-moving handle that can be dragged to any position within the
+    plot area.  Reports its data-space ``x`` and ``y`` coordinates back
+    to Python via the standard callback hooks.
+
+    Parameters
+    ----------
+    push_fn : Callable
+        Update callback.
+    x : float
+        Initial x position in data coordinates.
+    y : float
+        Initial y position in data coordinates (value axis).
+    color : str, optional
+        CSS colour for the handle.  Default ``"#00e5ff"``.
+    """
+    def __init__(self, push_fn, *, x, y, color="#00e5ff"):
+        super().__init__("point", push_fn, x=float(x), y=float(y), color=color)

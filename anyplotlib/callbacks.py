@@ -6,8 +6,9 @@ Lightweight two-class event system used by every plot object and widget.
 
 :class:`CallbackRegistry`
     Per-object store of named callbacks.  Every plot object and widget
-    exposes ``on_changed``, ``on_release``, ``on_click``, and ``on_key``
-    decorator methods that connect handlers through this registry.
+    exposes ``on_changed``, ``on_release``, ``on_click``, ``on_key``,
+    ``on_line_hover``, and ``on_line_click`` decorator methods that
+    connect handlers through this registry.
 
 :class:`Event`
     Immutable data-carrier passed to every callback.  All keys in the
@@ -31,15 +32,31 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-_VALID_EVENT_TYPES = ("on_click", "on_changed", "on_release", "on_key")
+_VALID_EVENT_TYPES = (
+    "on_click",
+    "on_changed",
+    "on_release",
+    "on_key",
+    "on_line_hover",
+    "on_line_click",
+)
 
 
 @dataclass
 class Event:
     """A single interactive event.
-    event_type: one of on_click / on_changed / on_release
+    event_type: one of on_click / on_changed / on_release / on_key /
+                on_line_hover / on_line_click
     source: the originating Python object (Widget, Plot, or None)
     data: full state dict; all keys also accessible as event.x
+
+    For ``on_line_hover`` and ``on_line_click`` events the data dict
+    contains:
+
+    * ``line_id`` – ``None`` for the primary line, or the 8-char ID
+      string assigned by :meth:`Plot1D.add_line`.
+    * ``x`` – data-space x coordinate of the nearest point on the line.
+    * ``y`` – data-space y coordinate of the nearest point on the line.
     """
     event_type: str
     source:     Any
@@ -71,7 +88,8 @@ class Event:
 
 
 class CallbackRegistry:
-    """Per-object registry for on_click / on_changed / on_release callbacks."""
+    """Per-object registry for on_click / on_changed / on_release / on_key /
+    on_line_hover / on_line_click callbacks."""
 
     def __init__(self) -> None:
         self._next_cid: int = 1
