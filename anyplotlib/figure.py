@@ -96,6 +96,13 @@ class Figure(anywidget.AnyWidget):
     will-change: transform;
     transform-origin: top left;
     vertical-align: top;
+    /* min-width: max-content prevents the inline-block from shrinking when
+       the parent container (scaleWrap, width:100%) narrows because the
+       Jupyter cell is narrower than the figure's native width.  Without
+       this, outerDiv.offsetWidth collapses to cellW, causing _applyScale()
+       to compute s = cellW/cellW = 1.0 (no-op) instead of the correct
+       s = cellW/nativeW < 1. */
+    min-width: max-content;
 }
 """
 

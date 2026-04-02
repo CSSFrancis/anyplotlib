@@ -31,10 +31,11 @@ from anyplotlib.widgets import (
     VLineWidget as _VLineWidget,
     HLineWidget as _HLineWidget,
     RangeWidget as _RangeWidget,
+    PointWidget as _PointWidget,
 )
 
-__all__ = ["GridSpec", "SubplotSpec", "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D",
-           "PlotBar", "_resample_mesh", "_norm_linestyle"]
+__all__ = ["GridSpec", "SubplotSpec", "Axes", "Line1D", "Plot1D", "Plot2D", "PlotMesh",
+           "Plot3D", "PlotBar", "_resample_mesh", "_norm_linestyle"]
 
 
 # ---------------------------------------------------------------------------
@@ -1529,6 +1530,81 @@ class Plot3D:
 
 
 # ---------------------------------------------------------------------------
+# Line1D — per-line handle
+# ---------------------------------------------------------------------------
+
+class Line1D:
+    """Handle to a single line on a :class:`Plot1D` panel.
+
+    Returned by :meth:`Plot1D.add_line`.  Use it to register hover/click
+    callbacks scoped to just that line, or to remove it later.
+
+    Attributes
+    ----------
+    id : str | None
+        ``None`` for the primary line; an 8-character UUID string for
+        overlay lines added with :meth:`Plot1D.add_line`.
+    """
+
+    def __init__(self, plot: "Plot1D", lid: str | None):
+        self._plot = plot
+        self._lid  = lid
+
+    @property
+    def id(self) -> str | None:
+        return self._lid
+
+    def __str__(self) -> str:
+        return "" if self._lid is None else self._lid
+
+    def __repr__(self) -> str:
+        return f"Line1D(id={self._lid!r})"
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Line1D):
+            return self._lid == other._lid
+        if isinstance(other, str):
+            return self._lid == other
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(self._lid)
+
+    # ------------------------------------------------------------------
+    def on_hover(self, fn: Callable) -> Callable:
+        """Decorator: fires when the cursor moves over *this* line only."""
+        target_lid = self._lid
+        def _filtered(event):
+            if event.data.get("line_id") == target_lid:
+                fn(event)
+        cid = self._plot.callbacks.connect("on_line_hover", _filtered)
+        _filtered._cid = cid
+        fn._cid        = cid
+        return fn
+
+    def on_click(self, fn: Callable) -> Callable:
+        """Decorator: fires when the user clicks on *this* line only."""
+        target_lid = self._lid
+        def _filtered(event):
+            if event.data.get("line_id") == target_lid:
+                fn(event)
+        cid = self._plot.callbacks.connect("on_line_click", _filtered)
+        _filtered._cid = cid
+        fn._cid        = cid
+        return fn
+
+    def disconnect(self, cid: int) -> None:
+        """Remove a callback registered by :meth:`on_hover` or :meth:`on_click`."""
+        self._plot.callbacks.disconnect(cid)
+
+    def remove(self) -> None:
+        """Remove this overlay line from its parent plot."""
+        if self._lid is None:
+            raise ValueError("Cannot remove the primary line via Line1D.remove().")
+        self._plot.remove_line(self._lid)
+
+
+# ---------------------------------------------------------------------------
 # Plot1D
 # ---------------------------------------------------------------------------
 
@@ -1694,6 +1770,19 @@ class Plot1D:
         d["markers"] = self.markers.to_wire_list()
         return d
 
+    @property
+    def line(self) -> "Line1D":
+        """Handle for the primary line, enabling per-line callbacks.
+
+        Returns a :class:`Line1D` with ``id=None`` so you can register
+        hover / click handlers scoped to just the primary line::
+
+            @plot.line.on_click
+            def on_primary_click(event):
+                print(f"primary line clicked at x={event.x:.3f}")
+        """
+        return Line1D(self, None)
+
     # ------------------------------------------------------------------
     # Data update
     # ------------------------------------------------------------------
@@ -1764,7 +1853,7 @@ class Plot1D:
                  linestyle: str = "solid", ls: str | None = None,
                  alpha: float = 1.0,
                  marker: str = "none", markersize: float = 4.0,
-                 label: str = "") -> str:
+                 label: str = "") -> "Line1D":
         """Overlay an additional curve on this panel.
 
         The y-axis range is automatically expanded to include the new data so
@@ -1797,17 +1886,14 @@ class Plot1D:
 
         Returns
         -------
-        str
-            An 8-character ID string.  Pass it to :meth:`remove_line` to
-            delete this line later.
+        Line1D
+            A handle to the new overlay line.  Use it to register
+            per-line hover/click callbacks or to remove the line later::
 
-        Examples
-        --------
-        ::
-
-            lid = v.add_line(fit, x_axis=x, color="#ffcc00", label="fit")
-            # … later …
-            v.remove_line(lid)
+                line = v.add_line(fit, color="#ffcc00", label="fit")
+                line.remove()                     # remove it
+                @line.on_click                    # per-line click handler
+                def clicked(event): ...
         """
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
@@ -1829,23 +1915,25 @@ class Plot1D:
         })
         self._recompute_data_range()
         self._push()
-        return lid
+        return Line1D(self, lid)
 
-    def remove_line(self, lid: str) -> None:
-        """Remove an overlay line by its ID.
+    def remove_line(self, lid: "str | Line1D") -> None:
+        """Remove an overlay line by its ID or :class:`Line1D` handle.
 
         The y-axis range is recomputed after removal.
 
         Parameters
         ----------
-        lid : str
-            The ID returned by :meth:`add_line`.
+        lid : str or Line1D
+            The value returned by :meth:`add_line`.
 
         Raises
         ------
         KeyError
             If *lid* does not match any overlay line.
         """
+        if isinstance(lid, Line1D):
+            lid = lid._lid
         before = len(self._state["extra_lines"])
         self._state["extra_lines"] = [
             e for e in self._state["extra_lines"] if e["id"] != lid]
@@ -2004,6 +2092,34 @@ class Plot1D:
         self._push()
         return widget
 
+    def add_point_widget(self, x: float, y: float,
+                         color: str = "#00e5ff") -> _PointWidget:
+        """Add a freely-draggable control point to this panel.
+
+        Parameters
+        ----------
+        x : float
+            Initial x position in data coordinates.
+        y : float
+            Initial y position in data coordinates (value axis).
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+
+        Returns
+        -------
+        PointWidget
+        """
+        widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp_point():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp_point
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
     def get_widget(self, wid) -> Widget:
         """Return the Widget object by ID string or Widget instance."""
         if isinstance(wid, Widget):
@@ -2098,6 +2214,27 @@ class Plot1D:
     def disconnect(self, cid: int) -> None:
         """Remove the callback registered under integer *cid*."""
         self.callbacks.disconnect(cid)
+
+    def on_line_hover(self, fn: Callable) -> Callable:
+        """Decorator: fires when the cursor moves over *any* line on this panel.
+
+        The event carries ``event.line_id`` (``None`` = primary line,
+        str = overlay), ``event.x``, and ``event.y`` in data coordinates.
+        For per-line filtering use :meth:`Line1D.on_hover` instead.
+        """
+        cid = self.callbacks.connect("on_line_hover", fn)
+        fn._cid = cid
+        return fn
+
+    def on_line_click(self, fn: Callable) -> Callable:
+        """Decorator: fires when the user clicks *any* line on this panel.
+
+        The event carries the same fields as :meth:`on_line_hover`.
+        For per-line filtering use :meth:`Line1D.on_click` instead.
+        """
+        cid = self.callbacks.connect("on_line_click", fn)
+        fn._cid = cid
+        return fn
 
     # ------------------------------------------------------------------
     # View control
@@ -2843,6 +2980,34 @@ class PlotBar:
     def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
         """Add a draggable horizontal line at value-axis position *y*."""
         widget = _HLineWidget(lambda: None, y=float(y), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_range_widget(self, x0: float, x1: float,
+                         color: str = "#00e5ff") -> _RangeWidget:
+        """Add a draggable range (two vertical lines + shaded fill) overlay."""
+        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1), color=color)
+        plot_ref, wid_id = self, widget._id
+        def _tp():
+            if plot_ref._fig is not None:
+                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
+                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
+        widget._push_fn = _tp
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_point_widget(self, x: float, y: float,
+                         color: str = "#00e5ff") -> _PointWidget:
+        """Add a freely-draggable control point to this panel."""
+        widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color)
         plot_ref, wid_id = self, widget._id
         def _tp():
             if plot_ref._fig is not None:

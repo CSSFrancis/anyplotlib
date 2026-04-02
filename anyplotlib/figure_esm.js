@@ -132,6 +132,28 @@ function render({ model, el }) {
     tooltip.style.left=lx+'px'; tooltip.style.top=ly+'px';
   }
 
+  // ── coordinate helper: undo CSS transform:scale() ───────────────────────
+  // _applyScale() shrinks outerDiv with transform:scale(s).  After that,
+  // getBoundingClientRect() reports *visual* (CSS-pixel) dimensions, while
+  // canvas drawing coordinates live in the *native* (un-scaled) space.
+  // Every event handler that does (e.clientX - rect.left) therefore receives
+  // a value in [0, nativeW*s] instead of [0, nativeW].
+  //
+  // _clientPos converts one mouse event back to canvas-pixel space:
+  //   sfX = nativeW / rect.width  = 1/s   (1.0 when no scale is active)
+  //   mx  = (e.clientX - rect.left) * sfX
+  //
+  // Usage:
+  //   const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);   // 1D / bar
+  //   const {mx, my} = _clientPos(e, overlayCanvas, imgW, imgH);   // 2D
+  function _clientPos(e, canvas, nativeW, nativeH) {
+    const rect = canvas.getBoundingClientRect();
+    const sfX  = rect.width  > 0 ? nativeW / rect.width  : 1;
+    const sfY  = rect.height > 0 ? nativeH / rect.height : 1;
+    return { mx: (e.clientX - rect.left) * sfX,
+             my: (e.clientY - rect.top ) * sfY, sfX, sfY };
+  }
+
   // ── per-panel state maps ──────────────────────────────────────────────────
   const panels = new Map();
   let _suppressLayoutUpdate = false;  // block re-entry during live resize
@@ -1200,15 +1222,17 @@ function render({ model, el }) {
 
     overlayCanvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      dragStart = { mx: e.clientX, my: e.clientY,
+      const {mx:_d3mx, my:_d3my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      dragStart = { mx: _d3mx, my: _d3my,
                     az: p.state.azimuth, el: p.state.elevation };
       overlayCanvas.style.cursor = 'grabbing';
       e.preventDefault();
     });
     document.addEventListener('mousemove', (e) => {
       if (!dragStart) return;
-      const dx = e.clientX - dragStart.mx;
-      const dy = e.clientY - dragStart.my;
+      const {mx:_d3mx2, my:_d3my2} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      const dx = _d3mx2 - dragStart.mx;
+      const dy = _d3my2 - dragStart.my;
       p.state.azimuth   = dragStart.az + dx * 0.5;
       p.state.elevation = Math.max(-89, Math.min(89, dragStart.el - dy * 0.5));
       draw3d(p);
@@ -1238,9 +1262,9 @@ function render({ model, el }) {
     }, { passive: false });
 
     overlayCanvas.addEventListener('mousemove', (e) => {
-      const rect = overlayCanvas.getBoundingClientRect();
-      p.mouseX = e.clientX - rect.left;
-      p.mouseY = e.clientY - rect.top;
+      const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      p.mouseX = mx;
+      p.mouseY = my;
     });
 
     // Keyboard shortcuts
@@ -1554,6 +1578,20 @@ function render({ model, el }) {
         ovCtx.beginPath();ovCtx.moveTo(px1b,r.y);ovCtx.lineTo(px1b,r.y+r.h);ovCtx.stroke();
         ovCtx.setLineDash([]);
         _ovHandle1d(ovCtx,px0,r.y+7,color);_ovHandle1d(ovCtx,px1b,r.y+7,color);
+      } else if(w.type==='point'){
+        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
+        const py=_valToPy1d(w.y,dMin,dMax,r);
+        // Clip dashed crosshair guides to the plot rectangle
+        ovCtx.save();ovCtx.beginPath();ovCtx.rect(r.x,r.y,r.w,r.h);ovCtx.clip();
+        ovCtx.setLineDash([4,3]);
+        ovCtx.beginPath();ovCtx.moveTo(px,r.y);ovCtx.lineTo(px,r.y+r.h);ovCtx.stroke();
+        ovCtx.beginPath();ovCtx.moveTo(r.x,py);ovCtx.lineTo(r.x+r.w,py);ovCtx.stroke();
+        ovCtx.setLineDash([]);
+        ovCtx.restore();
+        // Draw the draggable handle (larger than _ovHandle1d for easy grab)
+        ovCtx.save();ovCtx.fillStyle=color;ovCtx.strokeStyle='rgba(0,0,0,0.5)';ovCtx.lineWidth=1.5;
+        ovCtx.beginPath();ovCtx.arc(px,py,7,0,Math.PI*2);ovCtx.fill();ovCtx.stroke();
+        ovCtx.restore();
       }
       ovCtx.restore();
     }
@@ -1636,6 +1674,50 @@ function render({ model, el }) {
       mkCtx.restore();
     }
     mkCtx.restore();
+  }
+
+  // Returns {lineId, canvasPx, canvasPy, x, y} for the line closest to (mx,my),
+  // or null if nothing is within HIT px.
+  // lineId: null = primary line, string = extra-line id.
+  function _lineHitTest1d(mx, my, p) {
+    const st = p.state; if (!st) return null;
+    const r = _plotRect1d(p.pw, p.ph);
+    if (mx < r.x || mx > r.x+r.w || my < r.y || my > r.y+r.h) return null;
+    const xArr = st.x_axis||[], x0 = st.view_x0||0, x1 = st.view_x1||1;
+    const dMin = st.data_min, dMax = st.data_max;
+    const HIT = 6;
+
+    function _nearestOnLine(yData, lineXArr, lineId) {
+      if (!yData || yData.length < 2) return null;
+      const n = yData.length;
+      const span = lineXArr.length >= 2 ? (lineXArr[lineXArr.length-1] - lineXArr[0]) || 1 : (n-1)||1;
+      let bestDist = HIT + 1, bx = null, by = null;
+      for (let i = 0; i < n - 1; i++) {
+        const f0 = lineXArr.length >= 2 ? (lineXArr[i]   - lineXArr[0]) / span : i   / ((n-1)||1);
+        const f1 = lineXArr.length >= 2 ? (lineXArr[i+1] - lineXArr[0]) / span : (i+1) / ((n-1)||1);
+        const px0 = _fracToPx1d(f0, x0, x1, r), py0 = _valToPy1d(yData[i],   dMin, dMax, r);
+        const px1 = _fracToPx1d(f1, x0, x1, r), py1 = _valToPy1d(yData[i+1], dMin, dMax, r);
+        const dx = px1-px0, dy = py1-py0, lenSq = dx*dx+dy*dy;
+        const t  = lenSq > 0 ? Math.max(0, Math.min(1, ((mx-px0)*dx+(my-py0)*dy)/lenSq)) : 0;
+        const nx = px0+t*dx, ny = py0+t*dy;
+        const d  = Math.hypot(mx-nx, my-ny);
+        if (d < bestDist) { bestDist = d; bx = nx; by = ny; }
+      }
+      if (bx === null) return null;
+      // Convert canvas best-point back to data coords
+      const frac = _canvasXToFrac1d(bx, x0, x1, r);
+      const physX = lineXArr.length >= 2 ? _fracToX1d(lineXArr, frac) : frac;
+      const physY = dMin + (r.y + r.h - by) / (r.h||1) * (dMax - dMin);
+      return { lineId, canvasPx: bx, canvasPy: by, x: physX, y: physY };
+    }
+
+    // Check extra lines first (drawn on top), then primary
+    for (let i = (st.extra_lines||[]).length - 1; i >= 0; i--) {
+      const ex = st.extra_lines[i];
+      const hit = _nearestOnLine(ex.data, ex.x_axis || xArr, ex.id);
+      if (hit) return hit;
+    }
+    return _nearestOnLine(st.data, xArr, null);
   }
 
   // ── marker hit-test helpers ────────────────────────────────────────────────
@@ -1794,9 +1876,8 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('wheel',(e)=>{
       e.preventDefault();
       const st=p.state; if(!st) return;
-      const rect=overlayCanvas.getBoundingClientRect();
       const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
-      const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
       // Image point under cursor before zoom change
       const [anchorX,anchorY]=_canvasToImg2d(mx,my,st,imgW,imgH);
       const curZ=st.zoom, newZ=Math.max(0.75,Math.min(100,curZ*(e.deltaY>0?0.9:1.1)));
@@ -1821,8 +1902,8 @@ function render({ model, el }) {
       if(e.button!==0) return;
       const st=p.state; if(!st) return;
       overlayCanvas.focus();
-      const rect=overlayCanvas.getBoundingClientRect();
-      const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
       const hit=_ovHitTest2d(mx, my, p);
       if(hit){
         p.ovDrag2d=hit;
@@ -1830,7 +1911,9 @@ function render({ model, el }) {
         overlayCanvas.style.cursor='move';
         e.preventDefault(); return;
       }
-      panStart={mx:e.clientX,my:e.clientY,cx:st.center_x,cy:st.center_y};
+      // Store pan start in canvas-pixel coords so the drag delta is also
+      // in canvas-pixel space and matches fr.w/fr.h (both canvas-pixel).
+      panStart={mx,my,cx:st.center_x,cy:st.center_y};
       p.isPanning=true; overlayCanvas.style.cursor='grabbing'; e.preventDefault();
     });
     document.addEventListener('mousemove',(e)=>{
@@ -1845,9 +1928,10 @@ function render({ model, el }) {
       const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
       const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
       const z=st.zoom;
+      const {mx:cmx,my:cmy}=_clientPos(e,overlayCanvas,imgW,imgH);
       localOnly=true;
-      st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/fr.w/z));
-      st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/fr.h/z));
+      st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/z));
+      st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/z));
       draw2d(p);
       _propagateZoom2d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
@@ -1868,8 +1952,9 @@ function render({ model, el }) {
       const st=p.state; if(!st) return;
       const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
       const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
-      st.center_x=Math.max(0,Math.min(1,panStart.cx-(e.clientX-panStart.mx)/fr.w/st.zoom));
-      st.center_y=Math.max(0,Math.min(1,panStart.cy-(e.clientY-panStart.my)/fr.h/st.zoom));
+      const {mx:cmx,my:cmy}=_clientPos(e,overlayCanvas,imgW,imgH);
+      st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/st.zoom));
+      st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/st.zoom));
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
       _emitEvent(p.id,'on_release',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom});
       model.save_changes();
@@ -1877,8 +1962,8 @@ function render({ model, el }) {
 
     // Status bar + tooltip + widget hover cursor
     overlayCanvas.addEventListener('mousemove',(e)=>{
-      const rect=overlayCanvas.getBoundingClientRect();
-      const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
       p.mouseX=mx; p.mouseY=my;
       if(p.ovDrag2d) return; // handled by document mousemove
       const st=p.state; if(!st) return;
@@ -1897,7 +1982,6 @@ function render({ model, el }) {
         overlayCanvas.style.cursor='default';
       }
 
-      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
       const [ix,iy]=_canvasToImg2d(mx,my,st,imgW,imgH);
       if(ix>=0&&ix<st.image_width&&iy>=0&&iy<st.image_height){
         const xArr=st.x_axis||[], yArr=st.y_axis||[];
@@ -1987,7 +2071,7 @@ function render({ model, el }) {
       e.preventDefault();
       const st=p.state; if(!st) return;
       const r=_plotRect1d(p.pw,p.ph);
-      const mx=e.clientX-overlayCanvas.getBoundingClientRect().left;
+      const {mx}=_clientPos(e,overlayCanvas,p.pw,p.ph);
       const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
       const x0=st.view_x0, x1=st.view_x1, span=x1-x0;
       const factor=e.deltaY>0?1.15:0.87;
@@ -2006,9 +2090,14 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('mousedown',(e)=>{
       if(e.button!==0) return;
       const st=p.state; if(!st) return;
-      const hit=_ovHitTest1d(e.clientX-overlayCanvas.getBoundingClientRect().left, e.clientY-overlayCanvas.getBoundingClientRect().top, p);
+      // Store raw client coords for the drag-vs-click threshold (visual pixels
+      // are fine for that comparison — both endpoints use the same space).
+      p._mousedownX=e.clientX; p._mousedownY=e.clientY;
+      const {mx:_emx,my:_emy}=_clientPos(e,overlayCanvas,p.pw,p.ph);
+      const hit=_ovHitTest1d(_emx, _emy, p);
       if(hit){p.ovDrag=hit;p.lastWidgetId=(p.state.overlay_widgets||[])[hit.idx]?.id||null;overlayCanvas.style.cursor=(hit.mode==='edge0'||hit.mode==='edge1')?'ew-resize':'move';e.preventDefault();return;}
-      panStart={mx:e.clientX,x0:st.view_x0,x1:st.view_x1};
+      // Store pan start in canvas-px so pan delta in mousemove is canvas-px.
+      panStart={mx:_emx,x0:st.view_x0,x1:st.view_x1};
       p.isPanning=true;overlayCanvas.style.cursor='grabbing';e.preventDefault();
     });
     document.addEventListener('mousemove',(e)=>{
@@ -2021,7 +2110,8 @@ function render({ model, el }) {
       if(!p.isPanning) return;
       const st=p.state; if(!st) return;
       const r=_plotRect1d(p.pw,p.ph);
-      const dx=(e.clientX-panStart.mx)/(r.w||1);
+      const {mx:cmx}=_clientPos(e,overlayCanvas,p.pw,p.ph);
+      const dx=(cmx-panStart.mx)/(r.w||1);
       const span=panStart.x1-panStart.x0;
       let nx0=panStart.x0-dx*span, nx1=panStart.x1-dx*span;
       if(nx0<0){nx0=0;nx1=span;}if(nx1>1){nx1=1;nx0=1-span;}
@@ -2030,6 +2120,7 @@ function render({ model, el }) {
       model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
+      const wasDragging=!!p.ovDrag||!!p.isPanning;
       if(p.ovDrag){
         const _idx=p.ovDrag.idx;
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
@@ -2043,6 +2134,16 @@ function render({ model, el }) {
         const st=p.state;
         if(st) _emitEvent(p.id,'on_release',null,{view_x0:st.view_x0,view_x1:st.view_x1});
       }
+      // Line click: only when no drag/pan occurred and mouse barely moved
+      if(!wasDragging && p._mousedownX!=null){
+        const mdx=e.clientX-p._mousedownX, mdy=e.clientY-p._mousedownY;
+        if(Math.hypot(mdx,mdy)<5){
+          const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
+          const lhit=_lineHitTest1d(mx,my,p);
+          if(lhit) _emitEvent(p.id,'on_line_click',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y});
+        }
+      }
+      p._mousedownX=null;
     });
 
     // Keyboard shortcuts
@@ -2070,8 +2171,7 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('mouseenter',()=>overlayCanvas.focus());
     overlayCanvas.addEventListener('mousemove',(e)=>{
       const st=p.state;if(!st)return;
-      const rect=overlayCanvas.getBoundingClientRect();
-      const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+      const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
       p.mouseX=mx; p.mouseY=my;
       const r=_plotRect1d(p.pw,p.ph);
       if(mx<r.x||mx>r.x+r.w||my<r.y||my>r.y+r.h){
@@ -2091,9 +2191,26 @@ function render({ model, el }) {
       }
       if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);return;}
       tooltip.style.display='none';
+      // Line hover — only when no widget is being dragged
+      if(!p.ovDrag){
+        const lhit=_lineHitTest1d(mx,my,p);
+        const newLid=lhit?lhit.lineId:'__none__';
+        if(newLid!==p._lineHoverId){
+          p._lineHoverId=newLid;
+          drawOverlay1d(p);
+          if(lhit){
+            p.ovCtx.save();p.ovCtx.fillStyle='rgba(255,255,255,0.9)';
+            p.ovCtx.strokeStyle='rgba(0,0,0,0.5)';p.ovCtx.lineWidth=1.5;
+            p.ovCtx.beginPath();p.ovCtx.arc(lhit.canvasPx,lhit.canvasPy,4,0,Math.PI*2);
+            p.ovCtx.fill();p.ovCtx.stroke();p.ovCtx.restore();
+          }
+        }
+        if(lhit) _emitEvent(p.id,'on_line_hover',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y});
+      }
     });
     overlayCanvas.addEventListener('mouseleave',()=>{p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
+      if(p._lineHoverId!=='__none__'){p._lineHoverId='__none__';drawOverlay1d(p);}
     });
   }
 
@@ -2193,9 +2310,7 @@ function render({ model, el }) {
     const st = p.state; if (!st) return;
     const imgW = Math.max(1, p.pw - PAD_L - PAD_R);
     const imgH = Math.max(1, p.ph - PAD_T - PAD_B);
-    const rect  = p.overlayCanvas.getBoundingClientRect();
-    const mx    = e.clientX - rect.left;
-    const my    = e.clientY - rect.top;
+    const {mx, my} = _clientPos(e, p.overlayCanvas, imgW, imgH);
     const d     = p.ovDrag2d;
     const s     = d.snapW;
     const w     = st.overlay_widgets[d.idx];
@@ -2289,6 +2404,11 @@ function render({ model, el }) {
         if(Math.abs(mx-px1b)<=HR+5) return{idx:i,mode:'edge1',wtype:'range',startMX:mx,snapW:{...w}};
         const left=Math.min(px0,px1b),right=Math.max(px0,px1b);
         if(mx>=left&&mx<=right&&my>=r.y&&my<=r.y+r.h) return{idx:i,mode:'move',wtype:'range',startMX:mx,snapW:{...w}};
+      } else if(w.type==='point'){
+        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
+        const py=_valToPy1d(w.y,st.data_min,st.data_max,r);
+        if(Math.hypot(mx-px,my-py)<=HR+4)
+          return{idx:i,mode:'move',wtype:'point',startMX:mx,startMY:my,snapW:{...w}};
       }
     }
     return null;
@@ -2297,14 +2417,13 @@ function render({ model, el }) {
   function _doDrag1d(e,p){
     const st=p.state;if(!st)return;
     const r=_plotRect1d(p.pw,p.ph);
-    const rect=p.overlayCanvas.getBoundingClientRect();
-    const mx=e.clientX-rect.left;
+    const {mx,my:py}=_clientPos(e,p.overlayCanvas,p.pw,p.ph);
     const xArr=st.x_axis||[],x0=st.view_x0||0,x1=st.view_x1||1;
     const xUnit=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r);
     const widgets=st.overlay_widgets;
     const d=p.ovDrag, s=d.snapW, w=widgets[d.idx];
     if(w.type==='vline'){w.x=xUnit;}
-    else if(w.type==='hline'){const py=e.clientY-rect.top;w.y=st.data_max-((py-r.y)/(r.h||1))*(st.data_max-st.data_min);}
+    else if(w.type==='hline'){w.y=st.data_max-((py-r.y)/(r.h||1))*(st.data_max-st.data_min);}
     else if(w.type==='range'){
       if(d.mode==='edge0') w.x0=xUnit;
       else if(d.mode==='edge1') w.x1=xUnit;
@@ -2313,6 +2432,12 @@ function render({ model, el }) {
         const dxUnit=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(snapPx+(mx-d.startMX),x0,x1,r))-s.x0:(mx-d.startMX)/(r.w||1);
         w.x0=s.x0+dxUnit;w.x1=s.x1+dxUnit;
       }
+    } else if(w.type==='point'){
+      // Clamp to plot rectangle
+      const clampX=Math.max(r.x,Math.min(r.x+r.w,mx));
+      const clampY=Math.max(r.y,Math.min(r.y+r.h,py));
+      w.x=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(clampX,x0,x1,r)):_canvasXToFrac1d(clampX,x0,x1,r);
+      w.y=st.data_max-((clampY-r.y)/(r.h||1))*(st.data_max-st.data_min);
     }
     drawOverlay1d(p);
     model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();
@@ -2371,7 +2496,11 @@ function render({ model, el }) {
     isResizing = true;
     _suppressLayoutUpdate = true;
     const fw = model.get('fig_width'), fh = model.get('fig_height');
-    resizeStart = { mx: e.clientX, my: e.clientY, fw, fh };
+    // Capture the current CSS scale so drag deltas (in visual/page pixels) can
+    // be converted back to native figure pixels.  offsetWidth is pre-transform.
+    const _oRect = outerDiv.getBoundingClientRect();
+    const _sfFig = (_oRect.width > 0) ? outerDiv.offsetWidth / _oRect.width : 1;
+    resizeStart = { mx: e.clientX, my: e.clientY, fw, fh, sfFig: _sfFig };
     // Cache the layout once so mousemove never needs to parse JSON
     try { _cachedLayout = JSON.parse(model.get('layout_json')); } catch(_) { _cachedLayout = null; }
     sizeLabel.style.display = 'block';
@@ -2483,8 +2612,9 @@ function render({ model, el }) {
 
   document.addEventListener('mousemove', (e) => {
     if (!isResizing) return;
-    _pendingNfw = Math.max(200, resizeStart.fw + (e.clientX - resizeStart.mx));
-    _pendingNfh = Math.max(100, resizeStart.fh + (e.clientY - resizeStart.my));
+    const sf = resizeStart.sfFig || 1;
+    _pendingNfw = Math.max(200, resizeStart.fw + (e.clientX - resizeStart.mx) * sf);
+    _pendingNfh = Math.max(100, resizeStart.fh + (e.clientY - resizeStart.my) * sf);
     sizeLabel.textContent = `${Math.round(_pendingNfw)}×${Math.round(_pendingNfh)}`;
 
     // Throttle to one DOM update per animation frame
@@ -2504,8 +2634,9 @@ function render({ model, el }) {
     isResizing = false;
     _rafPending = false;
     sizeLabel.style.display = 'none';
-    const nfw = Math.max(200, resizeStart.fw + (e.clientX - resizeStart.mx));
-    const nfh = Math.max(100, resizeStart.fh + (e.clientY - resizeStart.my));
+    const sf = resizeStart.sfFig || 1;
+    const nfw = Math.max(200, resizeStart.fw + (e.clientX - resizeStart.mx) * sf);
+    const nfh = Math.max(100, resizeStart.fh + (e.clientY - resizeStart.my) * sf);
 
     // Full redraw at final size
     _applyFigResize(nfw, nfh);
@@ -2804,8 +2935,8 @@ function render({ model, el }) {
 
     overlayCanvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      const rect = overlayCanvas.getBoundingClientRect();
-      const hit = _ovHitTest1d(e.clientX - rect.left, e.clientY - rect.top, p);
+      const {mx:_bmx, my:_bmy} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      const hit = _ovHitTest1d(_bmx, _bmy, p);
       if (hit) {
         p.ovDrag = hit;
         p.lastWidgetId = (p.state.overlay_widgets || [])[hit.idx]?.id || null;
@@ -2834,8 +2965,7 @@ function render({ model, el }) {
     });
 
     overlayCanvas.addEventListener('mousemove', (e) => {
-      const rect = overlayCanvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       p.mouseX = mx; p.mouseY = my;
       if (p.ovDrag) return;  // handled by document mousemove during drag
       const st = p.state; if (!st) return;
@@ -2874,8 +3004,8 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('click', (e) => {
       if (p.ovDrag) return;
       const st = p.state; if (!st) return;
-      const rect = overlayCanvas.getBoundingClientRect();
-      const idx  = _barHit(e.clientX - rect.left, e.clientY - rect.top);
+      const {mx:_cmx, my:_cmy} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      const idx  = _barHit(_cmx, _cmy);
       if (idx < 0) return;
       _emitEvent(p.id, 'on_click', null, {
         bar_index: idx,
@@ -2924,11 +3054,16 @@ function render({ model, el }) {
   // Full canvas resolution is preserved; CSS transforms correctly route
   // pointer events so all interactive features (drag, zoom, pan) keep working.
   // Also called after layout/resize changes so the scale stays in sync.
+  //
+  // Prerequisite: .apl-outer must carry `min-width: max-content` (set in the
+  // _css traitlet).  Without it, the inline-block shrinks to match its
+  // constrained parent and outerDiv.offsetWidth == cellW, giving s = 1 always.
   function _applyScale() {
     const cellW = el.getBoundingClientRect().width;
     if (!cellW) return;
     // offsetWidth is the pre-transform layout width — unaffected by any
-    // currently applied transform, so it always reflects the native figure size.
+    // currently applied transform AND pinned ≥ content width by
+    // min-width:max-content, so it always reflects the true native figure size.
     const nativeW = outerDiv.offsetWidth;
     const nativeH = outerDiv.offsetHeight;
     if (!nativeW) return;
