@@ -17,7 +17,9 @@ This scraper:
 
 from __future__ import annotations
 
+import json as _json
 import tempfile
+from html import escape as _html_escape
 from pathlib import Path
 from uuid import uuid4
 
@@ -108,7 +110,7 @@ def _make_thumbnail_png(widget) -> bytes:
     return png_bytes
 
 
-def _iframe_html(src: str, w: int, h: int) -> str:
+def _iframe_html(src: str, w: int, h: int, fig_id: str | None = None) -> str:
     """Return a single-line HTML snippet that embeds *src* responsively.
 
     The iframe is always rendered at its native resolution (``w × h`` px) so
@@ -120,7 +122,7 @@ def _iframe_html(src: str, w: int, h: int) -> str:
     A tiny inline script re-runs the scale calculation on every ``resize``
     event so the embed reflows without a page reload.
     """
-    uid = f"f{uuid4().hex[:8]}"
+    uid = fig_id or f"f{uuid4().hex[:8]}"
 
     # Static initial scale so the page renders correctly before JS runs
     init_scale = min(1.0, MAX_DOC_WIDTH / w)
@@ -161,7 +163,7 @@ def _iframe_html(src: str, w: int, h: int) -> str:
         f'<div style="display:block;text-align:center;line-height:0;margin:12px 0;">'
         f'<div id="{uid}" style="display:inline-block;overflow:hidden;'
         f'position:relative;width:{init_w}px;height:{init_h}px;">'
-        f'<iframe src="{src}" frameborder="0" scrolling="no" '
+        f'<iframe src="{src}" data-apl-fig="{uid}" frameborder="0" scrolling="no" '
         f'style="width:{w}px;height:{h}px;border:none;overflow:hidden;display:block;'
         f'transform-origin:top left;transform:scale({scale_css});'
         f'position:absolute;top:0;left:0;">'
@@ -179,6 +181,12 @@ def _iframe_html(src: str, w: int, h: int) -> str:
 class ViewerScraper:
     """Sphinx Gallery image scraper that embeds anyplotlib Widgets as live iframes."""
 
+    def __init__(self):
+        # Maps src_file path → list of fig_ids emitted so far for that example.
+        # Used to assign a stable fig_index (creation order) so pyodide_bridge.js
+        # can run the example source once and tag figures in the right order.
+        self._example_figs: dict = {}
+
     def __repr__(self) -> str:
         return "ViewerScraper()"
 
@@ -188,28 +196,25 @@ class ViewerScraper:
         if widget is None:
             return ""
 
+        src_file = str(block_vars.get("src_file", ""))
+
+        # ── assign a stable fig_id and fig_index for this widget ──────────
+        if src_file not in self._example_figs:
+            self._example_figs[src_file] = []
+        fig_index = len(self._example_figs[src_file])
+
         # ── 1. Write the thumbnail PNG (Sphinx Gallery requires this) ──────
         image_path_iterator = block_vars["image_path_iterator"]
         png_path = Path(next(image_path_iterator))
         png_path.parent.mkdir(parents=True, exist_ok=True)
         png_path.write_bytes(_make_thumbnail_png(widget))
 
+        # fig_id is derived from the PNG stem so it is stable across rebuilds
+        # and unique within the built docs (Sphinx Gallery guarantees unique stems).
+        fig_id = png_path.stem   # e.g. "sphx_glr_plot_image2d_001"
+        self._example_figs[src_file].append(fig_id)
+
         # ── 2. Write the standalone HTML into docs/_static/viewer_widgets/ ─
-        #
-        # WHY NOT srcdoc=:
-        #   The srcdoc= attribute value is thousands of lines. Docutils parses
-        #   the content of a ``.. raw:: html`` block as indented text, so a
-        #   multi-line attribute value confuses the RST parser and the block is
-        #   silently dropped from the output.
-        #
-        # WHY NOT src= into auto_examples/images/:
-        #   Sphinx only copies *.png files from that directory to _build/html/.
-        #   Any .html file referenced via src= would be a 404 in the built docs.
-        #
-        # SOLUTION:
-        #   Write to docs/_static/viewer_widgets/ which is in html_static_path
-        #   and is copied verbatim by Sphinx.  The src= path is a single line,
-        #   which is safe for docutils.
         try:
             from anyplotlib._repr_utils import build_standalone_html, _widget_px
             docs_dir = Path(gallery_conf["src_dir"])
@@ -219,7 +224,7 @@ class ViewerScraper:
             html_name = png_path.stem + ".html"   # sphx_glr_plot_..._001.html
             html_path = widgets_dir / html_name
 
-            inner_html = build_standalone_html(widget, resizable=False)
+            inner_html = build_standalone_html(widget, resizable=False, fig_id=fig_id)
             html_path.write_text(inner_html, encoding="utf-8")
             w, h = _widget_px(widget)
             interactive = True
@@ -237,10 +242,38 @@ class ViewerScraper:
                 depth = 1
             prefix = "../" * depth
             src = f"{prefix}_static/viewer_widgets/{html_name}"
-            return (
-                "\n\n.. raw:: html\n\n"
-                "    " + _iframe_html(src, w, h) + "\n\n"
-            )
+
+            iframe_block = _iframe_html(src, w, h, fig_id=fig_id)
+
+            # Embed the full example Python source alongside the iframe so
+            # pyodide_bridge.js can run it in Pyodide and wire live callbacks.
+            python_src = ""
+            try:
+                python_src = Path(src_file).read_text(encoding="utf-8")
+            except Exception:
+                pass
+
+            if python_src:
+                # The Python source is JSON-encoded and HTML-escaped into a
+                # data-src attribute so the <script> tag stays on ONE line.
+                # Multi-line textContent would break the RST `.. raw:: html`
+                # block — docutils treats any non-indented line as the end of
+                # the directive.  pyodide_bridge.js reads dataset.src instead.
+                data_src = _html_escape(_json.dumps(python_src), quote=True)
+                python_block = (
+                    f'<script type="text/x-python"'
+                    f' data-fig-id="{fig_id}"'
+                    f' data-fig-index="{fig_index}"'
+                    f' data-src-file="{Path(src_file).stem}"'
+                    f' data-src="{data_src}"></script>'
+                )
+            else:
+                python_block = ""
+
+            rst = "\n\n.. raw:: html\n\n    " + iframe_block + "\n\n"
+            if python_block:
+                rst += "\n\n.. raw:: html\n\n    " + python_block + "\n\n"
+            return rst
         else:
             rel_png = png_path.name
             return (

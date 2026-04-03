@@ -83,6 +83,10 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
+# pyodide_bridge.js adds the "⚡" activation button to gallery pages and boots
+# a single shared Pyodide instance for the whole page on click.
+html_js_files = ["pyodide_bridge.js"]
+
 html_theme_options = {
     "github_url": "https://github.com/CSSFrancis/anyplotlib",
     "logo": {
@@ -103,3 +107,60 @@ autodoc_default_options = {
 }
 autodoc_typehints = "description"
 
+
+# ---------------------------------------------------------------------------
+# Pyodide wheel
+# ---------------------------------------------------------------------------
+# Built once per `make html` so pyodide_bridge.js can install the *exact*
+# version of anyplotlib that generated these docs — no PyPI release needed.
+#
+# Dev build   (DOCS_VERSION=dev)     → wheel from working tree
+# Stable build (DOCS_VERSION=v0.1.0) → wheel from the checked-out tag
+#
+# Both produce _static/wheels/anyplotlib-latest-py3-none-any.whl, a stable
+# filename that pyodide_bridge.js can always reference.  Each deployed version
+# has its own copy under its own URL prefix (e.g. /dev/_static/wheels/ vs
+# /v0.1.0/_static/wheels/) so there is no cross-version contamination —
+# pyodide_bridge.js derives the wheel URL from its own script src, which
+# already carries the version prefix.
+def setup(app):
+    """Build the anyplotlib wheel for the in-browser Pyodide bridge."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    wheels_dir = Path(__file__).parent / "_static" / "wheels"
+    wheels_dir.mkdir(parents=True, exist_ok=True)
+
+    # Remove stale wheels from previous builds.
+    for old in wheels_dir.glob("anyplotlib*.whl"):
+        old.unlink(missing_ok=True)
+
+    # Build a pure-Python wheel from the project root.
+    # --no-deps: only package anyplotlib itself; micropip resolves deps.
+    project_root = Path(__file__).parent.parent
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "pip", "wheel",
+            "--no-deps", "--quiet",
+            "--wheel-dir", str(wheels_dir),
+            str(project_root),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        print(f"\n[pyodide_bridge] WARNING: wheel build failed:\n{result.stderr}")
+        return
+
+    # Rename to a stable, version-agnostic filename so pyodide_bridge.js can
+    # reference it without knowing the current version string.
+    # NOTE: "latest" is NOT a valid PEP 440 version; micropip rejects it.
+    # "0.0.0" is the simplest valid sentinel that micropip accepts when the
+    # wheel is installed via URL (no PyPI version-check happens for URL installs).
+    wheels = sorted(wheels_dir.glob("anyplotlib*.whl"))
+    if wheels:
+        stable = wheels_dir / "anyplotlib-0.0.0-py3-none-any.whl"
+        stable.unlink(missing_ok=True)
+        wheels[-1].rename(stable)
