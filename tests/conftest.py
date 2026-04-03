@@ -17,13 +17,14 @@ The screenshot helper:
      pure-stdlib PNG decoder (no PIL / matplotlib required).
 """
 from __future__ import annotations
+import json
 import pathlib
 import tempfile
 import pytest
 
 
 # ---------------------------------------------------------------------------
-# CLI option
+# CLI options
 # ---------------------------------------------------------------------------
 
 def pytest_addoption(parser):
@@ -32,6 +33,18 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="Regenerate golden PNG baselines in tests/baselines/",
+    )
+    parser.addoption(
+        "--update-benchmarks",
+        action="store_true",
+        default=False,
+        help="Regenerate render-time benchmark baselines in tests/benchmarks/baselines.json",
+    )
+    parser.addoption(
+        "--run-slow",
+        action="store_true",
+        default=False,
+        help="Include slow benchmark scenarios (4096², 8192² images) skipped in fast CI",
     )
 
 
@@ -212,4 +225,140 @@ def interact_page(_pw_browser):
             pass
     for path in _paths:
         path.unlink(missing_ok=True)
+
+
+# ---------------------------------------------------------------------------
+# Benchmark fixtures + helper
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def update_benchmarks(request):
+    """True when --update-benchmarks was passed on the command line."""
+    return request.config.getoption("--update-benchmarks")
+
+
+@pytest.fixture(scope="session")
+def run_slow(request):
+    """True when --run-slow was passed (enables 4K²/8K² scenarios)."""
+    return request.config.getoption("--run-slow")
+
+
+@pytest.fixture
+def bench_page(_pw_browser):
+    """Fixture: open a widget in headless Chromium and return the live Page.
+
+    Identical to ``interact_page`` but purpose-named for benchmark tests so
+    the two fixture pools stay independent.  The opened page exposes both
+    ``window._aplModel`` (for model mutations) and ``window._aplTiming``
+    (populated by ``_recordFrame`` inside ``figure_esm.js``) so Playwright
+    can drive renders and read back timing without a live Python kernel.
+
+    Usage::
+
+        def test_bench_something(bench_page):
+            fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+            plot = ax.imshow(np.random.rand(256, 256).astype(np.float32))
+            page = bench_page(fig)
+            timing = _run_bench(page, plot._id)
+            assert timing["mean_ms"] < 50
+    """
+    _pages: list = []
+    _paths: list = []
+
+    def _open(widget):
+        html = _build_interact_html(widget)
+        with tempfile.NamedTemporaryFile(
+            suffix=".html", mode="w", encoding="utf-8", delete=False
+        ) as fh:
+            fh.write(html)
+            tmp = pathlib.Path(fh.name)
+        _paths.append(tmp)
+
+        page = _pw_browser.new_page()
+        _pages.append(page)
+        page.goto(tmp.as_uri())
+        page.wait_for_function("() => window._aplReady === true", timeout=60_000)
+        page.evaluate(
+            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+        return page
+
+    yield _open
+
+    for page in _pages:
+        try:
+            page.close()
+        except Exception:
+            pass
+    for path in _paths:
+        path.unlink(missing_ok=True)
+
+
+def _run_bench(page, panel_id, *, n_warmup=3, n_samples=15,
+               perturb_field="display_min", perturb_delta=1e-4,
+               timeout=120_000):
+    """Drive N render cycles in *page* and return the ``_aplTiming`` dict.
+
+    Each cycle slightly perturbs *perturb_field* in the panel state so the
+    JS blit-cache is always invalidated and the full decode→LUT→render path
+    is exercised on every frame.  Renders are paced with ``requestAnimationFrame``
+    so successive ``createImageBitmap`` calls have time to commit before the
+    next one is queued — giving realistic throughput numbers rather than a
+    burst of back-to-back initiations.
+
+    ``n_warmup`` frames are discarded (they prime the JIT and caches);
+    ``n_samples`` frames are timed.  The function blocks until all frames
+    are complete (or *timeout* ms elapses).
+
+    Parameters
+    ----------
+    page        : Playwright Page (from ``bench_page`` fixture)
+    panel_id    : str — ``plot._id`` of the panel to benchmark
+    n_warmup    : int — frames to discard before timing starts
+    n_samples   : int — frames to time
+    perturb_field : str — state field to nudge each frame (invalidates cache)
+    perturb_delta : float — amount to nudge by per frame
+    timeout     : int — Playwright evaluate timeout in ms
+
+    Returns
+    -------
+    dict with keys: count, fps, mean_ms, min_ms, max_ms
+    """
+    js = """
+    ([panelId, nWarmup, nSamples, field, delta]) =>
+      new Promise((resolve, reject) => {
+        const total = nWarmup + nSamples;
+        let i = 0;
+
+        function step() {
+          if (i >= total) {
+            resolve(window._aplTiming ? window._aplTiming[panelId] : null);
+            return;
+          }
+
+          // Perturb one small field so the blit-cache key changes and the
+          // full draw path is exercised on every frame.
+          const key = 'panel_' + panelId + '_json';
+          try {
+            const st = JSON.parse(window._aplModel.get(key));
+            st[field] = (st[field] || 0) + delta;
+            window._aplModel.set(key, JSON.stringify(st));
+          } catch(e) { reject(e); return; }
+
+          // After warmup completes, wipe the timing buffer so only the
+          // measured frames are included in the final result.
+          if (i === nWarmup - 1) {
+            if (window._aplTiming) delete window._aplTiming[panelId];
+          }
+
+          i++;
+          requestAnimationFrame(step);
+        }
+
+        requestAnimationFrame(step);
+      })
+    """
+    return page.evaluate(js, [panel_id, n_warmup, n_samples,
+                               perturb_field, perturb_delta],
+                         timeout=timeout)
 
