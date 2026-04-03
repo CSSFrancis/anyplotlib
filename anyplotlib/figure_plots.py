@@ -54,6 +54,18 @@ _LINESTYLE_ALIASES: dict[str, str] = {
 }
 
 
+def _arr_to_b64(arr: np.ndarray, dtype) -> str:
+    """Encode a NumPy array as base-64 (little-endian raw bytes).
+
+    Uses little-endian byte order so the result is compatible with
+    JavaScript's ``Float64Array`` / ``Float32Array`` / ``Int32Array``
+    on all modern platforms (x86, ARM).
+    """
+    import base64
+    le_dtype = np.dtype(dtype).newbyteorder("<")
+    return base64.b64encode(np.asarray(arr).astype(le_dtype).tobytes()).decode("ascii")
+
+
 def _norm_linestyle(ls: str) -> str:
     """Normalise a linestyle name or shorthand to its canonical form.
 
@@ -1336,48 +1348,50 @@ class Plot3D:
                 raise ValueError(
                     "Surface x/y/z must be 2-D grids of the same shape, "
                     "or 1-D x/y centre arrays with 2-D z.")
-            faces = _triangulate_grid(rows, cols)
-            vertices = np.column_stack([xf, yf, zf]).tolist()
-            z_values = zf.tolist()
+            faces_list = _triangulate_grid(rows, cols)
         else:
             if x.ndim != 1 or y.ndim != 1 or z.ndim != 1:
                 raise ValueError("scatter/line x, y, z must be 1-D arrays")
             if not (len(x) == len(y) == len(z)):
                 raise ValueError("x, y, z must have the same length")
-            vertices = np.column_stack([x, y, z]).tolist()
-            faces    = []
-            z_values = z.tolist()
+            xf, yf, zf = x, y, z
+            faces_list = []
 
-        # Normalised data bounds for the JS renderer
-        all_x = np.asarray([v[0] for v in vertices])
-        all_y = np.asarray([v[1] for v in vertices])
-        all_z = np.asarray([v[2] for v in vertices])
+        # Normalised data bounds for the JS renderer (from raw arrays — fast)
         data_bounds = {
-            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
-            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
-            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+            "xmin": float(xf.min()), "xmax": float(xf.max()),
+            "ymin": float(yf.min()), "ymax": float(yf.max()),
+            "zmin": float(zf.min()), "zmax": float(zf.max()),
         }
+
+        # Encode geometry as b64 (float32 saves 50 % wire size vs float64)
+        verts_arr  = np.column_stack([xf, yf, zf]).astype(np.float32)   # (N, 3)
+        zvals_arr  = zf.astype(np.float32)                                # (N,)
+        faces_arr  = (np.asarray(faces_list, dtype=np.int32).reshape(-1, 3)
+                      if faces_list else np.empty((0, 3), dtype=np.int32))
 
         cmap_lut = _build_colormap_lut(colormap)
 
         self._state: dict = {
-            "kind":        "3d",
-            "geom_type":   geom_type,
-            "vertices":    vertices,
-            "faces":       faces,
-            "z_values":    z_values,
+            "kind":          "3d",
+            "geom_type":     geom_type,
+            "vertices_b64":  _arr_to_b64(verts_arr,  np.float32),
+            "vertices_count": len(verts_arr),
+            "faces_b64":     _arr_to_b64(faces_arr,  np.int32),
+            "faces_count":   len(faces_arr),
+            "z_values_b64":  _arr_to_b64(zvals_arr,  np.float32),
             "colormap_name": colormap,
             "colormap_data": cmap_lut,
-            "color":       color,
-            "point_size":  float(point_size),
-            "linewidth":   float(linewidth),
-            "x_label":     x_label,
-            "y_label":     y_label,
-            "z_label":     z_label,
-            "azimuth":     float(azimuth),
-            "elevation":   float(elevation),
-            "zoom":        float(zoom),
-            "data_bounds": data_bounds,
+            "color":         color,
+            "point_size":    float(point_size),
+            "linewidth":     float(linewidth),
+            "x_label":       x_label,
+            "y_label":       y_label,
+            "z_label":       z_label,
+            "azimuth":       float(azimuth),
+            "elevation":     float(elevation),
+            "zoom":          float(zoom),
+            "data_bounds":   data_bounds,
             "registered_keys": [],
         }
         self.callbacks = CallbackRegistry()
@@ -1497,29 +1511,30 @@ class Plot3D:
                 xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
             else:
                 raise ValueError("Surface x/y/z must be 2-D grids or 1-D+2-D.")
-            faces    = _triangulate_grid(rows, cols)
-            vertices = np.column_stack([xf, yf, zf]).tolist()
-            z_values = zf.tolist()
+            faces_list = _triangulate_grid(rows, cols)
         else:
-            vertices = np.column_stack([x.ravel(), y.ravel(), z.ravel()]).tolist()
-            faces    = []
-            z_values = z.ravel().tolist()
+            xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
+            faces_list = []
 
-        all_x = np.asarray([v[0] for v in vertices])
-        all_y = np.asarray([v[1] for v in vertices])
-        all_z = np.asarray([v[2] for v in vertices])
         data_bounds = {
-            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
-            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
-            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+            "xmin": float(xf.min()), "xmax": float(xf.max()),
+            "ymin": float(yf.min()), "ymax": float(yf.max()),
+            "zmin": float(zf.min()), "zmax": float(zf.max()),
         }
 
+        verts_arr = np.column_stack([xf, yf, zf]).astype(np.float32)
+        zvals_arr = zf.astype(np.float32)
+        faces_arr = (np.asarray(faces_list, dtype=np.int32).reshape(-1, 3)
+                     if faces_list else np.empty((0, 3), dtype=np.int32))
+
         self._state.update({
-            "vertices":    vertices,
-            "faces":       faces,
-            "z_values":    z_values,
-            "data_bounds": data_bounds,
-            "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
+            "vertices_b64":   _arr_to_b64(verts_arr, np.float32),
+            "vertices_count": len(verts_arr),
+            "faces_b64":      _arr_to_b64(faces_arr, np.int32),
+            "faces_count":    len(faces_arr),
+            "z_values_b64":   _arr_to_b64(zvals_arr, np.float32),
+            "data_bounds":    data_bounds,
+            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
         })
         self._push()
 
@@ -1727,8 +1742,8 @@ class Plot1D:
 
         self._state: dict = {
             "kind":             "1d",
-            "data":             data.tolist(),
-            "x_axis":           x_axis.tolist(),
+            "data":             data,          # numpy float64 — encoded in to_state_dict()
+            "x_axis":           x_axis,        # numpy float64 — encoded in to_state_dict()
             "units":            units,
             "y_units":          y_units,
             "data_min":         dmin,
@@ -1766,8 +1781,23 @@ class Plot1D:
 
     def to_state_dict(self) -> dict:
         d = dict(self._state)
+        # Replace numpy arrays with b64-encoded strings for the wire format.
+        data_arr  = d.pop("data")
+        x_arr     = d.pop("x_axis")
+        d["data_b64"]    = _arr_to_b64(data_arr,  np.float64)
+        d["x_axis_b64"]  = _arr_to_b64(x_arr,     np.float64)
+        d["data_length"] = len(data_arr)
+        # Encode extra-line arrays too
+        new_extra = []
+        for ex in d["extra_lines"]:
+            ex2 = dict(ex)
+            ex2["data_b64"]   = _arr_to_b64(ex2.pop("data"),  np.float64)
+            ex2["x_axis_b64"] = _arr_to_b64(
+                np.asarray(ex2.pop("x_axis"), dtype=np.float64), np.float64)
+            new_extra.append(ex2)
+        d["extra_lines"]    = new_extra
         d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
-        d["markers"] = self.markers.to_wire_list()
+        d["markers"]         = self.markers.to_wire_list()
         return d
 
     @property
@@ -1812,7 +1842,7 @@ class Plot1D:
             raise ValueError(f"data must be 1-D, got {data.shape}")
         n = len(data)
         if x_axis is None:
-            prev = np.asarray(self._state["x_axis"])
+            prev = self._state["x_axis"]          # already a numpy array
             x_axis = prev if len(prev) == n else np.arange(n, dtype=float)
         x_axis = np.asarray(x_axis, dtype=float)
 
@@ -1820,8 +1850,8 @@ class Plot1D:
         dmax = float(np.nanmax(data))
         pad  = (dmax - dmin) * 0.05 if dmax > dmin else 0.5
 
-        self._state["data"]    = data.tolist()
-        self._state["x_axis"]  = x_axis.tolist()
+        self._state["data"]    = data
+        self._state["x_axis"]  = x_axis
         self._state["data_min"] = dmin - pad
         self._state["data_max"] = dmax + pad
         if units    is not None: self._state["units"]   = units
@@ -1834,10 +1864,11 @@ class Plot1D:
         Called automatically whenever the set of lines changes so that every
         curve stays fully visible.
         """
-        all_vals = [np.asarray(self._state["data"], dtype=float)]
+        all_vals = [self._state["data"]]   # already a numpy float64 array
         for ex in self._state["extra_lines"]:
-            if ex.get("data"):
-                all_vals.append(np.asarray(ex["data"], dtype=float))
+            d = ex.get("data")
+            if d is not None and len(d):
+                all_vals.append(d)
         combined = np.concatenate(all_vals)
         dmin = float(np.nanmin(combined))
         dmax = float(np.nanmax(combined))
@@ -1898,12 +1929,12 @@ class Plot1D:
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
             raise ValueError("data must be 1-D")
-        xa = (np.asarray(x_axis, float).tolist() if x_axis is not None
+        xa = (np.asarray(x_axis, dtype=float) if x_axis is not None
               else self._state["x_axis"])
         lid = str(_uuid.uuid4())[:8]
         self._state["extra_lines"].append({
             "id":         lid,
-            "data":       data.tolist(),
+            "data":       data,
             "x_axis":     xa,
             "color":      color,
             "linewidth":  float(linewidth),
