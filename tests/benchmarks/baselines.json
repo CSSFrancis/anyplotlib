@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "note": "Run `uv run pytest tests/test_benchmarks.py tests/test_benchmarks_py.py --update-benchmarks` to regenerate on this machine. Headless-Chrome timings are machine-specific; regenerate when switching hardware or CI runners.",
+    "regression_threshold_js": 1.5,
+    "regression_threshold_py": 1.3,
+    "updated_at": "2026-04-03T15:14:50.260443Z",
+    "host": "Carters-MacBook-Air.local"
+  },
+  "py_normalize_64x64": {
+    "min_ms": 0.013,
+    "mean_ms": 0.03,
+    "max_ms": 0.094,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:49.086721Z"
+  },
+  "py_encode_64x64": {
+    "min_ms": 0.006,
+    "mean_ms": 0.007,
+    "max_ms": 0.01,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:49.088606Z"
+  },
+  "py_serialize_2d_64x64": {
+    "min_ms": 0.08,
+    "mean_ms": 0.118,
+    "max_ms": 0.173,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:49.295005Z"
+  },
+  "py_serialize_1d_100pts": {
+    "min_ms": 0.051,
+    "mean_ms": 0.061,
+    "max_ms": 0.087,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:49.298385Z"
+  },
+  "py_serialize_1d_1000pts": {
+    "min_ms": 0.479,
+    "mean_ms": 0.495,
+    "max_ms": 0.514,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:49.308353Z"
+  },
+  "py_serialize_1d_10000pts": {
+    "min_ms": 5.173,
+    "mean_ms": 6.195,
+    "max_ms": 7.04,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:49.409289Z"
+  },
+  "py_serialize_1d_100000pts": {
+    "min_ms": 49.916,
+    "mean_ms": 51.439,
+    "max_ms": 53.381,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:50.252123Z"
+  },
+  "py_update_2d_64x64": {
+    "min_ms": 0.205,
+    "mean_ms": 0.231,
+    "max_ms": 0.299,
+    "n": 15,
+    "updated_at": "2026-04-03T15:14:50.260435Z"
+  }
+}

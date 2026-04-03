@@ -67,11 +67,13 @@ class Figure(anywidget.AnyWidget):
     subplots : Recommended factory for creating Figure and Axes grid.
     """
 
-    layout_json = traitlets.Unicode("{}").tag(sync=True)
-    fig_width   = traitlets.Int(640).tag(sync=True)
-    fig_height  = traitlets.Int(480).tag(sync=True)
+    layout_json    = traitlets.Unicode("{}").tag(sync=True)
+    fig_width      = traitlets.Int(640).tag(sync=True)
+    fig_height     = traitlets.Int(480).tag(sync=True)
     # Bidirectional JS event bus: JS writes interaction events here, Python reads them.
-    event_json  = traitlets.Unicode("{}").tag(sync=True)
+    event_json     = traitlets.Unicode("{}").tag(sync=True)
+    # When True the JS renderer shows a per-panel FPS / frame-time overlay.
+    display_stats  = traitlets.Bool(False).tag(sync=True)
     _esm = _ESM_SOURCE
     # Static CSS injected by anywidget alongside _esm.
     # .apl-scale-wrap  — outer container; width:100% means it always fills
@@ -108,7 +110,8 @@ class Figure(anywidget.AnyWidget):
 
     def __init__(self, nrows=1, ncols=1, figsize=(640, 480),
                  width_ratios=None, height_ratios=None,
-                 sharex=False, sharey=False, **kwargs):
+                 sharex=False, sharey=False,
+                 display_stats=False, **kwargs):
         super().__init__(**kwargs)
         self._nrows = nrows
         self._ncols = ncols
@@ -119,8 +122,9 @@ class Figure(anywidget.AnyWidget):
         self._axes_map: dict  = {}
         self._plots_map: dict = {}
         with self.hold_trait_notifications():
-            self.fig_width  = figsize[0]
-            self.fig_height = figsize[1]
+            self.fig_width     = figsize[0]
+            self.fig_height    = figsize[1]
+            self.display_stats = display_stats
         self._push_layout()
 
     # ── subplot creation ──────────────────────────────────────────────────────
@@ -342,7 +346,8 @@ def subplots(nrows=1, ncols=1, *,
              figsize=(640, 480),
              width_ratios=None,
              height_ratios=None,
-             gridspec_kw=None):
+             gridspec_kw=None,
+             display_stats=False):
     """Create a :class:`Figure` and a grid of :class:`~anyplotlib.figure_plots.Axes`.
 
     Mirrors :func:`matplotlib.pyplot.subplots`.
@@ -392,6 +397,7 @@ def subplots(nrows=1, ncols=1, *,
         nrows=nrows, ncols=ncols, figsize=figsize,
         width_ratios=width_ratios, height_ratios=height_ratios,
         sharex=sharex, sharey=sharey,
+        display_stats=display_stats,
     )
     # Build the GridSpec from the Figure's own stored ratios so there is
     # exactly one source of truth.

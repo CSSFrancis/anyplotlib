@@ -82,7 +82,51 @@ function render({ model, el }) {
     return arr[lo]+t*(arr[lo+1]-arr[lo]);
   }
 
-  // ── outer DOM ────────────────────────────────────────────────────────────
+  // ── per-panel frame timing ────────────────────────────────────────────────
+  // Called at the entry of every draw function (draw2d / draw1d / draw3d /
+  // drawBar).  Records a high-resolution timestamp in a 60-entry rolling
+  // buffer on the panel object, then:
+  //   • updates window._aplTiming[p.id]  — always, for Playwright readback
+  //   • updates p.statsDiv text          — only when display_stats is true
+  //
+  // Placing the call at the *start* of each draw function means we measure
+  // the inter-trigger interval: how often the CPU initiates a render, which
+  // is the right metric for both interactive (pan/zoom) and data-push paths.
+  const _FRAME_BUF = 60;
+
+  function _recordFrame(p) {
+    const now = performance.now();
+    p.frameTimes.push(now);
+    if (p.frameTimes.length > _FRAME_BUF) p.frameTimes.shift();
+
+    const n = p.frameTimes.length;
+
+    // Always keep the global timing dict fresh so Playwright can read it back
+    // at any point via window._aplTiming[panelId].
+    if (!window._aplTiming) window._aplTiming = {};
+
+    if (n >= 2) {
+      let sum = 0, minDt = Infinity, maxDt = -Infinity;
+      for (let i = 1; i < n; i++) {
+        const dt = p.frameTimes[i] - p.frameTimes[i - 1];
+        sum += dt; if (dt < minDt) minDt = dt; if (dt > maxDt) maxDt = dt;
+      }
+      const mean_ms = sum / (n - 1);
+      const fps     = 1000 * (n - 1) / (now - p.frameTimes[0]);
+      window._aplTiming[p.id] = {
+        count: n, fps, mean_ms, min_ms: minDt, max_ms: maxDt,
+      };
+
+      if (p.statsDiv && model.get('display_stats')) {
+        p.statsDiv.style.display = 'block';
+        p.statsDiv.textContent   =
+          `FPS  ${fps.toFixed(1)}\n` +
+          ` dt  ${mean_ms.toFixed(1)} ms\n` +
+          `min  ${minDt.toFixed(1)} ms\n` +
+          `max  ${maxDt.toFixed(1)} ms`;
+      }
+    }
+  }
   // Static layout styles live in the _css traitlet (.apl-scale-wrap /
   // .apl-outer).  Only the two dynamic properties — transform and
   // marginBottom — are ever written here at runtime.
@@ -207,6 +251,7 @@ function render({ model, el }) {
     let plotCanvas, overlayCanvas, markersCanvas, statusBar;
     let xAxisCanvas=null, yAxisCanvas=null, scaleBar=null;
     let _p2d = null;   // extra 2D DOM refs, null for 1D panels
+    let _wrapNode = null;  // container to which statsDiv is appended
 
     if (kind === '2d') {
       // ── 2D branch ──────────────────────────────────────────────────────────
@@ -270,6 +315,7 @@ function render({ model, el }) {
 
       const cbCtx = cbCanvas.getContext('2d');
       _p2d = { cbCanvas, cbCtx, plotWrap };
+      _wrapNode = plotWrap;
 
     } else if (kind === '3d') {
       // ── 3D branch: one full-panel plotCanvas + overlayCanvas on top ───────
@@ -293,8 +339,7 @@ function render({ model, el }) {
       statusBar.style.cssText =
         'position:absolute;bottom:4px;right:4px;padding:2px 6px;display:none;';
       wrap3.appendChild(statusBar);
-
-    } else {
+      _wrapNode = wrap3;
       plotCanvas = document.createElement('canvas');
       plotCanvas.tabIndex = 1;
       plotCanvas.style.cssText = 'outline:none;cursor:crosshair;display:block;border-radius:2px;';
@@ -319,6 +364,7 @@ function render({ model, el }) {
         'background:rgba(0,0,0,0.55);color:white;font-size:10px;font-family:monospace;' +
         'border-radius:4px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
       wrap.appendChild(statusBar);
+      _wrapNode = wrap;
     }
 
     const plotCtx    = plotCanvas.getContext('2d');
@@ -329,12 +375,25 @@ function render({ model, el }) {
 
     const blitCache  = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
 
+    // ── stats overlay (top-left of panel) ────────────────────────────────
+    // Positioned absolutely inside the panel's wrap container so it floats
+    // over the plot area.  Visibility is toggled by the display_stats traitlet.
+    const statsDiv = document.createElement('div');
+    statsDiv.style.cssText =
+      'position:absolute;top:4px;left:4px;padding:4px 7px;' +
+      'background:rgba(0,0,0,0.65);color:#e0e0e0;font-size:10px;' +
+      'font-family:monospace;border-radius:4px;pointer-events:none;' +
+      'white-space:pre;line-height:1.5;z-index:20;display:none;';
+    if (_wrapNode) _wrapNode.appendChild(statsDiv);
+
     const p = {
       id, kind, cell, pw, ph,
       plotCanvas, overlayCanvas, markersCanvas,
       plotCtx, ovCtx, mkCtx,
       xAxisCanvas, yAxisCanvas, xCtx, yCtx,
       scaleBar, statusBar,
+      statsDiv,        // ← per-panel FPS overlay element
+      frameTimes: [],  // ← rolling 60-entry timestamp buffer (performance.now())
       blitCache,
       ovDrag: null,
       isPanning: false, panStart: {},
@@ -578,6 +637,7 @@ function render({ model, el }) {
   function draw2d(p) {
     const st=p.state;
     if(!st) return;
+    _recordFrame(p);
     // Re-sync axis/histogram canvas visibility whenever state changes
     _resizePanelDOM(p.id, p.pw, p.ph);
     const {pw,ph,plotCtx:ctx,blitCache} = p;
@@ -1030,6 +1090,7 @@ function render({ model, el }) {
 
   function draw3d(p) {
     const st = p.state; if (!st) return;
+    _recordFrame(p);
     const { pw, ph, plotCtx: ctx } = p;
 
     ctx.clearRect(0, 0, pw, ph);
@@ -1317,6 +1378,7 @@ function render({ model, el }) {
 
   function draw1d(p) {
     const st=p.state; if(!st) return;
+    _recordFrame(p);
     const {pw,ph,plotCtx:ctx} = p;
     const r=_plotRect1d(pw,ph);
     const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
@@ -2696,6 +2758,7 @@ function render({ model, el }) {
 
   function drawBar(p) {
     const st = p.state; if (!st) return;
+    _recordFrame(p);
     const { pw, ph, plotCtx: ctx } = p;
     const r = _plotRect1d(pw, ph);
 
@@ -3099,6 +3162,20 @@ function render({ model, el }) {
   // ── model listeners ───────────────────────────────────────────────────────
   model.on('change:layout_json', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
   model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
+
+  // Toggle the per-panel stats overlay when display_stats changes.
+  // Hiding is immediate; showing waits for the next natural redraw to
+  // populate the overlay text — but we also call redrawAll() here so the
+  // stats appear instantly without having to interact with the figure first.
+  model.on('change:display_stats', () => {
+    const show = model.get('display_stats');
+    for (const p of panels.values()) {
+      if (!show && p.statsDiv) {
+        p.statsDiv.style.display = 'none';
+      }
+    }
+    if (show) redrawAll();
+  });
 
   // Python→JS targeted widget update (source:"python" in event_json).
   // Applies changed fields directly to the widget in overlay_widgets and
