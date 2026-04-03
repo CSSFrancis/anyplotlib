@@ -82,6 +82,29 @@ function render({ model, el }) {
     return arr[lo]+t*(arr[lo+1]-arr[lo]);
   }
 
+  // ── b64 array decode helpers ─────────────────────────────────────────────
+  // Convert a base-64 string (little-endian raw bytes) to a JS TypedArray.
+  // TypedArrays support .length and [i] indexing so they are drop-in
+  // replacements for plain arrays in all draw / hit-test functions.
+  function _decodeF64(b64) {
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Float64Array(buf.buffer);
+  }
+  function _decodeF32(b64) {
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Float32Array(buf.buffer);
+  }
+  function _decodeI32(b64) {
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Int32Array(buf.buffer);
+  }
+
   // ── per-panel frame timing ────────────────────────────────────────────────
   // Called at the entry of every draw function (draw2d / draw1d / draw3d /
   // drawBar).  Records a high-resolution timestamp in a 60-entry rolling
@@ -1097,9 +1120,38 @@ function render({ model, el }) {
     ctx.fillStyle = theme.bgPlot;
     ctx.fillRect(0, 0, pw, ph);
 
-    const verts    = st.vertices    || [];
-    const faces    = st.faces       || [];
-    const zVals    = st.z_values    || [];
+    // ── decode + cache b64 geometry (only when state changes) ──────────────
+    const vKey = st.vertices_b64 || '';
+    const fKey = st.faces_b64    || '';
+    const zKey = st.z_values_b64 || '';
+    if (p._3dVertsKey !== vKey) {
+      p._3dVertsKey = vKey;
+      if (vKey) {
+        const vf = _decodeF32(vKey);
+        const nv = vf.length / 3;
+        const arr = new Array(nv);
+        for (let i = 0; i < nv; i++) arr[i] = [vf[i*3], vf[i*3+1], vf[i*3+2]];
+        p._3dVerts = arr;
+      } else { p._3dVerts = st.vertices || []; }
+    }
+    if (p._3dFacesKey !== fKey) {
+      p._3dFacesKey = fKey;
+      if (fKey) {
+        const ff = _decodeI32(fKey);
+        const nf = ff.length / 3;
+        const arr = new Array(nf);
+        for (let i = 0; i < nf; i++) arr[i] = [ff[i*3], ff[i*3+1], ff[i*3+2]];
+        p._3dFaces = arr;
+      } else { p._3dFaces = st.faces || []; }
+    }
+    if (p._3dZKey !== zKey) {
+      p._3dZKey = zKey;
+      p._3dZVals = zKey ? _decodeF32(zKey) : (st.z_values || []);
+    }
+    const verts = p._3dVerts  || [];
+    const faces = p._3dFaces  || [];
+    const zVals = p._3dZVals  || [];
+
     const lut      = st.colormap_data || [];
     const geom     = st.geom_type   || 'surface';
     const bnds     = st.data_bounds || {};
@@ -1381,7 +1433,22 @@ function render({ model, el }) {
     _recordFrame(p);
     const {pw,ph,plotCtx:ctx} = p;
     const r=_plotRect1d(pw,ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
+
+    // ── decode + cache b64 arrays (keyed by b64 string; free on re-render) ──
+    const xKey = st.x_axis_b64 || '';
+    const dKey = st.data_b64   || '';
+    if (p._1dXKey !== xKey) {
+      p._1dXKey  = xKey;
+      p._1dXArr  = xKey ? _decodeF64(xKey) : (st.x_axis || []);
+    }
+    if (p._1dDKey !== dKey) {
+      p._1dDKey  = dKey;
+      p._1dDArr  = dKey ? _decodeF64(dKey)  : (st.data   || []);
+    }
+    const xArr = p._1dXArr;   // Float64Array (or plain array fallback)
+    const yData = p._1dDArr;  // Float64Array (or plain array fallback)
+
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     const dMin=st.data_min, dMax=st.data_max;
     const units=st.units||'', yUnits=st.y_units||'';
 
@@ -1522,13 +1589,15 @@ function render({ model, el }) {
       ctx.restore();
     }
 
-    _drawLine(st.data, xArr,
+    _drawLine(yData, xArr,
       st.line_color || '#4fc3f7', st.line_linewidth || 1.5,
       st.line_linestyle || 'solid',
       st.line_alpha != null ? st.line_alpha : 1.0,
       st.line_marker || 'none', st.line_markersize || 4);
     for (const ex of (st.extra_lines || [])) {
-      _drawLine(ex.data || [], ex.x_axis || xArr,
+      const exY = ex.data_b64   ? _decodeF64(ex.data_b64)   : (ex.data   || []);
+      const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
+      _drawLine(exY, exX,
         ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth || 1.5,
         ex.linestyle || 'solid',
         ex.alpha != null ? ex.alpha : 1.0,
@@ -1613,7 +1682,8 @@ function render({ model, el }) {
     const st=p.state; if(!st) return;
     const {pw,ph,ovCtx} = p;
     const r=_plotRect1d(pw,ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     const dMin=st.data_min, dMax=st.data_max;
     ovCtx.clearRect(0,0,pw,ph);
     const widgets=st.overlay_widgets||[];
@@ -1668,9 +1738,10 @@ function render({ model, el }) {
     const st=p.state; if(!st) return;
     const {pw,ph,mkCtx} = p;
     const r=_plotRect1d(pw,ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
-    const dMin=st.data_min, dMax=st.data_max;
-    const yData=st.data||[];
+    // Use cached decoded arrays from draw1d; fall back to inline decode if needed.
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const yData = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     mkCtx.clearRect(0,0,pw,ph);
     const sets=st.markers||[];
     if(!sets.length) return;
@@ -1745,7 +1816,8 @@ function render({ model, el }) {
     const st = p.state; if (!st) return null;
     const r = _plotRect1d(p.pw, p.ph);
     if (mx < r.x || mx > r.x+r.w || my < r.y || my > r.y+r.h) return null;
-    const xArr = st.x_axis||[], x0 = st.view_x0||0, x1 = st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0 = st.view_x0||0, x1 = st.view_x1||1;
     const dMin = st.data_min, dMax = st.data_max;
     const HIT = 6;
 
@@ -1776,10 +1848,13 @@ function render({ model, el }) {
     // Check extra lines first (drawn on top), then primary
     for (let i = (st.extra_lines||[]).length - 1; i >= 0; i--) {
       const ex = st.extra_lines[i];
-      const hit = _nearestOnLine(ex.data, ex.x_axis || xArr, ex.id);
+      const exY = ex.data_b64   ? _decodeF64(ex.data_b64)   : (ex.data   || []);
+      const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
+      const hit = _nearestOnLine(exY, exX, ex.id);
       if (hit) return hit;
     }
-    return _nearestOnLine(st.data, xArr, null);
+    const primY = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
+    return _nearestOnLine(primY, xArr, null);
   }
 
   // ── marker hit-test helpers ────────────────────────────────────────────────
@@ -1858,7 +1933,9 @@ function render({ model, el }) {
   function _markerHitTest1d(mx, my, p) {
     const st=p.state; if(!st) return null;
     const r=_plotRect1d(p.pw,p.ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
+    // Use cached decoded array from draw1d; fall back to inline decode if needed.
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     const dMin=st.data_min, dMax=st.data_max;
     const sets=st.markers||[];
     for(let si=sets.length-1;si>=0;si--){
@@ -2216,7 +2293,7 @@ function render({ model, el }) {
       const regKeys=st.registered_keys||[];
       if(regKeys.includes(e.key)||regKeys.includes('*')){
         const r=_plotRect1d(p.pw,p.ph);
-        const xArr=st.x_axis||[];
+        const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
         const frac=_canvasXToFrac1d(p.mouseX,st.view_x0,st.view_x1,r);
         const physX=xArr.length>=2?_fracToX1d(xArr,frac):frac;
         _emitEvent(p.id,'on_key',null,{
@@ -2241,7 +2318,7 @@ function render({ model, el }) {
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
         return;
       }
-      const xArr=st.x_axis||[];
+      const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
       const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
       const phys=xArr.length>=2?_fracToX1d(xArr,frac):frac;
       p.statusBar.textContent=`x:${fmtVal(phys)}`;p.statusBar.style.display='block';
@@ -2447,7 +2524,8 @@ function render({ model, el }) {
   function _ovHitTest1d(mx,my,p){
     const st=p.state;if(!st)return null;
     const r=_plotRect1d(p.pw,p.ph);
-    const xArr=st.x_axis||[],x0=st.view_x0||0,x1=st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0,x1=st.view_x1||1;
     const widgets=st.overlay_widgets||[];
     const HR=7;
     for(let i=widgets.length-1;i>=0;i--){
@@ -2480,7 +2558,8 @@ function render({ model, el }) {
     const st=p.state;if(!st)return;
     const r=_plotRect1d(p.pw,p.ph);
     const {mx,my:py}=_clientPos(e,p.overlayCanvas,p.pw,p.ph);
-    const xArr=st.x_axis||[],x0=st.view_x0||0,x1=st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0,x1=st.view_x1||1;
     const xUnit=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r);
     const widgets=st.overlay_widgets;
     const d=p.ovDrag, s=d.snapW, w=widgets[d.idx];
