@@ -42,7 +42,7 @@ blitting instead of SVG.
       3-D surfaces, bar charts, interactive widgets, and more.
 
    .. grid-item-card::
-      :link: performance
+      :link: auto_examples/Benchmarks/plot_benchmark_comparison
       :link-type: doc
 
       :octicon:`graph;2em;sd-text-info` Performance
@@ -70,7 +70,7 @@ blitting instead of SVG.
    getting_started
    api/index
    auto_examples/index
-   performance
+   Performance <auto_examples/Benchmarks/plot_benchmark_comparison>
    benchmarking
 
 * :ref:`genindex`
