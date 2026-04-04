@@ -1,0 +1,78 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Cancel in-flight runs for the same PR / branch.
+concurrency:
+  group: benchmarks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bench-py:
+    name: Python serialisation benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out HEAD
+        uses: actions/checkout@v4
+        with:
+          path: head
+
+      # For PRs compare against the target branch; for pushes compare against
+      # the previous commit.  Skipped on the first push to a new branch
+      # (all-zero before SHA) — benchmark tests will skip automatically.
+      - name: Check out BASE
+        if: >
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'push' &&
+           github.event.before != '0000000000000000000000000000000000000000')
+        uses: actions/checkout@v4
+        with:
+          ref: >-
+            ${{ github.event_name == 'pull_request'
+                && github.base_ref
+                || github.event.before }}
+          path: base
+        continue-on-error: true
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install base dependencies
+        if: hashFiles('base/pyproject.toml') != ''
+        run: cd base && uv sync
+
+      - name: Install head dependencies
+        run: cd head && uv sync
+
+      # Both steps run on the same runner so only the ratio matters —
+      # absolute ms differences from different hardware cancel out.
+      - name: Record base branch timings
+        if: hashFiles('base/pyproject.toml') != ''
+        run: |
+          cd base
+          uv run pytest tests/test_benchmarks_py.py \
+            --update-benchmarks \
+            --baselines-path /tmp/ci_baselines.json \
+            -v
+        continue-on-error: true
+
+      - name: Run benchmarks on HEAD
+        run: |
+          cd head
+          uv run pytest tests/test_benchmarks_py.py \
+            --baselines-path /tmp/ci_baselines.json \
+            -v
+
+      - name: Upload timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-py-${{ github.sha }}
+          path: /tmp/ci_baselines.json
+          if-no-files-found: ignore
+

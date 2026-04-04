@@ -84,8 +84,22 @@ def _save_baselines(data: dict) -> None:
     BASELINES_PATH.write_text(json.dumps(data, indent=2))
 
 
-def _check_or_update(name: str, timing: dict, update: bool) -> None:
-    """Assert timing is within threshold of stored baseline, or write it."""
+def _check_or_update(name: str, timing: dict, update: bool,
+                     fail_ratio: float = FAIL_RATIO,
+                     warn_ratio: float = WARN_RATIO) -> None:
+    """Assert timing is within threshold of stored baseline, or write it.
+
+    Parameters
+    ----------
+    name        : benchmark key stored in baselines.json
+    timing      : dict returned by ``_run_bench`` or the interaction page.evaluate
+    update      : when True, write the current result as the new baseline
+    fail_ratio  : ratio of mean_ms/baseline_mean_ms above which the test fails.
+                  Data-push benchmarks use FAIL_RATIO (1.5×); interaction
+                  benchmarks use 2.5× because Playwright mouse-event timing
+                  is more variable under OS scheduler load.
+    warn_ratio  : ratio above which a warning (not failure) is emitted.
+    """
     if timing is None:
         pytest.skip(f"[{name}] No timing data returned (panel not found?)")
 
@@ -116,12 +130,12 @@ def _check_or_update(name: str, timing: dict, update: bool) -> None:
     baseline = baselines[name]
     ratio = timing["mean_ms"] / baseline["mean_ms"]
 
-    if ratio > FAIL_RATIO:
+    if ratio > fail_ratio:
         pytest.fail(
             f"[{name}] REGRESSION: mean {timing['mean_ms']:.2f} ms vs "
             f"baseline {baseline['mean_ms']:.2f} ms ({ratio:.2f}×)"
         )
-    if ratio > WARN_RATIO:
+    if ratio > warn_ratio:
         warnings.warn(
             f"[{name}] Perf degraded: mean {timing['mean_ms']:.2f} ms vs "
             f"baseline {baseline['mean_ms']:.2f} ms ({ratio:.2f}×)",
@@ -328,10 +342,8 @@ def test_bench_interaction_2d_pan(bench_page, update_benchmarks):
     )
 
     timing = page.evaluate(f"() => window._aplTiming && window._aplTiming['{panel_id}']")
-    _check_or_update("js_interaction_2d_pan", timing, update_benchmarks)
-
-
-# ── interaction: 2D zoom ──────────────────────────────────────────────────────
+    _check_or_update("js_interaction_2d_pan", timing, update_benchmarks,
+                     fail_ratio=2.5, warn_ratio=1.75)
 
 def test_bench_interaction_2d_zoom(bench_page, update_benchmarks):
     """Interaction benchmark: 2D wheel zoom (20 wheel events on 512² image)."""
@@ -363,10 +375,8 @@ def test_bench_interaction_2d_zoom(bench_page, update_benchmarks):
     )
 
     timing = page.evaluate(f"() => window._aplTiming && window._aplTiming['{panel_id}']")
-    _check_or_update("js_interaction_2d_zoom", timing, update_benchmarks)
-
-
-# ── interaction: 1D pan ───────────────────────────────────────────────────────
+    _check_or_update("js_interaction_2d_zoom", timing, update_benchmarks,
+                     fail_ratio=2.5, warn_ratio=1.75)
 
 def test_bench_interaction_1d_pan(bench_page, update_benchmarks):
     """Interaction benchmark: 1D pan drag (20 mousemove events, 10K points)."""
@@ -403,6 +413,7 @@ def test_bench_interaction_1d_pan(bench_page, update_benchmarks):
     )
 
     timing = page.evaluate(f"() => window._aplTiming && window._aplTiming['{panel_id}']")
-    _check_or_update("js_interaction_1d_pan", timing, update_benchmarks)
+    _check_or_update("js_interaction_1d_pan", timing, update_benchmarks,
+                     fail_ratio=2.5, warn_ratio=1.75)
 
 

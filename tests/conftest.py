@@ -46,11 +46,70 @@ def pytest_addoption(parser):
         default=False,
         help="Include slow benchmark scenarios (4096², 8192² images) skipped in fast CI",
     )
+    parser.addoption(
+        "--baselines-path",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Override the path used to read/write benchmark baselines "
+            "(default: tests/benchmarks/baselines.json). "
+            "Use this in CI to keep the committed developer baselines untouched: "
+            "run the base branch with --update-benchmarks --baselines-path /tmp/ci_baselines.json, "
+            "then run the head branch with --baselines-path /tmp/ci_baselines.json."
+        ),
+    )
 
 
 @pytest.fixture(scope="session")
 def update_baselines(request):
     return request.config.getoption("--update-baselines")
+
+
+# ---------------------------------------------------------------------------
+# Baselines-path override
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session", autouse=True)
+def _set_baselines_path(request):
+    """Patch BASELINES_PATH in both benchmark modules when --baselines-path is given.
+
+    This lets CI workflows direct reads/writes to a temporary file without
+    modifying the committed ``tests/benchmarks/baselines.json``.  Because
+    both ``_load_baselines`` and ``_save_baselines`` look up the module-level
+    ``BASELINES_PATH`` at call time, patching the attribute after import is
+    sufficient — no test-function signature changes required.
+
+    The scan uses ``sys.modules`` rather than a hard-coded import path so it
+    works correctly under both pytest's default ``prepend`` import mode
+    (modules imported as ``test_benchmarks_py``) and ``importlib`` mode
+    (``tests.test_benchmarks_py``).
+    """
+    import sys
+
+    path_opt = request.config.getoption("--baselines-path")
+    if not path_opt:
+        return
+
+    new_path = pathlib.Path(path_opt)
+
+    patched = []
+    for mod_name, mod in list(sys.modules.items()):
+        if mod is None:
+            continue
+        if "test_benchmarks" not in mod_name:
+            continue
+        if not hasattr(mod, "BASELINES_PATH"):
+            continue
+        mod.BASELINES_PATH = new_path
+        patched.append(mod_name)
+
+    if not patched:
+        import warnings
+        warnings.warn(
+            f"--baselines-path={path_opt!r} was given but no benchmark module "
+            "was found in sys.modules to patch. The option has no effect.",
+            stacklevel=1,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +417,10 @@ def _run_bench(page, panel_id, *, n_warmup=3, n_samples=15,
         requestAnimationFrame(step);
       })
     """
-    return page.evaluate(js, [panel_id, n_warmup, n_samples,
-                               perturb_field, perturb_delta],
-                         timeout=timeout)
+    page.set_default_timeout(timeout)
+    try:
+        return page.evaluate(js, [panel_id, n_warmup, n_samples,
+                                   perturb_field, perturb_delta])
+    finally:
+        page.set_default_timeout(30_000)  # restore Playwright default
 

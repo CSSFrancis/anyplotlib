@@ -41,6 +41,28 @@ blitting instead of SVG.
       Gallery of short, self-contained examples showing 1-D signals, 2-D images,
       3-D surfaces, bar charts, interactive widgets, and more.
 
+   .. grid-item-card::
+      :link: performance
+      :link-type: doc
+
+      :octicon:`graph;2em;sd-text-info` Performance
+      ^^^
+
+      Why anyplotlib is fast: compact binary encoding, browser-side LUT
+      colormapping, canvas blitting, and incremental traitlet pushes —
+      plus an honest look at current limitations.
+
+   .. grid-item-card::
+      :link: benchmarking
+      :link-type: doc
+
+      :octicon:`tools;2em;sd-text-info` Benchmarking
+      ^^^
+
+      Developer guide: running the Python and JS benchmark suites, updating
+      baselines, best practices, and the CI strategy that makes timing
+      comparisons hardware-agnostic.
+
 .. toctree::
    :hidden:
    :maxdepth: 2
@@ -48,6 +70,8 @@ blitting instead of SVG.
    getting_started
    api/index
    auto_examples/index
+   performance
+   benchmarking
 
 * :ref:`genindex`
 * :ref:`modindex`

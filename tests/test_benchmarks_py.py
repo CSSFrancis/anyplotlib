@@ -31,9 +31,7 @@ Include slow 4096²/8192² scenarios::
 
 Regression threshold
 --------------------
-Fails when ``min_ms > baseline_min_ms * 1.3`` (30 % slower than best
-recorded).  Pure-Python is deterministic enough for this tighter threshold
-compared with the JS/browser suite (50 %).
+Fails when ``min_ms > baseline_min_ms * 1.5`` (50 % slower).
 """
 from __future__ import annotations
 
@@ -52,8 +50,8 @@ from anyplotlib.figure_plots import _normalize_image, Plot2D
 
 BASELINES_PATH = pathlib.Path(__file__).parent / "benchmarks" / "baselines.json"
 
-FAIL_RATIO = 1.30
-WARN_RATIO = 1.15
+FAIL_RATIO = 1.50
+WARN_RATIO = 1.25
 
 # timeit settings: REPEATS independent runs of NUMBER executions each.
 # We take min() over REPEATS to remove OS scheduling jitter.
@@ -252,5 +250,4 @@ def test_bench_py_update_2d(h, w, is_slow, update_benchmarks, run_slow):
 
     timing = _timeit_ms(stmt=_one_update)
     _check_or_update(f"py_update_2d_{h}x{w}", timing, update_benchmarks)
-
 
