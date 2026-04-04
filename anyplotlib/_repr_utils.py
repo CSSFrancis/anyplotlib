@@ -136,7 +136,12 @@ function makeModel(state) {{
   const _anyCbs = [];
   return {{
     get(key)          {{ return _data[key]; }},
-    set(key, val)     {{ _data[key] = val; }},
+    set(key, val)     {{
+      _data[key] = val;
+      const ev = 'change:' + key;
+      if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try {{ cb({{ new: val }}); }} catch(_) {{}}
+      for (const cb of [..._anyCbs]) try {{ cb(); }} catch(_) {{}}
+    }},
     save_changes()    {{
       for (const [ev, cbs] of Object.entries(_cbs))
         for (const cb of cbs) try {{ cb({{ new: _data[ev.slice(7)] }}); }} catch(_) {{}}
