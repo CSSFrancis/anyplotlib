@@ -196,6 +196,17 @@ class TestVisual:
         arr = take_screenshot(fig)
         _check("plot3d_surface", arr, update_baselines)
 
+    # ── bar chart ──────────────────────────────────────────────────────────
+
+    def test_bar_basic(self, take_screenshot, update_baselines):
+        """Basic vertical bar chart — exercises the bar renderer end-to-end."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        ax.bar(["Jan", "Feb", "Mar", "Apr", "May"],
+               [42, 55, 48, 61, 37],
+               color="#4fc3f7")
+        arr = take_screenshot(fig)
+        _check("bar_basic", arr, update_baselines)
+
     # ── multi-panel layout ─────────────────────────────────────────────────
 
     def test_subplots_2x1(self, take_screenshot, update_baselines):

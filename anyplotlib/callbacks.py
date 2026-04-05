@@ -45,10 +45,12 @@ _VALID_EVENT_TYPES = (
 @dataclass
 class Event:
     """A single interactive event.
-    event_type: one of on_click / on_changed / on_release / on_key /
-                on_line_hover / on_line_click
-    source: the originating Python object (Widget, Plot, or None)
-    data: full state dict; all keys also accessible as event.x
+
+    :event_type: one of ``on_click`` / ``on_changed`` / ``on_release`` /
+        ``on_key`` / ``on_line_hover`` / ``on_line_click``
+    :source: the originating Python object (Widget, Plot, or None)
+    :data: full state dict; all keys also accessible as ``event.x``
+
 
     For ``on_line_hover`` and ``on_line_click`` events the data dict
     contains:
