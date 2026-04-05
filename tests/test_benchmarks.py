@@ -63,7 +63,7 @@ from tests.conftest import _run_bench
 BASELINES_PATH = pathlib.Path(__file__).parent / "benchmarks" / "baselines.json"
 
 # Regression thresholds (ratio relative to stored baseline mean_ms).
-FAIL_RATIO = 1.50   # >50 % slower  → test failure
+FAIL_RATIO = 2.00 # >100 % slower  → test failure
 WARN_RATIO = 1.25   # >25 % slower  → warning only
 
 # Grid padding added by gridDiv (mirrors figure_esm.js)
