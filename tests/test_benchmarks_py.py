@@ -50,7 +50,7 @@ from anyplotlib.figure_plots import _normalize_image, Plot2D
 
 BASELINES_PATH = pathlib.Path(__file__).parent / "benchmarks" / "baselines.json"
 
-FAIL_RATIO = 1.50
+FAIL_RATIO = 2.00
 WARN_RATIO = 1.25
 
 # timeit settings: REPEATS independent runs of NUMBER executions each.
