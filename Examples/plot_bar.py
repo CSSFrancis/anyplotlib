@@ -8,7 +8,7 @@ Demonstrate :meth:`~anyplotlib.figure_plots.Axes.bar` with:
 * Vertical and horizontal orientations, per-bar colours, category labels
 * **Grouped bars** — pass a 2-D *height* array ``(N, G)``
 * **Log-scale value axis** — ``log_scale=True``
-* Live data updates via :meth:`~anyplotlib.figure_plots.PlotBar.update`
+* Live data updates via :meth:`~anyplotlib.figure_plots.PlotBar.set_data`
 """
 import numpy as np
 import anyplotlib as vw
@@ -117,7 +117,7 @@ fig4
 # Side-by-side comparison — update data live
 # -------------------------------------------
 # Place two :class:`~anyplotlib.figure_plots.PlotBar` panels in one figure.
-# Call :meth:`~anyplotlib.figure_plots.PlotBar.update` to swap in Q2 data —
+# Call :meth:`~anyplotlib.figure_plots.PlotBar.set_data` to swap in Q2 data —
 # the value-axis range recalculates automatically.
 
 q1 = np.array([42, 55, 48, 63, 71, 68, 74, 81, 66, 59, 52, 78], dtype=float)
@@ -134,7 +134,7 @@ bar_right = ax_right.bar(
     all_months, q1, width=0.6,
     color="#ff7043", show_values=False, y_units="Q2 sales",
 )
-bar_right.update(q2)    # swap in Q2 — axis range recalculates automatically
+bar_right.set_data(q2)    # swap in Q2 — axis range recalculates automatically
 
 fig5
 
@@ -206,7 +206,7 @@ fig2
 # -------------------------------------------
 # Place two :class:`~anyplotlib.figure_plots.PlotBar` panels in one
 # :func:`~anyplotlib.figure_plots.subplots` figure.  Call
-# :meth:`~anyplotlib.figure_plots.PlotBar.update` to swap in Q2 data for the
+# :meth:`~anyplotlib.figure_plots.PlotBar.set_data` to swap in Q2 data for the
 # right panel, demonstrating how the axis range re-calculates automatically.
 
 quarters = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -236,7 +236,7 @@ bar_right = ax_right.bar(
 )
 
 # Swap in Q2 data — range is recalculated automatically
-bar_right.update(q2)
+bar_right.set_data(q2)
 
 fig3
 

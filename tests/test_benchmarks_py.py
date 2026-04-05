@@ -13,7 +13,7 @@ Pipeline stages timed
 1. ``_normalize_image(data)``       — NumPy cast + min/max + scale + uint8
 2. ``Plot2D._encode_bytes(img_u8)`` — base64.b64encode
 3. ``json.dumps(plot.to_state_dict())`` — full end-to-end (2D and 1D)
-4. ``plot.update(data)``            — complete Python-side round-trip
+4. ``plot.set_data(data)``          — complete Python-side round-trip
 
 Workflow
 --------
@@ -219,15 +219,15 @@ def test_bench_py_serialize_1d(n_pts, update_benchmarks):
 
 
 # ---------------------------------------------------------------------------
-# Full plot.update() round-trip (normalize + encode + build_lut + push)
+# Full plot.set_data() round-trip (normalize + encode + build_lut + push)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
     "h,w,is_slow", _IMSHOW_SIZES,
     ids=[f"{h}x{w}" for h, w, _ in _IMSHOW_SIZES],
 )
-def test_bench_py_update_2d(h, w, is_slow, update_benchmarks, run_slow):
-    """Python: full ``plot.update(data)`` round-trip for a ``{h}×{w}`` image.
+def test_bench_py_set_data_2d(h, w, is_slow, update_benchmarks, run_slow):
+    """Python: full ``plot.set_data(data)`` round-trip for a ``{h}×{w}`` image.
 
     Covers the complete Python-side cost of a live data refresh:
     ``_normalize_image`` + ``_encode_bytes`` + ``_build_colormap_lut``
@@ -245,7 +245,7 @@ def test_bench_py_update_2d(h, w, is_slow, update_benchmarks, run_slow):
     idx    = [0]
 
     def _one_update():
-        plot.update(frames[idx[0] % len(frames)])
+        plot.set_data(frames[idx[0] % len(frames)])
         idx[0] += 1
 
     timing = _timeit_ms(stmt=_one_update)

@@ -135,19 +135,19 @@ class TestOrigin:
         assert stored[0, :].max() == 255   # top row contains the global max
         assert stored[-1, :].min() == 0    # bottom row contains the global min
 
-    def test_lower_update_reapplies_flip(self):
-        """update() with origin='lower' automatically re-flips new data."""
+    def test_lower_set_data_reapplies_flip(self):
+        """set_data() with origin='lower' automatically re-flips new data."""
         fig, ax = apl.subplots()
         v = ax.imshow(DATA, origin="lower")
-        v.update(DATA)
+        v.set_data(DATA)
         stored = _decoded(v)
         assert stored[0, :].max() == 255
         assert stored[-1, :].min() == 0
 
-    def test_lower_update_reverses_new_y_axis(self):
+    def test_lower_set_data_reverses_new_y_axis(self):
         fig, ax = apl.subplots()
         v = ax.imshow(DATA, origin="lower")
-        v.update(DATA, y_axis=Y)
+        v.set_data(DATA, y_axis=Y)
         assert v._state["y_axis"][0]  == pytest.approx(40.0)
         assert v._state["y_axis"][-1] == pytest.approx(10.0)
 

@@ -698,6 +698,8 @@ class Plot2D:
         if origin == "lower":
             data = np.flipud(data)
 
+        self._data: np.ndarray = data.astype(float)
+
         x_axis_given = x_axis is not None
         y_axis_given = y_axis is not None
         if x_axis is None:
@@ -785,9 +787,20 @@ class Plot2D:
         return d
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, data: np.ndarray,
+    @property
+    def data(self) -> np.ndarray:
+        """The image data in the original user coordinate system (read-only).
+
+        Returns a float64 copy with ``writeable=False``.  To replace the
+        data call :meth:`set_data`.
+        """
+        arr = np.flipud(self._data).copy() if self._origin == "lower" else self._data.copy()
+        arr.flags.writeable = False
+        return arr
+
+    def set_data(self, data: np.ndarray,
                x_axis=None, y_axis=None, units: str | None = None) -> None:
         """Replace the image data.
 
@@ -804,6 +817,7 @@ class Plot2D:
         if self._origin == "lower":
             data = np.flipud(data)
 
+        self._data = data.astype(float)
         img_u8, vmin, vmax = _normalize_image(data)
         self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
 
@@ -1278,9 +1292,9 @@ class PlotMesh(Plot2D):
                                       allowed=MarkerRegistry._KNOWN_MESH)
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, data: np.ndarray,
+    def set_data(self, data: np.ndarray,
                x_edges=None, y_edges=None, units: str | None = None) -> None:
         """Replace the mesh data (and optionally the edge arrays)."""
         data = np.asarray(data)
@@ -1535,7 +1549,7 @@ class Plot3D:
         self._state["zoom"] = float(zoom)
         self._push()
 
-    def update(self, x, y, z) -> None:
+    def set_data(self, x, y, z) -> None:
         """Replace the geometry data."""
         # Re-run the same logic as __init__ for the stored geom_type
         geom_type = self._state["geom_type"]
@@ -1856,9 +1870,20 @@ class Plot1D:
         return Line1D(self, None)
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, data: np.ndarray, x_axis=None,
+    @property
+    def data(self) -> np.ndarray:
+        """The primary line's y-data (read-only).
+
+        Returns a float64 copy with ``writeable=False``.  To replace the
+        data call :meth:`set_data`.
+        """
+        arr = self._state["data"].copy()
+        arr.flags.writeable = False
+        return arr
+
+    def set_data(self, data: np.ndarray, x_axis=None,
                units: str | None = None, y_units: str | None = None) -> None:
         """Replace the primary line's y-data and optionally its x-axis / units.
 
@@ -3070,9 +3095,9 @@ class PlotBar:
         return d
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, height, x=None, x_labels=None, *, x_centers=None) -> None:
+    def set_data(self, height, x=None, x_labels=None, *, x_centers=None) -> None:
         """Replace bar heights; recalculates the value-axis range automatically.
 
         Parameters
