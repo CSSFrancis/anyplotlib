@@ -434,11 +434,14 @@ def _results_to_array(results, sizes):
         ])
     return np.array(rows, dtype=float)
 
+# sphinx_gallery_end_ignore
 
+#%%
 # ---------------------------------------------------------------------------
-# Chart 1 — 2-D image update  (Python pre-render, all four libraries)
+# 2-D image update  (Python pre-render, all four libraries)
 # ---------------------------------------------------------------------------
 
+# sphinx_gallery_start_ignore
 _size_labels_2d = [f"{s}²" for s in _SIZES_2D]
 _heights_2d = _results_to_array(results_2d, _SIZES_2D)
 
@@ -458,8 +461,9 @@ fig2d
 # sphinx_gallery_end_ignore
 
 # %%
-# 1-D line update comparison  (Python pre-render)
-# ------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1-D line update  (Python pre-render, all four libraries)
+# ---------------------------------------------------------------------------
 
 # sphinx_gallery_start_ignore
 
@@ -501,6 +505,9 @@ fig1d
 #    a ``UserWarning`` is emitted at import time.  Install Playwright
 #    (``pip install playwright && playwright install chromium``) to populate
 #    the JS timing columns.
+#
+# 2D Image Plotting Costs
+# -----------------------
 
 # sphinx_gallery_start_ignore
 
@@ -525,6 +532,8 @@ fig_bd2d
 # sphinx_gallery_end_ignore
 
 #%%
+# Scatter Plotting Costs
+# -------------------------
 
 # sphinx_gallery_start_ignore
 _apl_py_1d = np.array([results_1d["anyplotlib"].get(n, 0.0) or 0.0
