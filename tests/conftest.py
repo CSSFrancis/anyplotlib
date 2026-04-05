@@ -47,6 +47,17 @@ def pytest_addoption(parser):
         help="Include slow benchmark scenarios (4096², 8192² images) skipped in fast CI",
     )
     parser.addoption(
+        "--ignore-hardware",
+        action="store_true",
+        default=False,
+        help=(
+            "Treat the current machine as matching the baseline host, restoring "
+            "full fail/warn behaviour even on different hardware.  By default, "
+            "benchmarks still run and compare on mismatched hardware but "
+            "regressions are downgraded from failures to warnings."
+        ),
+    )
+    parser.addoption(
         "--baselines-path",
         default=None,
         metavar="PATH",
@@ -300,6 +311,19 @@ def update_benchmarks(request):
 def run_slow(request):
     """True when --run-slow was passed (enables 4K²/8K² scenarios)."""
     return request.config.getoption("--run-slow")
+
+
+@pytest.fixture(scope="session")
+def ignore_hardware(request):
+    """True when --ignore-hardware was passed.
+
+    By default, benchmark comparisons run on every machine but regressions
+    that would normally cause a *failure* are downgraded to *warnings* when
+    the current hostname doesn't match ``_meta.host`` in ``baselines.json``.
+    Pass ``--ignore-hardware`` to restore full fail behaviour regardless of
+    which machine is running the tests.
+    """
+    return request.config.getoption("--ignore-hardware")
 
 
 @pytest.fixture

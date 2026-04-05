@@ -86,7 +86,8 @@ def _save_baselines(data: dict) -> None:
 
 def _check_or_update(name: str, timing: dict, update: bool,
                      fail_ratio: float = FAIL_RATIO,
-                     warn_ratio: float = WARN_RATIO) -> None:
+                     warn_ratio: float = WARN_RATIO,
+                     ignore_hardware: bool = False) -> None:
     """Assert timing is within threshold of stored baseline, or write it.
 
     Parameters
@@ -99,6 +100,15 @@ def _check_or_update(name: str, timing: dict, update: bool,
                   benchmarks use 2.5× because Playwright mouse-event timing
                   is more variable under OS scheduler load.
     warn_ratio  : ratio above which a warning (not failure) is emitted.
+    ignore_hardware : when True, treat the current machine as matching the
+                  baseline host and apply full fail/warn behaviour.
+
+    Hardware matching
+    -----------------
+    When the current hostname differs from ``_meta.host`` in the baseline file
+    the test still runs and compares, but any result that would normally be a
+    *failure* is downgraded to a *warning*.  Pass ``--ignore-hardware`` to
+    restore full fail behaviour regardless of hostname.
     """
     if timing is None:
         pytest.skip(f"[{name}] No timing data returned (panel not found?)")
@@ -127,18 +137,33 @@ def _check_or_update(name: str, timing: dict, update: bool,
             f"[{name}] No baseline — run with --update-benchmarks to create one"
         )
 
+    # Determine whether we're on the same hardware as the baseline.
+    meta          = baselines.get("_meta", {})
+    baseline_host = meta.get("host")
+    current_host  = socket.gethostname()
+    hw_match      = ignore_hardware or not baseline_host or (baseline_host == current_host)
+    hw_note       = (
+        ""
+        if hw_match
+        else f" [different hardware: baseline={baseline_host!r}, current={current_host!r}]"
+    )
+
     baseline = baselines[name]
     ratio = timing["mean_ms"] / baseline["mean_ms"]
 
     if ratio > fail_ratio:
-        pytest.fail(
+        msg = (
             f"[{name}] REGRESSION: mean {timing['mean_ms']:.2f} ms vs "
-            f"baseline {baseline['mean_ms']:.2f} ms ({ratio:.2f}×)"
+            f"baseline {baseline['mean_ms']:.2f} ms ({ratio:.2f}×){hw_note}"
         )
-    if ratio > warn_ratio:
+        if hw_match:
+            pytest.fail(msg)
+        else:
+            warnings.warn(msg, stacklevel=2)
+    elif ratio > warn_ratio:
         warnings.warn(
             f"[{name}] Perf degraded: mean {timing['mean_ms']:.2f} ms vs "
-            f"baseline {baseline['mean_ms']:.2f} ms ({ratio:.2f}×)",
+            f"baseline {baseline['mean_ms']:.2f} ms ({ratio:.2f}×){hw_note}",
             stacklevel=2,
         )
 
@@ -163,7 +188,7 @@ _IMSHOW_SIZES = [
     _IMSHOW_SIZES,
     ids=[f"{h}x{w}" for h, w, _ in _IMSHOW_SIZES],
 )
-def test_bench_imshow(h, w, is_slow, bench_page, update_benchmarks, run_slow):
+def test_bench_imshow(h, w, is_slow, bench_page, update_benchmarks, run_slow, ignore_hardware):
     """Render-time benchmark: imshow with {h}×{w} image data."""
     if is_slow and not run_slow:
         pytest.skip(f"Skipping {h}×{w} in fast CI — pass --run-slow to include")
@@ -189,7 +214,8 @@ def test_bench_imshow(h, w, is_slow, bench_page, update_benchmarks, run_slow):
         timeout=timeout_ms,
     )
 
-    _check_or_update(f"js_imshow_{h}x{w}", timing, update_benchmarks)
+    _check_or_update(f"js_imshow_{h}x{w}", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
 
 
 # ── 1D plot benchmarks ────────────────────────────────────────────────────────
@@ -198,7 +224,7 @@ _PLOT1D_SIZES = [100, 1_000, 10_000, 100_000]
 
 
 @pytest.mark.parametrize("n_pts", _PLOT1D_SIZES, ids=[str(n) for n in _PLOT1D_SIZES])
-def test_bench_plot1d(n_pts, bench_page, update_benchmarks):
+def test_bench_plot1d(n_pts, bench_page, update_benchmarks, ignore_hardware):
     """Render-time benchmark: plot1d with {n_pts} points."""
     rng = np.random.default_rng(1)
     fig, ax = apl.subplots(1, 1, figsize=(640, 320))
@@ -215,7 +241,8 @@ def test_bench_plot1d(n_pts, bench_page, update_benchmarks):
         n_samples=15,
     )
 
-    _check_or_update(f"js_plot1d_{n_pts}pts", timing, update_benchmarks)
+    _check_or_update(f"js_plot1d_{n_pts}pts", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
 
 
 # ── pcolormesh benchmarks ─────────────────────────────────────────────────────
@@ -224,7 +251,7 @@ _MESH_SIZES = [32, 128, 256]
 
 
 @pytest.mark.parametrize("n", _MESH_SIZES, ids=[f"{n}x{n}" for n in _MESH_SIZES])
-def test_bench_pcolormesh(n, bench_page, update_benchmarks):
+def test_bench_pcolormesh(n, bench_page, update_benchmarks, ignore_hardware):
     """Render-time benchmark: pcolormesh with {n}×{n} grid."""
     rng = np.random.default_rng(2)
     xe = np.linspace(0.0, 1.0, n + 1)
@@ -245,12 +272,13 @@ def test_bench_pcolormesh(n, bench_page, update_benchmarks):
         n_samples=15,
     )
 
-    _check_or_update(f"js_pcolormesh_{n}x{n}", timing, update_benchmarks)
+    _check_or_update(f"js_pcolormesh_{n}x{n}", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
 
 
 # ── 3D surface benchmark ──────────────────────────────────────────────────────
 
-def test_bench_plot3d(bench_page, update_benchmarks):
+def test_bench_plot3d(bench_page, update_benchmarks, ignore_hardware):
     """Render-time benchmark: 3D surface (rotation interaction path)."""
     x = np.linspace(-2.0, 2.0, 48)
     y = np.linspace(-2.0, 2.0, 48)
@@ -272,13 +300,14 @@ def test_bench_plot3d(bench_page, update_benchmarks):
         n_samples=15,
     )
 
-    _check_or_update("js_plot3d_48x48", timing, update_benchmarks)
+    _check_or_update("js_plot3d_48x48", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
 
 
 # ── bar chart benchmark ───────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("n_bars", [10, 100], ids=["10bars", "100bars"])
-def test_bench_bar(n_bars, bench_page, update_benchmarks):
+def test_bench_bar(n_bars, bench_page, update_benchmarks, ignore_hardware):
     """Render-time benchmark: bar chart with {n_bars} bars."""
     rng = np.random.default_rng(3)
     fig, ax = apl.subplots(1, 1, figsize=(640, 320))
@@ -295,12 +324,13 @@ def test_bench_bar(n_bars, bench_page, update_benchmarks):
         n_samples=15,
     )
 
-    _check_or_update(f"js_bar_{n_bars}bars", timing, update_benchmarks)
+    _check_or_update(f"js_bar_{n_bars}bars", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
 
 
 # ── interaction: 2D pan ───────────────────────────────────────────────────────
 
-def test_bench_interaction_2d_pan(bench_page, update_benchmarks):
+def test_bench_interaction_2d_pan(bench_page, update_benchmarks, ignore_hardware):
     """Interaction benchmark: 2D pan drag (20 mousemove events on 512² image)."""
     rng = np.random.default_rng(4)
     fig, ax = apl.subplots(1, 1, figsize=(512 + _PAD_L + _PAD_R,
@@ -343,9 +373,9 @@ def test_bench_interaction_2d_pan(bench_page, update_benchmarks):
 
     timing = page.evaluate(f"() => window._aplTiming && window._aplTiming['{panel_id}']")
     _check_or_update("js_interaction_2d_pan", timing, update_benchmarks,
-                     fail_ratio=2.5, warn_ratio=1.75)
+                     fail_ratio=2.5, warn_ratio=1.75, ignore_hardware=ignore_hardware)
 
-def test_bench_interaction_2d_zoom(bench_page, update_benchmarks):
+def test_bench_interaction_2d_zoom(bench_page, update_benchmarks, ignore_hardware):
     """Interaction benchmark: 2D wheel zoom (20 wheel events on 512² image)."""
     rng = np.random.default_rng(5)
     fig, ax = apl.subplots(1, 1, figsize=(512 + _PAD_L + _PAD_R,
@@ -376,9 +406,9 @@ def test_bench_interaction_2d_zoom(bench_page, update_benchmarks):
 
     timing = page.evaluate(f"() => window._aplTiming && window._aplTiming['{panel_id}']")
     _check_or_update("js_interaction_2d_zoom", timing, update_benchmarks,
-                     fail_ratio=2.5, warn_ratio=1.75)
+                     fail_ratio=2.5, warn_ratio=1.75, ignore_hardware=ignore_hardware)
 
-def test_bench_interaction_1d_pan(bench_page, update_benchmarks):
+def test_bench_interaction_1d_pan(bench_page, update_benchmarks, ignore_hardware):
     """Interaction benchmark: 1D pan drag (20 mousemove events, 10K points)."""
     rng = np.random.default_rng(6)
     pw, ph = 640, 320
@@ -414,6 +444,4 @@ def test_bench_interaction_1d_pan(bench_page, update_benchmarks):
 
     timing = page.evaluate(f"() => window._aplTiming && window._aplTiming['{panel_id}']")
     _check_or_update("js_interaction_1d_pan", timing, update_benchmarks,
-                     fail_ratio=2.5, warn_ratio=1.75)
-
-
+                     fail_ratio=2.5, warn_ratio=1.75, ignore_hardware=ignore_hardware)

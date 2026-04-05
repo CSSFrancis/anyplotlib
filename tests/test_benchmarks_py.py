@@ -86,8 +86,19 @@ def _timeit_ms(stmt, *, number: int = NUMBER, repeats: int = REPEATS) -> dict:
     }
 
 
-def _check_or_update(name: str, timing: dict, update: bool) -> None:
-    """Assert *timing* is within threshold of the stored baseline, or write it."""
+def _check_or_update(name: str, timing: dict, update: bool,
+                     ignore_hardware: bool = False) -> None:
+    """Assert *timing* is within threshold of the stored baseline, or write it.
+
+    Hardware matching
+    -----------------
+    When the current hostname differs from the one recorded in ``_meta.host``
+    the test still runs and compares against the baseline, but any result that
+    would normally be a *failure* is downgraded to a *warning* instead.  This
+    keeps CI visible without causing spurious failures on different machines.
+    Pass ``--ignore-hardware`` to restore full fail/warn behaviour regardless
+    of hostname.
+    """
     baselines = _load_baselines()
 
     if update:
@@ -106,18 +117,33 @@ def _check_or_update(name: str, timing: dict, update: bool) -> None:
             f"[{name}] No baseline — run with --update-benchmarks to create one"
         )
 
+    # Determine whether we're on the same hardware as the baseline.
+    meta          = baselines.get("_meta", {})
+    baseline_host = meta.get("host")
+    current_host  = socket.gethostname()
+    hw_match      = ignore_hardware or not baseline_host or (baseline_host == current_host)
+    hw_note       = (
+        ""
+        if hw_match
+        else f" [different hardware: baseline={baseline_host!r}, current={current_host!r}]"
+    )
+
     baseline = baselines[name]
     ratio    = timing["min_ms"] / baseline["min_ms"]
 
     if ratio > FAIL_RATIO:
-        pytest.fail(
+        msg = (
             f"[{name}] REGRESSION: min {timing['min_ms']:.3f} ms vs "
-            f"baseline {baseline['min_ms']:.3f} ms ({ratio:.2f}×)"
+            f"baseline {baseline['min_ms']:.3f} ms ({ratio:.2f}×){hw_note}"
         )
-    if ratio > WARN_RATIO:
+        if hw_match:
+            pytest.fail(msg)
+        else:
+            warnings.warn(msg, stacklevel=2)
+    elif ratio > WARN_RATIO:
         warnings.warn(
             f"[{name}] Perf degraded: min {timing['min_ms']:.3f} ms vs "
-            f"baseline {baseline['min_ms']:.3f} ms ({ratio:.2f}×)",
+            f"baseline {baseline['min_ms']:.3f} ms ({ratio:.2f}×){hw_note}",
             stacklevel=2,
         )
 
@@ -147,7 +173,7 @@ _PLOT1D_SIZES = [100, 1_000, 10_000, 100_000]
     "h,w,is_slow", _IMSHOW_SIZES,
     ids=[f"{h}x{w}" for h, w, _ in _IMSHOW_SIZES],
 )
-def test_bench_py_normalize(h, w, is_slow, update_benchmarks, run_slow):
+def test_bench_py_normalize(h, w, is_slow, update_benchmarks, run_slow, ignore_hardware):
     """Python: ``_normalize_image`` for a ``{h}×{w}`` float32 array."""
     if is_slow and not run_slow:
         pytest.skip(f"Skipping {h}x{w} — pass --run-slow to include")
@@ -156,7 +182,7 @@ def test_bench_py_normalize(h, w, is_slow, update_benchmarks, run_slow):
     data = rng.uniform(size=(h, w)).astype(np.float32)
 
     timing = _timeit_ms(stmt=lambda: _normalize_image(data))
-    _check_or_update(f"py_normalize_{h}x{w}", timing, update_benchmarks)
+    _check_or_update(f"py_normalize_{h}x{w}", timing, update_benchmarks, ignore_hardware)
 
 
 # ---------------------------------------------------------------------------
@@ -167,7 +193,7 @@ def test_bench_py_normalize(h, w, is_slow, update_benchmarks, run_slow):
     "h,w,is_slow", _IMSHOW_SIZES,
     ids=[f"{h}x{w}" for h, w, _ in _IMSHOW_SIZES],
 )
-def test_bench_py_encode(h, w, is_slow, update_benchmarks, run_slow):
+def test_bench_py_encode(h, w, is_slow, update_benchmarks, run_slow, ignore_hardware):
     """Python: ``_encode_bytes`` (base64) for a ``{h}×{w}`` uint8 array."""
     if is_slow and not run_slow:
         pytest.skip(f"Skipping {h}x{w} — pass --run-slow to include")
@@ -176,7 +202,7 @@ def test_bench_py_encode(h, w, is_slow, update_benchmarks, run_slow):
     img_u8, _, _ = _normalize_image(rng.uniform(size=(h, w)).astype(np.float32))
 
     timing = _timeit_ms(stmt=lambda: Plot2D._encode_bytes(img_u8))
-    _check_or_update(f"py_encode_{h}x{w}", timing, update_benchmarks)
+    _check_or_update(f"py_encode_{h}x{w}", timing, update_benchmarks, ignore_hardware)
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +213,7 @@ def test_bench_py_encode(h, w, is_slow, update_benchmarks, run_slow):
     "h,w,is_slow", _IMSHOW_SIZES,
     ids=[f"{h}x{w}" for h, w, _ in _IMSHOW_SIZES],
 )
-def test_bench_py_serialize_2d(h, w, is_slow, update_benchmarks, run_slow):
+def test_bench_py_serialize_2d(h, w, is_slow, update_benchmarks, run_slow, ignore_hardware):
     """Python: ``json.dumps(plot.to_state_dict())`` for a ``{h}×{w}`` imshow."""
     if is_slow and not run_slow:
         pytest.skip(f"Skipping {h}x{w} — pass --run-slow to include")
@@ -197,7 +223,7 @@ def test_bench_py_serialize_2d(h, w, is_slow, update_benchmarks, run_slow):
     plot    = ax.imshow(rng.uniform(size=(h, w)).astype(np.float32))
 
     timing = _timeit_ms(stmt=lambda: json.dumps(plot.to_state_dict()))
-    _check_or_update(f"py_serialize_2d_{h}x{w}", timing, update_benchmarks)
+    _check_or_update(f"py_serialize_2d_{h}x{w}", timing, update_benchmarks, ignore_hardware)
 
 
 # ---------------------------------------------------------------------------
@@ -208,14 +234,14 @@ def test_bench_py_serialize_2d(h, w, is_slow, update_benchmarks, run_slow):
     "n_pts", _PLOT1D_SIZES,
     ids=[str(n) for n in _PLOT1D_SIZES],
 )
-def test_bench_py_serialize_1d(n_pts, update_benchmarks):
+def test_bench_py_serialize_1d(n_pts, update_benchmarks, ignore_hardware):
     """Python: ``json.dumps(plot.to_state_dict())`` for a ``{n_pts}``-point 1D plot."""
     rng = np.random.default_rng(3)
     fig, ax = apl.subplots(1, 1, figsize=(640, 320))
     plot    = ax.plot(np.cumsum(rng.standard_normal(n_pts)))
 
     timing = _timeit_ms(stmt=lambda: json.dumps(plot.to_state_dict()))
-    _check_or_update(f"py_serialize_1d_{n_pts}pts", timing, update_benchmarks)
+    _check_or_update(f"py_serialize_1d_{n_pts}pts", timing, update_benchmarks, ignore_hardware)
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +252,7 @@ def test_bench_py_serialize_1d(n_pts, update_benchmarks):
     "h,w,is_slow", _IMSHOW_SIZES,
     ids=[f"{h}x{w}" for h, w, _ in _IMSHOW_SIZES],
 )
-def test_bench_py_set_data_2d(h, w, is_slow, update_benchmarks, run_slow):
+def test_bench_py_set_data_2d(h, w, is_slow, update_benchmarks, run_slow, ignore_hardware):
     """Python: full ``plot.set_data(data)`` round-trip for a ``{h}×{w}`` image.
 
     Covers the complete Python-side cost of a live data refresh:
@@ -249,5 +275,4 @@ def test_bench_py_set_data_2d(h, w, is_slow, update_benchmarks, run_slow):
         idx[0] += 1
 
     timing = _timeit_ms(stmt=_one_update)
-    _check_or_update(f"py_update_2d_{h}x{w}", timing, update_benchmarks)
-
+    _check_or_update(f"py_set_data_2d_{h}x{w}", timing, update_benchmarks, ignore_hardware)
