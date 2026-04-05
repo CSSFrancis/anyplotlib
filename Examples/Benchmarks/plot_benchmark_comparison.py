@@ -26,7 +26,7 @@ What each Python measurement covers
 +---------------+---------------------------------------------------------------+
 | Library       | What is timed                                                 |
 +===============+===============================================================+
-| anyplotlib    | ``plot.update(data)`` — float → uint8 normalise → base64      |
+| anyplotlib    | ``plot.set_data(data)`` — float → uint8 normalise → base64    |
 |               | encode → LUT rebuild → state-dict assembly → json.dumps →     |
 |               | traitlet dispatch to JS renderer.                             |
 +---------------+---------------------------------------------------------------+
@@ -228,7 +228,7 @@ for sz in _SIZES_2D:
 
     def _make_apl_update(plot, frames, idx):
         def _fn():
-            plot.update(frames[idx[0] % len(frames)])
+            plot.set_data(frames[idx[0] % len(frames)])
             idx[0] += 1
         return _fn
 
@@ -306,7 +306,7 @@ for n_pts in _SIZES_1D:
     _new_ys_apl = rng.standard_normal(n_pts).cumsum().astype(np.float32)
 
     def _make_apl1d(plot, new_y):
-        def _fn(): plot.update(new_y)
+        def _fn(): plot.set_data(new_y)
         return _fn
 
     results_1d["anyplotlib"][n_pts] = _timeit_min_ms(

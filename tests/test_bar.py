@@ -14,7 +14,7 @@ Covers:
   * Range / padding calculations
   * Grouped bars – 2-D height array, group_labels, group_colors
   * Log scale – log_scale flag, clamping, set_log_scale()
-  * update() – value replacement and axis recalculation
+  * set_data() – value replacement and axis recalculation
   * Display-setting mutations: set_color, set_colors, set_show_values, set_log_scale
   * _push() contract – state is propagated to the Figure
   * Layout JSON reflects "bar" kind for PlotBar panels
@@ -275,17 +275,17 @@ class TestPlotBarGrouped:
         p = ax.bar([0, 1], [[1, 2], [3, 4]])
         assert "groups=2" in repr(p)
 
-    def test_update_2d_values(self):
+    def test_set_data_2d_values(self):
         fig, ax = apl.subplots(1, 1)
         p = ax.bar(["A", "B"], [[1, 2], [3, 4]])
-        p.update([[10, 20], [30, 40]])
+        p.set_data([[10, 20], [30, 40]])
         assert _state(p)["values"] == pytest.approx(np.array([[10, 20], [30, 40]]))
 
-    def test_update_group_count_mismatch_raises(self):
+    def test_set_data_group_count_mismatch_raises(self):
         fig, ax = apl.subplots(1, 1)
         p = ax.bar(["A", "B"], [[1, 2], [3, 4]])  # groups=2
         with pytest.raises(ValueError, match="Group count mismatch"):
-            p.update([[1, 2, 3], [4, 5, 6]])       # 3 groups → error
+            p.set_data([[1, 2, 3], [4, 5, 6]])       # 3 groups → error
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -341,55 +341,55 @@ class TestPlotBarLogScale:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6. update() — value replacement
+# 6. set_data() — value replacement
 # ─────────────────────────────────────────────────────────────────────────────
 
-class TestPlotBarUpdate:
+class TestPlotBarSetData:
 
     def test_update_replaces_values(self):
         p = _make_bar([1, 2, 3])
-        p.update([10, 20, 30])
+        p.set_data([10, 20, 30])
         assert _state(p)["values"] == pytest.approx(np.array([[10.0], [20.0], [30.0]]))
 
     def test_update_recalculates_data_max(self):
         p = _make_bar([1, 2, 3])
-        p.update([100, 200, 300])
+        p.set_data([100, 200, 300])
         assert _state(p)["data_max"] > 300.0
 
     def test_update_recalculates_data_min(self):
         p = _make_bar([1, 2, 3])
-        p.update([-50, -20, -10])
+        p.set_data([-50, -20, -10])
         assert _state(p)["data_min"] < -50.0
 
     def test_update_with_new_x_centers(self):
         p = _make_bar([1, 2, 3])
-        p.update([4, 5, 6], x_centers=[0.5, 1.5, 2.5])
+        p.set_data([4, 5, 6], x_centers=[0.5, 1.5, 2.5])
         assert _state(p)["x_centers"] == pytest.approx([0.5, 1.5, 2.5])
 
     def test_update_with_new_x(self):
         p = _make_bar([1, 2, 3])
-        p.update([4, 5, 6], x=[0.5, 1.5, 2.5])
+        p.set_data([4, 5, 6], x=[0.5, 1.5, 2.5])
         assert _state(p)["x_centers"] == pytest.approx([0.5, 1.5, 2.5])
 
     def test_update_with_new_x_labels(self):
         p = _make_bar([1, 2, 3], x_labels=["a", "b", "c"])
-        p.update([4, 5, 6], x_labels=["x", "y", "z"])
+        p.set_data([4, 5, 6], x_labels=["x", "y", "z"])
         assert _state(p)["x_labels"] == ["x", "y", "z"]
 
     def test_update_preserves_orient(self):
         p = _make_bar([1, 2, 3], orient="h")
-        p.update([4, 5, 6])
+        p.set_data([4, 5, 6])
         assert _state(p)["orient"] == "h"
 
     def test_update_preserves_baseline(self):
         p = _make_bar([1, 2, 3], baseline=2.0)
-        p.update([10, 20, 30])
+        p.set_data([10, 20, 30])
         assert _state(p)["baseline"] == pytest.approx(2.0)
 
-    def test_update_3d_raises(self):
+    def test_set_data_3d_raises(self):
         p = _make_bar([1, 2, 3])
         with pytest.raises(ValueError, match="1-D or 2-D"):
-            p.update(np.zeros((2, 2, 2)))
+            p.set_data(np.zeros((2, 2, 2)))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -441,7 +441,7 @@ class TestPlotBarPush:
     def test_panel_json_values_after_update(self):
         fig, ax = apl.subplots(1, 1)
         p = ax.bar([1, 2, 3])
-        p.update([7, 8, 9])
+        p.set_data([7, 8, 9])
         trait_name = f"panel_{p._id}_json"
         data = json.loads(getattr(fig, trait_name))
         assert data["values"] == pytest.approx(np.array([[7.0], [8.0], [9.0]]))

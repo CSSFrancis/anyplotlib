@@ -175,7 +175,7 @@ def _roi_released(event):
     log_mag, freq_x, freq_y = _compute_fft(image, x0, y0, w, h)
 
     # Push updated FFT into the right panel
-    v_fft.update(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/\u00c5")
+    v_fft.set_data(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/\u00c5")
 
 
 fig

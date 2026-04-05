@@ -63,11 +63,11 @@ fig3
 # %%
 # Update the surface data live
 # ----------------------------
-# Call :meth:`~anyplotlib.figure_plots.Plot3D.update` to replace the geometry
+# Call :meth:`~anyplotlib.figure_plots.Plot3D.set_data` to replace the geometry
 # without recreating the panel.
 
 ZZ2 = np.cos(np.sqrt(XX ** 2 + YY ** 2))
-surf.update(XX, YY, ZZ2)
+surf.set_data(XX, YY, ZZ2)
 surf.set_colormap("plasma")
 surf.set_view(azimuth=30, elevation=40)
 

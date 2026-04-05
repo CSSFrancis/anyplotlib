@@ -588,7 +588,7 @@ class TestInteractiveFft:
         def on_rect_changed(event):
             log_mag, freq_x, freq_y = self._compute_fft(
                 img, event.x, event.y, event.w, event.h)
-            v_fft.update(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/Å")
+            v_fft.set_data(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/Å")
             updates.append({"x": event.x, "y": event.y,
                             "w": event.w, "h": event.h})
 
