@@ -294,30 +294,64 @@ Writes to `model.event_json` + `save_changes()`.
 
 ---
 
-### Bar chart (lines 2343–2697)
+### Bar chart (lines 2803–2970)
 
 State fields:
 ```
-st.values, st.x_centers, st.x_labels
-st.bar_color, st.bar_colors, st.bar_width
+st.values        [[g0,g1,...], ...]  always 2-D (N×G) list; G=1 for ungrouped
+st.groups        int — number of bar groups per category slot (≥1)
+st.x_centers, st.x_labels
+st.bar_color, st.bar_colors   (ungrouped: per-bar colours)
+st.group_colors  list[str], length G — colour per group; overrides bar_color
+st.group_labels  list[str], length G — legend labels (shown when groups > 1)
+st.bar_width     fraction of slot occupied by all bars in the slot (0–1)
 st.orient        'v' (default) | 'h'
-st.baseline      value axis zero line
-st.data_min/max  current visible value-axis range — modified by zoom/pan
+st.baseline      value-axis root; skipped for log scale
+st.log_scale     bool — logarithmic value axis; non-positive values clamped to 1e-10
+st.data_min/max  current visible value-axis range
 st.x_axis, st.view_x0/x1   widget coordinate system (category axis)
 st.overlay_widgets
 ```
 
 | Function | Lines | Purpose |
 |----------|-------|---------|
-| `_barGeom(st,r)` | 2347 | Per-bar geometry: slot/bar px, `xToPx`/`yToPx`, baseline px |
-| `drawBar(p)` | 2376 | **Main bar render**: grid, bars (clipped), value labels, axis, ticks; calls `drawOverlay1d` |
-| `_attachEventsBar(p)` | 2581 | **Full interaction**: wheel zoom on `data_min/max`, left-drag pan on value axis, widget drag via `_ovHitTest1d`/`_doDrag1d`, 'r' reset, per-widget cursors, status bar, bar hover + tooltip, `on_click` |
+| `_barGeom(st,r)` | ~2808 | Per-bar geometry: slot/group pixel sizes, `xToPx`/`yToPx`, `groupOffsetPx(g)`, `getVal(i,g)`, log-scale coordinate mappers, `basePx` |
+| `drawBar(p)` | ~2870 | **Main bar render**: log/linear grid, grouped bars (clipped), value labels, axis borders, log/linear ticks, group legend |
+| `_attachEventsBar(p)` | ~2977 | **Full interaction**: widget drag, hover/tooltip (shows group label), `on_click` (emits `bar_index`, `group_index`, `value`, `group_value`), keyboard |
 
-#### Bar zoom/pan model
-Unlike 1D (which zooms `view_x0/x1`), bar zooms and pans the **value axis** by
-modifying `st.data_min`/`st.data_max` directly. `view_x0/x1` stays fixed at
-0/1 so overlay widgets (vlines, hlines) keep correct positions throughout.
-`origDataMin/Max` are captured on first interaction (JS closure) for 'r' reset.
+#### `_barGeom` — grouped geometry
+
+For *G* groups per category and bar-width fraction *w*:
+```
+slotPx  = (r.w or r.h) / n              — pixel width of one category slot
+barPx   = slotPx * w / G               — pixel width of a single bar
+groupOffsetPx(g) = (g - (G-1)/2) * barPx  — centre offset for group g
+```
+`getVal(i, g)` reads from `st.values[i][g]` (2-D) or legacy `st.values[i]`
+(scalar) so old 1-D state still renders correctly.
+
+#### Log scale
+
+When `st.log_scale` is true `yToPx`/`xToPx` use `Math.log10` internally:
+```js
+lv = Math.log10(Math.max(1e-10, v))
+py = r.y + r.h - ((lv - lMin) / (lMax - lMin)) * r.h
+```
+Grid lines: faint minor lines at 2×, 3×, 5× per decade; full-opacity major
+lines at each power of 10.  Tick labels use superscript notation (`10^N`).
+
+#### Bar zoom/pan model (unchanged)
+Unlike 1D (which zooms `view_x0/x1`), bar zooms/pans the **value axis** by
+modifying `st.data_min`/`st.data_max` directly.  `view_x0/x1` stays fixed
+at 0/1 so overlay widgets keep correct positions throughout.
+
+#### `on_click` event payload
+```js
+{ bar_index, group_index, value, group_value, x_center, x_label }
+```
+`group_index` is always 0 for ungrouped charts.  `group_value` equals
+`value` (alias for convenience).
+
 
 ---
 

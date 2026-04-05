@@ -82,7 +82,74 @@ function render({ model, el }) {
     return arr[lo]+t*(arr[lo+1]-arr[lo]);
   }
 
-  // ── outer DOM ────────────────────────────────────────────────────────────
+  // ── b64 array decode helpers ─────────────────────────────────────────────
+  // Convert a base-64 string (little-endian raw bytes) to a JS TypedArray.
+  // TypedArrays support .length and [i] indexing so they are drop-in
+  // replacements for plain arrays in all draw / hit-test functions.
+  function _decodeF64(b64) {
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Float64Array(buf.buffer);
+  }
+  function _decodeF32(b64) {
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Float32Array(buf.buffer);
+  }
+  function _decodeI32(b64) {
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Int32Array(buf.buffer);
+  }
+
+  // ── per-panel frame timing ────────────────────────────────────────────────
+  // Called at the entry of every draw function (draw2d / draw1d / draw3d /
+  // drawBar).  Records a high-resolution timestamp in a 60-entry rolling
+  // buffer on the panel object, then:
+  //   • updates window._aplTiming[p.id]  — always, for Playwright readback
+  //   • updates p.statsDiv text          — only when display_stats is true
+  //
+  // Placing the call at the *start* of each draw function means we measure
+  // the inter-trigger interval: how often the CPU initiates a render, which
+  // is the right metric for both interactive (pan/zoom) and data-push paths.
+  const _FRAME_BUF = 60;
+
+  function _recordFrame(p) {
+    const now = performance.now();
+    p.frameTimes.push(now);
+    if (p.frameTimes.length > _FRAME_BUF) p.frameTimes.shift();
+
+    const n = p.frameTimes.length;
+
+    // Always keep the global timing dict fresh so Playwright can read it back
+    // at any point via window._aplTiming[panelId].
+    if (!window._aplTiming) window._aplTiming = {};
+
+    if (n >= 2) {
+      let sum = 0, minDt = Infinity, maxDt = -Infinity;
+      for (let i = 1; i < n; i++) {
+        const dt = p.frameTimes[i] - p.frameTimes[i - 1];
+        sum += dt; if (dt < minDt) minDt = dt; if (dt > maxDt) maxDt = dt;
+      }
+      const mean_ms = sum / (n - 1);
+      const fps     = 1000 * (n - 1) / (now - p.frameTimes[0]);
+      window._aplTiming[p.id] = {
+        count: n, fps, mean_ms, min_ms: minDt, max_ms: maxDt,
+      };
+
+      if (p.statsDiv && model.get('display_stats')) {
+        p.statsDiv.style.display = 'block';
+        p.statsDiv.textContent   =
+          `FPS  ${fps.toFixed(1)}\n` +
+          ` dt  ${mean_ms.toFixed(1)} ms\n` +
+          `min  ${minDt.toFixed(1)} ms\n` +
+          `max  ${maxDt.toFixed(1)} ms`;
+      }
+    }
+  }
   // Static layout styles live in the _css traitlet (.apl-scale-wrap /
   // .apl-outer).  Only the two dynamic properties — transform and
   // marginBottom — are ever written here at runtime.
@@ -207,6 +274,7 @@ function render({ model, el }) {
     let plotCanvas, overlayCanvas, markersCanvas, statusBar;
     let xAxisCanvas=null, yAxisCanvas=null, scaleBar=null;
     let _p2d = null;   // extra 2D DOM refs, null for 1D panels
+    let _wrapNode = null;  // container to which statsDiv is appended
 
     if (kind === '2d') {
       // ── 2D branch ──────────────────────────────────────────────────────────
@@ -270,6 +338,7 @@ function render({ model, el }) {
 
       const cbCtx = cbCanvas.getContext('2d');
       _p2d = { cbCanvas, cbCtx, plotWrap };
+      _wrapNode = plotWrap;
 
     } else if (kind === '3d') {
       // ── 3D branch: one full-panel plotCanvas + overlayCanvas on top ───────
@@ -293,8 +362,10 @@ function render({ model, el }) {
       statusBar.style.cssText =
         'position:absolute;bottom:4px;right:4px;padding:2px 6px;display:none;';
       wrap3.appendChild(statusBar);
+      _wrapNode = wrap3;
 
     } else {
+      // ── 1D / bar branch ───────────────────────────────────────────────────
       plotCanvas = document.createElement('canvas');
       plotCanvas.tabIndex = 1;
       plotCanvas.style.cssText = 'outline:none;cursor:crosshair;display:block;border-radius:2px;';
@@ -319,6 +390,7 @@ function render({ model, el }) {
         'background:rgba(0,0,0,0.55);color:white;font-size:10px;font-family:monospace;' +
         'border-radius:4px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
       wrap.appendChild(statusBar);
+      _wrapNode = wrap;
     }
 
     const plotCtx    = plotCanvas.getContext('2d');
@@ -329,18 +401,31 @@ function render({ model, el }) {
 
     const blitCache  = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
 
+    // ── stats overlay (top-left of panel) ────────────────────────────────
+    // Positioned absolutely inside the panel's wrap container so it floats
+    // over the plot area.  Visibility is toggled by the display_stats traitlet.
+    const statsDiv = document.createElement('div');
+    statsDiv.style.cssText =
+      'position:absolute;top:4px;left:4px;padding:4px 7px;' +
+      'background:rgba(0,0,0,0.65);color:#e0e0e0;font-size:10px;' +
+      'font-family:monospace;border-radius:4px;pointer-events:none;' +
+      'white-space:pre;line-height:1.5;z-index:20;display:none;';
+    if (_wrapNode) _wrapNode.appendChild(statsDiv);
+
     const p = {
       id, kind, cell, pw, ph,
       plotCanvas, overlayCanvas, markersCanvas,
       plotCtx, ovCtx, mkCtx,
       xAxisCanvas, yAxisCanvas, xCtx, yCtx,
       scaleBar, statusBar,
+      statsDiv,        // ← per-panel FPS overlay element
+      frameTimes: [],  // ← rolling 60-entry timestamp buffer (performance.now())
       blitCache,
       ovDrag: null,
       isPanning: false, panStart: {},
       state: null,
       _hoverSi: -1, _hoverI: -1,   // index of hovered marker group / marker (-1 = none)
-      _hovBar:  -1,                 // index of hovered bar (-1 = none)
+      _hovBar:  null,                // {slot,group} of hovered bar, or null
       lastWidgetId: null,           // id of the last clicked/dragged widget (for on_key Delete etc.)
       mouseX: 0, mouseY: 0,        // last known canvas-relative cursor position
       // 2D extras (null for non-2D panels)
@@ -578,6 +663,7 @@ function render({ model, el }) {
   function draw2d(p) {
     const st=p.state;
     if(!st) return;
+    _recordFrame(p);
     // Re-sync axis/histogram canvas visibility whenever state changes
     _resizePanelDOM(p.id, p.pw, p.ph);
     const {pw,ph,plotCtx:ctx,blitCache} = p;
@@ -1030,15 +1116,45 @@ function render({ model, el }) {
 
   function draw3d(p) {
     const st = p.state; if (!st) return;
+    _recordFrame(p);
     const { pw, ph, plotCtx: ctx } = p;
 
     ctx.clearRect(0, 0, pw, ph);
     ctx.fillStyle = theme.bgPlot;
     ctx.fillRect(0, 0, pw, ph);
 
-    const verts    = st.vertices    || [];
-    const faces    = st.faces       || [];
-    const zVals    = st.z_values    || [];
+    // ── decode + cache b64 geometry (only when state changes) ──────────────
+    const vKey = st.vertices_b64 || '';
+    const fKey = st.faces_b64    || '';
+    const zKey = st.z_values_b64 || '';
+    if (p._3dVertsKey !== vKey) {
+      p._3dVertsKey = vKey;
+      if (vKey) {
+        const vf = _decodeF32(vKey);
+        const nv = vf.length / 3;
+        const arr = new Array(nv);
+        for (let i = 0; i < nv; i++) arr[i] = [vf[i*3], vf[i*3+1], vf[i*3+2]];
+        p._3dVerts = arr;
+      } else { p._3dVerts = st.vertices || []; }
+    }
+    if (p._3dFacesKey !== fKey) {
+      p._3dFacesKey = fKey;
+      if (fKey) {
+        const ff = _decodeI32(fKey);
+        const nf = ff.length / 3;
+        const arr = new Array(nf);
+        for (let i = 0; i < nf; i++) arr[i] = [ff[i*3], ff[i*3+1], ff[i*3+2]];
+        p._3dFaces = arr;
+      } else { p._3dFaces = st.faces || []; }
+    }
+    if (p._3dZKey !== zKey) {
+      p._3dZKey = zKey;
+      p._3dZVals = zKey ? _decodeF32(zKey) : (st.z_values || []);
+    }
+    const verts = p._3dVerts  || [];
+    const faces = p._3dFaces  || [];
+    const zVals = p._3dZVals  || [];
+
     const lut      = st.colormap_data || [];
     const geom     = st.geom_type   || 'surface';
     const bnds     = st.data_bounds || {};
@@ -1317,9 +1433,25 @@ function render({ model, el }) {
 
   function draw1d(p) {
     const st=p.state; if(!st) return;
+    _recordFrame(p);
     const {pw,ph,plotCtx:ctx} = p;
     const r=_plotRect1d(pw,ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
+
+    // ── decode + cache b64 arrays (keyed by b64 string; free on re-render) ──
+    const xKey = st.x_axis_b64 || '';
+    const dKey = st.data_b64   || '';
+    if (p._1dXKey !== xKey) {
+      p._1dXKey  = xKey;
+      p._1dXArr  = xKey ? _decodeF64(xKey) : (st.x_axis || []);
+    }
+    if (p._1dDKey !== dKey) {
+      p._1dDKey  = dKey;
+      p._1dDArr  = dKey ? _decodeF64(dKey)  : (st.data   || []);
+    }
+    const xArr = p._1dXArr;   // Float64Array (or plain array fallback)
+    const yData = p._1dDArr;  // Float64Array (or plain array fallback)
+
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     const dMin=st.data_min, dMax=st.data_max;
     const units=st.units||'', yUnits=st.y_units||'';
 
@@ -1460,13 +1592,15 @@ function render({ model, el }) {
       ctx.restore();
     }
 
-    _drawLine(st.data, xArr,
+    _drawLine(yData, xArr,
       st.line_color || '#4fc3f7', st.line_linewidth || 1.5,
       st.line_linestyle || 'solid',
       st.line_alpha != null ? st.line_alpha : 1.0,
       st.line_marker || 'none', st.line_markersize || 4);
     for (const ex of (st.extra_lines || [])) {
-      _drawLine(ex.data || [], ex.x_axis || xArr,
+      const exY = ex.data_b64   ? _decodeF64(ex.data_b64)   : (ex.data   || []);
+      const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
+      _drawLine(exY, exX,
         ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth || 1.5,
         ex.linestyle || 'solid',
         ex.alpha != null ? ex.alpha : 1.0,
@@ -1551,7 +1685,8 @@ function render({ model, el }) {
     const st=p.state; if(!st) return;
     const {pw,ph,ovCtx} = p;
     const r=_plotRect1d(pw,ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     const dMin=st.data_min, dMax=st.data_max;
     ovCtx.clearRect(0,0,pw,ph);
     const widgets=st.overlay_widgets||[];
@@ -1606,9 +1741,10 @@ function render({ model, el }) {
     const st=p.state; if(!st) return;
     const {pw,ph,mkCtx} = p;
     const r=_plotRect1d(pw,ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
-    const dMin=st.data_min, dMax=st.data_max;
-    const yData=st.data||[];
+    // Use cached decoded arrays from draw1d; fall back to inline decode if needed.
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const yData = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     mkCtx.clearRect(0,0,pw,ph);
     const sets=st.markers||[];
     if(!sets.length) return;
@@ -1683,7 +1819,8 @@ function render({ model, el }) {
     const st = p.state; if (!st) return null;
     const r = _plotRect1d(p.pw, p.ph);
     if (mx < r.x || mx > r.x+r.w || my < r.y || my > r.y+r.h) return null;
-    const xArr = st.x_axis||[], x0 = st.view_x0||0, x1 = st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0 = st.view_x0||0, x1 = st.view_x1||1;
     const dMin = st.data_min, dMax = st.data_max;
     const HIT = 6;
 
@@ -1714,10 +1851,13 @@ function render({ model, el }) {
     // Check extra lines first (drawn on top), then primary
     for (let i = (st.extra_lines||[]).length - 1; i >= 0; i--) {
       const ex = st.extra_lines[i];
-      const hit = _nearestOnLine(ex.data, ex.x_axis || xArr, ex.id);
+      const exY = ex.data_b64   ? _decodeF64(ex.data_b64)   : (ex.data   || []);
+      const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
+      const hit = _nearestOnLine(exY, exX, ex.id);
       if (hit) return hit;
     }
-    return _nearestOnLine(st.data, xArr, null);
+    const primY = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
+    return _nearestOnLine(primY, xArr, null);
   }
 
   // ── marker hit-test helpers ────────────────────────────────────────────────
@@ -1796,7 +1936,9 @@ function render({ model, el }) {
   function _markerHitTest1d(mx, my, p) {
     const st=p.state; if(!st) return null;
     const r=_plotRect1d(p.pw,p.ph);
-    const xArr=st.x_axis||[], x0=st.view_x0||0, x1=st.view_x1||1;
+    // Use cached decoded array from draw1d; fall back to inline decode if needed.
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0, x1=st.view_x1||1;
     const dMin=st.data_min, dMax=st.data_max;
     const sets=st.markers||[];
     for(let si=sets.length-1;si>=0;si--){
@@ -2154,7 +2296,7 @@ function render({ model, el }) {
       const regKeys=st.registered_keys||[];
       if(regKeys.includes(e.key)||regKeys.includes('*')){
         const r=_plotRect1d(p.pw,p.ph);
-        const xArr=st.x_axis||[];
+        const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
         const frac=_canvasXToFrac1d(p.mouseX,st.view_x0,st.view_x1,r);
         const physX=xArr.length>=2?_fracToX1d(xArr,frac):frac;
         _emitEvent(p.id,'on_key',null,{
@@ -2179,7 +2321,7 @@ function render({ model, el }) {
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
         return;
       }
-      const xArr=st.x_axis||[];
+      const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
       const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
       const phys=xArr.length>=2?_fracToX1d(xArr,frac):frac;
       p.statusBar.textContent=`x:${fmtVal(phys)}`;p.statusBar.style.display='block';
@@ -2385,7 +2527,8 @@ function render({ model, el }) {
   function _ovHitTest1d(mx,my,p){
     const st=p.state;if(!st)return null;
     const r=_plotRect1d(p.pw,p.ph);
-    const xArr=st.x_axis||[],x0=st.view_x0||0,x1=st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0,x1=st.view_x1||1;
     const widgets=st.overlay_widgets||[];
     const HR=7;
     for(let i=widgets.length-1;i>=0;i--){
@@ -2418,7 +2561,8 @@ function render({ model, el }) {
     const st=p.state;if(!st)return;
     const r=_plotRect1d(p.pw,p.ph);
     const {mx,my:py}=_clientPos(e,p.overlayCanvas,p.pw,p.ph);
-    const xArr=st.x_axis||[],x0=st.view_x0||0,x1=st.view_x1||1;
+    const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0,x1=st.view_x1||1;
     const xUnit=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r);
     const widgets=st.overlay_widgets;
     const d=p.ovDrag, s=d.snapW, w=widgets[d.idx];
@@ -2663,39 +2807,72 @@ function render({ model, el }) {
 
   // ── bar chart ─────────────────────────────────────────────────────────────
   // Shared geometry helper used by both drawBar and _attachEventsBar.
-  // Returns the per-slot pixel width, per-bar pixel width, and coordinate
-  // mappers for the current panel state.
+  // Returns per-slot/bar pixel sizes, coordinate mappers, and group helpers.
   function _barGeom(st, r) {
     const values   = st.values   || [];
     const n        = values.length || 1;
+    const groups   = st.groups   || 1;
     const orient   = st.orient   || 'v';
-    const bwFrac   = st.bar_width !== undefined ? st.bar_width : 0.7;
+    const bwFrac   = st.bar_width !== undefined ? st.bar_width : 0.8;
     const baseline = st.baseline !== undefined  ? st.baseline  : 0;
     const dMin     = st.data_min, dMax = st.data_max;
+    const logScale = !!st.log_scale;
+    const LC       = 1e-10; // log clamp
+
+    // Value at category i, group g — supports 2-D [[g0,g1,...], ...] and
+    // legacy 1-D [v0, v1, ...].
+    function getVal(i, g) {
+      const row = values[i];
+      if (Array.isArray(row)) return row[g] !== undefined ? row[g] : 0;
+      return (g === 0) ? (row !== undefined ? +row : 0) : 0;
+    }
+
+    // Pixel coordinate along the VALUE axis.
+    function _valToPy(v) {
+      if (logScale) {
+        const lv   = Math.log10(Math.max(LC, v));
+        const lMin = Math.log10(Math.max(LC, dMin));
+        const lMax = Math.log10(Math.max(LC, dMax));
+        return r.y + r.h - ((lv - lMin) / ((lMax - lMin) || 1)) * r.h;
+      }
+      return r.y + r.h - ((v - dMin) / ((dMax - dMin) || 1)) * r.h;
+    }
+    function _valToX(v) {
+      if (logScale) {
+        const lv   = Math.log10(Math.max(LC, v));
+        const lMin = Math.log10(Math.max(LC, dMin));
+        const lMax = Math.log10(Math.max(LC, dMax));
+        return r.x + ((lv - lMin) / ((lMax - lMin) || 1)) * r.w;
+      }
+      return r.x + ((v - dMin) / ((dMax - dMin) || 1)) * r.w;
+    }
 
     if (orient === 'h') {
-      // Horizontal: categories on Y, values on X
-      const slotPx = r.h / n;
-      const barPx  = slotPx * bwFrac;
-      // xToPx maps a value to an x pixel (value axis = horizontal)
-      function xToPx(v) { return r.x + ((v - dMin) / ((dMax - dMin) || 1)) * r.w; }
-      // yToPx maps a bar index to the centre of its slot (category axis = vertical)
+      const slotPx     = r.h / n;
+      const barPx      = (slotPx * bwFrac) / groups;
+      function xToPx(v) { return _valToX(v); }
       function yToPx(i) { return r.y + (i + 0.5) * slotPx; }
-      const basePx = Math.max(r.x, Math.min(r.x + r.w, xToPx(baseline)));
-      return { n, orient, slotPx, barPx, dMin, dMax, baseline, basePx, xToPx, yToPx };
+      function groupOffsetPx(g) { return (g - (groups - 1) / 2) * barPx; }
+      const bv = logScale ? Math.max(LC, baseline) : baseline;
+      const basePx = Math.max(r.x, Math.min(r.x + r.w, xToPx(bv)));
+      return { n, groups, orient, slotPx, barPx, dMin, dMax, baseline,
+               basePx, xToPx, yToPx, groupOffsetPx, logScale, getVal, LC };
     } else {
-      // Vertical: categories on X, values on Y
-      const slotPx = r.w / n;
-      const barPx  = slotPx * bwFrac;
+      const slotPx     = r.w / n;
+      const barPx      = (slotPx * bwFrac) / groups;
       function xToPx(i) { return r.x + (i + 0.5) * slotPx; }
-      function yToPx(v) { return r.y + r.h - ((v - dMin) / ((dMax - dMin) || 1)) * r.h; }
-      const basePx = Math.max(r.y, Math.min(r.y + r.h, yToPx(baseline)));
-      return { n, orient, slotPx, barPx, dMin, dMax, baseline, basePx, xToPx, yToPx };
+      function yToPx(v) { return _valToPy(v); }
+      function groupOffsetPx(g) { return (g - (groups - 1) / 2) * barPx; }
+      const bv = logScale ? Math.max(LC, baseline) : baseline;
+      const basePx = Math.max(r.y, Math.min(r.y + r.h, yToPx(bv)));
+      return { n, groups, orient, slotPx, barPx, dMin, dMax, baseline,
+               basePx, xToPx, yToPx, groupOffsetPx, logScale, getVal, LC };
     }
   }
 
   function drawBar(p) {
     const st = p.state; if (!st) return;
+    _recordFrame(p);
     const { pw, ph, plotCtx: ctx } = p;
     const r = _plotRect1d(pw, ph);
 
@@ -2703,34 +2880,86 @@ function render({ model, el }) {
     ctx.fillStyle = theme.bg;     ctx.fillRect(0, 0, pw, ph);
     ctx.fillStyle = theme.bgPlot; ctx.fillRect(r.x, r.y, r.w, r.h);
 
-    const values    = st.values    || [];
-    const xCenters  = st.x_centers || values.map((_, i) => i);
-    const xLabels   = st.x_labels  || [];
-    const barColor  = st.bar_color  || '#4fc3f7';
-    const barColors = st.bar_colors || [];
-    const orient    = st.orient || 'v';
-    const dMin      = st.data_min, dMax = st.data_max;
+    const values      = st.values      || [];
+    const xCenters    = st.x_centers   || values.map((_, i) => i);
+    const xLabels     = st.x_labels    || [];
+    const barColor    = st.bar_color   || '#4fc3f7';
+    const barColors   = st.bar_colors  || [];
+    const groupColors = st.group_colors || [];
+    const groupLabels = st.group_labels || [];
+    const orient      = st.orient || 'v';
+    const dMin        = st.data_min, dMax = st.data_max;
+    const logScale    = !!st.log_scale;
 
     if (!values.length) return;
 
     const g = _barGeom(st, r);
+    const LC = g.LC;
+
+    // ── log tick helper ───────────────────────────────────────────────────
+    function _fmtLogTick(v) {
+      const exp = Math.round(Math.log10(v));
+      if (Math.abs(v - Math.pow(10, exp)) < v * 1e-6) {
+        if (exp === 0) return '1';
+        if (exp === 1) return '10';
+        return `10^${exp}`;
+      }
+      return fmtVal(v);
+    }
 
     // ── grid lines (along value axis) ─────────────────────────────────────
     ctx.strokeStyle = theme.gridStroke; ctx.lineWidth = 1;
-    const valRange = (dMax - dMin) || 1;
-    const valStep  = findNice(valRange / Math.max(2, Math.floor((orient==='h' ? r.w : r.h) / 40)));
 
-    if (orient === 'h') {
-      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-        const px = g.xToPx(v);
-        if (px < r.x || px > r.x + r.w) continue;
-        ctx.beginPath(); ctx.moveTo(px, r.y); ctx.lineTo(px, r.y + r.h); ctx.stroke();
+    if (logScale) {
+      const lMin = Math.log10(Math.max(LC, dMin));
+      const lMax = Math.log10(Math.max(LC, dMax));
+      // minor grid — 2,3,5 × decade, semi-transparent
+      ctx.globalAlpha = 0.3;
+      for (let exp = Math.floor(lMin); exp < Math.ceil(lMax); exp++) {
+        for (const m of [2, 3, 5]) {
+          const v = m * Math.pow(10, exp);
+          if (v < dMin || v > dMax) continue;
+          if (orient === 'h') {
+            const px = g.xToPx(v);
+            if (px < r.x || px > r.x + r.w) continue;
+            ctx.beginPath(); ctx.moveTo(px, r.y); ctx.lineTo(px, r.y + r.h); ctx.stroke();
+          } else {
+            const py = g.yToPx(v);
+            if (py < r.y || py > r.y + r.h) continue;
+            ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x + r.w, py); ctx.stroke();
+          }
+        }
+      }
+      ctx.globalAlpha = 1.0;
+      // major grid — decades, full opacity
+      for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
+        const v = Math.pow(10, exp);
+        if (v < dMin || v > dMax) continue;
+        if (orient === 'h') {
+          const px = g.xToPx(v);
+          if (px < r.x || px > r.x + r.w) continue;
+          ctx.beginPath(); ctx.moveTo(px, r.y); ctx.lineTo(px, r.y + r.h); ctx.stroke();
+        } else {
+          const py = g.yToPx(v);
+          if (py < r.y || py > r.y + r.h) continue;
+          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x + r.w, py); ctx.stroke();
+        }
       }
     } else {
-      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-        const py = g.yToPx(v);
-        if (py < r.y || py > r.y + r.h) continue;
-        ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x + r.w, py); ctx.stroke();
+      const valRange = (dMax - dMin) || 1;
+      const valStep  = findNice(valRange / Math.max(2, Math.floor((orient==='h' ? r.w : r.h) / 40)));
+      if (orient === 'h') {
+        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+          const px = g.xToPx(v);
+          if (px < r.x || px > r.x + r.w) continue;
+          ctx.beginPath(); ctx.moveTo(px, r.y); ctx.lineTo(px, r.y + r.h); ctx.stroke();
+        }
+      } else {
+        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+          const py = g.yToPx(v);
+          if (py < r.y || py > r.y + r.h) continue;
+          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x + r.w, py); ctx.stroke();
+        }
       }
     }
 
@@ -2738,39 +2967,42 @@ function render({ model, el }) {
     ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
 
     for (let i = 0; i < g.n; i++) {
-      const color = barColors[i] || barColor;
-      const isHov = (p._hovBar === i);
+      for (let gi = 0; gi < g.groups; gi++) {
+        const val   = g.getVal(i, gi);
+        const color = groupColors[gi] || barColors[i] || barColor;
+        const isHov = p._hovBar !== null &&
+                      p._hovBar.slot === i && p._hovBar.group === gi;
+        const dv    = logScale ? Math.max(LC, val) : val;
 
-      if (orient === 'h') {
-        const cy      = g.yToPx(i);
-        const valPx   = g.xToPx(values[i]);
-        const barLeft = Math.min(valPx, g.basePx);
-        const barW    = Math.max(1, Math.abs(valPx - g.basePx));
-        ctx.fillStyle = color;
-        ctx.fillRect(barLeft, cy - g.barPx / 2, barW, g.barPx);
-        if (isHov) {
-          ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.22)';
-          ctx.fillRect(barLeft, cy - g.barPx / 2, barW, g.barPx);
-          ctx.restore();
+        if (orient === 'h') {
+          const cy    = g.yToPx(i) + g.groupOffsetPx(gi);
+          const valPx = g.xToPx(dv);
+          const bLeft = Math.min(valPx, g.basePx);
+          const bW    = Math.max(1, Math.abs(valPx - g.basePx));
+          ctx.fillStyle = color;
+          ctx.fillRect(bLeft, cy - g.barPx / 2, bW, g.barPx);
+          if (isHov) {
+            ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            ctx.fillRect(bLeft, cy - g.barPx / 2, bW, g.barPx); ctx.restore();
+          }
+          ctx.strokeStyle = theme.dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.09)';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(bLeft, cy - g.barPx / 2, bW, g.barPx);
+        } else {
+          const cx    = g.xToPx(i) + g.groupOffsetPx(gi);
+          const valPy = g.yToPx(dv);
+          const bTop  = Math.min(valPy, g.basePx);
+          const bH    = Math.max(1, Math.abs(valPy - g.basePx));
+          ctx.fillStyle = color;
+          ctx.fillRect(cx - g.barPx / 2, bTop, g.barPx, bH);
+          if (isHov) {
+            ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            ctx.fillRect(cx - g.barPx / 2, bTop, g.barPx, bH); ctx.restore();
+          }
+          ctx.strokeStyle = theme.dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.09)';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(cx - g.barPx / 2, bTop, g.barPx, bH);
         }
-        ctx.strokeStyle = theme.dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.09)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(barLeft, cy - g.barPx / 2, barW, g.barPx);
-      } else {
-        const cx     = g.xToPx(i);
-        const valPy  = g.yToPx(values[i]);
-        const barTop = Math.min(valPy, g.basePx);
-        const barH   = Math.max(1, Math.abs(valPy - g.basePx));
-        ctx.fillStyle = color;
-        ctx.fillRect(cx - g.barPx / 2, barTop, g.barPx, barH);
-        if (isHov) {
-          ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.22)';
-          ctx.fillRect(cx - g.barPx / 2, barTop, g.barPx, barH);
-          ctx.restore();
-        }
-        ctx.strokeStyle = theme.dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.09)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(cx - g.barPx / 2, barTop, g.barPx, barH);
       }
     }
     ctx.restore();
@@ -2779,20 +3011,24 @@ function render({ model, el }) {
     if (st.show_values) {
       ctx.font = '9px monospace'; ctx.fillStyle = theme.tickText;
       for (let i = 0; i < g.n; i++) {
-        if (orient === 'h') {
-          const cy    = g.yToPx(i);
-          const valPx = g.xToPx(values[i]);
-          const above = values[i] >= g.baseline;
-          ctx.textAlign    = above ? 'left' : 'right';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(fmtVal(values[i]), valPx + (above ? 3 : -3), cy);
-        } else {
-          const cx    = g.xToPx(i);
-          const valPy = g.yToPx(values[i]);
-          const above = values[i] >= g.baseline;
-          ctx.textAlign    = 'center';
-          ctx.textBaseline = above ? 'bottom' : 'top';
-          ctx.fillText(fmtVal(values[i]), cx, valPy + (above ? -2 : 2));
+        for (let gi = 0; gi < g.groups; gi++) {
+          const val = g.getVal(i, gi);
+          const dv  = logScale ? Math.max(LC, val) : val;
+          if (orient === 'h') {
+            const cy    = g.yToPx(i) + g.groupOffsetPx(gi);
+            const valPx = g.xToPx(dv);
+            const above = val >= g.baseline;
+            ctx.textAlign    = above ? 'left' : 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(fmtVal(val), valPx + (above ? 3 : -3), cy);
+          } else {
+            const cx    = g.xToPx(i) + g.groupOffsetPx(gi);
+            const valPy = g.yToPx(dv);
+            const above = val >= g.baseline;
+            ctx.textAlign    = 'center';
+            ctx.textBaseline = above ? 'bottom' : 'top';
+            ctx.fillText(fmtVal(val), cx, valPy + (above ? -2 : 2));
+          }
         }
       }
     }
@@ -2802,16 +3038,18 @@ function render({ model, el }) {
     ctx.beginPath(); ctx.moveTo(r.x, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(r.x, r.y);         ctx.lineTo(r.x, r.y + r.h);       ctx.stroke();
 
-    // Explicit baseline when it isn't at the plot edge
-    if (orient === 'h') {
-      if (g.basePx > r.x && g.basePx < r.x + r.w) {
-        ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(g.basePx, r.y); ctx.lineTo(g.basePx, r.y + r.h); ctx.stroke();
-      }
-    } else {
-      if (g.basePx > r.y && g.basePx < r.y + r.h) {
-        ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(r.x, g.basePx); ctx.lineTo(r.x + r.w, g.basePx); ctx.stroke();
+    // Explicit baseline (only for linear scale)
+    if (!logScale) {
+      if (orient === 'h') {
+        if (g.basePx > r.x && g.basePx < r.x + r.w) {
+          ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(g.basePx, r.y); ctx.lineTo(g.basePx, r.y + r.h); ctx.stroke();
+        }
+      } else {
+        if (g.basePx > r.y && g.basePx < r.y + r.h) {
+          ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(r.x, g.basePx); ctx.lineTo(r.x + r.w, g.basePx); ctx.stroke();
+        }
       }
     }
 
@@ -2821,13 +3059,30 @@ function render({ model, el }) {
     if (orient === 'h') {
       // Value axis → X ticks at bottom
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-        const px = g.xToPx(v);
-        if (px < r.x || px > r.x + r.w) continue;
-        ctx.strokeStyle = theme.axisStroke;
-        ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
-        ctx.fillStyle = theme.tickText;
-        ctx.fillText(fmtVal(v), px, r.y + r.h + 7);
+      if (logScale) {
+        const lMin = Math.log10(Math.max(LC, dMin));
+        const lMax = Math.log10(Math.max(LC, dMax));
+        for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
+          const v = Math.pow(10, exp);
+          if (v < dMin || v > dMax) continue;
+          const px = g.xToPx(v);
+          if (px < r.x || px > r.x + r.w) continue;
+          ctx.strokeStyle = theme.axisStroke;
+          ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
+          ctx.fillStyle = theme.tickText;
+          ctx.fillText(_fmtLogTick(v), px, r.y + r.h + 7);
+        }
+      } else {
+        const valRange = (dMax - dMin) || 1;
+        const valStep  = findNice(valRange / Math.max(2, Math.floor(r.w / 40)));
+        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+          const px = g.xToPx(v);
+          if (px < r.x || px > r.x + r.w) continue;
+          ctx.strokeStyle = theme.axisStroke;
+          ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
+          ctx.fillStyle = theme.tickText;
+          ctx.fillText(fmtVal(v), px, r.y + r.h + 7);
+        }
       }
       // Category axis → Y labels on left
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
@@ -2841,7 +3096,6 @@ function render({ model, el }) {
         ctx.fillStyle = theme.tickText;
         ctx.fillText(label, r.x - 7, cy);
       }
-      // Units
       if (st.y_units) {
         ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
         ctx.fillStyle=theme.unitText;
@@ -2877,13 +3131,30 @@ function render({ model, el }) {
       }
       // Value axis → Y ticks on left
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-      for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-        const py = g.yToPx(v);
-        if (py < r.y || py > r.y + r.h) continue;
-        ctx.strokeStyle = theme.axisStroke;
-        ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
-        ctx.fillStyle = theme.tickText;
-        ctx.fillText(fmtVal(v), r.x - 8, py);
+      if (logScale) {
+        const lMin = Math.log10(Math.max(LC, dMin));
+        const lMax = Math.log10(Math.max(LC, dMax));
+        for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
+          const v = Math.pow(10, exp);
+          if (v < dMin || v > dMax) continue;
+          const py = g.yToPx(v);
+          if (py < r.y || py > r.y + r.h) continue;
+          ctx.strokeStyle = theme.axisStroke;
+          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
+          ctx.fillStyle = theme.tickText;
+          ctx.fillText(_fmtLogTick(v), r.x - 8, py);
+        }
+      } else {
+        const valRange = (dMax - dMin) || 1;
+        const valStep  = findNice(valRange / Math.max(2, Math.floor(r.h / 40)));
+        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+          const py = g.yToPx(v);
+          if (py < r.y || py > r.y + r.h) continue;
+          ctx.strokeStyle = theme.axisStroke;
+          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
+          ctx.fillStyle = theme.tickText;
+          ctx.fillText(fmtVal(v), r.x - 8, py);
+        }
       }
       if (st.y_units) {
         ctx.save();
@@ -2895,35 +3166,71 @@ function render({ model, el }) {
       }
     }
 
-    // Overlay widgets (vlines, hlines) drawn on the overlay canvas
+    // ── group legend (only when group_labels are provided) ────────────────
+    if (g.groups > 1 && groupLabels.length > 0) {
+      ctx.font = '9px monospace';
+      const swatchW = 12, swatchH = 10, pad = 4, rowH = 15;
+      let legendMaxW = 0;
+      for (let gi = 0; gi < Math.min(g.groups, groupLabels.length); gi++) {
+        legendMaxW = Math.max(legendMaxW, ctx.measureText(String(groupLabels[gi])).width);
+      }
+      const legendW = swatchW + pad + legendMaxW + 6;
+      const nRows   = Math.min(g.groups, groupLabels.length);
+      const legendH = nRows * rowH + 4;
+      const lx = r.x + r.w - legendW - 4;
+      const ly = r.y + 4;
+      ctx.fillStyle = theme.dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.75)';
+      ctx.fillRect(lx, ly, legendW, legendH);
+      ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 0.5;
+      ctx.strokeRect(lx, ly, legendW, legendH);
+      for (let gi = 0; gi < nRows; gi++) {
+        const label = String(groupLabels[gi]);
+        const ey    = ly + 2 + gi * rowH;
+        ctx.fillStyle = groupColors[gi] || barColor;
+        ctx.fillRect(lx + 3, ey + (rowH - swatchH) / 2, swatchW, swatchH);
+        ctx.fillStyle = theme.tickText;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(label, lx + 3 + swatchW + pad, ey + rowH / 2);
+      }
+    }
+
+    // Overlay widgets (vlines, hlines) drawn on overlay canvas
     drawOverlay1d(p);
   }
 
   function _attachEventsBar(p) {
     const { overlayCanvas } = p;
 
-    // Return the bar index at canvas position (mx, my), or -1 if none.
+    // Returns {slot, group} for the bar at canvas (mx,my), or null if none.
     function _barHit(mx, my) {
-      const st = p.state; if (!st || !st.values.length) return -1;
+      const st = p.state;
+      if (!st || !st.values || !st.values.length) return null;
       const r  = _plotRect1d(p.pw, p.ph);
-      if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) return -1;
-      const g = _barGeom(st, r);
+      if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) return null;
+      const g  = _barGeom(st, r);
+      const LC = g.LC;
       for (let i = 0; i < g.n; i++) {
-        if (g.orient === 'h') {
-          const cy    = g.yToPx(i);
-          const valPx = g.xToPx(st.values[i]);
-          const left  = Math.min(valPx, g.basePx);
-          const barW  = Math.max(1, Math.abs(valPx - g.basePx));
-          if (Math.abs(my - cy) <= g.barPx / 2 && mx >= left && mx <= left + barW) return i;
-        } else {
-          const cx    = g.xToPx(i);
-          const valPy = g.yToPx(st.values[i]);
-          const top   = Math.min(valPy, g.basePx);
-          const barH  = Math.max(1, Math.abs(valPy - g.basePx));
-          if (Math.abs(mx - cx) <= g.barPx / 2 && my >= top && my <= top + barH) return i;
+        for (let gi = 0; gi < g.groups; gi++) {
+          const val = g.getVal(i, gi);
+          const dv  = g.logScale ? Math.max(LC, val) : val;
+          if (g.orient === 'h') {
+            const cy    = g.yToPx(i) + g.groupOffsetPx(gi);
+            const valPx = g.xToPx(dv);
+            const left  = Math.min(valPx, g.basePx);
+            const bW    = Math.max(1, Math.abs(valPx - g.basePx));
+            if (Math.abs(my - cy) <= g.barPx / 2 && mx >= left && mx <= left + bW)
+              return { slot: i, group: gi };
+          } else {
+            const cx    = g.xToPx(i) + g.groupOffsetPx(gi);
+            const valPy = g.yToPx(dv);
+            const top   = Math.min(valPy, g.basePx);
+            const bH    = Math.max(1, Math.abs(valPy - g.basePx));
+            if (Math.abs(mx - cx) <= g.barPx / 2 && my >= top && my <= top + bH)
+              return { slot: i, group: gi };
+          }
         }
       }
-      return -1;
+      return null;
     }
 
     // Widget drag support
@@ -2967,7 +3274,7 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('mousemove', (e) => {
       const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       p.mouseX = mx; p.mouseY = my;
-      if (p.ovDrag) return;  // handled by document mousemove during drag
+      if (p.ovDrag) return;
       const st = p.state; if (!st) return;
 
       // Overlay widget cursor hint
@@ -2975,20 +3282,28 @@ function render({ model, el }) {
       if (whit) {
         overlayCanvas.style.cursor = 'ew-resize';
         tooltip.style.display = 'none';
-        if (p._hovBar !== -1) { p._hovBar = -1; drawBar(p); }
+        if (p._hovBar !== null) { p._hovBar = null; drawBar(p); }
         return;
       }
 
-      const idx = _barHit(mx, my);
-      if (idx !== p._hovBar) {
-        p._hovBar = idx;
-        drawBar(p);
-      }
-      if (idx >= 0) {
+      const hit = _barHit(mx, my);
+      const prev = p._hovBar;
+      const same = hit !== null && prev !== null &&
+                   prev.slot === hit.slot && prev.group === hit.group;
+      if (!same) { p._hovBar = hit; drawBar(p); }
+
+      if (hit !== null) {
+        const { slot: idx, group: gi } = hit;
         const label = (st.x_labels||[])[idx] !== undefined
           ? String(st.x_labels[idx])
           : fmtVal((st.x_centers||[])[idx] ?? idx);
-        _showTooltip(`${label}: ${fmtVal(st.values[idx])}`, e.clientX, e.clientY);
+        const gLabel = (st.group_labels||[])[gi];
+        const gm  = _barGeom(st, _plotRect1d(p.pw, p.ph));
+        const val = gm.getVal(idx, gi);
+        const tip = (st.groups > 1 && gLabel)
+          ? `${gLabel} | ${label}: ${fmtVal(val)}`
+          : `${label}: ${fmtVal(val)}`;
+        _showTooltip(tip, e.clientX, e.clientY);
         overlayCanvas.style.cursor = 'pointer';
       } else {
         tooltip.style.display = 'none';
@@ -2997,7 +3312,7 @@ function render({ model, el }) {
     });
 
     overlayCanvas.addEventListener('mouseleave', () => {
-      if (p._hovBar !== -1) { p._hovBar = -1; drawBar(p); }
+      if (p._hovBar !== null) { p._hovBar = null; drawBar(p); }
       tooltip.style.display = 'none';
     });
 
@@ -3005,14 +3320,19 @@ function render({ model, el }) {
       if (p.ovDrag) return;
       const st = p.state; if (!st) return;
       const {mx:_cmx, my:_cmy} = _clientPos(e, overlayCanvas, p.pw, p.ph);
-      const idx  = _barHit(_cmx, _cmy);
-      if (idx < 0) return;
+      const hit = _barHit(_cmx, _cmy);
+      if (hit === null) return;
+      const { slot: idx, group: gi } = hit;
+      const gm  = _barGeom(st, _plotRect1d(p.pw, p.ph));
+      const val = gm.getVal(idx, gi);
       _emitEvent(p.id, 'on_click', null, {
-        bar_index: idx,
-        value:     st.values[idx],
-        x_center:  (st.x_centers||[])[idx] ?? idx,
-        x_label:   (st.x_labels||[])[idx]  !== undefined
-                     ? String(st.x_labels[idx]) : null,
+        bar_index:   idx,
+        group_index: gi,
+        value:       val,
+        group_value: val,
+        x_center:    (st.x_centers||[])[idx] ?? idx,
+        x_label:     (st.x_labels||[])[idx] !== undefined
+                       ? String(st.x_labels[idx]) : null,
       });
     });
 
@@ -3099,6 +3419,20 @@ function render({ model, el }) {
   // ── model listeners ───────────────────────────────────────────────────────
   model.on('change:layout_json', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
   model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
+
+  // Toggle the per-panel stats overlay when display_stats changes.
+  // Hiding is immediate; showing waits for the next natural redraw to
+  // populate the overlay text — but we also call redrawAll() here so the
+  // stats appear instantly without having to interact with the figure first.
+  model.on('change:display_stats', () => {
+    const show = model.get('display_stats');
+    for (const p of panels.values()) {
+      if (!show && p.statsDiv) {
+        p.statsDiv.style.display = 'none';
+      }
+    }
+    if (show) redrawAll();
+  });
 
   // Python→JS targeted widget update (source:"python" in event_json).
   // Applies changed fields directly to the widget in overlay_widgets and

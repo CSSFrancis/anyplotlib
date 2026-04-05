@@ -54,6 +54,18 @@ _LINESTYLE_ALIASES: dict[str, str] = {
 }
 
 
+def _arr_to_b64(arr: np.ndarray, dtype) -> str:
+    """Encode a NumPy array as base-64 (little-endian raw bytes).
+
+    Uses little-endian byte order so the result is compatible with
+    JavaScript's ``Float64Array`` / ``Float32Array`` / ``Int32Array``
+    on all modern platforms (x86, ARM).
+    """
+    import base64
+    le_dtype = np.dtype(dtype).newbyteorder("<")
+    return base64.b64encode(np.asarray(arr).astype(le_dtype).tobytes()).decode("ascii")
+
+
 def _norm_linestyle(ls: str) -> str:
     """Normalise a linestyle name or shorthand to its canonical form.
 
@@ -427,38 +439,58 @@ class Axes:
         self._attach(plot)
         return plot
 
-    def bar(self, values,
-            x_labels=None,
-            x_centers=None,
+    def bar(self, x, height=None, width: float = 0.8, bottom: float = 0.0, *,
+            align: str = "center",
             color: str = "#4fc3f7",
             colors=None,
-            bar_width: float = 0.7,
             orient: str = "v",
-            baseline: float = 0.0,
+            log_scale: bool = False,
+            group_labels=None,
+            group_colors=None,
             show_values: bool = False,
             units: str = "",
-            y_units: str = "") -> "PlotBar":
+            y_units: str = "",
+            # ── legacy backward-compat kwargs ──────────────────────────────
+            x_labels=None,
+            x_centers=None,
+            bar_width=None,
+            baseline=None,
+            values=None) -> "PlotBar":
         """Attach a bar chart to this axes cell.
+
+        Signature mirrors ``matplotlib.pyplot.bar``::
+
+            ax.bar(x, height, width=0.8, bottom=0.0, ...)
 
         Parameters
         ----------
-        values : array-like, shape (N,)
-            Bar heights (vertical) or widths (horizontal).
-        x_labels : list of str, optional
-            Category labels for each bar.  Shown on the categorical axis
-            instead of numeric tick values.
-        x_centers : array-like, optional
-            Numeric positions of bar centres.  Defaults to ``0, 1, … N-1``.
+        x : array-like of str or numeric
+            Bar positions.  Strings become category labels with auto-numeric
+            centres; numbers are used directly as bar centres.
+        height : array-like, shape ``(N,)`` or ``(N, G)``, optional
+            Bar heights.  Pass a 2-D array to draw *G* grouped bars per
+            category.  If omitted *x* is treated as the heights and positions
+            are generated automatically (backward-compatible call form).
+        width : float, optional
+            Bar width as a fraction of the category slot (0–1).  Default ``0.8``.
+        bottom : float, optional
+            Value at which bars are rooted (baseline).  Default ``0``.
+        align : ``"center"`` | ``"edge"``, optional
+            Alignment of the bar relative to its *x* position.  Currently only
+            ``"center"`` is rendered; stored for future use.
         color : str, optional
             Single CSS colour applied to every bar.  Default ``"#4fc3f7"``.
         colors : list of str, optional
-            Per-bar colour list; overrides *color* where provided.
-        bar_width : float, optional
-            Bar width as a fraction of the slot width (0–1).  Default ``0.7``.
+            Per-bar colour list (ungrouped) or ignored when *group_colors* is set.
         orient : ``"v"`` | ``"h"``, optional
             Vertical (default) or horizontal orientation.
-        baseline : float, optional
-            Value at which bars are rooted.  Default ``0``.
+        log_scale : bool, optional
+            Use a logarithmic value axis.  Non-positive values are clamped to
+            ``1e-10`` for display.  Default ``False``.
+        group_labels : list of str, optional
+            Legend labels for each group in a grouped bar chart.
+        group_colors : list of str, optional
+            CSS colours per group.  Defaults to a built-in palette.
         show_values : bool, optional
             Draw the numeric value above / beside each bar.
         units : str, optional
@@ -466,14 +498,36 @@ class Axes:
         y_units : str, optional
             Label for the value axis.
 
+        Backward-compatible keyword aliases
+        ------------------------------------
+        ``values``    → ``height``
+        ``x_centers`` → ``x``
+        ``bar_width``  → ``width``
+        ``baseline``   → ``bottom``
+        ``x_labels``   → strings passed via ``x``
+
         Returns
         -------
         PlotBar
         """
-        plot = PlotBar(values, x_labels=x_labels, x_centers=x_centers,
-                       color=color, colors=colors, bar_width=bar_width,
-                       orient=orient, baseline=baseline, show_values=show_values,
-                       units=units, y_units=y_units)
+        # ── legacy backward-compat resolution ─────────────────────────────
+        if height is None:
+            if values is not None:
+                height = values
+            else:
+                height = x
+                x = None
+        if baseline is not None:
+            bottom = baseline
+        if bar_width is not None:
+            width = bar_width
+
+        plot = PlotBar(x, height, width=width, bottom=bottom,
+                       align=align, color=color, colors=colors,
+                       orient=orient, log_scale=log_scale,
+                       group_labels=group_labels, group_colors=group_colors,
+                       show_values=show_values, units=units, y_units=y_units,
+                       x_labels=x_labels, x_centers=x_centers)
         self._attach(plot)
         return plot
 
@@ -644,6 +698,8 @@ class Plot2D:
         if origin == "lower":
             data = np.flipud(data)
 
+        self._data: np.ndarray = data.astype(float)
+
         x_axis_given = x_axis is not None
         y_axis_given = y_axis is not None
         if x_axis is None:
@@ -731,9 +787,20 @@ class Plot2D:
         return d
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, data: np.ndarray,
+    @property
+    def data(self) -> np.ndarray:
+        """The image data in the original user coordinate system (read-only).
+
+        Returns a float64 copy with ``writeable=False``.  To replace the
+        data call :meth:`set_data`.
+        """
+        arr = np.flipud(self._data).copy() if self._origin == "lower" else self._data.copy()
+        arr.flags.writeable = False
+        return arr
+
+    def set_data(self, data: np.ndarray,
                x_axis=None, y_axis=None, units: str | None = None) -> None:
         """Replace the image data.
 
@@ -750,6 +817,7 @@ class Plot2D:
         if self._origin == "lower":
             data = np.flipud(data)
 
+        self._data = data.astype(float)
         img_u8, vmin, vmax = _normalize_image(data)
         self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
 
@@ -1224,9 +1292,9 @@ class PlotMesh(Plot2D):
                                       allowed=MarkerRegistry._KNOWN_MESH)
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, data: np.ndarray,
+    def set_data(self, data: np.ndarray,
                x_edges=None, y_edges=None, units: str | None = None) -> None:
         """Replace the mesh data (and optionally the edge arrays)."""
         data = np.asarray(data)
@@ -1336,48 +1404,50 @@ class Plot3D:
                 raise ValueError(
                     "Surface x/y/z must be 2-D grids of the same shape, "
                     "or 1-D x/y centre arrays with 2-D z.")
-            faces = _triangulate_grid(rows, cols)
-            vertices = np.column_stack([xf, yf, zf]).tolist()
-            z_values = zf.tolist()
+            faces_list = _triangulate_grid(rows, cols)
         else:
             if x.ndim != 1 or y.ndim != 1 or z.ndim != 1:
                 raise ValueError("scatter/line x, y, z must be 1-D arrays")
             if not (len(x) == len(y) == len(z)):
                 raise ValueError("x, y, z must have the same length")
-            vertices = np.column_stack([x, y, z]).tolist()
-            faces    = []
-            z_values = z.tolist()
+            xf, yf, zf = x, y, z
+            faces_list = []
 
-        # Normalised data bounds for the JS renderer
-        all_x = np.asarray([v[0] for v in vertices])
-        all_y = np.asarray([v[1] for v in vertices])
-        all_z = np.asarray([v[2] for v in vertices])
+        # Normalised data bounds for the JS renderer (from raw arrays — fast)
         data_bounds = {
-            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
-            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
-            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+            "xmin": float(xf.min()), "xmax": float(xf.max()),
+            "ymin": float(yf.min()), "ymax": float(yf.max()),
+            "zmin": float(zf.min()), "zmax": float(zf.max()),
         }
+
+        # Encode geometry as b64 (float32 saves 50 % wire size vs float64)
+        verts_arr  = np.column_stack([xf, yf, zf]).astype(np.float32)   # (N, 3)
+        zvals_arr  = zf.astype(np.float32)                                # (N,)
+        faces_arr  = (np.asarray(faces_list, dtype=np.int32).reshape(-1, 3)
+                      if faces_list else np.empty((0, 3), dtype=np.int32))
 
         cmap_lut = _build_colormap_lut(colormap)
 
         self._state: dict = {
-            "kind":        "3d",
-            "geom_type":   geom_type,
-            "vertices":    vertices,
-            "faces":       faces,
-            "z_values":    z_values,
+            "kind":          "3d",
+            "geom_type":     geom_type,
+            "vertices_b64":  _arr_to_b64(verts_arr,  np.float32),
+            "vertices_count": len(verts_arr),
+            "faces_b64":     _arr_to_b64(faces_arr,  np.int32),
+            "faces_count":   len(faces_arr),
+            "z_values_b64":  _arr_to_b64(zvals_arr,  np.float32),
             "colormap_name": colormap,
             "colormap_data": cmap_lut,
-            "color":       color,
-            "point_size":  float(point_size),
-            "linewidth":   float(linewidth),
-            "x_label":     x_label,
-            "y_label":     y_label,
-            "z_label":     z_label,
-            "azimuth":     float(azimuth),
-            "elevation":   float(elevation),
-            "zoom":        float(zoom),
-            "data_bounds": data_bounds,
+            "color":         color,
+            "point_size":    float(point_size),
+            "linewidth":     float(linewidth),
+            "x_label":       x_label,
+            "y_label":       y_label,
+            "z_label":       z_label,
+            "azimuth":       float(azimuth),
+            "elevation":     float(elevation),
+            "zoom":          float(zoom),
+            "data_bounds":   data_bounds,
             "registered_keys": [],
         }
         self.callbacks = CallbackRegistry()
@@ -1479,7 +1549,7 @@ class Plot3D:
         self._state["zoom"] = float(zoom)
         self._push()
 
-    def update(self, x, y, z) -> None:
+    def set_data(self, x, y, z) -> None:
         """Replace the geometry data."""
         # Re-run the same logic as __init__ for the stored geom_type
         geom_type = self._state["geom_type"]
@@ -1497,29 +1567,30 @@ class Plot3D:
                 xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
             else:
                 raise ValueError("Surface x/y/z must be 2-D grids or 1-D+2-D.")
-            faces    = _triangulate_grid(rows, cols)
-            vertices = np.column_stack([xf, yf, zf]).tolist()
-            z_values = zf.tolist()
+            faces_list = _triangulate_grid(rows, cols)
         else:
-            vertices = np.column_stack([x.ravel(), y.ravel(), z.ravel()]).tolist()
-            faces    = []
-            z_values = z.ravel().tolist()
+            xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
+            faces_list = []
 
-        all_x = np.asarray([v[0] for v in vertices])
-        all_y = np.asarray([v[1] for v in vertices])
-        all_z = np.asarray([v[2] for v in vertices])
         data_bounds = {
-            "xmin": float(all_x.min()), "xmax": float(all_x.max()),
-            "ymin": float(all_y.min()), "ymax": float(all_y.max()),
-            "zmin": float(all_z.min()), "zmax": float(all_z.max()),
+            "xmin": float(xf.min()), "xmax": float(xf.max()),
+            "ymin": float(yf.min()), "ymax": float(yf.max()),
+            "zmin": float(zf.min()), "zmax": float(zf.max()),
         }
 
+        verts_arr = np.column_stack([xf, yf, zf]).astype(np.float32)
+        zvals_arr = zf.astype(np.float32)
+        faces_arr = (np.asarray(faces_list, dtype=np.int32).reshape(-1, 3)
+                     if faces_list else np.empty((0, 3), dtype=np.int32))
+
         self._state.update({
-            "vertices":    vertices,
-            "faces":       faces,
-            "z_values":    z_values,
-            "data_bounds": data_bounds,
-            "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
+            "vertices_b64":   _arr_to_b64(verts_arr, np.float32),
+            "vertices_count": len(verts_arr),
+            "faces_b64":      _arr_to_b64(faces_arr, np.int32),
+            "faces_count":    len(faces_arr),
+            "z_values_b64":   _arr_to_b64(zvals_arr, np.float32),
+            "data_bounds":    data_bounds,
+            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
         })
         self._push()
 
@@ -1727,8 +1798,8 @@ class Plot1D:
 
         self._state: dict = {
             "kind":             "1d",
-            "data":             data.tolist(),
-            "x_axis":           x_axis.tolist(),
+            "data":             data,          # numpy float64 — encoded in to_state_dict()
+            "x_axis":           x_axis,        # numpy float64 — encoded in to_state_dict()
             "units":            units,
             "y_units":          y_units,
             "data_min":         dmin,
@@ -1766,8 +1837,23 @@ class Plot1D:
 
     def to_state_dict(self) -> dict:
         d = dict(self._state)
+        # Replace numpy arrays with b64-encoded strings for the wire format.
+        data_arr  = d.pop("data")
+        x_arr     = d.pop("x_axis")
+        d["data_b64"]    = _arr_to_b64(data_arr,  np.float64)
+        d["x_axis_b64"]  = _arr_to_b64(x_arr,     np.float64)
+        d["data_length"] = len(data_arr)
+        # Encode extra-line arrays too
+        new_extra = []
+        for ex in d["extra_lines"]:
+            ex2 = dict(ex)
+            ex2["data_b64"]   = _arr_to_b64(ex2.pop("data"),  np.float64)
+            ex2["x_axis_b64"] = _arr_to_b64(
+                np.asarray(ex2.pop("x_axis"), dtype=np.float64), np.float64)
+            new_extra.append(ex2)
+        d["extra_lines"]    = new_extra
         d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
-        d["markers"] = self.markers.to_wire_list()
+        d["markers"]         = self.markers.to_wire_list()
         return d
 
     @property
@@ -1784,9 +1870,20 @@ class Plot1D:
         return Line1D(self, None)
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, data: np.ndarray, x_axis=None,
+    @property
+    def data(self) -> np.ndarray:
+        """The primary line's y-data (read-only).
+
+        Returns a float64 copy with ``writeable=False``.  To replace the
+        data call :meth:`set_data`.
+        """
+        arr = self._state["data"].copy()
+        arr.flags.writeable = False
+        return arr
+
+    def set_data(self, data: np.ndarray, x_axis=None,
                units: str | None = None, y_units: str | None = None) -> None:
         """Replace the primary line's y-data and optionally its x-axis / units.
 
@@ -1812,7 +1909,7 @@ class Plot1D:
             raise ValueError(f"data must be 1-D, got {data.shape}")
         n = len(data)
         if x_axis is None:
-            prev = np.asarray(self._state["x_axis"])
+            prev = self._state["x_axis"]          # already a numpy array
             x_axis = prev if len(prev) == n else np.arange(n, dtype=float)
         x_axis = np.asarray(x_axis, dtype=float)
 
@@ -1820,8 +1917,8 @@ class Plot1D:
         dmax = float(np.nanmax(data))
         pad  = (dmax - dmin) * 0.05 if dmax > dmin else 0.5
 
-        self._state["data"]    = data.tolist()
-        self._state["x_axis"]  = x_axis.tolist()
+        self._state["data"]    = data
+        self._state["x_axis"]  = x_axis
         self._state["data_min"] = dmin - pad
         self._state["data_max"] = dmax + pad
         if units    is not None: self._state["units"]   = units
@@ -1834,10 +1931,11 @@ class Plot1D:
         Called automatically whenever the set of lines changes so that every
         curve stays fully visible.
         """
-        all_vals = [np.asarray(self._state["data"], dtype=float)]
+        all_vals = [self._state["data"]]   # already a numpy float64 array
         for ex in self._state["extra_lines"]:
-            if ex.get("data"):
-                all_vals.append(np.asarray(ex["data"], dtype=float))
+            d = ex.get("data")
+            if d is not None and len(d):
+                all_vals.append(d)
         combined = np.concatenate(all_vals)
         dmin = float(np.nanmin(combined))
         dmax = float(np.nanmax(combined))
@@ -1898,12 +1996,12 @@ class Plot1D:
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
             raise ValueError("data must be 1-D")
-        xa = (np.asarray(x_axis, float).tolist() if x_axis is not None
+        xa = (np.asarray(x_axis, dtype=float) if x_axis is not None
               else self._state["x_axis"])
         lid = str(_uuid.uuid4())[:8]
         self._state["extra_lines"].append({
             "id":         lid,
-            "data":       data.tolist(),
+            "data":       data,
             "x_axis":     xa,
             "color":      color,
             "linewidth":  float(linewidth),
@@ -2825,78 +2923,159 @@ def _bar_x_axis(x_centers: np.ndarray) -> list:
 # PlotBar
 # ---------------------------------------------------------------------------
 
+_LOG_CLAMP = 1e-10  # smallest positive value used when log_scale=True
+
+_DEFAULT_GROUP_PALETTE = [
+    "#4fc3f7", "#ff7043", "#66bb6a", "#ab47bc",
+    "#ffa726", "#26c6da", "#ec407a", "#8d6e63",
+]
+
+
+def _bar_range(flat: np.ndarray, bottom: float, log_scale: bool):
+    """Return ``(dmin, dmax)`` with padding for the value axis."""
+    if log_scale:
+        pos = flat[flat > 0]
+        dmin = float(np.nanmin(pos)) if len(pos) else _LOG_CLAMP
+        dmax = max(float(np.nanmax(flat)) if len(flat) else 1.0,
+                   bottom if bottom > 0 else _LOG_CLAMP)
+        if dmin <= 0:
+            dmin = _LOG_CLAMP
+        if dmax <= 0:
+            dmax = 1.0
+        dmax = 10 ** (np.log10(dmax) + 0.15)
+        dmin = 10 ** (np.log10(dmin) - 0.15)
+    else:
+        dmin = min(bottom, float(np.nanmin(flat)) if len(flat) else 0.0)
+        dmax = max(bottom, float(np.nanmax(flat)) if len(flat) else 1.0)
+        pad = (dmax - dmin) * 0.07 if dmax > dmin else 0.5
+        dmax += pad
+        if dmin < bottom:
+            dmin -= pad
+    return dmin, dmax
+
+
 class PlotBar:
     """Bar-chart plot panel.
 
     Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
     ``_push()`` which writes to the parent Figure's panel trait.
 
-    Supports draggable :class:`~anyplotlib.widgets.VLineWidget` and
-    :class:`~anyplotlib.widgets.HLineWidget` overlays via
-    :meth:`add_vline_widget` / :meth:`add_hline_widget`.
+    Supports grouped bars (pass a 2-D *height* array with shape ``(N, G)``),
+    log-scale value axis, draggable overlay widgets, and hover/click callbacks.
 
     Created by :meth:`Axes.bar`.
     """
 
-    def __init__(self, values,
-                 x_labels=None,
-                 x_centers=None,
+    def __init__(self, x, height=None, width: float = 0.8, bottom: float = 0.0, *,
+                 align: str = "center",
                  color: str = "#4fc3f7",
                  colors=None,
-                 bar_width: float = 0.7,
                  orient: str = "v",
-                 baseline: float = 0.0,
+                 log_scale: bool = False,
+                 group_labels=None,
+                 group_colors=None,
                  show_values: bool = False,
                  units: str = "",
-                 y_units: str = ""):
+                 y_units: str = "",
+                 # ── legacy backward-compat kwargs ──────────────────────
+                 x_labels=None,
+                 x_centers=None,
+                 bar_width=None,
+                 baseline=None,
+                 values=None):
         self._id:  str = ""
         self._fig: object = None
 
-        values = np.asarray(values, dtype=float)
-        n = len(values)
-        if values.ndim != 1:
-            raise ValueError(f"values must be 1-D, got shape {values.shape}")
+        # ── legacy resolution ──────────────────────────────────────────
+        if height is None:
+            if values is not None:
+                height = values
+            else:
+                height = x
+                x = None
+        if baseline is not None:
+            bottom = baseline
+        if bar_width is not None:
+            width = bar_width
+
+        # ── height (values) — 1-D or 2-D for grouped bars ─────────────
+        height_arr = np.asarray(height, dtype=float)
+        if height_arr.ndim == 1:
+            groups = 1
+            values_2d = height_arr.reshape(-1, 1)
+        elif height_arr.ndim == 2:
+            groups = height_arr.shape[1]
+            values_2d = height_arr
+        else:
+            raise ValueError(
+                f"height must be 1-D or 2-D, got shape {height_arr.shape}"
+            )
+        n = values_2d.shape[0]
+
         if orient not in ("v", "h"):
             raise ValueError("orient must be 'v' or 'h'")
 
-        if x_centers is None:
-            x_centers = np.arange(n, dtype=float)
-        x_centers = np.asarray(x_centers, dtype=float)
-        if len(x_centers) != n:
-            raise ValueError("x_centers length must match values length")
+        # ── x (positions or labels) ────────────────────────────────────
+        _x_labels: list = []
+        _x_centers: np.ndarray | None = None
 
-        val_min = float(np.nanmin(values)) if n else 0.0
-        val_max = float(np.nanmax(values)) if n else 1.0
-        dmin = min(float(baseline), val_min)
-        dmax = max(float(baseline), val_max)
-        pad  = (dmax - dmin) * 0.07 if dmax > dmin else 0.5
-        dmax += pad
-        if dmin < float(baseline):
-            dmin -= pad
+        if x is not None:
+            x_list = list(x)
+            if x_list and isinstance(x_list[0], str):
+                _x_labels = x_list
+            else:
+                _x_centers = np.asarray(x, dtype=float)
 
-        # Compute physical x-axis extent (left/right edges of the bar chart)
-        # so that vline_widgets map to the correct pixel positions.
-        x_axis = _bar_x_axis(x_centers)
+        # Legacy keyword overrides
+        if x_labels is not None:
+            _x_labels = list(x_labels)
+        if x_centers is not None:
+            _x_centers = np.asarray(x_centers, dtype=float)
+
+        if _x_centers is None:
+            _x_centers = np.arange(n, dtype=float)
+        if len(_x_centers) != n:
+            raise ValueError("x length must match height length")
+
+        # ── data range ─────────────────────────────────────────────────
+        flat = values_2d.ravel()
+        dmin, dmax = _bar_range(flat, float(bottom), bool(log_scale))
+
+        # ── group colours ──────────────────────────────────────────────
+        if group_colors is None:
+            gc_list = (
+                [_DEFAULT_GROUP_PALETTE[i % len(_DEFAULT_GROUP_PALETTE)]
+                 for i in range(groups)]
+                if groups > 1 else []
+            )
+        else:
+            gc_list = list(group_colors)
+
+        x_axis = _bar_x_axis(_x_centers)
 
         self._state: dict = {
-            "kind":        "bar",
-            "values":      values.tolist(),
-            "x_centers":   x_centers.tolist(),
-            "x_labels":    list(x_labels) if x_labels is not None else [],
-            "bar_color":   color,
-            "bar_colors":  list(colors) if colors is not None else [],
-            "bar_width":   float(bar_width),
-            "orient":      orient,
-            "baseline":    float(baseline),
-            "show_values": bool(show_values),
-            "data_min":    dmin,
-            "data_max":    dmax,
-            "units":       units,
-            "y_units":     y_units,
+            "kind":          "bar",
+            "values":        values_2d.tolist(),   # always (N, G) 2-D list
+            "groups":        groups,
+            "x_centers":     _x_centers.tolist(),
+            "x_labels":      _x_labels,
+            "bar_color":     color,
+            "bar_colors":    list(colors) if colors is not None else [],
+            "group_labels":  list(group_labels) if group_labels is not None else [],
+            "group_colors":  gc_list,
+            "bar_width":     float(width),
+            "orient":        orient,
+            "baseline":      float(bottom),
+            "log_scale":     bool(log_scale),
+            "show_values":   bool(show_values),
+            "data_min":      dmin,
+            "data_max":      dmax,
+            "units":         units,
+            "y_units":       y_units,
             # overlay-widget coordinate system (mirrors Plot1D)
-            "x_axis":      x_axis,
-            "view_x0":     0.0,
-            "view_x1":     1.0,
+            "x_axis":        x_axis,
+            "view_x0":       0.0,
+            "view_x1":       1.0,
             "overlay_widgets": [],
             "registered_keys": [],
         }
@@ -2916,27 +3095,51 @@ class PlotBar:
         return d
 
     # ------------------------------------------------------------------
-    # Data update
+    # Data
     # ------------------------------------------------------------------
-    def update(self, values, x_centers=None, x_labels=None) -> None:
-        """Replace bar values; recalculates the value-axis range automatically."""
-        values = np.asarray(values, dtype=float)
-        if values.ndim != 1:
-            raise ValueError(f"values must be 1-D, got shape {values.shape}")
+    def set_data(self, height, x=None, x_labels=None, *, x_centers=None) -> None:
+        """Replace bar heights; recalculates the value-axis range automatically.
 
+        Parameters
+        ----------
+        height : array-like, shape ``(N,)`` or ``(N, G)``
+            New bar heights.  For grouped charts the group count *G* must
+            match the original.
+        x : array-like of numeric, optional
+            New bar positions (replaces the stored ``x_centers``).  Also
+            accepts the legacy keyword alias ``x_centers``.
+        x_labels : list of str, optional
+            New category labels.
+        """
+        height_arr = np.asarray(height, dtype=float)
+        if height_arr.ndim == 1:
+            values_2d = height_arr.reshape(-1, 1)
+        elif height_arr.ndim == 2:
+            expected_g = self._state.get("groups", 1)
+            if height_arr.shape[1] != expected_g:
+                raise ValueError(
+                    f"Group count mismatch: expected {expected_g}, "
+                    f"got {height_arr.shape[1]}"
+                )
+            values_2d = height_arr
+        else:
+            raise ValueError(
+                f"height must be 1-D or 2-D, got shape {height_arr.shape}"
+            )
+
+        flat = values_2d.ravel()
         baseline = self._state["baseline"]
-        dmin = min(float(baseline), float(np.nanmin(values)))
-        dmax = max(float(baseline), float(np.nanmax(values)))
-        pad  = (dmax - dmin) * 0.07 if dmax > dmin else 0.5
-        dmax += pad
-        if dmin < baseline:
-            dmin -= pad
+        log_scale = self._state.get("log_scale", False)
+        dmin, dmax = _bar_range(flat, float(baseline), bool(log_scale))
 
-        self._state["values"]   = values.tolist()
+        self._state["values"]   = values_2d.tolist()
         self._state["data_min"] = dmin
         self._state["data_max"] = dmax
-        if x_centers is not None:
-            xc = np.asarray(x_centers, dtype=float)
+
+        # Accept both `x` and legacy `x_centers` keyword
+        _x = x if x is not None else x_centers
+        if _x is not None:
+            xc = np.asarray(_x, dtype=float)
             self._state["x_centers"] = xc.tolist()
             self._state["x_axis"]    = _bar_x_axis(xc)
         if x_labels is not None:
@@ -2959,6 +3162,21 @@ class PlotBar:
     def set_show_values(self, show: bool) -> None:
         """Show or hide in-bar value annotations."""
         self._state["show_values"] = bool(show)
+        self._push()
+
+    def set_log_scale(self, log_scale: bool) -> None:
+        """Enable or disable a logarithmic value axis.
+
+        When *log_scale* is ``True`` any non-positive values are clamped to
+        ``1e-10`` for display; the data-range bounds are recalculated in
+        log-space automatically.
+        """
+        self._state["log_scale"] = bool(log_scale)
+        flat = np.asarray(self._state["values"]).ravel()
+        baseline = self._state["baseline"]
+        dmin, dmax = _bar_range(flat, float(baseline), bool(log_scale))
+        self._state["data_min"] = dmin
+        self._state["data_max"] = dmax
         self._push()
 
     # ------------------------------------------------------------------
@@ -3113,6 +3331,9 @@ class PlotBar:
     def __repr__(self) -> str:
         n = len(self._state.get("values", []))
         orient = self._state.get("orient", "v")
+        groups = self._state.get("groups", 1)
+        if groups > 1:
+            return f"PlotBar(n={n}, groups={groups}, orient={orient!r})"
         return f"PlotBar(n={n}, orient={orient!r})"
 
 
