@@ -52,7 +52,11 @@ INIT_P = [
 
 # ── Figure ─────────────────────────────────────────────────────────────────
 
-fig, ax = apl.subplots(1, 1, figsize=(720, 380))
+fig, ax = apl.subplots(1, 1, figsize=(720, 380),
+    help="Click a coloured line  →  show/hide its widgets\n"
+         "Drag circle handle     →  move peak center (μ) and amplitude (A)\n"
+         "Drag range edge        →  widen / narrow the width (σ)\n"
+         "press: f               →  run least-squares fit")
 plot = ax.plot(signal, axes=[x], color="#adb5bd", linewidth=1.5,
                alpha=0.6, label="data")
 #
