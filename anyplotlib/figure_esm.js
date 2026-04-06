@@ -1866,6 +1866,7 @@ function render({ model, el }) {
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const yData = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
+    const dMin=st.data_min, dMax=st.data_max;
     mkCtx.clearRect(0,0,pw,ph);
     const sets=st.markers||[];
     if(!sets.length) return;
