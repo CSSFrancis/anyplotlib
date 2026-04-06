@@ -432,6 +432,40 @@ class TestEventJsonDispatch:
         assert len(results) == 1
         assert results[0] == pytest.approx(16.0)
 
+    def test_on_click_line1d_overlay_fires(self):
+        """Line1D.on_click fires when JS sends on_line_click with the matching line_id."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        line = v.add_line(np.ones(64), color="#ff0000")
+        results = []
+        line.on_click(lambda event: results.append(event.line_id))
+
+        _simulate_js_event(fig, v, "on_line_click", line_id=line.id)
+        assert len(results) == 1
+        assert results[0] == line.id
+
+    def test_on_click_line1d_primary_fires(self):
+        """Line1D.on_click on the primary line fires when JS sends on_line_click with no line_id."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        results = []
+        v.line.on_click(lambda event: results.append(1))
+
+        # No line_id in payload → event.data.get("line_id") is None → matches primary
+        _simulate_js_event(fig, v, "on_line_click")
+        assert len(results) == 1
+
+    def test_on_click_line1d_wrong_id_no_fire(self):
+        """Line1D.on_click does NOT fire when the JS event carries a different line_id."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        line = v.add_line(np.ones(64), color="#00ff00")
+        results = []
+        line.on_click(lambda event: results.append(1))
+
+        _simulate_js_event(fig, v, "on_line_click", line_id="completely-wrong-id")
+        assert results == []
+
     def test_circle_drag(self):
         fig, ax = apl.subplots(1, 1)
         v = ax.imshow(np.zeros((32, 32)))
@@ -646,3 +680,697 @@ class TestInteractiveFft:
 
         assert drag_count[0] == 5
         assert release_count[0] == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 6. Widget visibility (hide / show)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestWidgetVisibility:
+    """Unit tests for Widget.hide(), Widget.show(), and Widget.visible."""
+
+    def test_visible_default_true(self):
+        """A freshly created widget is visible by default."""
+        w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
+        assert w.visible is True
+
+    def test_hide_sets_visible_false(self):
+        """hide() marks the widget as not visible."""
+        w = CircleWidget(lambda: None, cx=5, cy=5, r=3)
+        w.hide()
+        assert w.visible is False
+
+    def test_show_restores_visible(self):
+        """show() after hide() restores visibility."""
+        w = CircleWidget(lambda: None, cx=5, cy=5, r=3)
+        w.hide()
+        w.show()
+        assert w.visible is True
+
+    def test_hide_calls_push(self):
+        """hide() must call push_fn exactly once."""
+        pushed = []
+        w = RectangleWidget(lambda: pushed.append(1), x=0, y=0, w=10, h=10)
+        pushed.clear()
+        w.hide()
+        assert len(pushed) == 1
+
+    def test_show_calls_push(self):
+        """show() must call push_fn exactly once."""
+        pushed = []
+        w = RectangleWidget(lambda: pushed.append(1), x=0, y=0, w=10, h=10)
+        pushed.clear()
+        w.show()
+        assert len(pushed) == 1
+
+    def test_hide_does_not_fire_on_changed(self):
+        """hide() must NOT fire on_changed callbacks."""
+        w = CircleWidget(lambda: None, cx=0, cy=0, r=5)
+        fired = []
+        w.on_changed(lambda e: fired.append(1))
+        w.hide()
+        assert fired == []
+
+    def test_show_does_not_fire_on_changed(self):
+        """show() must NOT fire on_changed callbacks."""
+        w = CircleWidget(lambda: None, cx=0, cy=0, r=5)
+        fired = []
+        w.on_changed(lambda e: fired.append(1))
+        w.hide()
+        w.show()
+        assert fired == []
+
+    def test_visible_in_to_dict_after_hide(self):
+        """to_dict() reflects visible=False after hide()."""
+        w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
+        w.hide()
+        assert w.to_dict()["visible"] is False
+
+    def test_visible_in_to_dict_after_show(self):
+        """to_dict() reflects visible=True after show()."""
+        w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
+        w.hide()
+        w.show()
+        assert w.to_dict()["visible"] is True
+
+    def test_visible_in_state_dict_after_hide(self):
+        """The panel state dict propagates visible=False for a hidden widget."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_vline_widget(x=5.0)
+        w.hide()
+        widgets = v.to_state_dict()["overlay_widgets"]
+        entry = next(e for e in widgets if e["id"] == w.id)
+        assert entry["visible"] is False
+
+    def test_visible_in_state_dict_after_show(self):
+        """The panel state dict propagates visible=True after show()."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_vline_widget(x=5.0)
+        w.hide()
+        w.show()
+        widgets = v.to_state_dict()["overlay_widgets"]
+        entry = next(e for e in widgets if e["id"] == w.id)
+        assert entry["visible"] is True
+
+    def test_hide_then_show_widget_still_draggable(self):
+        """After show(), a JS drag event fires callbacks as normal."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_widget("circle", cx=10, cy=10, r=5)
+        fired = []
+        w.on_changed(lambda e: fired.append(e.cx))
+        w.hide()
+        w.show()
+        _simulate_js_event(fig, v, "on_changed", widget_id=w, cx=20.0)
+        assert fired == [20.0]
+
+    def test_hide_show_1d_range_widget(self):
+        """hide/show round-trip works for a RangeWidget."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_range_widget(x0=10, x1=20)
+        w.hide()
+        assert w.visible is False
+        w.show()
+        assert w.visible is True
+
+    def test_multiple_hide_calls_idempotent(self):
+        """Calling hide() twice leaves visible=False, pushes twice."""
+        pushed = []
+        w = CircleWidget(lambda: pushed.append(1), cx=0, cy=0, r=5)
+        pushed.clear()
+        w.hide()
+        w.hide()
+        assert w.visible is False
+        assert len(pushed) == 2   # each hide() pushes once
+
+    def test_multiple_show_calls_idempotent(self):
+        """Calling show() twice leaves visible=True, pushes twice."""
+        pushed = []
+        w = CircleWidget(lambda: pushed.append(1), cx=0, cy=0, r=5)
+        pushed.clear()
+        w.show()
+        w.show()
+        assert w.visible is True
+        assert len(pushed) == 2
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 7. Interactive Fitting — plot_interactive_fitting.py scenario
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from anyplotlib.widgets import RangeWidget as _RangeWidget2, PointWidget as _PointWidget2
+
+
+def _gaussian(x, amp, mu, sigma):
+    return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+
+def _two_gaussians(x, a1, mu1, s1, a2, mu2, s2):
+    return _gaussian(x, a1, mu1, s1) + _gaussian(x, a2, mu2, s2)
+
+
+class _GaussianController:
+    """Mirror of GaussianController from plot_interactive_fitting.py."""
+
+    def __init__(self, plot, line, p, color, x, fit_callback):
+        self._plot      = plot
+        self.line       = line
+        self.amp        = p["amp"]
+        self.mu         = p["mu"]
+        self.sigma      = p["sigma"]
+        self.color      = color
+        self._x         = x
+        self._refit     = fit_callback
+        self._active    = False
+        self._syncing   = False
+        self._pt        = None
+        self._rng_w     = None
+
+    def component_y(self):
+        return _gaussian(self._x, self.amp, self.mu, self.sigma)
+
+    def toggle(self):
+        if self._active:
+            self._pt.hide()
+            self._rng_w.hide()
+            self._active = False
+        else:
+            if self._pt is None:
+                self._pt    = self._plot.add_point_widget(self.mu, self.amp,
+                                                          color=self.color)
+                self._rng_w = self._plot.add_range_widget(
+                    self.mu - self.sigma, self.mu + self.sigma,
+                    color=self.color,
+                )
+                self._wire()
+            else:
+                self._pt.show()
+                self._rng_w.show()
+            self._active = True
+
+    def _wire(self):
+        @self._pt.on_changed
+        def _peak_moved(event):
+            if self._syncing:
+                return
+            self._syncing = True
+            try:
+                self.amp = event.data["y"]
+                self.mu  = event.data["x"]
+                self._rng_w.set(x0=self.mu - self.sigma,
+                                x1=self.mu + self.sigma)
+                self.line.set_data(self.component_y())
+                self._refit()
+            finally:
+                self._syncing = False
+
+        @self._rng_w.on_changed
+        def _range_moved(event):
+            if self._syncing:
+                return
+            self._syncing = True
+            try:
+                x0, x1    = event.data["x0"], event.data["x1"]
+                self.mu    = (x0 + x1) / 2.0
+                self.sigma = abs(x1 - x0) / 2.0
+                self._pt.set(x=self.mu)
+                self.line.set_data(self.component_y())
+                self._refit()
+            finally:
+                self._syncing = False
+
+
+class TestInteractiveFitting:
+    """End-to-end tests mirroring plot_interactive_fitting.py.
+
+    Validates widget hide/show toggle, PointWidget and RangeWidget drag
+    callbacks, and the live refit flow — all without a browser.
+    """
+
+    def _build(self):
+        """Return (fig, plot, controllers, fit_line, x, signal)."""
+        from scipy.optimize import curve_fit
+
+        x = np.linspace(0, 10, 200)
+        TRUE_P = [
+            dict(amp=1.0, mu=3.2, sigma=0.55),
+            dict(amp=0.75, mu=6.8, sigma=0.80),
+        ]
+        COLORS = ["#ff6b6b", "#69db7c"]
+        rng    = np.random.default_rng(0)
+        signal = sum(_gaussian(x, **p) for p in TRUE_P) + rng.normal(0, 0.03, len(x))
+
+        INIT_P = [
+            dict(amp=1.0, mu=3.0, sigma=0.6),
+            dict(amp=0.7, mu=7.0, sigma=0.9),
+        ]
+
+        fig, ax = apl.subplots(1, 1, figsize=(600, 300))
+        plot = ax.plot(signal, axes=[x], color="#adb5bd")
+
+        comp_lines = [
+            plot.add_line(_gaussian(x, **p), x_axis=x, color=c)
+            for i, (p, c) in enumerate(zip(INIT_P, COLORS))
+        ]
+
+        fit_line = plot.add_line(
+            sum(_gaussian(x, **p) for p in INIT_P), x_axis=x,
+            color="#ffd43b", linestyle="dashed",
+        )
+
+        refit_calls = [0]
+
+        def _refit():
+            c0, c1 = controllers[0], controllers[1]
+            p0 = [c0.amp, c0.mu, c0.sigma, c1.amp, c1.mu, c1.sigma]
+            lo = [0, x[0], 1e-3, 0, x[0], 1e-3]
+            hi = [np.inf, x[-1], x[-1]-x[0], np.inf, x[-1], x[-1]-x[0]]
+            try:
+                popt, _ = curve_fit(_two_gaussians, x, signal, p0=p0,
+                                    bounds=(lo, hi), maxfev=3000)
+                fit_line.set_data(_two_gaussians(x, *popt))
+            except RuntimeError:
+                fit_line.set_data(sum(c.component_y() for c in controllers))
+            refit_calls[0] += 1
+
+        controllers = [
+            _GaussianController(plot, comp_lines[i], INIT_P[i], COLORS[i],
+                                 x, _refit)
+            for i in range(2)
+        ]
+
+        return fig, plot, controllers, fit_line, x, signal, refit_calls
+
+    # ── toggle creates widgets ────────────────────────────────────────────────
+
+    def test_toggle_once_creates_point_and_range_widgets(self):
+        """First toggle creates a PointWidget and a RangeWidget."""
+        _, plot, ctrls, *_ = self._build()
+        ctrl = ctrls[0]
+        assert ctrl._pt is None and ctrl._rng_w is None
+        ctrl.toggle()
+        assert ctrl._pt is not None
+        assert ctrl._rng_w is not None
+        assert ctrl._active is True
+
+    def test_toggle_once_adds_two_widgets_to_plot(self):
+        """After first toggle, the plot has exactly 2 new widgets."""
+        _, plot, ctrls, *_ = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+        assert len(plot.list_widgets()) == 2
+
+    def test_widgets_visible_after_first_toggle(self):
+        """Widgets created on first toggle are visible."""
+        _, plot, ctrls, *_ = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+        assert ctrl._pt.visible is True
+        assert ctrl._rng_w.visible is True
+
+    # ── toggle hides widgets ──────────────────────────────────────────────────
+
+    def test_toggle_twice_hides_widgets(self):
+        """Second toggle hides the point and range widgets."""
+        _, plot, ctrls, *_ = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()   # activate
+        ctrl.toggle()   # deactivate
+        assert ctrl._active is False
+        assert ctrl._pt.visible is False
+        assert ctrl._rng_w.visible is False
+
+    def test_toggle_twice_widgets_still_in_plot(self):
+        """Hidden widgets are NOT removed from the plot — they stay but are hidden."""
+        _, plot, ctrls, *_ = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+        ctrl.toggle()
+        # Still registered — just hidden
+        assert len(plot.list_widgets()) == 2
+
+    # ── toggle shows widgets again ────────────────────────────────────────────
+
+    def test_toggle_three_times_reshows_widgets(self):
+        """Third toggle re-shows the existing widgets without creating new ones."""
+        _, plot, ctrls, *_ = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()          # create + show
+        pt_id   = ctrl._pt.id
+        rng_id  = ctrl._rng_w.id
+        ctrl.toggle()          # hide
+        ctrl.toggle()          # re-show
+        assert ctrl._active is True
+        assert ctrl._pt.visible is True
+        assert ctrl._rng_w.visible is True
+        # Same objects — not recreated
+        assert ctrl._pt.id   == pt_id
+        assert ctrl._rng_w.id == rng_id
+        assert len(plot.list_widgets()) == 2
+
+    # ── PointWidget drag updates component line ───────────────────────────────
+
+    def test_point_drag_updates_component_amp_and_mu(self):
+        """Simulating a PointWidget drag updates amp and mu on the controller."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._pt, x=3.5, y=0.9)
+
+        assert ctrl.mu  == pytest.approx(3.5)
+        assert ctrl.amp == pytest.approx(0.9)
+
+    def test_point_drag_updates_range_widget_position(self):
+        """Dragging the point recentres the range widget around new mu."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+        original_sigma = ctrl.sigma
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._pt, x=4.0, y=1.0)
+
+        expected_x0 = 4.0 - original_sigma
+        expected_x1 = 4.0 + original_sigma
+        assert ctrl._rng_w.x0 == pytest.approx(expected_x0)
+        assert ctrl._rng_w.x1 == pytest.approx(expected_x1)
+
+    def test_point_drag_updates_component_line_data(self):
+        """After a PointWidget drag, the component line data reflects new params."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        old_data = _gaussian(x, ctrl.amp, ctrl.mu, ctrl.sigma).copy()
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._pt, x=4.0, y=0.8)
+
+        # Find the extra_line entry for comp_lines[0]
+        lid = ctrl.line.id
+        entry = next(e for e in plot._state["extra_lines"] if e["id"] == lid)
+        new_y = entry["data"]
+        expected_y = _gaussian(x, 0.8, 4.0, ctrl.sigma)
+        np.testing.assert_allclose(new_y, expected_y, rtol=1e-10)
+
+    def test_point_drag_triggers_refit(self):
+        """Dragging the PointWidget calls the refit callback."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._pt, x=3.5, y=0.9)
+
+        assert refit_calls[0] >= 1
+
+    def test_point_drag_updates_fit_line(self):
+        """After a point drag, the fit line data changes."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        lid = fit_line.id
+        entry_before = next(e for e in plot._state["extra_lines"] if e["id"] == lid)
+        old_fit = entry_before["data"].copy()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._pt, x=4.5, y=0.5)
+
+        entry_after = next(e for e in plot._state["extra_lines"] if e["id"] == lid)
+        assert not np.array_equal(entry_after["data"], old_fit)
+
+    # ── RangeWidget drag updates component line ───────────────────────────────
+
+    def test_range_drag_updates_mu_and_sigma(self):
+        """Simulating a RangeWidget drag updates mu and sigma on the controller."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._rng_w, x0=2.5, x1=4.5)
+
+        assert ctrl.mu    == pytest.approx(3.5)
+        assert ctrl.sigma == pytest.approx(1.0)
+
+    def test_range_drag_recentres_point_widget(self):
+        """Dragging the range widget moves the point widget to the new centre."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._rng_w, x0=2.0, x1=5.0)
+
+        assert ctrl._pt.x == pytest.approx(3.5)
+
+    def test_range_drag_updates_component_line_data(self):
+        """After a RangeWidget drag, the component line reflects the new sigma."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._rng_w, x0=2.5, x1=4.5)
+
+        lid = ctrl.line.id
+        entry = next(e for e in plot._state["extra_lines"] if e["id"] == lid)
+        expected_y = _gaussian(x, ctrl.amp, 3.5, 1.0)
+        np.testing.assert_allclose(entry["data"], expected_y, rtol=1e-10)
+
+    def test_range_drag_triggers_refit(self):
+        """Dragging the RangeWidget calls the refit callback."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+        ctrl.toggle()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrl._rng_w, x0=2.5, x1=4.5)
+
+        assert refit_calls[0] >= 1
+
+    # ── both controllers independent ─────────────────────────────────────────
+
+    def test_two_controllers_independent(self):
+        """Dragging ctrl[0] does not affect ctrl[1] state."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrls[0].toggle()
+        ctrls[1].toggle()
+
+        old_mu1 = ctrls[1].mu
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrls[0]._pt, x=3.8, y=1.1)
+
+        assert ctrls[1].mu == pytest.approx(old_mu1)
+
+    def test_both_controllers_active_at_same_time(self):
+        """Both controllers can be active simultaneously with no crosstalk."""
+        _, plot, ctrls, *_ = self._build()
+        ctrls[0].toggle()
+        ctrls[1].toggle()
+        assert len(plot.list_widgets()) == 4
+        assert ctrls[0]._active and ctrls[1]._active
+
+    def test_hide_one_leaves_other_visible(self):
+        """Hiding ctrl[0] does not affect ctrl[1] visibility."""
+        _, plot, ctrls, *_ = self._build()
+        ctrls[0].toggle()   # activate
+        ctrls[1].toggle()   # activate
+        ctrls[0].toggle()   # hide
+        assert ctrls[0]._pt.visible is False
+        assert ctrls[1]._pt.visible is True
+
+    # ── line click toggles controller ─────────────────────────────────────────
+
+    def test_line_click_activates_controller(self):
+        """Simulating a click on a component line activates its controller."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+
+        # Wire up the line.on_click handler (same as the example)
+        @ctrl.line.on_click
+        def _clicked(event, c=ctrl):
+            c.toggle()
+
+        # Simulate JS sending an on_line_click event for comp_lines[0]
+        fig._on_event({"new": __import__("json").dumps({
+            "source": "js",
+            "panel_id": plot._id,
+            "event_type": "on_line_click",
+            "line_id": ctrl.line.id,
+        })})
+
+        assert ctrl._active is True
+        assert ctrl._pt is not None
+
+    def test_line_click_twice_hides_widgets(self):
+        """Two clicks on the same component line toggle it off again."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+
+        @ctrl.line.on_click
+        def _clicked(event, c=ctrl):
+            c.toggle()
+
+        import json as _json
+
+        def _click():
+            fig._on_event({"new": _json.dumps({
+                "source": "js",
+                "panel_id": plot._id,
+                "event_type": "on_line_click",
+                "line_id": ctrl.line.id,
+            })})
+
+        _click()   # → active
+        _click()   # → hidden
+
+        assert ctrl._active is False
+        assert ctrl._pt.visible is False
+
+    def test_line_click_wrong_line_id_no_toggle(self):
+        """A click on a different line ID does NOT toggle this controller."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
+        ctrl = ctrls[0]
+
+        @ctrl.line.on_click
+        def _clicked(event, c=ctrl):
+            c.toggle()
+
+        import json as _json
+        fig._on_event({"new": _json.dumps({
+            "source": "js",
+            "panel_id": plot._id,
+            "event_type": "on_line_click",
+            "line_id": "completely-wrong-id",
+        })})
+
+        assert ctrl._active is False   # was never toggled
+
+    # ── example-mirroring tests ───────────────────────────────────────────────
+
+    def _build_with_click_handlers(self):
+        """Same as _build() but wires line.on_click → ctrl.toggle() for both
+        components, exactly as the for-loop in plot_interactive_fitting.py."""
+        result = self._build()
+        _, _, controllers, *_ = result
+        for ctrl in controllers:
+            @ctrl.line.on_click
+            def _clicked(event, c=ctrl):
+                c.toggle()
+        return result
+
+    def test_example_both_lines_clickable(self):
+        """Clicking each component line activates its controller and makes
+        the widgets visible — mirrors the click-handler loop in the example."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = \
+            self._build_with_click_handlers()
+
+        # Click component 0
+        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        assert ctrls[0]._active is True
+        assert ctrls[0]._pt is not None
+        assert ctrls[0]._rng_w is not None
+        assert ctrls[0]._pt.visible is True
+        assert ctrls[0]._rng_w.visible is True
+        assert ctrls[1]._active is False  # other controller untouched
+
+        # Click component 1
+        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[1].line.id)
+        assert ctrls[1]._active is True
+        assert ctrls[1]._pt.visible is True
+        assert ctrls[1]._rng_w.visible is True
+
+    def test_example_click_shows_widgets_registered_in_plot(self):
+        """After clicking a component line its widgets appear in list_widgets()."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = \
+            self._build_with_click_handlers()
+
+        assert len(plot.list_widgets()) == 0
+
+        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        assert len(plot.list_widgets()) == 2   # PointWidget + RangeWidget
+
+        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[1].line.id)
+        assert len(plot.list_widgets()) == 4   # +2 for ctrl[1]
+
+    def test_example_second_click_hides_widgets(self):
+        """Second click hides widgets but keeps them registered in the plot."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = \
+            self._build_with_click_handlers()
+
+        def _click(ctrl):
+            _simulate_js_event(fig, plot, "on_line_click",
+                                line_id=ctrl.line.id)
+
+        _click(ctrls[0])   # show
+        assert ctrls[0]._active is True and ctrls[0]._pt.visible is True
+
+        _click(ctrls[0])   # hide
+        assert ctrls[0]._active is False
+        assert ctrls[0]._pt.visible is False
+        assert ctrls[0]._rng_w.visible is False
+        assert len(plot.list_widgets()) == 2   # still registered, just hidden
+
+    def test_example_third_click_reshows_same_widgets(self):
+        """Third click re-shows the same widget objects without recreating them."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = \
+            self._build_with_click_handlers()
+
+        def _click(ctrl):
+            _simulate_js_event(fig, plot, "on_line_click",
+                                line_id=ctrl.line.id)
+
+        _click(ctrls[0])
+        pt_id  = ctrls[0]._pt.id
+        rng_id = ctrls[0]._rng_w.id
+
+        _click(ctrls[0])   # hide
+        _click(ctrls[0])   # re-show
+
+        assert ctrls[0]._active is True
+        assert ctrls[0]._pt.visible is True
+        assert ctrls[0]._rng_w.visible is True
+        assert ctrls[0]._pt.id   == pt_id    # same objects, not recreated
+        assert ctrls[0]._rng_w.id == rng_id
+        assert len(plot.list_widgets()) == 2
+
+    def test_example_click_then_drag_updates_fit(self):
+        """Full flow: click to activate → drag PointWidget → fit line changes."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = \
+            self._build_with_click_handlers()
+
+        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        assert ctrls[0]._active is True
+
+        lid = fit_line.id
+        fit_before = next(
+            e for e in plot._state["extra_lines"] if e["id"] == lid
+        )["data"].copy()
+
+        _simulate_js_event(fig, plot, "on_changed",
+                           widget_id=ctrls[0]._pt, x=4.0, y=0.8)
+
+        fit_after = next(
+            e for e in plot._state["extra_lines"] if e["id"] == lid
+        )["data"]
+        assert not np.array_equal(fit_after, fit_before)
+        assert refit_calls[0] >= 1
+
+    def test_example_wrong_line_id_not_clickable(self):
+        """A click event for an unknown line ID activates no controller."""
+        fig, plot, ctrls, fit_line, x, signal, refit_calls = \
+            self._build_with_click_handlers()
+
+        _simulate_js_event(fig, plot, "on_line_click", line_id="no-such-line")
+        assert ctrls[0]._active is False
+        assert ctrls[1]._active is False
+
+
+

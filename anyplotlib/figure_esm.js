@@ -81,6 +81,16 @@ function render({ model, el }) {
     const n=arr.length, pos=Math.max(0,Math.min(1,frac))*(n-1), lo=Math.min(Math.floor(pos),n-2), t=pos-lo;
     return arr[lo]+t*(arr[lo+1]-arr[lo]);
   }
+  // Blend a #rrggbb / #rgb colour toward white by `amt` (0=unchanged, 1=white).
+  function _brightenColor(hex, amt=0.45) {
+    if(!hex||hex[0]!=='#') return hex;
+    let r,g,b;
+    if(hex.length===4){r=parseInt(hex[1]+hex[1],16);g=parseInt(hex[2]+hex[2],16);b=parseInt(hex[3]+hex[3],16);}
+    else{r=parseInt(hex.slice(1,3),16);g=parseInt(hex.slice(3,5),16);b=parseInt(hex.slice(5,7),16);}
+    if(isNaN(r)||isNaN(g)||isNaN(b)) return hex;
+    r=Math.min(255,Math.round(r+(255-r)*amt));g=Math.min(255,Math.round(g+(255-g)*amt));b=Math.min(255,Math.round(b+(255-b)*amt));
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  }
 
   // ── b64 array decode helpers ─────────────────────────────────────────────
   // Convert a base-64 string (little-endian raw bytes) to a JS TypedArray.
@@ -179,7 +189,81 @@ function render({ model, el }) {
     'color:white;font-size:11px;border-radius:4px;display:none;pointer-events:none;z-index:21;';
   outerDiv.appendChild(sizeLabel);
 
-  // Tooltip (shared across all panels)
+  // ── Help badge (figure-level) ─────────────────────────────────────────────
+  // A small '?' button in the top-right corner of the figure.
+  //   • Hidden until the mouse enters outerDiv (plot "active").
+  //   • Stays visible while the help card is open, even after mouse-leave.
+  //   • Rounded square, tucked into the right padding band so it never
+  //     overlaps plot content.
+  //   • Clicking toggles the help card; click again (or mouse-leave with
+  //     card closed) hides the button again.
+  const _BTN_BG        = 'rgba(100,100,120,0.72)';
+  const _BTN_BG_ACTIVE = 'rgba(75,120,210,0.92)';
+
+  const helpBtn = document.createElement('div');
+  helpBtn.style.cssText =
+    'position:absolute;top:9px;right:6px;width:20px;height:20px;' +
+    'border-radius:4px;background:' + _BTN_BG + ';color:#fff;' +
+    'font-size:12px;font-weight:bold;font-family:sans-serif;' +
+    'display:none;align-items:center;justify-content:center;' +
+    'cursor:pointer;z-index:50;user-select:none;line-height:1;' +
+    'box-shadow:0 1px 4px rgba(0,0,0,0.35);';
+  helpBtn.textContent = '?';
+  helpBtn.title = 'Show help';
+  outerDiv.appendChild(helpBtn);
+
+  const helpCard = document.createElement('div');
+  helpCard.style.cssText =
+    'position:absolute;top:33px;right:6px;padding:10px 14px;' +
+    'background:rgba(28,28,38,0.95);color:#e0e0e8;font-size:12px;' +
+    'font-family:sans-serif;border-radius:6px;line-height:1.7;' +
+    'white-space:pre-wrap;max-width:300px;display:none;z-index:51;' +
+    'box-shadow:0 4px 14px rgba(0,0,0,0.55);pointer-events:none;' +
+    'border:1px solid rgba(120,120,160,0.3);';
+  outerDiv.appendChild(helpCard);
+
+  let _helpExists  = false;   // true when help_text is non-empty
+  let _helpHovered = false;   // true while mouse is inside outerDiv
+  let _helpOpen    = false;   // true while the card is shown
+
+  function _updateHelp() {
+    const txt = model.get('help_text') || '';
+    _helpExists          = !!txt;
+    helpCard.textContent = txt;
+    if (!txt) {
+      // Help removed — hide everything immediately.
+      helpBtn.style.display    = 'none';
+      helpCard.style.display   = 'none';
+      helpBtn.style.background = _BTN_BG;
+      _helpOpen = false;
+    } else if (_helpHovered || _helpOpen) {
+      // Already hovered or card open — make badge visible.
+      helpBtn.style.display = 'flex';
+    }
+  }
+  _updateHelp();
+
+  outerDiv.addEventListener('mouseenter', () => {
+    _helpHovered = true;
+    if (_helpExists) helpBtn.style.display = 'flex';
+  });
+
+  outerDiv.addEventListener('mouseleave', () => {
+    _helpHovered = false;
+    // Only hide the button if the card is also closed.
+    if (!_helpOpen) helpBtn.style.display = 'none';
+  });
+
+  helpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _helpOpen = !_helpOpen;
+    helpCard.style.display   = _helpOpen ? 'block' : 'none';
+    helpBtn.style.background = _helpOpen ? _BTN_BG_ACTIVE : _BTN_BG;
+    // If closing the card while the mouse has already left, hide the button too.
+    if (!_helpOpen && !_helpHovered) helpBtn.style.display = 'none';
+  });
+
+  model.on('change:help_text', _updateHelp);
   const tooltip = document.createElement('div');
   tooltip.style.cssText =
     'position:fixed;padding:5px 9px;font-size:12px;font-family:sans-serif;' +
@@ -934,6 +1018,7 @@ function render({ model, el }) {
     const widgets=st.overlay_widgets||[];
     const scale=_imgScale2d(st,imgW,imgH);
     for(const w of widgets){
+      if(w.visible === false) continue;
       ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
       if(w.type==='circle'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
@@ -1606,6 +1691,28 @@ function render({ model, el }) {
         ex.alpha != null ? ex.alpha : 1.0,
         ex.marker || 'none', ex.markersize || 4);
     }
+    // ── hovered-line highlight: redraw on top with brightened colour + thicker stroke ──
+    const _hovId = p._lineHoverId;
+    if (_hovId !== undefined && _hovId !== '__none__') {
+      if (_hovId === null) {
+        _drawLine(yData, xArr,
+          _brightenColor(st.line_color||'#4fc3f7'), (st.line_linewidth||1.5)+1,
+          st.line_linestyle||'solid', st.line_alpha!=null?st.line_alpha:1.0,
+          st.line_marker||'none', st.line_markersize||4);
+      } else {
+        for (const ex of (st.extra_lines||[])) {
+          if (ex.id === _hovId) {
+            const exY = ex.data_b64 ? _decodeF64(ex.data_b64) : (ex.data||[]);
+            const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis?ex.x_axis:xArr);
+            _drawLine(exY, exX,
+              _brightenColor(ex.color||(theme.dark?'#fff':'#333')), (ex.linewidth||1.5)+1,
+              ex.linestyle||'solid', ex.alpha!=null?ex.alpha:1.0,
+              ex.marker||'none', ex.markersize||4);
+            break;
+          }
+        }
+      }
+    }
     ctx.restore();
 
     // Axes
@@ -1693,6 +1800,7 @@ function render({ model, el }) {
     if(!widgets.length) return;
 
     for(const w of widgets){
+      if(w.visible === false) continue;
       const color=w.color||'#00e5ff';
       ovCtx.save();ovCtx.strokeStyle=color;ovCtx.lineWidth=2;
       if(w.type==='vline'){
@@ -1706,23 +1814,36 @@ function render({ model, el }) {
       } else if(w.type==='range'){
         const px0=_fracToPx1d(_xToFrac1d(xArr,w.x0),x0,x1,r);
         const px1b=_fracToPx1d(_xToFrac1d(xArr,w.x1),x0,x1,r);
-        const left=Math.min(px0,px1b), right=Math.max(px0,px1b);
-        ovCtx.save();ovCtx.globalAlpha=0.15;ovCtx.fillStyle=color;ovCtx.fillRect(left,r.y,right-left,r.h);ovCtx.restore();
-        ovCtx.setLineDash([5,3]);
-        ovCtx.beginPath();ovCtx.moveTo(px0,r.y);ovCtx.lineTo(px0,r.y+r.h);ovCtx.stroke();
-        ovCtx.beginPath();ovCtx.moveTo(px1b,r.y);ovCtx.lineTo(px1b,r.y+r.h);ovCtx.stroke();
-        ovCtx.setLineDash([]);
-        _ovHandle1d(ovCtx,px0,r.y+7,color);_ovHandle1d(ovCtx,px1b,r.y+7,color);
+        if(w.style==='fwhm'){
+          // FWHM style: o-------o  two handles joined by a dashed horizontal line
+          const pyHalf=_valToPy1d(w.y||0,dMin,dMax,r);
+          ovCtx.setLineDash([5,4]);
+          ovCtx.beginPath();ovCtx.moveTo(px0,pyHalf);ovCtx.lineTo(px1b,pyHalf);ovCtx.stroke();
+          ovCtx.setLineDash([]);
+          _ovHandle1d(ovCtx,px0,pyHalf,color);
+          _ovHandle1d(ovCtx,px1b,pyHalf,color);
+        } else {
+          // band style (default)
+          const left=Math.min(px0,px1b), right=Math.max(px0,px1b);
+          ovCtx.save();ovCtx.globalAlpha=0.15;ovCtx.fillStyle=color;ovCtx.fillRect(left,r.y,right-left,r.h);ovCtx.restore();
+          ovCtx.setLineDash([5,3]);
+          ovCtx.beginPath();ovCtx.moveTo(px0,r.y);ovCtx.lineTo(px0,r.y+r.h);ovCtx.stroke();
+          ovCtx.beginPath();ovCtx.moveTo(px1b,r.y);ovCtx.lineTo(px1b,r.y+r.h);ovCtx.stroke();
+          ovCtx.setLineDash([]);
+          _ovHandle1d(ovCtx,px0,r.y+7,color);_ovHandle1d(ovCtx,px1b,r.y+7,color);
+        }
       } else if(w.type==='point'){
         const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
         const py=_valToPy1d(w.y,dMin,dMax,r);
-        // Clip dashed crosshair guides to the plot rectangle
-        ovCtx.save();ovCtx.beginPath();ovCtx.rect(r.x,r.y,r.w,r.h);ovCtx.clip();
-        ovCtx.setLineDash([4,3]);
-        ovCtx.beginPath();ovCtx.moveTo(px,r.y);ovCtx.lineTo(px,r.y+r.h);ovCtx.stroke();
-        ovCtx.beginPath();ovCtx.moveTo(r.x,py);ovCtx.lineTo(r.x+r.w,py);ovCtx.stroke();
-        ovCtx.setLineDash([]);
-        ovCtx.restore();
+        // Dashed crosshair guide lines (skipped when show_crosshair is false)
+        if(w.show_crosshair!==false){
+          ovCtx.save();ovCtx.beginPath();ovCtx.rect(r.x,r.y,r.w,r.h);ovCtx.clip();
+          ovCtx.setLineDash([4,3]);
+          ovCtx.beginPath();ovCtx.moveTo(px,r.y);ovCtx.lineTo(px,r.y+r.h);ovCtx.stroke();
+          ovCtx.beginPath();ovCtx.moveTo(r.x,py);ovCtx.lineTo(r.x+r.w,py);ovCtx.stroke();
+          ovCtx.setLineDash([]);
+          ovCtx.restore();
+        }
         // Draw the draggable handle (larger than _ovHandle1d for easy grab)
         ovCtx.save();ovCtx.fillStyle=color;ovCtx.strokeStyle='rgba(0,0,0,0.5)';ovCtx.lineWidth=1.5;
         ovCtx.beginPath();ovCtx.arc(px,py,7,0,Math.PI*2);ovCtx.fill();ovCtx.stroke();
@@ -1745,6 +1866,7 @@ function render({ model, el }) {
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const yData = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
+    const dMin=st.data_min, dMax=st.data_max;
     mkCtx.clearRect(0,0,pw,ph);
     const sets=st.markers||[];
     if(!sets.length) return;
@@ -2262,7 +2384,8 @@ function render({ model, el }) {
       model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
-      const wasDragging=!!p.ovDrag||!!p.isPanning;
+      const wasWidgetDragging=!!p.ovDrag;   // capture BEFORE clearing
+      const wasDragging=wasWidgetDragging||!!p.isPanning;
       if(p.ovDrag){
         const _idx=p.ovDrag.idx;
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
@@ -2276,8 +2399,11 @@ function render({ model, el }) {
         const st=p.state;
         if(st) _emitEvent(p.id,'on_release',null,{view_x0:st.view_x0,view_x1:st.view_x1});
       }
-      // Line click: only when no drag/pan occurred and mouse barely moved
-      if(!wasDragging && p._mousedownX!=null){
+      // Line click: fire when no widget was being dragged and mouse barely moved.
+      // NOTE: p.isPanning is always set true on mousedown (pan start), so we
+      // deliberately only block on wasWidgetDragging here — the distance
+      // threshold below already excludes real pan gestures.
+      if(!wasWidgetDragging && p._mousedownX!=null){
         const mdx=e.clientX-p._mousedownX, mdy=e.clientY-p._mousedownY;
         if(Math.hypot(mdx,mdy)<5){
           const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
@@ -2339,7 +2465,9 @@ function render({ model, el }) {
         const newLid=lhit?lhit.lineId:'__none__';
         if(newLid!==p._lineHoverId){
           p._lineHoverId=newLid;
+          draw1d(p);  // redraw so hovered line is brightened
           drawOverlay1d(p);
+          overlayCanvas.style.cursor=lhit?'pointer':'crosshair';
           if(lhit){
             p.ovCtx.save();p.ovCtx.fillStyle='rgba(255,255,255,0.9)';
             p.ovCtx.strokeStyle='rgba(0,0,0,0.5)';p.ovCtx.lineWidth=1.5;
@@ -2352,7 +2480,7 @@ function render({ model, el }) {
     });
     overlayCanvas.addEventListener('mouseleave',()=>{p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
-      if(p._lineHoverId!=='__none__'){p._lineHoverId='__none__';drawOverlay1d(p);}
+      if(p._lineHoverId!=='__none__'){p._lineHoverId='__none__';draw1d(p);drawOverlay1d(p);overlayCanvas.style.cursor='crosshair';}
     });
   }
 
@@ -2378,6 +2506,7 @@ function render({ model, el }) {
     // iterate top-to-bottom (last drawn = topmost)
     for (let i = widgets.length - 1; i >= 0; i--) {
       const w = widgets[i];
+      if(w.visible === false) continue;
       if (w.type === 'circle') {
         const [ccx, ccy] = _imgToCanvas2d(w.cx, w.cy, st, imgW, imgH);
         const cr = w.r * scale;
@@ -2531,8 +2660,22 @@ function render({ model, el }) {
     const x0=st.view_x0||0,x1=st.view_x1||1;
     const widgets=st.overlay_widgets||[];
     const HR=7;
+    // First pass: point widgets have highest drag priority so that a point
+    // handle sitting inside a range band is always reachable.
     for(let i=widgets.length-1;i>=0;i--){
       const w=widgets[i];
+      if(w.visible===false) continue;
+      if(w.type==='point'){
+        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
+        const py=_valToPy1d(w.y,st.data_min,st.data_max,r);
+        if(Math.hypot(mx-px,my-py)<=HR+4)
+          return{idx:i,mode:'move',wtype:'point',startMX:mx,startMY:my,snapW:{...w}};
+      }
+    }
+    // Second pass: everything else
+    for(let i=widgets.length-1;i>=0;i--){
+      const w=widgets[i];
+      if(w.visible===false) continue;
       if(w.type==='vline'){
         const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
         if(Math.sqrt((mx-px)**2+(my-(r.y+7))**2)<=HR||Math.abs(mx-px)<=5)
@@ -2543,15 +2686,19 @@ function render({ model, el }) {
       } else if(w.type==='range'){
         const px0=_fracToPx1d(_xToFrac1d(xArr,w.x0),x0,x1,r);
         const px1b=_fracToPx1d(_xToFrac1d(xArr,w.x1),x0,x1,r);
-        if(Math.abs(mx-px0)<=HR+5) return{idx:i,mode:'edge0',wtype:'range',startMX:mx,snapW:{...w}};
-        if(Math.abs(mx-px1b)<=HR+5) return{idx:i,mode:'edge1',wtype:'range',startMX:mx,snapW:{...w}};
-        const left=Math.min(px0,px1b),right=Math.max(px0,px1b);
-        if(mx>=left&&mx<=right&&my>=r.y&&my<=r.y+r.h) return{idx:i,mode:'move',wtype:'range',startMX:mx,snapW:{...w}};
-      } else if(w.type==='point'){
-        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
-        const py=_valToPy1d(w.y,st.data_min,st.data_max,r);
-        if(Math.hypot(mx-px,my-py)<=HR+4)
-          return{idx:i,mode:'move',wtype:'point',startMX:mx,startMY:my,snapW:{...w}};
+        if(w.style==='fwhm'){
+          // FWHM style: hit-test the two circular handles
+          const pyHalf=_valToPy1d(w.y||0,st.data_min,st.data_max,r);
+          if(Math.hypot(mx-px0,my-pyHalf)<=HR+5)
+            return{idx:i,mode:'edge0',wtype:'range',startMX:mx,snapW:{...w}};
+          if(Math.hypot(mx-px1b,my-pyHalf)<=HR+5)
+            return{idx:i,mode:'edge1',wtype:'range',startMX:mx,snapW:{...w}};
+        } else {
+          if(Math.abs(mx-px0)<=HR+5) return{idx:i,mode:'edge0',wtype:'range',startMX:mx,snapW:{...w}};
+          if(Math.abs(mx-px1b)<=HR+5) return{idx:i,mode:'edge1',wtype:'range',startMX:mx,snapW:{...w}};
+          const left=Math.min(px0,px1b),right=Math.max(px0,px1b);
+          if(mx>=left&&mx<=right&&my>=r.y&&my<=r.y+r.h) return{idx:i,mode:'move',wtype:'range',startMX:mx,snapW:{...w}};
+        }
       }
     }
     return null;

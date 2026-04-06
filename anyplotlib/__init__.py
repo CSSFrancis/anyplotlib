@@ -7,6 +7,11 @@ from anyplotlib.widgets import (
     VLineWidget, HLineWidget, RangeWidget,
 )
 
+# ── Global help flag ──────────────────────────────────────────────────────
+# Set to False to suppress help badges on all figures in this session.
+# Default True: badges appear whenever a figure has help text set.
+show_help: bool = True
+
 __all__ = [
     "Figure", "GridSpec", "SubplotSpec", "subplots",
     "Axes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D", "PlotBar",
@@ -14,4 +19,5 @@ __all__ = [
     "Widget", "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget",
     "VLineWidget", "HLineWidget", "RangeWidget",
+    "show_help",
 ]

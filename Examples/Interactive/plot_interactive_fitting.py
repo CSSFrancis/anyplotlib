@@ -1,0 +1,292 @@
+"""
+Interactive 1-D Gaussian Fitting
+=================================
+
+A noisy composite signal built from two Gaussians is displayed.  Two
+additional overlay lines show the individual **component** curves and a
+white **sum** curve that always equals the current manual model.
+
+**Interaction**
+
+Click any coloured component line to reveal its control widgets:
+
+* **Circular handle** — drag to move the peak centre (μ) and amplitude (A).
+* **Shaded range** — drag either edge to widen or narrow the width (σ).
+
+The sum curve updates on every drag frame.
+Press **f** (with the plot canvas focused) to run a least-squares fit.
+The components — and all active widgets — will snap to the fitted values,
+and the sum curve will jump to the optimal fit.
+Click a component line again to hide its widgets.
+"""
+import numpy as np
+from scipy.optimize import curve_fit
+import anyplotlib as apl
+
+# ── Gaussian helpers ───────────────────────────────────────────────────────
+
+def gaussian(x, amp, mu, sigma):
+    return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+# Half-width at half-maximum = sigma * _FWHM_K  (full FWHM = 2 * sigma * _FWHM_K)
+_FWHM_K = np.sqrt(2.0 * np.log(2.0))
+
+# ── Data ───────────────────────────────────────────────────────────────────
+
+x = np.linspace(0, 10, 500)
+
+TRUE_P = [
+    dict(amp=1.0,  mu=3.2, sigma=0.55),
+    dict(amp=0.75, mu=6.8, sigma=0.80),
+]
+COLORS = ["#ff6b6b", "#69db7c"]
+
+rng    = np.random.default_rng(42)
+signal = sum(gaussian(x, **p) for p in TRUE_P) + rng.normal(0, 0.03, len(x))
+
+# Initial component guesses (slightly off from truth)
+INIT_P = [
+    dict(amp=1.0, mu=3.0, sigma=0.6),
+    dict(amp=0.7, mu=7.0, sigma=0.9),
+]
+
+# ── Figure ─────────────────────────────────────────────────────────────────
+
+fig, ax = apl.subplots(1, 1, figsize=(720, 380),
+    help="Click a coloured line  →  show/hide its widgets\n"
+         "Drag circle handle     →  move peak center (μ) and amplitude (A)\n"
+         "Drag range edge        →  widen / narrow the width (σ)\n"
+         "press: f               →  run least-squares fit")
+plot = ax.plot(signal, axes=[x], color="#adb5bd", linewidth=1.5,
+               alpha=0.6, label="data")
+#
+# Live sum of all components — this IS the fit after pressing 'f'
+sum_line = plot.add_line(
+    sum(gaussian(x, **p) for p in INIT_P), x_axis=x,
+    color="#e0e0e0", linewidth=1.5, linestyle="dashed", label="sum",
+)
+
+comp_lines = [
+    plot.add_line(gaussian(x, **p), x_axis=x,
+                  color=c, linewidth=2.0,
+                  label=f"comp {i+1}")
+    for i, (p, c) in enumerate(zip(INIT_P, COLORS))
+]
+
+
+# ── GaussianComponent ──────────────────────────────────────────────────────
+
+class GaussianComponent:
+    """Manages a PointWidget (peak) + RangeWidget (σ) for one component.
+
+    Assign ``.model`` after constructing the ``Model`` so the component
+    can notify it on every drag frame.
+    """
+
+    def __init__(self, line, p, color):
+        self.line   = line
+        self.amp    = p["amp"]
+        self.mu     = p["mu"]
+        self.sigma  = p["sigma"]
+        self.color  = color
+        self.model    = None   # injected after Model is constructed
+        self._active  = False
+        self._syncing = False  # guard against callback loops
+        self._pt      = None   # PointWidget — created once on first toggle
+        self._rng_w   = None   # RangeWidget
+
+    def component_y(self):
+        return gaussian(x, self.amp, self.mu, self.sigma)
+
+    def toggle(self):
+        if self._active:
+            self._pt.hide()
+            self._rng_w.hide()
+            self._active = False
+        else:
+            if self._pt is None:
+                self._pt    = plot.add_point_widget(self.mu, self.amp,
+                                                    color=self.color,
+                                                    show_crosshair=False)
+                self._rng_w = plot.add_range_widget(
+                    self.mu - self.sigma * _FWHM_K,
+                    self.mu + self.sigma * _FWHM_K,
+                    y=self.amp / 2.0,
+                    color=self.color,
+                    style="fwhm",
+                )
+                self._wire()
+            else:
+                self._pt.show()
+                self._rng_w.show()
+            self._active = True
+
+    def _wire(self):
+        @self._pt.on_changed
+        def _peak_moved(event):
+            if self._syncing:
+                return
+            self._syncing = True
+            try:
+                self.amp = event.data["y"]
+                self.mu  = event.data["x"]
+                self._rng_w.set(x0=self.mu - self.sigma * _FWHM_K,
+                                x1=self.mu + self.sigma * _FWHM_K,
+                                y=self.amp / 2.0)
+                self.line.set_data(self.component_y())
+                if self.model:
+                    self.model.update()
+            finally:
+                self._syncing = False
+
+        @self._rng_w.on_changed
+        def _range_moved(event):
+            if self._syncing:
+                return
+            self._syncing = True
+            try:
+                x0, x1    = event.data["x0"], event.data["x1"]
+                self.mu    = (x0 + x1) / 2.0
+                self.sigma = abs(x1 - x0) / (2.0 * _FWHM_K)
+                self._pt.set(x=self.mu)
+                self.line.set_data(self.component_y())
+                if self.model:
+                    self.model.update()
+            finally:
+                self._syncing = False
+
+    def snap(self, amp: float, mu: float, sigma: float) -> None:
+        """Update parameters and snap **all** widgets to the new values.
+
+        Creates and shows the point and FWHM range widgets if they do not
+        exist yet (so pressing **f** always reveals the fitted widths), then
+        updates their positions.  Uses the ``_syncing`` guard so widget
+        callbacks do not fire during the programmatic update.
+        """
+        self._syncing = True
+        try:
+            self.amp   = amp
+            self.mu    = mu
+            self.sigma = sigma
+            self.line.set_data(self.component_y())
+            if self._pt is None:
+                # First fit — create widgets at the fitted position and show them.
+                self._pt = plot.add_point_widget(self.mu, self.amp,
+                                                 color=self.color,
+                                                 show_crosshair=False)
+                self._rng_w = plot.add_range_widget(
+                    self.mu - self.sigma * _FWHM_K,
+                    self.mu + self.sigma * _FWHM_K,
+                    y=self.amp / 2.0,
+                    color=self.color,
+                    style="fwhm",
+                )
+                self._wire()
+                self._active = True
+            else:
+                # Widgets already exist — move them to the new fitted position.
+                self._pt.set(x=self.mu, y=self.amp)
+                self._rng_w.set(x0=self.mu - self.sigma * _FWHM_K,
+                                x1=self.mu + self.sigma * _FWHM_K,
+                                y=self.amp / 2.0)
+                # If the user had hidden the widgets, bring them back.
+                if not self._active:
+                    self._pt.show()
+                    self._rng_w.show()
+                    self._active = True
+        finally:
+            self._syncing = False
+
+# ── Model ──────────────────────────────────────────────────────────────────
+
+class Model:
+    """A list of GaussianComponents with a live sum line.
+
+    ``update()`` redraws the sum line from the current component state and
+    is called on every drag frame.
+
+    ``fit()`` runs a least-squares fit, snaps every component (and its
+    widgets) to the optimal parameters, then calls ``update()`` so the sum
+    line jumps to the best fit.  It is also triggered by pressing **f**.
+
+    Parameters
+    ----------
+    components : list[GaussianComponent]
+    sum_line : Line1D
+        Always-live manual-sum / fit-result overlay.
+    x_data, y_data : ndarray
+        Observed signal to fit against.
+    """
+
+    def __init__(self, components, sum_line, x_data, y_data):
+        self.components = list(components)
+        self.sum_line   = sum_line
+        self.x_data     = x_data
+        self.y_data     = y_data
+
+    def update(self):
+        """Redraw the sum line as the manual sum of all components."""
+        self.sum_line.set_data(
+            sum(c.component_y() for c in self.components)
+        )
+
+    def fit(self):
+        """Least-squares fit; snaps components and FWHM widgets to the result.
+
+        Builds a generic n-Gaussian model from the component list and uses
+        their current state as the initial guess.  On success every component
+        snaps to the fitted (amp, μ, σ): the component line, the peak handle,
+        **and** the FWHM range widget are all moved to the optimal values.
+        If a component's widgets have not been shown yet they are created and
+        revealed automatically.  The sum line redraws as the best fit.
+        On failure the components are left unchanged.
+        """
+        n  = len(self.components)
+        p0 = [v for c in self.components for v in (c.amp, c.mu, c.sigma)]
+        lo = [v for c in self.components for v in (0, self.x_data[0], 1e-3)]
+        hi = [v for c in self.components
+              for v in (np.inf, self.x_data[-1],
+                        self.x_data[-1] - self.x_data[0])]
+
+        def _model_fn(x, *params):
+            return sum(
+                gaussian(x, params[3 * i], params[3 * i + 1], params[3 * i + 2])
+                for i in range(n)
+            )
+
+        try:
+            popt, _ = curve_fit(
+                _model_fn, self.x_data, self.y_data,
+                p0=p0, bounds=(lo, hi), maxfev=3000 * n,
+            )
+            for i, comp in enumerate(self.components):
+                comp.snap(popt[3 * i], popt[3 * i + 1], popt[3 * i + 2])
+            self.update()
+        except RuntimeError:
+            pass   # leave components unchanged if fit did not converge
+
+# ── Assemble ───────────────────────────────────────────────────────────────
+
+components = [
+    GaussianComponent(comp_lines[i], INIT_P[i], COLORS[i])
+    for i in range(2)
+]
+
+model = Model(components, sum_line, x, signal)
+for comp in components:
+    comp.model = model
+
+# ── Key binding — press 'f' to fit ─────────────────────────────────────────
+
+@plot.on_key('f')
+def _on_fit(event):
+    model.fit()
+
+# ── Click handlers — toggle widgets per component ─────────────────────────
+
+for comp, line in zip(components, comp_lines):
+    @line.on_click
+    def _clicked(event, c=comp):
+        c.toggle()
+
+fig

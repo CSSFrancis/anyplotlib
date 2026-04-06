@@ -6,6 +6,8 @@ on:
     branches: [main]
     # … and to a versioned directory on every release tag.
     tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
   # Allow manual re-builds from the Actions tab.
   workflow_dispatch:
 
@@ -19,25 +21,27 @@ permissions:
   contents: write   # needed to push to gh-pages
 
 jobs:
-  build-and-deploy:
-    name: Build & deploy docs
+  # ── Build ──────────────────────────────────────────────────────────────────
+  # Runs on every push and every pull request.  Treats warnings as errors so
+  # broken cross-references and bad docstrings are caught before merge.
+  build:
+    name: Build docs
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Full history lets sphinx-gallery / git tools see tags correctly.
           fetch-depth: 0
 
-      # ── uv + Python ────────────────────────────────────────────────────────
+      # ── uv + Python ──────────────────────────────────────────────────────
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.13"
           enable-cache: true
 
-      # ── Dependencies ───────────────────────────────────────────────────────
+      # ── Dependencies ─────────────────────────────────────────────────────
       # Install the package itself plus the [docs] optional-dependency group
       # (sphinx, pydata-sphinx-theme, sphinx-gallery, pillow, playwright).
       - name: Install dependencies (with docs extras)
@@ -49,7 +53,51 @@ jobs:
       - name: Install Playwright browser
         run: uv run playwright install chromium --with-deps
 
-      # ── Determine deployment target ─────────────────────────────────────────
+      # ── Sphinx build ─────────────────────────────────────────────────────
+      # -W turns warnings into errors; --keep-going collects all of them.
+      - name: Build HTML documentation
+        run: |
+          uv run sphinx-build -b html docs build/html -W --keep-going
+
+      # ── Upload built HTML as an artifact so it can be inspected on PRs ──
+      - name: Upload HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-html
+          path: build/html
+          retention-days: 7
+
+  # ── Deploy ─────────────────────────────────────────────────────────────────
+  # Only runs after a successful build on pushes to main or release tags.
+  # Pull requests skip this job entirely.
+  deploy:
+    name: Deploy docs
+    needs: build
+    runs-on: ubuntu-latest
+    # Skip deployment for pull requests.
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── uv + Python ──────────────────────────────────────────────────────
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      # ── Dependencies ─────────────────────────────────────────────────────
+      - name: Install dependencies (with docs extras)
+        run: uv sync --extra docs
+
+      - name: Install Playwright browser
+        run: uv run playwright install chromium --with-deps
+
+      # ── Determine deployment target ──────────────────────────────────────
       # Release tag  (refs/tags/v1.2.3) → destination = "v1.2.3"
       # Everything else (push to main, manual dispatch) → destination = "dev"
       - name: Determine deployment directory
@@ -62,19 +110,16 @@ jobs:
             echo "dest_dir=dev" >> "$GITHUB_OUTPUT"
           fi
 
-      # ── Sphinx build ───────────────────────────────────────────────────────
-      # -W turns warnings into errors so broken cross-references are caught.
-      # Remove -W if the gallery examples produce unavoidable warnings.
+      # ── Sphinx build ─────────────────────────────────────────────────────
       - name: Build HTML documentation
         env:
           DOCS_VERSION: ${{ steps.target.outputs.dest_dir }}
         run: |
           uv run sphinx-build -b html docs build/html -W --keep-going
 
-      # ── Deploy to gh-pages ────────────────────────────────────────────────
+      # ── Deploy to gh-pages ───────────────────────────────────────────────
       # keep_files: true preserves all existing directories on the branch so
       # versioned releases accumulate rather than overwriting each other.
-      # Only the target destination_dir is replaced on each run.
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -82,11 +127,10 @@ jobs:
           publish_dir: ./build/html
           destination_dir: ${{ steps.target.outputs.dest_dir }}
           keep_files: true
-          # Commit message makes the deployment easy to identify in the branch log.
           commit_message: |
             docs: deploy ${{ steps.target.outputs.dest_dir }} @ ${{ github.sha }}
 
-      # ── Deploy root files (redirect + switcher) ────────────────────────────
+      # ── Deploy root files (redirect + switcher) ──────────────────────────
       # Places index.html and switcher.json at the root of gh-pages so the
       # bare URL redirects to dev/ and the version switcher is always reachable.
       - name: Deploy root redirect and switcher
