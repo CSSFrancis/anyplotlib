@@ -220,6 +220,10 @@ class Widget:
         """``True`` if the widget is rendered; ``False`` if hidden."""
         return self._data.get("visible", True)
 
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        self.show() if value else self.hide()
+
     def show(self) -> None:
         """Show the widget.  Does not fire ``on_changed`` callbacks."""
         self._data["visible"] = True
