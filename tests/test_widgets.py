@@ -832,40 +832,6 @@ def _two_gaussians(x, a1, mu1, s1, a2, mu2, s2):
     return _gaussian(x, a1, mu1, s1) + _gaussian(x, a2, mu2, s2)
 
 
-def _make_fitting_figure():
-    """Build the same setup as plot_interactive_fitting.py."""
-    from scipy.optimize import curve_fit
-
-    x = np.linspace(0, 10, 200)
-    TRUE_P = [
-        dict(amp=1.0, mu=3.2, sigma=0.55),
-        dict(amp=0.75, mu=6.8, sigma=0.80),
-    ]
-    COLORS = ["#ff6b6b", "#69db7c"]
-    rng    = np.random.default_rng(42)
-    signal = sum(_gaussian(x, **p) for p in TRUE_P) + rng.normal(0, 0.03, len(x))
-
-    INIT_P = [
-        dict(amp=1.0, mu=3.0, sigma=0.6),
-        dict(amp=0.7, mu=7.0, sigma=0.9),
-    ]
-
-    fig, ax = apl.subplots(1, 1, figsize=(600, 300))
-    plot = ax.plot(signal, x_axis=x, color="#adb5bd")
-
-    comp_lines = [
-        plot.add_line(_gaussian(x, **p), x_axis=x, color=c, label=f"comp {i+1}")
-        for i, (p, c) in enumerate(zip(INIT_P, COLORS))
-    ]
-
-    fit_line = plot.add_line(
-        sum(_gaussian(x, **p) for p in INIT_P), x_axis=x,
-        color="#ffd43b", linestyle="dashed", label="fit",
-    )
-
-    return fig, plot, comp_lines, fit_line, x, signal, INIT_P, COLORS, curve_fit
-
-
 class _GaussianController:
     """Mirror of GaussianController from plot_interactive_fitting.py."""
 
