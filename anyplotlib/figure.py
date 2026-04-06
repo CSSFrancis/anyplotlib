@@ -74,6 +74,9 @@ class Figure(anywidget.AnyWidget):
     event_json     = traitlets.Unicode("{}").tag(sync=True)
     # When True the JS renderer shows a per-panel FPS / frame-time overlay.
     display_stats  = traitlets.Bool(False).tag(sync=True)
+    # Figure-level help text shown in a '?' badge overlay in JS.
+    # Empty string means no badge.  Gated by apl.show_help at the Python level.
+    help_text      = traitlets.Unicode("").tag(sync=True)
     _esm = _ESM_SOURCE
     # Static CSS injected by anywidget alongside _esm.
     # .apl-scale-wrap  — outer container; width:100% means it always fills
@@ -111,7 +114,7 @@ class Figure(anywidget.AnyWidget):
     def __init__(self, nrows=1, ncols=1, figsize=(640, 480),
                  width_ratios=None, height_ratios=None,
                  sharex=False, sharey=False,
-                 display_stats=False, **kwargs):
+                 display_stats=False, help="", **kwargs):
         super().__init__(**kwargs)
         self._nrows = nrows
         self._ncols = ncols
@@ -125,7 +128,36 @@ class Figure(anywidget.AnyWidget):
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
             self.display_stats = display_stats
+            self.help_text     = self._resolve_help(help)
         self._push_layout()
+
+    @staticmethod
+    def _resolve_help(text: str) -> str:
+        """Return *text* if ``apl.show_help`` is True (default), else ``""``."""
+        try:
+            import anyplotlib as _apl
+            if not getattr(_apl, "show_help", True):
+                return ""
+        except ImportError:
+            pass
+        return text or ""
+
+    def set_help(self, text: str) -> None:
+        """Set (or clear) the figure-level help text shown in the **?** badge.
+
+        Parameters
+        ----------
+        text : str
+            Help string displayed when the user clicks the **?** badge.
+            Pass an empty string (or ``""`` ) to remove the badge entirely.
+            Newlines (``\\n``) are respected in the card.
+
+        Examples
+        --------
+        >>> fig.set_help("Drag peak: move μ/A\\nPress f: least-squares fit")
+        >>> fig.set_help("")   # hide the badge
+        """
+        self.help_text = self._resolve_help(text)
 
     # ── subplot creation ──────────────────────────────────────────────────────
     def add_subplot(self, spec) -> Axes:
@@ -347,7 +379,8 @@ def subplots(nrows=1, ncols=1, *,
              width_ratios=None,
              height_ratios=None,
              gridspec_kw=None,
-             display_stats=False):
+             display_stats=False,
+             help=""):
     """Create a :class:`Figure` and a grid of :class:`~anyplotlib.figure_plots.Axes`.
 
     Mirrors :func:`matplotlib.pyplot.subplots`.
@@ -369,6 +402,13 @@ def subplots(nrows=1, ncols=1, *,
     gridspec_kw : dict, optional
         Extra keyword arguments forwarded to :class:`GridSpec`.
         Recognised keys: ``width_ratios``, ``height_ratios``.
+    display_stats : bool, optional
+        Show per-panel FPS / frame-time overlay.  Default False.
+    help : str, optional
+        Help text shown when the user clicks the **?** badge on the figure.
+        Newlines (``\\n``) create separate lines in the card.  The badge is
+        hidden when *help* is empty (default).  Suppressed globally when
+        ``apl.show_help = False``.
 
     Returns
     -------
@@ -398,6 +438,7 @@ def subplots(nrows=1, ncols=1, *,
         width_ratios=width_ratios, height_ratios=height_ratios,
         sharex=sharex, sharey=sharey,
         display_stats=display_stats,
+        help=help,
     )
     # Build the GridSpec from the Figure's own stored ratios so there is
     # exactly one source of truth.

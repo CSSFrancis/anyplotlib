@@ -189,7 +189,81 @@ function render({ model, el }) {
     'color:white;font-size:11px;border-radius:4px;display:none;pointer-events:none;z-index:21;';
   outerDiv.appendChild(sizeLabel);
 
-  // Tooltip (shared across all panels)
+  // ── Help badge (figure-level) ─────────────────────────────────────────────
+  // A small '?' button in the top-right corner of the figure.
+  //   • Hidden until the mouse enters outerDiv (plot "active").
+  //   • Stays visible while the help card is open, even after mouse-leave.
+  //   • Rounded square, tucked into the right padding band so it never
+  //     overlaps plot content.
+  //   • Clicking toggles the help card; click again (or mouse-leave with
+  //     card closed) hides the button again.
+  const _BTN_BG        = 'rgba(100,100,120,0.72)';
+  const _BTN_BG_ACTIVE = 'rgba(75,120,210,0.92)';
+
+  const helpBtn = document.createElement('div');
+  helpBtn.style.cssText =
+    'position:absolute;top:9px;right:6px;width:20px;height:20px;' +
+    'border-radius:4px;background:' + _BTN_BG + ';color:#fff;' +
+    'font-size:12px;font-weight:bold;font-family:sans-serif;' +
+    'display:none;align-items:center;justify-content:center;' +
+    'cursor:pointer;z-index:50;user-select:none;line-height:1;' +
+    'box-shadow:0 1px 4px rgba(0,0,0,0.35);';
+  helpBtn.textContent = '?';
+  helpBtn.title = 'Show help';
+  outerDiv.appendChild(helpBtn);
+
+  const helpCard = document.createElement('div');
+  helpCard.style.cssText =
+    'position:absolute;top:33px;right:6px;padding:10px 14px;' +
+    'background:rgba(28,28,38,0.95);color:#e0e0e8;font-size:12px;' +
+    'font-family:sans-serif;border-radius:6px;line-height:1.7;' +
+    'white-space:pre-wrap;max-width:300px;display:none;z-index:51;' +
+    'box-shadow:0 4px 14px rgba(0,0,0,0.55);pointer-events:none;' +
+    'border:1px solid rgba(120,120,160,0.3);';
+  outerDiv.appendChild(helpCard);
+
+  let _helpExists  = false;   // true when help_text is non-empty
+  let _helpHovered = false;   // true while mouse is inside outerDiv
+  let _helpOpen    = false;   // true while the card is shown
+
+  function _updateHelp() {
+    const txt = model.get('help_text') || '';
+    _helpExists          = !!txt;
+    helpCard.textContent = txt;
+    if (!txt) {
+      // Help removed — hide everything immediately.
+      helpBtn.style.display    = 'none';
+      helpCard.style.display   = 'none';
+      helpBtn.style.background = _BTN_BG;
+      _helpOpen = false;
+    } else if (_helpHovered || _helpOpen) {
+      // Already hovered or card open — make badge visible.
+      helpBtn.style.display = 'flex';
+    }
+  }
+  _updateHelp();
+
+  outerDiv.addEventListener('mouseenter', () => {
+    _helpHovered = true;
+    if (_helpExists) helpBtn.style.display = 'flex';
+  });
+
+  outerDiv.addEventListener('mouseleave', () => {
+    _helpHovered = false;
+    // Only hide the button if the card is also closed.
+    if (!_helpOpen) helpBtn.style.display = 'none';
+  });
+
+  helpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _helpOpen = !_helpOpen;
+    helpCard.style.display   = _helpOpen ? 'block' : 'none';
+    helpBtn.style.background = _helpOpen ? _BTN_BG_ACTIVE : _BTN_BG;
+    // If closing the card while the mouse has already left, hide the button too.
+    if (!_helpOpen && !_helpHovered) helpBtn.style.display = 'none';
+  });
+
+  model.on('change:help_text', _updateHelp);
   const tooltip = document.createElement('div');
   tooltip.style.cssText =
     'position:fixed;padding:5px 9px;font-size:12px;font-family:sans-serif;' +
