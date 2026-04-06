@@ -213,6 +213,27 @@ class Widget:
             cid = cid._cid
         self.callbacks.disconnect(cid)
 
+    # ── visibility ────────────────────────────────────────────────────────
+
+    @property
+    def visible(self) -> bool:
+        """``True`` if the widget is rendered; ``False`` if hidden."""
+        return self._data.get("visible", True)
+
+    def show(self) -> None:
+        """Show the widget.  Does not fire ``on_changed`` callbacks."""
+        self._data["visible"] = True
+        self._push_fn()
+
+    def hide(self) -> None:
+        """Hide the widget without removing it or its callbacks.
+
+        Call :meth:`show` to make it visible again.
+        Does not fire ``on_changed`` callbacks.
+        """
+        self._data["visible"] = False
+        self._push_fn()
+
     # ── JS → Python sync ──────────────────────────────────────────────
 
     def _update_from_js(self, new_data: dict, event_type: str = "on_changed") -> bool:
@@ -443,11 +464,20 @@ class HLineWidget(Widget):
 
 
 class RangeWidget(Widget):
-    """Draggable range selection widget (two connected vertical lines).
+    """Draggable range selection widget.
 
-    Allows interactive selection of a range on the x-axis. Both lines
-    move together when dragging, maintaining the range width. Either end
-    can be dragged independently to resize the range.
+    Two display styles are available:
+
+    ``style='band'`` (default)
+        Two connected vertical lines with a translucent fill band.  Either
+        line can be dragged independently; the whole band can be dragged by
+        clicking inside it.
+
+    ``style='fwhm'``
+        Two circular handles joined by a dashed horizontal line drawn at
+        height *y* (the half-maximum level).  Only the x-positions of the
+        handles are draggable.  Use this to show/edit a FWHM interval on a
+        peak.
 
     Parameters
     ----------
@@ -456,10 +486,18 @@ class RangeWidget(Widget):
     x0, x1 : float
         Initial left and right positions in data coordinates.
     color : str, optional
-        CSS colour for both lines. Default ``"#00e5ff"``.
+        CSS colour.  Default ``"#00e5ff"``.
+    style : {'band', 'fwhm'}, optional
+        Visual style.  Default ``"band"``.
+    y : float, optional
+        Y-position (data coordinates) for the connecting line when
+        ``style='fwhm'``.  Ignored for ``style='band'``.  Default ``0.0``.
     """
-    def __init__(self, push_fn, *, x0, x1, color="#00e5ff"):
-        super().__init__("range", push_fn, x0=float(x0), x1=float(x1), color=color)
+    def __init__(self, push_fn, *, x0, x1, color="#00e5ff",
+                 style: str = "band", y: float = 0.0):
+        super().__init__("range", push_fn,
+                         x0=float(x0), x1=float(x1), color=color,
+                         style=str(style), y=float(y))
 
 
 class PointWidget(Widget):
@@ -479,6 +517,10 @@ class PointWidget(Widget):
         Initial y position in data coordinates (value axis).
     color : str, optional
         CSS colour for the handle.  Default ``"#00e5ff"``.
+    show_crosshair : bool, optional
+        If ``True`` (default), draw dashed crosshair guide lines through the
+        handle.  Set to ``False`` for a bare draggable dot with no guides.
     """
-    def __init__(self, push_fn, *, x, y, color="#00e5ff"):
-        super().__init__("point", push_fn, x=float(x), y=float(y), color=color)
+    def __init__(self, push_fn, *, x, y, color="#00e5ff", show_crosshair=True):
+        super().__init__("point", push_fn, x=float(x), y=float(y), color=color,
+                         show_crosshair=bool(show_crosshair))
