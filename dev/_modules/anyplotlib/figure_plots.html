@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
@@ -35,32 +35,38 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/figure_plots';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/_modules/anyplotlib/figure_plots.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
   </head>
-  
-  
-  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
-
+  <body data-default-mode="">
   
   
   <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
   
   <div id="pst-scroll-pixel-helper"></div>
   
@@ -92,7 +98,7 @@
 </div>
 
   
-    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
 <div class="bd-header__inner bd-page-width">
   <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
     <span class="fa-solid fa-bars"></span>
@@ -153,6 +159,20 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../auto_examples/index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -252,6 +272,20 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../auto_examples/index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -374,10 +408,11 @@
     <span class="n">VLineWidget</span> <span class="k">as</span> <span class="n">_VLineWidget</span><span class="p">,</span>
     <span class="n">HLineWidget</span> <span class="k">as</span> <span class="n">_HLineWidget</span><span class="p">,</span>
     <span class="n">RangeWidget</span> <span class="k">as</span> <span class="n">_RangeWidget</span><span class="p">,</span>
+    <span class="n">PointWidget</span> <span class="k">as</span> <span class="n">_PointWidget</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GridSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;SubplotSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;Axes&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot1D&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot2D&quot;</span><span class="p">,</span> <span class="s2">&quot;PlotMesh&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot3D&quot;</span><span class="p">,</span>
-           <span class="s2">&quot;PlotBar&quot;</span><span class="p">,</span> <span class="s2">&quot;_resample_mesh&quot;</span><span class="p">,</span> <span class="s2">&quot;_norm_linestyle&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GridSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;SubplotSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;Axes&quot;</span><span class="p">,</span> <span class="s2">&quot;Line1D&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot1D&quot;</span><span class="p">,</span> <span class="s2">&quot;Plot2D&quot;</span><span class="p">,</span> <span class="s2">&quot;PlotMesh&quot;</span><span class="p">,</span>
+           <span class="s2">&quot;Plot3D&quot;</span><span class="p">,</span> <span class="s2">&quot;PlotBar&quot;</span><span class="p">,</span> <span class="s2">&quot;_resample_mesh&quot;</span><span class="p">,</span> <span class="s2">&quot;_norm_linestyle&quot;</span><span class="p">]</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -394,6 +429,18 @@
     <span class="s2">&quot;dotted&quot;</span><span class="p">:</span>   <span class="s2">&quot;dotted&quot;</span><span class="p">,</span>
     <span class="s2">&quot;dashdot&quot;</span><span class="p">:</span>  <span class="s2">&quot;dashdot&quot;</span><span class="p">,</span>
 <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_arr_to_b64</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode a NumPy array as base-64 (little-endian raw bytes).</span>
+
+<span class="sd">    Uses little-endian byte order so the result is compatible with</span>
+<span class="sd">    JavaScript&#39;s ``Float64Array`` / ``Float32Array`` / ``Int32Array``</span>
+<span class="sd">    on all modern platforms (x86, ARM).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+    <span class="n">le_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">newbyteorder</span><span class="p">(</span><span class="s2">&quot;&lt;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">le_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_norm_linestyle</span><span class="p">(</span><span class="n">ls</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -797,38 +844,58 @@
 
 <div class="viewcode-block" id="Axes.bar">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Axes.html#anyplotlib.figure_plots.Axes.bar">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">bar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
-            <span class="n">x_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">x_centers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">bottom</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+            <span class="n">align</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;center&quot;</span><span class="p">,</span>
             <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span>
             <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">bar_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>
             <span class="n">orient</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;v&quot;</span><span class="p">,</span>
-            <span class="n">baseline</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">log_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">group_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">group_colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">show_values</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
             <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-            <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PlotBar&quot;</span><span class="p">:</span>
+            <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="c1"># ── legacy backward-compat kwargs ──────────────────────────────</span>
+            <span class="n">x_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">x_centers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">bar_width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">baseline</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">values</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PlotBar&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Attach a bar chart to this axes cell.</span>
+
+<span class="sd">        Signature mirrors ``matplotlib.pyplot.bar``::</span>
+
+<span class="sd">            ax.bar(x, height, width=0.8, bottom=0.0, ...)</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        values : array-like, shape (N,)</span>
-<span class="sd">            Bar heights (vertical) or widths (horizontal).</span>
-<span class="sd">        x_labels : list of str, optional</span>
-<span class="sd">            Category labels for each bar.  Shown on the categorical axis</span>
-<span class="sd">            instead of numeric tick values.</span>
-<span class="sd">        x_centers : array-like, optional</span>
-<span class="sd">            Numeric positions of bar centres.  Defaults to ``0, 1, … N-1``.</span>
+<span class="sd">        x : array-like of str or numeric</span>
+<span class="sd">            Bar positions.  Strings become category labels with auto-numeric</span>
+<span class="sd">            centres; numbers are used directly as bar centres.</span>
+<span class="sd">        height : array-like, shape ``(N,)`` or ``(N, G)``, optional</span>
+<span class="sd">            Bar heights.  Pass a 2-D array to draw *G* grouped bars per</span>
+<span class="sd">            category.  If omitted *x* is treated as the heights and positions</span>
+<span class="sd">            are generated automatically (backward-compatible call form).</span>
+<span class="sd">        width : float, optional</span>
+<span class="sd">            Bar width as a fraction of the category slot (0–1).  Default ``0.8``.</span>
+<span class="sd">        bottom : float, optional</span>
+<span class="sd">            Value at which bars are rooted (baseline).  Default ``0``.</span>
+<span class="sd">        align : ``&quot;center&quot;`` | ``&quot;edge&quot;``, optional</span>
+<span class="sd">            Alignment of the bar relative to its *x* position.  Currently only</span>
+<span class="sd">            ``&quot;center&quot;`` is rendered; stored for future use.</span>
 <span class="sd">        color : str, optional</span>
 <span class="sd">            Single CSS colour applied to every bar.  Default ``&quot;#4fc3f7&quot;``.</span>
 <span class="sd">        colors : list of str, optional</span>
-<span class="sd">            Per-bar colour list; overrides *color* where provided.</span>
-<span class="sd">        bar_width : float, optional</span>
-<span class="sd">            Bar width as a fraction of the slot width (0–1).  Default ``0.7``.</span>
+<span class="sd">            Per-bar colour list (ungrouped) or ignored when *group_colors* is set.</span>
 <span class="sd">        orient : ``&quot;v&quot;`` | ``&quot;h&quot;``, optional</span>
 <span class="sd">            Vertical (default) or horizontal orientation.</span>
-<span class="sd">        baseline : float, optional</span>
-<span class="sd">            Value at which bars are rooted.  Default ``0``.</span>
+<span class="sd">        log_scale : bool, optional</span>
+<span class="sd">            Use a logarithmic value axis.  Non-positive values are clamped to</span>
+<span class="sd">            ``1e-10`` for display.  Default ``False``.</span>
+<span class="sd">        group_labels : list of str, optional</span>
+<span class="sd">            Legend labels for each group in a grouped bar chart.</span>
+<span class="sd">        group_colors : list of str, optional</span>
+<span class="sd">            CSS colours per group.  Defaults to a built-in palette.</span>
 <span class="sd">        show_values : bool, optional</span>
 <span class="sd">            Draw the numeric value above / beside each bar.</span>
 <span class="sd">        units : str, optional</span>
@@ -836,14 +903,36 @@
 <span class="sd">        y_units : str, optional</span>
 <span class="sd">            Label for the value axis.</span>
 
+<span class="sd">        Backward-compatible keyword aliases</span>
+<span class="sd">        ------------------------------------</span>
+<span class="sd">        ``values``    → ``height``</span>
+<span class="sd">        ``x_centers`` → ``x``</span>
+<span class="sd">        ``bar_width``  → ``width``</span>
+<span class="sd">        ``baseline``   → ``bottom``</span>
+<span class="sd">        ``x_labels``   → strings passed via ``x``</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        PlotBar</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">plot</span> <span class="o">=</span> <span class="n">PlotBar</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">x_labels</span><span class="o">=</span><span class="n">x_labels</span><span class="p">,</span> <span class="n">x_centers</span><span class="o">=</span><span class="n">x_centers</span><span class="p">,</span>
-                       <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">bar_width</span><span class="o">=</span><span class="n">bar_width</span><span class="p">,</span>
-                       <span class="n">orient</span><span class="o">=</span><span class="n">orient</span><span class="p">,</span> <span class="n">baseline</span><span class="o">=</span><span class="n">baseline</span><span class="p">,</span> <span class="n">show_values</span><span class="o">=</span><span class="n">show_values</span><span class="p">,</span>
-                       <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="n">y_units</span><span class="p">)</span>
+        <span class="c1"># ── legacy backward-compat resolution ─────────────────────────────</span>
+        <span class="k">if</span> <span class="n">height</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">height</span> <span class="o">=</span> <span class="n">values</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">height</span> <span class="o">=</span> <span class="n">x</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">baseline</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bottom</span> <span class="o">=</span> <span class="n">baseline</span>
+        <span class="k">if</span> <span class="n">bar_width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="n">bar_width</span>
+
+        <span class="n">plot</span> <span class="o">=</span> <span class="n">PlotBar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">bottom</span><span class="o">=</span><span class="n">bottom</span><span class="p">,</span>
+                       <span class="n">align</span><span class="o">=</span><span class="n">align</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+                       <span class="n">orient</span><span class="o">=</span><span class="n">orient</span><span class="p">,</span> <span class="n">log_scale</span><span class="o">=</span><span class="n">log_scale</span><span class="p">,</span>
+                       <span class="n">group_labels</span><span class="o">=</span><span class="n">group_labels</span><span class="p">,</span> <span class="n">group_colors</span><span class="o">=</span><span class="n">group_colors</span><span class="p">,</span>
+                       <span class="n">show_values</span><span class="o">=</span><span class="n">show_values</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="n">y_units</span><span class="p">,</span>
+                       <span class="n">x_labels</span><span class="o">=</span><span class="n">x_labels</span><span class="p">,</span> <span class="n">x_centers</span><span class="o">=</span><span class="n">x_centers</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_attach</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">plot</span></div>
 
@@ -1018,6 +1107,8 @@
         <span class="k">if</span> <span class="n">origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
         <span class="n">x_axis_given</span> <span class="o">=</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">y_axis_given</span> <span class="o">=</span> <span class="n">y_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1108,11 +1199,22 @@
 
 
     <span class="c1"># ------------------------------------------------------------------</span>
-    <span class="c1"># Data update</span>
+    <span class="c1"># Data</span>
     <span class="c1"># ------------------------------------------------------------------</span>
-<div class="viewcode-block" id="Plot2D.update">
-<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot2D.html#anyplotlib.figure_plots.Plot2D.update">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The image data in the original user coordinate system (read-only).</span>
+
+<span class="sd">        Returns a float64 copy with ``writeable=False``.  To replace the</span>
+<span class="sd">        data call :meth:`set_data`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">arr</span>
+
+<div class="viewcode-block" id="Plot2D.set_data">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot2D.html#anyplotlib.figure_plots.Plot2D.set_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
                <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the image data.</span>
 
@@ -1129,6 +1231,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
         <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_raw_u8</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmax</span> <span class="o">=</span> <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
 
@@ -1607,18 +1710,36 @@
 <div class="viewcode-block" id="Plot2D.remove_marker">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Plot2D.html#anyplotlib.figure_plots.Plot2D.remove_marker">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove_marker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">marker_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove a named marker collection by type and name.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        marker_type : str</span>
+<span class="sd">            Collection type, e.g. ``&quot;points&quot;``, ``&quot;vlines&quot;``.</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name used when the collection was created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">marker_type</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.clear_markers">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Plot2D.html#anyplotlib.figure_plots.Plot2D.clear_markers">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove all marker collections from this panel.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.list_markers">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Plot2D.html#anyplotlib.figure_plots.Plot2D.list_markers">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a summary list of all marker collections on this panel.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of dict</span>
+<span class="sd">            Each dict has keys ``&quot;type&quot;``, ``&quot;name&quot;``, and ``&quot;n&quot;``</span>
+<span class="sd">            (number of markers in the collection).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">mtype</span><span class="p">,</span> <span class="n">td</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">_types</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">td</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1694,11 +1815,11 @@
                                       <span class="n">allowed</span><span class="o">=</span><span class="n">MarkerRegistry</span><span class="o">.</span><span class="n">_KNOWN_MESH</span><span class="p">)</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
-    <span class="c1"># Data update</span>
+    <span class="c1"># Data</span>
     <span class="c1"># ------------------------------------------------------------------</span>
-<div class="viewcode-block" id="PlotMesh.update">
-<a class="viewcode-back" href="../../api/generated/anyplotlib.PlotMesh.html#anyplotlib.figure_plots.PlotMesh.update">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<div class="viewcode-block" id="PlotMesh.set_data">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.PlotMesh.html#anyplotlib.figure_plots.PlotMesh.set_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
                <span class="n">x_edges</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_edges</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the mesh data (and optionally the edge arrays).&quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
@@ -1812,48 +1933,50 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;Surface x/y/z must be 2-D grids of the same shape, &quot;</span>
                     <span class="s2">&quot;or 1-D x/y centre arrays with 2-D z.&quot;</span><span class="p">)</span>
-            <span class="n">faces</span> <span class="o">=</span> <span class="n">_triangulate_grid</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
-            <span class="n">vertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-            <span class="n">z_values</span> <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">faces_list</span> <span class="o">=</span> <span class="n">_triangulate_grid</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">z</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scatter/line x, y, z must be 1-D arrays&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="p">)):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x, y, z must have the same length&quot;</span><span class="p">)</span>
-            <span class="n">vertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-            <span class="n">faces</span>    <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">z_values</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span>
+            <span class="n">faces_list</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="c1"># Normalised data bounds for the JS renderer</span>
-        <span class="n">all_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">])</span>
-        <span class="n">all_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">])</span>
-        <span class="n">all_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">])</span>
+        <span class="c1"># Normalised data bounds for the JS renderer (from raw arrays — fast)</span>
         <span class="n">data_bounds</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;xmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_x</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;xmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_x</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-            <span class="s2">&quot;ymin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_y</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;ymax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_y</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-            <span class="s2">&quot;zmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_z</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;zmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+            <span class="s2">&quot;xmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">xf</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;xmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">xf</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+            <span class="s2">&quot;ymin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">yf</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;ymax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">yf</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+            <span class="s2">&quot;zmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">zf</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;zmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">zf</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
         <span class="p">}</span>
+
+        <span class="c1"># Encode geometry as b64 (float32 saves 50 % wire size vs float64)</span>
+        <span class="n">verts_arr</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>   <span class="c1"># (N, 3)</span>
+        <span class="n">zvals_arr</span>  <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>                                <span class="c1"># (N,)</span>
+        <span class="n">faces_arr</span>  <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">faces_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+                      <span class="k">if</span> <span class="n">faces_list</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
 
         <span class="n">cmap_lut</span> <span class="o">=</span> <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;kind&quot;</span><span class="p">:</span>        <span class="s2">&quot;3d&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;geom_type&quot;</span><span class="p">:</span>   <span class="n">geom_type</span><span class="p">,</span>
-            <span class="s2">&quot;vertices&quot;</span><span class="p">:</span>    <span class="n">vertices</span><span class="p">,</span>
-            <span class="s2">&quot;faces&quot;</span><span class="p">:</span>       <span class="n">faces</span><span class="p">,</span>
-            <span class="s2">&quot;z_values&quot;</span><span class="p">:</span>    <span class="n">z_values</span><span class="p">,</span>
+            <span class="s2">&quot;kind&quot;</span><span class="p">:</span>          <span class="s2">&quot;3d&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;geom_type&quot;</span><span class="p">:</span>     <span class="n">geom_type</span><span class="p">,</span>
+            <span class="s2">&quot;vertices_b64&quot;</span><span class="p">:</span>  <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">verts_arr</span><span class="p">,</span>  <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="s2">&quot;vertices_count&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">verts_arr</span><span class="p">),</span>
+            <span class="s2">&quot;faces_b64&quot;</span><span class="p">:</span>     <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">faces_arr</span><span class="p">,</span>  <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="s2">&quot;faces_count&quot;</span><span class="p">:</span>   <span class="nb">len</span><span class="p">(</span><span class="n">faces_arr</span><span class="p">),</span>
+            <span class="s2">&quot;z_values_b64&quot;</span><span class="p">:</span>  <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">zvals_arr</span><span class="p">,</span>  <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="s2">&quot;colormap_name&quot;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span>
             <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span> <span class="n">cmap_lut</span><span class="p">,</span>
-            <span class="s2">&quot;color&quot;</span><span class="p">:</span>       <span class="n">color</span><span class="p">,</span>
-            <span class="s2">&quot;point_size&quot;</span><span class="p">:</span>  <span class="nb">float</span><span class="p">(</span><span class="n">point_size</span><span class="p">),</span>
-            <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span>   <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
-            <span class="s2">&quot;x_label&quot;</span><span class="p">:</span>     <span class="n">x_label</span><span class="p">,</span>
-            <span class="s2">&quot;y_label&quot;</span><span class="p">:</span>     <span class="n">y_label</span><span class="p">,</span>
-            <span class="s2">&quot;z_label&quot;</span><span class="p">:</span>     <span class="n">z_label</span><span class="p">,</span>
-            <span class="s2">&quot;azimuth&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">(</span><span class="n">azimuth</span><span class="p">),</span>
-            <span class="s2">&quot;elevation&quot;</span><span class="p">:</span>   <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">),</span>
-            <span class="s2">&quot;zoom&quot;</span><span class="p">:</span>        <span class="nb">float</span><span class="p">(</span><span class="n">zoom</span><span class="p">),</span>
-            <span class="s2">&quot;data_bounds&quot;</span><span class="p">:</span> <span class="n">data_bounds</span><span class="p">,</span>
+            <span class="s2">&quot;color&quot;</span><span class="p">:</span>         <span class="n">color</span><span class="p">,</span>
+            <span class="s2">&quot;point_size&quot;</span><span class="p">:</span>    <span class="nb">float</span><span class="p">(</span><span class="n">point_size</span><span class="p">),</span>
+            <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+            <span class="s2">&quot;x_label&quot;</span><span class="p">:</span>       <span class="n">x_label</span><span class="p">,</span>
+            <span class="s2">&quot;y_label&quot;</span><span class="p">:</span>       <span class="n">y_label</span><span class="p">,</span>
+            <span class="s2">&quot;z_label&quot;</span><span class="p">:</span>       <span class="n">z_label</span><span class="p">,</span>
+            <span class="s2">&quot;azimuth&quot;</span><span class="p">:</span>       <span class="nb">float</span><span class="p">(</span><span class="n">azimuth</span><span class="p">),</span>
+            <span class="s2">&quot;elevation&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">),</span>
+            <span class="s2">&quot;zoom&quot;</span><span class="p">:</span>          <span class="nb">float</span><span class="p">(</span><span class="n">zoom</span><span class="p">),</span>
+            <span class="s2">&quot;data_bounds&quot;</span><span class="p">:</span>   <span class="n">data_bounds</span><span class="p">,</span>
             <span class="s2">&quot;registered_keys&quot;</span><span class="p">:</span> <span class="p">[],</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
@@ -1982,9 +2105,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="Plot3D.update">
-<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot3D.html#anyplotlib.figure_plots.Plot3D.update">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="Plot3D.set_data">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot3D.html#anyplotlib.figure_plots.Plot3D.set_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the geometry data.&quot;&quot;&quot;</span>
         <span class="c1"># Re-run the same logic as __init__ for the stored geom_type</span>
         <span class="n">geom_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;geom_type&quot;</span><span class="p">]</span>
@@ -2002,29 +2125,30 @@
                 <span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span> <span class="o">=</span> <span class="n">XX</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">YY</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Surface x/y/z must be 2-D grids or 1-D+2-D.&quot;</span><span class="p">)</span>
-            <span class="n">faces</span>    <span class="o">=</span> <span class="n">_triangulate_grid</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
-            <span class="n">vertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-            <span class="n">z_values</span> <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">faces_list</span> <span class="o">=</span> <span class="n">_triangulate_grid</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">vertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">y</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">ravel</span><span class="p">()])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-            <span class="n">faces</span>    <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">z_values</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">y</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">faces_list</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="n">all_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">])</span>
-        <span class="n">all_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">])</span>
-        <span class="n">all_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">])</span>
         <span class="n">data_bounds</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;xmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_x</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;xmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_x</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-            <span class="s2">&quot;ymin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_y</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;ymax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_y</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-            <span class="s2">&quot;zmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_z</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;zmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">all_z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+            <span class="s2">&quot;xmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">xf</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;xmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">xf</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+            <span class="s2">&quot;ymin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">yf</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;ymax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">yf</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+            <span class="s2">&quot;zmin&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">zf</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="s2">&quot;zmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">zf</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
         <span class="p">}</span>
 
+        <span class="n">verts_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">zvals_arr</span> <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">faces_arr</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">faces_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+                     <span class="k">if</span> <span class="n">faces_list</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-            <span class="s2">&quot;vertices&quot;</span><span class="p">:</span>    <span class="n">vertices</span><span class="p">,</span>
-            <span class="s2">&quot;faces&quot;</span><span class="p">:</span>       <span class="n">faces</span><span class="p">,</span>
-            <span class="s2">&quot;z_values&quot;</span><span class="p">:</span>    <span class="n">z_values</span><span class="p">,</span>
-            <span class="s2">&quot;data_bounds&quot;</span><span class="p">:</span> <span class="n">data_bounds</span><span class="p">,</span>
-            <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span> <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;colormap_name&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;vertices_b64&quot;</span><span class="p">:</span>   <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">verts_arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="s2">&quot;vertices_count&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">verts_arr</span><span class="p">),</span>
+            <span class="s2">&quot;faces_b64&quot;</span><span class="p">:</span>      <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">faces_arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="s2">&quot;faces_count&quot;</span><span class="p">:</span>    <span class="nb">len</span><span class="p">(</span><span class="n">faces_arr</span><span class="p">),</span>
+            <span class="s2">&quot;z_values_b64&quot;</span><span class="p">:</span>   <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">zvals_arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="s2">&quot;data_bounds&quot;</span><span class="p">:</span>    <span class="n">data_bounds</span><span class="p">,</span>
+            <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span>  <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;colormap_name&quot;</span><span class="p">]),</span>
         <span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
@@ -2034,6 +2158,117 @@
         <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vertices&quot;</span><span class="p">,</span> <span class="p">[]))</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Plot3D(geom=</span><span class="si">{</span><span class="n">geom</span><span class="si">!r}</span><span class="s2">, n_vertices=</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">)&quot;</span></div>
 
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Line1D — per-line handle</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Line1D</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle to a single line on a :class:`Plot1D` panel.</span>
+
+<span class="sd">    Returned by :meth:`Plot1D.add_line`.  Use it to update the line data,</span>
+<span class="sd">    register hover/click callbacks scoped to just that line, or to remove</span>
+<span class="sd">    it later.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    id : str | None</span>
+<span class="sd">        ``None`` for the primary line; an 8-character UUID string for</span>
+<span class="sd">        overlay lines added with :meth:`Plot1D.add_line`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">:</span> <span class="s2">&quot;Plot1D&quot;</span><span class="p">,</span> <span class="n">lid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="o">=</span> <span class="n">plot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span>  <span class="o">=</span> <span class="n">lid</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Line1D(id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_lid</span><span class="si">!r}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Line1D</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_lid</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span> <span class="o">==</span> <span class="n">other</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lid</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_hover</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the cursor moves over *this* line only.&quot;&quot;&quot;</span>
+        <span class="n">target_lid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_filtered</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line_id&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">target_lid</span><span class="p">:</span>
+                <span class="n">fn</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_hover&quot;</span><span class="p">,</span> <span class="n">_filtered</span><span class="p">)</span>
+        <span class="n">_filtered</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span>        <span class="o">=</span> <span class="n">cid</span>
+        <span class="k">return</span> <span class="n">fn</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the user clicks on *this* line only.&quot;&quot;&quot;</span>
+        <span class="n">target_lid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_filtered</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line_id&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">target_lid</span><span class="p">:</span>
+                <span class="n">fn</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_click&quot;</span><span class="p">,</span> <span class="n">_filtered</span><span class="p">)</span>
+        <span class="n">_filtered</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span>        <span class="o">=</span> <span class="n">cid</span>
+        <span class="k">return</span> <span class="n">fn</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="s2">&quot;np.ndarray&quot;</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the y-data (and optionally x-axis) of this overlay line.</span>
+
+<span class="sd">        The y-axis range is recomputed and the panel re-renders immediately.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        y : array-like, shape (N,)</span>
+<span class="sd">            New y values.  Must be 1-D.</span>
+<span class="sd">        x_axis : array-like, shape (N,), optional</span>
+<span class="sd">            New x coordinates.  If omitted the existing x-axis is kept.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If called on the primary line (use :meth:`Plot1D.set_data`</span>
+<span class="sd">            instead), or if *y* is not 1-D.</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If this line has already been removed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot call set_data() on the primary line; &quot;</span>
+                <span class="s2">&quot;use plot.set_data() instead.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;y must be 1-D&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span><span class="p">:</span>
+                <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
+                <span class="k">if</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">_recompute_data_range</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove this overlay line from its parent plot.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot remove the primary line via Line1D.remove().&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">remove_line</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lid</span><span class="p">)</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -2161,8 +2396,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;kind&quot;</span><span class="p">:</span>             <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;data&quot;</span><span class="p">:</span>             <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>           <span class="n">x_axis</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span>             <span class="n">data</span><span class="p">,</span>          <span class="c1"># numpy float64 — encoded in to_state_dict()</span>
+            <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>           <span class="n">x_axis</span><span class="p">,</span>        <span class="c1"># numpy float64 — encoded in to_state_dict()</span>
             <span class="s2">&quot;units&quot;</span><span class="p">:</span>            <span class="n">units</span><span class="p">,</span>
             <span class="s2">&quot;y_units&quot;</span><span class="p">:</span>          <span class="n">y_units</span><span class="p">,</span>
             <span class="s2">&quot;data_min&quot;</span><span class="p">:</span>         <span class="n">dmin</span><span class="p">,</span>
@@ -2202,17 +2437,56 @@
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.to_state_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
+        <span class="c1"># Replace numpy arrays with b64-encoded strings for the wire format.</span>
+        <span class="n">data_arr</span>  <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        <span class="n">x_arr</span>     <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;x_axis&quot;</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_b64&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">data_arr</span><span class="p">,</span>  <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;x_axis_b64&quot;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">x_arr</span><span class="p">,</span>     <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_arr</span><span class="p">)</span>
+        <span class="c1"># Encode extra-line arrays too</span>
+        <span class="n">new_extra</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]:</span>
+            <span class="n">ex2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+            <span class="n">ex2</span><span class="p">[</span><span class="s2">&quot;data_b64&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">ex2</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">),</span>  <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">ex2</span><span class="p">[</span><span class="s2">&quot;x_axis_b64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_arr_to_b64</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ex2</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;x_axis&quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">new_extra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex2</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">new_extra</span>
         <span class="n">d</span><span class="p">[</span><span class="s2">&quot;overlay_widgets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
-        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;markers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">to_wire_list</span><span class="p">()</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;markers&quot;</span><span class="p">]</span>         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">to_wire_list</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">d</span></div>
 
 
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">line</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Line1D&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle for the primary line, enabling per-line callbacks.</span>
+
+<span class="sd">        Returns a :class:`Line1D` with ``id=None`` so you can register</span>
+<span class="sd">        hover / click handlers scoped to just the primary line::</span>
+
+<span class="sd">            @plot.line.on_click</span>
+<span class="sd">            def on_primary_click(event):</span>
+<span class="sd">                print(f&quot;primary line clicked at x={event.x:.3f}&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Line1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
     <span class="c1"># ------------------------------------------------------------------</span>
-    <span class="c1"># Data update</span>
+    <span class="c1"># Data</span>
     <span class="c1"># ------------------------------------------------------------------</span>
-<div class="viewcode-block" id="Plot1D.update">
-<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.update">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The primary line&#39;s y-data (read-only).</span>
+
+<span class="sd">        Returns a float64 copy with ``writeable=False``.  To replace the</span>
+<span class="sd">        data call :meth:`set_data`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">arr</span>
+
+<div class="viewcode-block" id="Plot1D.set_data">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.set_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the primary line&#39;s y-data and optionally its x-axis / units.</span>
 
@@ -2238,7 +2512,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data must be 1-D, got </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">prev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">])</span>
+            <span class="n">prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">]</span>          <span class="c1"># already a numpy array</span>
             <span class="n">x_axis</span> <span class="o">=</span> <span class="n">prev</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev</span><span class="p">)</span> <span class="o">==</span> <span class="n">n</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="n">x_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
@@ -2246,8 +2520,8 @@
         <span class="n">dmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
         <span class="n">pad</span>  <span class="o">=</span> <span class="p">(</span><span class="n">dmax</span> <span class="o">-</span> <span class="n">dmin</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span> <span class="k">if</span> <span class="n">dmax</span> <span class="o">&gt;</span> <span class="n">dmin</span> <span class="k">else</span> <span class="mf">0.5</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">x_axis</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">x_axis</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmin</span> <span class="o">-</span> <span class="n">pad</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmax</span> <span class="o">+</span> <span class="n">pad</span>
         <span class="k">if</span> <span class="n">units</span>    <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">units</span>
@@ -2261,10 +2535,11 @@
 <span class="sd">        Called automatically whenever the set of lines changes so that every</span>
 <span class="sd">        curve stays fully visible.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">all_vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)]</span>
+        <span class="n">all_vals</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]]</span>   <span class="c1"># already a numpy float64 array</span>
         <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="n">ex</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">):</span>
-                <span class="n">all_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                <span class="n">all_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
         <span class="n">combined</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">all_vals</span><span class="p">)</span>
         <span class="n">dmin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">combined</span><span class="p">))</span>
         <span class="n">dmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">combined</span><span class="p">))</span>
@@ -2282,7 +2557,7 @@
                  <span class="n">linestyle</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;solid&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
                  <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">,</span>
-                 <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+                 <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Line1D&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Overlay an additional curve on this panel.</span>
 
 <span class="sd">        The y-axis range is automatically expanded to include the new data so</span>
@@ -2315,27 +2590,24 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        str</span>
-<span class="sd">            An 8-character ID string.  Pass it to :meth:`remove_line` to</span>
-<span class="sd">            delete this line later.</span>
+<span class="sd">        Line1D</span>
+<span class="sd">            A handle to the new overlay line.  Use it to register</span>
+<span class="sd">            per-line hover/click callbacks or to remove the line later::</span>
 
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        ::</span>
-
-<span class="sd">            lid = v.add_line(fit, x_axis=x, color=&quot;#ffcc00&quot;, label=&quot;fit&quot;)</span>
-<span class="sd">            # … later …</span>
-<span class="sd">            v.remove_line(lid)</span>
+<span class="sd">                line = v.add_line(fit, color=&quot;#ffcc00&quot;, label=&quot;fit&quot;)</span>
+<span class="sd">                line.remove()                     # remove it</span>
+<span class="sd">                @line.on_click                    # per-line click handler</span>
+<span class="sd">                def clicked(event): ...</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data must be 1-D&quot;</span><span class="p">)</span>
-        <span class="n">xa</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">xa</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">if</span> <span class="n">x_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
               <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">])</span>
         <span class="n">lid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
             <span class="s2">&quot;id&quot;</span><span class="p">:</span>         <span class="n">lid</span><span class="p">,</span>
-            <span class="s2">&quot;data&quot;</span><span class="p">:</span>       <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span>       <span class="n">data</span><span class="p">,</span>
             <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>     <span class="n">xa</span><span class="p">,</span>
             <span class="s2">&quot;color&quot;</span><span class="p">:</span>      <span class="n">color</span><span class="p">,</span>
             <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span>  <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
@@ -2347,26 +2619,28 @@
         <span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_recompute_data_range</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">lid</span></div>
+        <span class="k">return</span> <span class="n">Line1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lid</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.remove_line">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.remove_line">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">remove_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove an overlay line by its ID.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lid</span><span class="p">:</span> <span class="s2">&quot;str | Line1D&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove an overlay line by its ID or :class:`Line1D` handle.</span>
 
 <span class="sd">        The y-axis range is recomputed after removal.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        lid : str</span>
-<span class="sd">            The ID returned by :meth:`add_line`.</span>
+<span class="sd">        lid : str or Line1D</span>
+<span class="sd">            The value returned by :meth:`add_line`.</span>
 
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
 <span class="sd">        KeyError</span>
 <span class="sd">            If *lid* does not match any overlay line.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lid</span><span class="p">,</span> <span class="n">Line1D</span><span class="p">):</span>
+            <span class="n">lid</span> <span class="o">=</span> <span class="n">lid</span><span class="o">.</span><span class="n">_lid</span>
         <span class="n">before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lid</span><span class="p">]</span>
@@ -2519,8 +2793,11 @@
 <div class="viewcode-block" id="Plot1D.add_range_widget">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.add_range_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_range_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-                         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_RangeWidget</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable range (two vertical lines + shaded fill) overlay.</span>
+                         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span>
+                         <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+                         <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_RangeWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable range overlay to this panel.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -2528,6 +2805,17 @@
 <span class="sd">            Initial left and right edges in data coordinates.</span>
 <span class="sd">        color : str, optional</span>
 <span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        style : {&#39;band&#39;, &#39;fwhm&#39;}, optional</span>
+<span class="sd">            Visual style.  ``&#39;band&#39;`` (default) draws two vertical lines with</span>
+<span class="sd">            a translucent fill.  ``&#39;fwhm&#39;`` draws two draggable circles</span>
+<span class="sd">            connected by a dashed horizontal line at *y* (the half-maximum</span>
+<span class="sd">            level), giving an ``o-------o`` FWHM indicator.</span>
+<span class="sd">        y : float, optional</span>
+<span class="sd">            Y-coordinate (data space) for the connecting line when</span>
+<span class="sd">            ``style=&#39;fwhm&#39;``.  Ignored when ``style=&#39;band&#39;``.  Default 0.</span>
+<span class="sd">        _push : bool, optional</span>
+<span class="sd">            Push state to JS immediately. Set to ``False`` when adding</span>
+<span class="sd">            several widgets at once; call :meth:`_push` manually afterward.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -2535,7 +2823,8 @@
 <span class="sd">            Widget object.  Register position callbacks with</span>
 <span class="sd">            :meth:`on_changed` / :meth:`on_release`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">widget</span> <span class="o">=</span> <span class="n">_RangeWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">_RangeWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span>
+                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
         <span class="n">plot_ref</span><span class="p">,</span> <span class="n">wid_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">_id</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">_tp</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2543,7 +2832,49 @@
                 <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_widget</span><span class="p">(</span><span class="n">plot_ref</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="n">wid_id</span><span class="p">,</span> <span class="n">fields</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">_tp</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.add_point_widget">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.add_point_widget">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_point_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">show_crosshair</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                         <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_PointWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a freely-draggable control point to this panel.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : float</span>
+<span class="sd">            Initial x position in data coordinates.</span>
+<span class="sd">        y : float</span>
+<span class="sd">            Initial y position in data coordinates (value axis).</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        show_crosshair : bool, optional</span>
+<span class="sd">            Draw dashed guide lines through the handle.  Default ``True``.</span>
+<span class="sd">            Pass ``False`` for a plain dot with no guide lines.</span>
+<span class="sd">        _push : bool, optional</span>
+<span class="sd">            Push state to JS immediately. Set to ``False`` when adding</span>
+<span class="sd">            several widgets at once; call :meth:`_push` manually afterward.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PointWidget</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">_PointWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                              <span class="n">show_crosshair</span><span class="o">=</span><span class="n">show_crosshair</span><span class="p">)</span>
+        <span class="n">plot_ref</span><span class="p">,</span> <span class="n">wid_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">_id</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_tp_point</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">widget</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">)}</span>
+                <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_widget</span><span class="p">(</span><span class="n">plot_ref</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="n">wid_id</span><span class="p">,</span> <span class="n">fields</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">_tp_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">widget</span></div>
 
 
@@ -2667,6 +2998,33 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove the callback registered under integer *cid*.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.on_line_hover">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.on_line_hover">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_line_hover</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the cursor moves over *any* line on this panel.</span>
+
+<span class="sd">        The event carries ``event.line_id`` (``None`` = primary line,</span>
+<span class="sd">        str = overlay), ``event.x``, and ``event.y`` in data coordinates.</span>
+<span class="sd">        For per-line filtering use :meth:`Line1D.on_hover` instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_hover&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
+        <span class="k">return</span> <span class="n">fn</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.on_line_click">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Plot1D.html#anyplotlib.figure_plots.Plot1D.on_line_click">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_line_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the user clicks *any* line on this panel.</span>
+
+<span class="sd">        The event carries the same fields as :meth:`on_line_hover`.</span>
+<span class="sd">        For per-line filtering use :meth:`Line1D.on_click` instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_click&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
+        <span class="k">return</span> <span class="n">fn</span></div>
 
 
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -3322,6 +3680,37 @@
 <span class="c1"># PlotBar</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
+<span class="n">_LOG_CLAMP</span> <span class="o">=</span> <span class="mf">1e-10</span>  <span class="c1"># smallest positive value used when log_scale=True</span>
+
+<span class="n">_DEFAULT_GROUP_PALETTE</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="s2">&quot;#66bb6a&quot;</span><span class="p">,</span> <span class="s2">&quot;#ab47bc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;#ffa726&quot;</span><span class="p">,</span> <span class="s2">&quot;#26c6da&quot;</span><span class="p">,</span> <span class="s2">&quot;#ec407a&quot;</span><span class="p">,</span> <span class="s2">&quot;#8d6e63&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_bar_range</span><span class="p">(</span><span class="n">flat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">bottom</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">log_scale</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return ``(dmin, dmax)`` with padding for the value axis.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">log_scale</span><span class="p">:</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">flat</span><span class="p">[</span><span class="n">flat</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">dmin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">pos</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="k">else</span> <span class="n">_LOG_CLAMP</span>
+        <span class="n">dmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">flat</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+                   <span class="n">bottom</span> <span class="k">if</span> <span class="n">bottom</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">_LOG_CLAMP</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dmin</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dmin</span> <span class="o">=</span> <span class="n">_LOG_CLAMP</span>
+        <span class="k">if</span> <span class="n">dmax</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dmax</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">dmax</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">dmax</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.15</span><span class="p">)</span>
+        <span class="n">dmin</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">dmin</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.15</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dmin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">bottom</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">flat</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">dmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bottom</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">flat</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="p">(</span><span class="n">dmax</span> <span class="o">-</span> <span class="n">dmin</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.07</span> <span class="k">if</span> <span class="n">dmax</span> <span class="o">&gt;</span> <span class="n">dmin</span> <span class="k">else</span> <span class="mf">0.5</span>
+        <span class="n">dmax</span> <span class="o">+=</span> <span class="n">pad</span>
+        <span class="k">if</span> <span class="n">dmin</span> <span class="o">&lt;</span> <span class="n">bottom</span><span class="p">:</span>
+            <span class="n">dmin</span> <span class="o">-=</span> <span class="n">pad</span>
+    <span class="k">return</span> <span class="n">dmin</span><span class="p">,</span> <span class="n">dmax</span>
+
+
 <div class="viewcode-block" id="PlotBar">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.PlotBar.html#anyplotlib.figure_plots.PlotBar">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PlotBar</span><span class="p">:</span>
@@ -3330,72 +3719,122 @@
 <span class="sd">    Not an anywidget.  Holds state in ``_state`` dict; every mutation calls</span>
 <span class="sd">    ``_push()`` which writes to the parent Figure&#39;s panel trait.</span>
 
-<span class="sd">    Supports draggable :class:`~anyplotlib.widgets.VLineWidget` and</span>
-<span class="sd">    :class:`~anyplotlib.widgets.HLineWidget` overlays via</span>
-<span class="sd">    :meth:`add_vline_widget` / :meth:`add_hline_widget`.</span>
+<span class="sd">    Supports grouped bars (pass a 2-D *height* array with shape ``(N, G)``),</span>
+<span class="sd">    log-scale value axis, draggable overlay widgets, and hover/click callbacks.</span>
 
 <span class="sd">    Created by :meth:`Axes.bar`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
-                 <span class="n">x_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">x_centers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">bottom</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">align</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;center&quot;</span><span class="p">,</span>
                  <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span>
                  <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">bar_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>
                  <span class="n">orient</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;v&quot;</span><span class="p">,</span>
-                 <span class="n">baseline</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+                 <span class="n">log_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">group_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">group_colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">show_values</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                  <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-                 <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+                 <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                 <span class="c1"># ── legacy backward-compat kwargs ──────────────────────</span>
+                 <span class="n">x_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">x_centers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">bar_width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">baseline</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">values</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">:</span>  <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;values must be 1-D, got shape </span><span class="si">{</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># ── legacy resolution ──────────────────────────────────────────</span>
+        <span class="k">if</span> <span class="n">height</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">height</span> <span class="o">=</span> <span class="n">values</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">height</span> <span class="o">=</span> <span class="n">x</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">baseline</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bottom</span> <span class="o">=</span> <span class="n">baseline</span>
+        <span class="k">if</span> <span class="n">bar_width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="n">bar_width</span>
+
+        <span class="c1"># ── height (values) — 1-D or 2-D for grouped bars ─────────────</span>
+        <span class="n">height_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">groups</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">values_2d</span> <span class="o">=</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">groups</span> <span class="o">=</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">values_2d</span> <span class="o">=</span> <span class="n">height_arr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;height must be 1-D or 2-D, got shape </span><span class="si">{</span><span class="n">height_arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">values_2d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
         <span class="k">if</span> <span class="n">orient</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;orient must be &#39;v&#39; or &#39;h&#39;&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">x_centers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">x_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="n">x_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_centers</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_centers</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x_centers length must match values length&quot;</span><span class="p">)</span>
+        <span class="c1"># ── x (positions or labels) ────────────────────────────────────</span>
+        <span class="n">_x_labels</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">_x_centers</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">val_min</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">values</span><span class="p">))</span> <span class="k">if</span> <span class="n">n</span> <span class="k">else</span> <span class="mf">0.0</span>
-        <span class="n">val_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">values</span><span class="p">))</span> <span class="k">if</span> <span class="n">n</span> <span class="k">else</span> <span class="mf">1.0</span>
-        <span class="n">dmin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">),</span> <span class="n">val_min</span><span class="p">)</span>
-        <span class="n">dmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">),</span> <span class="n">val_max</span><span class="p">)</span>
-        <span class="n">pad</span>  <span class="o">=</span> <span class="p">(</span><span class="n">dmax</span> <span class="o">-</span> <span class="n">dmin</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.07</span> <span class="k">if</span> <span class="n">dmax</span> <span class="o">&gt;</span> <span class="n">dmin</span> <span class="k">else</span> <span class="mf">0.5</span>
-        <span class="n">dmax</span> <span class="o">+=</span> <span class="n">pad</span>
-        <span class="k">if</span> <span class="n">dmin</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">):</span>
-            <span class="n">dmin</span> <span class="o">-=</span> <span class="n">pad</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x_list</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">_x_labels</span> <span class="o">=</span> <span class="n">x_list</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_x_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
-        <span class="c1"># Compute physical x-axis extent (left/right edges of the bar chart)</span>
-        <span class="c1"># so that vline_widgets map to the correct pixel positions.</span>
-        <span class="n">x_axis</span> <span class="o">=</span> <span class="n">_bar_x_axis</span><span class="p">(</span><span class="n">x_centers</span><span class="p">)</span>
+        <span class="c1"># Legacy keyword overrides</span>
+        <span class="k">if</span> <span class="n">x_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_x_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_labels</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x_centers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_x_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_centers</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">_x_centers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_x_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_x_centers</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x length must match height length&quot;</span><span class="p">)</span>
+
+        <span class="c1"># ── data range ─────────────────────────────────────────────────</span>
+        <span class="n">flat</span> <span class="o">=</span> <span class="n">values_2d</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">dmin</span><span class="p">,</span> <span class="n">dmax</span> <span class="o">=</span> <span class="n">_bar_range</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">bottom</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">log_scale</span><span class="p">))</span>
+
+        <span class="c1"># ── group colours ──────────────────────────────────────────────</span>
+        <span class="k">if</span> <span class="n">group_colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">gc_list</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">[</span><span class="n">_DEFAULT_GROUP_PALETTE</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">_DEFAULT_GROUP_PALETTE</span><span class="p">)]</span>
+                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">groups</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gc_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">group_colors</span><span class="p">)</span>
+
+        <span class="n">x_axis</span> <span class="o">=</span> <span class="n">_bar_x_axis</span><span class="p">(</span><span class="n">_x_centers</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;kind&quot;</span><span class="p">:</span>        <span class="s2">&quot;bar&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;values&quot;</span><span class="p">:</span>      <span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;x_centers&quot;</span><span class="p">:</span>   <span class="n">x_centers</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;x_labels&quot;</span><span class="p">:</span>    <span class="nb">list</span><span class="p">(</span><span class="n">x_labels</span><span class="p">)</span> <span class="k">if</span> <span class="n">x_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[],</span>
-            <span class="s2">&quot;bar_color&quot;</span><span class="p">:</span>   <span class="n">color</span><span class="p">,</span>
-            <span class="s2">&quot;bar_colors&quot;</span><span class="p">:</span>  <span class="nb">list</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span> <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[],</span>
-            <span class="s2">&quot;bar_width&quot;</span><span class="p">:</span>   <span class="nb">float</span><span class="p">(</span><span class="n">bar_width</span><span class="p">),</span>
-            <span class="s2">&quot;orient&quot;</span><span class="p">:</span>      <span class="n">orient</span><span class="p">,</span>
-            <span class="s2">&quot;baseline&quot;</span><span class="p">:</span>    <span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">),</span>
-            <span class="s2">&quot;show_values&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">show_values</span><span class="p">),</span>
-            <span class="s2">&quot;data_min&quot;</span><span class="p">:</span>    <span class="n">dmin</span><span class="p">,</span>
-            <span class="s2">&quot;data_max&quot;</span><span class="p">:</span>    <span class="n">dmax</span><span class="p">,</span>
-            <span class="s2">&quot;units&quot;</span><span class="p">:</span>       <span class="n">units</span><span class="p">,</span>
-            <span class="s2">&quot;y_units&quot;</span><span class="p">:</span>     <span class="n">y_units</span><span class="p">,</span>
+            <span class="s2">&quot;kind&quot;</span><span class="p">:</span>          <span class="s2">&quot;bar&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;values&quot;</span><span class="p">:</span>        <span class="n">values_2d</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>   <span class="c1"># always (N, G) 2-D list</span>
+            <span class="s2">&quot;groups&quot;</span><span class="p">:</span>        <span class="n">groups</span><span class="p">,</span>
+            <span class="s2">&quot;x_centers&quot;</span><span class="p">:</span>     <span class="n">_x_centers</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;x_labels&quot;</span><span class="p">:</span>      <span class="n">_x_labels</span><span class="p">,</span>
+            <span class="s2">&quot;bar_color&quot;</span><span class="p">:</span>     <span class="n">color</span><span class="p">,</span>
+            <span class="s2">&quot;bar_colors&quot;</span><span class="p">:</span>    <span class="nb">list</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span> <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[],</span>
+            <span class="s2">&quot;group_labels&quot;</span><span class="p">:</span>  <span class="nb">list</span><span class="p">(</span><span class="n">group_labels</span><span class="p">)</span> <span class="k">if</span> <span class="n">group_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[],</span>
+            <span class="s2">&quot;group_colors&quot;</span><span class="p">:</span>  <span class="n">gc_list</span><span class="p">,</span>
+            <span class="s2">&quot;bar_width&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">(</span><span class="n">width</span><span class="p">),</span>
+            <span class="s2">&quot;orient&quot;</span><span class="p">:</span>        <span class="n">orient</span><span class="p">,</span>
+            <span class="s2">&quot;baseline&quot;</span><span class="p">:</span>      <span class="nb">float</span><span class="p">(</span><span class="n">bottom</span><span class="p">),</span>
+            <span class="s2">&quot;log_scale&quot;</span><span class="p">:</span>     <span class="nb">bool</span><span class="p">(</span><span class="n">log_scale</span><span class="p">),</span>
+            <span class="s2">&quot;show_values&quot;</span><span class="p">:</span>   <span class="nb">bool</span><span class="p">(</span><span class="n">show_values</span><span class="p">),</span>
+            <span class="s2">&quot;data_min&quot;</span><span class="p">:</span>      <span class="n">dmin</span><span class="p">,</span>
+            <span class="s2">&quot;data_max&quot;</span><span class="p">:</span>      <span class="n">dmax</span><span class="p">,</span>
+            <span class="s2">&quot;units&quot;</span><span class="p">:</span>         <span class="n">units</span><span class="p">,</span>
+            <span class="s2">&quot;y_units&quot;</span><span class="p">:</span>       <span class="n">y_units</span><span class="p">,</span>
             <span class="c1"># overlay-widget coordinate system (mirrors Plot1D)</span>
-            <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>      <span class="n">x_axis</span><span class="p">,</span>
-            <span class="s2">&quot;view_x0&quot;</span><span class="p">:</span>     <span class="mf">0.0</span><span class="p">,</span>
-            <span class="s2">&quot;view_x1&quot;</span><span class="p">:</span>     <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>        <span class="n">x_axis</span><span class="p">,</span>
+            <span class="s2">&quot;view_x0&quot;</span><span class="p">:</span>       <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">&quot;view_x1&quot;</span><span class="p">:</span>       <span class="mf">1.0</span><span class="p">,</span>
             <span class="s2">&quot;overlay_widgets&quot;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s2">&quot;registered_keys&quot;</span><span class="p">:</span> <span class="p">[],</span>
         <span class="p">}</span>
@@ -3418,29 +3857,53 @@
 
 
     <span class="c1"># ------------------------------------------------------------------</span>
-    <span class="c1"># Data update</span>
+    <span class="c1"># Data</span>
     <span class="c1"># ------------------------------------------------------------------</span>
-<div class="viewcode-block" id="PlotBar.update">
-<a class="viewcode-back" href="../../api/generated/anyplotlib.PlotBar.html#anyplotlib.figure_plots.PlotBar.update">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">x_centers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace bar values; recalculates the value-axis range automatically.&quot;&quot;&quot;</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;values must be 1-D, got shape </span><span class="si">{</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="PlotBar.set_data">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.PlotBar.html#anyplotlib.figure_plots.PlotBar.set_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x_centers</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace bar heights; recalculates the value-axis range automatically.</span>
 
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        height : array-like, shape ``(N,)`` or ``(N, G)``</span>
+<span class="sd">            New bar heights.  For grouped charts the group count *G* must</span>
+<span class="sd">            match the original.</span>
+<span class="sd">        x : array-like of numeric, optional</span>
+<span class="sd">            New bar positions (replaces the stored ``x_centers``).  Also</span>
+<span class="sd">            accepts the legacy keyword alias ``x_centers``.</span>
+<span class="sd">        x_labels : list of str, optional</span>
+<span class="sd">            New category labels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">height_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">values_2d</span> <span class="o">=</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">expected_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;groups&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">height_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">expected_g</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Group count mismatch: expected </span><span class="si">{</span><span class="n">expected_g</span><span class="si">}</span><span class="s2">, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="n">height_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">values_2d</span> <span class="o">=</span> <span class="n">height_arr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;height must be 1-D or 2-D, got shape </span><span class="si">{</span><span class="n">height_arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">flat</span> <span class="o">=</span> <span class="n">values_2d</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
         <span class="n">baseline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;baseline&quot;</span><span class="p">]</span>
-        <span class="n">dmin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">values</span><span class="p">)))</span>
-        <span class="n">dmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">values</span><span class="p">)))</span>
-        <span class="n">pad</span>  <span class="o">=</span> <span class="p">(</span><span class="n">dmax</span> <span class="o">-</span> <span class="n">dmin</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.07</span> <span class="k">if</span> <span class="n">dmax</span> <span class="o">&gt;</span> <span class="n">dmin</span> <span class="k">else</span> <span class="mf">0.5</span>
-        <span class="n">dmax</span> <span class="o">+=</span> <span class="n">pad</span>
-        <span class="k">if</span> <span class="n">dmin</span> <span class="o">&lt;</span> <span class="n">baseline</span><span class="p">:</span>
-            <span class="n">dmin</span> <span class="o">-=</span> <span class="n">pad</span>
+        <span class="n">log_scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;log_scale&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">dmin</span><span class="p">,</span> <span class="n">dmax</span> <span class="o">=</span> <span class="n">_bar_range</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">log_scale</span><span class="p">))</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">values_2d</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmin</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmax</span>
-        <span class="k">if</span> <span class="n">x_centers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">xc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_centers</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># Accept both `x` and legacy `x_centers` keyword</span>
+        <span class="n">_x</span> <span class="o">=</span> <span class="n">x</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x_centers</span>
+        <span class="k">if</span> <span class="n">_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">_x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_centers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xc</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">_bar_x_axis</span><span class="p">(</span><span class="n">xc</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">x_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -3472,6 +3935,24 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">set_show_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">show</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Show or hide in-bar value annotations.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;show_values&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">show</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PlotBar.set_log_scale">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.PlotBar.html#anyplotlib.figure_plots.PlotBar.set_log_scale">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_log_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_scale</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Enable or disable a logarithmic value axis.</span>
+
+<span class="sd">        When *log_scale* is ``True`` any non-positive values are clamped to</span>
+<span class="sd">        ``1e-10`` for display; the data-range bounds are recalculated in</span>
+<span class="sd">        log-space automatically.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;log_scale&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">log_scale</span><span class="p">)</span>
+        <span class="n">flat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;baseline&quot;</span><span class="p">]</span>
+        <span class="n">dmin</span><span class="p">,</span> <span class="n">dmax</span> <span class="o">=</span> <span class="n">_bar_range</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">baseline</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">log_scale</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmax</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
@@ -3507,6 +3988,49 @@
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">_tp</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+
+<div class="viewcode-block" id="PlotBar.add_range_widget">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.PlotBar.html#anyplotlib.figure_plots.PlotBar.add_range_widget">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_range_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span>
+                         <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+                         <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_RangeWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable range overlay. See :meth:`Plot1D.add_range_widget` for full docs.&quot;&quot;&quot;</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">_RangeWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span>
+                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+        <span class="n">plot_ref</span><span class="p">,</span> <span class="n">wid_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">_id</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_tp</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">widget</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">)}</span>
+                <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_widget</span><span class="p">(</span><span class="n">plot_ref</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="n">wid_id</span><span class="p">,</span> <span class="n">fields</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">_tp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+
+<div class="viewcode-block" id="PlotBar.add_point_widget">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.PlotBar.html#anyplotlib.figure_plots.PlotBar.add_point_widget">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_point_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">show_crosshair</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                         <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_PointWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a freely-draggable control point to this panel.&quot;&quot;&quot;</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">_PointWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                              <span class="n">show_crosshair</span><span class="o">=</span><span class="n">show_crosshair</span><span class="p">)</span>
+        <span class="n">plot_ref</span><span class="p">,</span> <span class="n">wid_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">_id</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_tp</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">widget</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">)}</span>
+                <span class="n">plot_ref</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_widget</span><span class="p">(</span><span class="n">plot_ref</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="n">wid_id</span><span class="p">,</span> <span class="n">fields</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">_tp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">widget</span></div>
 
 
@@ -3632,6 +4156,9 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">,</span> <span class="p">[]))</span>
         <span class="n">orient</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orient&quot;</span><span class="p">,</span> <span class="s2">&quot;v&quot;</span><span class="p">)</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;groups&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">groups</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PlotBar(n=</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, groups=</span><span class="si">{</span><span class="n">groups</span><span class="si">}</span><span class="s2">, orient=</span><span class="si">{</span><span class="n">orient</span><span class="si">!r}</span><span class="s2">)&quot;</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PlotBar(n=</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, orient=</span><span class="si">{</span><span class="n">orient</span><span class="si">!r}</span><span class="s2">)&quot;</span></div>
 
 
@@ -3668,8 +4195,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -3703,7 +4230,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
 </p></div>
       
     </div>

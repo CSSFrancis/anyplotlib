@@ -1,0 +1,50 @@
+
+
+.. _sphx_glr_auto_examples_Benchmarks:
+
+Benchmarks
+----------
+
+Timing comparisons for the Python-side data-push pipeline in anyplotlib,
+matplotlib, Plotly, and Bokeh.  All measurements capture only the
+**Python serialisation cost** — the bottleneck in a live Jupyter session
+where new data must be encoded and dispatched to the browser on every frame.
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="There are a couple of different &quot;costs&quot; asscociated with rendering plots and images. There is usually a Python-side cost as well as a browser-side rendering cost. We&#x27;ve broken down those two costs here comparing different libraries for the first cost.  The second is harder to measure.  We&#x27;ve done it for anyplotlib but doing it for ipympl, bokeh and plotly is a little more difficult.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Benchmarks/images/thumb/sphx_glr_plot_benchmark_comparison_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Benchmarks/plot_benchmark_comparison`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Plot Update Comparison</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/Benchmarks/plot_benchmark_comparison
+

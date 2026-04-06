@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
@@ -35,32 +35,38 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/figure';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/_modules/anyplotlib/figure.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
   </head>
-  
-  
-  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
-
+  <body data-default-mode="">
   
   
   <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
   
   <div id="pst-scroll-pixel-helper"></div>
   
@@ -92,7 +98,7 @@
 </div>
 
   
-    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
 <div class="bd-header__inner bd-page-width">
   <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
     <span class="fa-solid fa-bars"></span>
@@ -153,6 +159,20 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../auto_examples/index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -252,6 +272,20 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../auto_examples/index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -412,11 +446,16 @@
 <span class="sd">    subplots : Recommended factory for creating Figure and Axes grid.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">layout_json</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">fig_width</span>   <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">640</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">fig_height</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">480</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">layout_json</span>    <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">fig_width</span>      <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">640</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">fig_height</span>     <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">480</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="c1"># Bidirectional JS event bus: JS writes interaction events here, Python reads them.</span>
-    <span class="n">event_json</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">event_json</span>     <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># When True the JS renderer shows a per-panel FPS / frame-time overlay.</span>
+    <span class="n">display_stats</span>  <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Figure-level help text shown in a &#39;?&#39; badge overlay in JS.</span>
+    <span class="c1"># Empty string means no badge.  Gated by apl.show_help at the Python level.</span>
+    <span class="n">help_text</span>      <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">_esm</span> <span class="o">=</span> <span class="n">_ESM_SOURCE</span>
     <span class="c1"># Static CSS injected by anywidget alongside _esm.</span>
     <span class="c1"># .apl-scale-wrap  — outer container; width:100% means it always fills</span>
@@ -441,12 +480,20 @@
 <span class="s2">    will-change: transform;</span>
 <span class="s2">    transform-origin: top left;</span>
 <span class="s2">    vertical-align: top;</span>
+<span class="s2">    /* min-width: max-content prevents the inline-block from shrinking when</span>
+<span class="s2">       the parent container (scaleWrap, width:100%) narrows because the</span>
+<span class="s2">       Jupyter cell is narrower than the figure&#39;s native width.  Without</span>
+<span class="s2">       this, outerDiv.offsetWidth collapses to cellW, causing _applyScale()</span>
+<span class="s2">       to compute s = cellW/cellW = 1.0 (no-op) instead of the correct</span>
+<span class="s2">       s = cellW/nativeW &lt; 1. */</span>
+<span class="s2">    min-width: max-content;</span>
 <span class="s2">}</span>
 <span class="s2">&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">480</span><span class="p">),</span>
                  <span class="n">width_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">sharex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                 <span class="n">sharex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">display_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_nrows</span> <span class="o">=</span> <span class="n">nrows</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ncols</span> <span class="o">=</span> <span class="n">ncols</span>
@@ -457,9 +504,42 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="p">:</span> <span class="nb">dict</span>  <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_trait_notifications</span><span class="p">():</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>  <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span> <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>     <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span>    <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">display_stats</span> <span class="o">=</span> <span class="n">display_stats</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">help_text</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_help</span><span class="p">(</span><span class="n">help</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_help</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return *text* if ``apl.show_help`` is True (default), else ``&quot;&quot;``.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_apl</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_apl</span><span class="p">,</span> <span class="s2">&quot;show_help&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+                <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">text</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+
+<div class="viewcode-block" id="Figure.set_help">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.set_help">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set (or clear) the figure-level help text shown in the **?** badge.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        text : str</span>
+<span class="sd">            Help string displayed when the user clicks the **?** badge.</span>
+<span class="sd">            Pass an empty string (or ``&quot;&quot;`` ) to remove the badge entirely.</span>
+<span class="sd">            Newlines (``\\n``) are respected in the card.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; fig.set_help(&quot;Drag peak: move μ/A\\nPress f: least-squares fit&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; fig.set_help(&quot;&quot;)   # hide the badge</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_help</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+
 
     <span class="c1"># ── subplot creation ──────────────────────────────────────────────────────</span>
 <div class="viewcode-block" id="Figure.add_subplot">
@@ -689,7 +769,9 @@
              <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">480</span><span class="p">),</span>
              <span class="n">width_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">height_ratios</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">gridspec_kw</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+             <span class="n">gridspec_kw</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">display_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a :class:`Figure` and a grid of :class:`~anyplotlib.figure_plots.Axes`.</span>
 
 <span class="sd">    Mirrors :func:`matplotlib.pyplot.subplots`.</span>
@@ -711,6 +793,13 @@
 <span class="sd">    gridspec_kw : dict, optional</span>
 <span class="sd">        Extra keyword arguments forwarded to :class:`GridSpec`.</span>
 <span class="sd">        Recognised keys: ``width_ratios``, ``height_ratios``.</span>
+<span class="sd">    display_stats : bool, optional</span>
+<span class="sd">        Show per-panel FPS / frame-time overlay.  Default False.</span>
+<span class="sd">    help : str, optional</span>
+<span class="sd">        Help text shown when the user clicks the **?** badge on the figure.</span>
+<span class="sd">        Newlines (``\\n``) create separate lines in the card.  The badge is</span>
+<span class="sd">        hidden when *help* is empty (default).  Suppressed globally when</span>
+<span class="sd">        ``apl.show_help = False``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -739,6 +828,8 @@
         <span class="n">nrows</span><span class="o">=</span><span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="n">ncols</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span>
         <span class="n">width_ratios</span><span class="o">=</span><span class="n">width_ratios</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="n">height_ratios</span><span class="p">,</span>
         <span class="n">sharex</span><span class="o">=</span><span class="n">sharex</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">sharey</span><span class="p">,</span>
+        <span class="n">display_stats</span><span class="o">=</span><span class="n">display_stats</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="n">help</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="c1"># Build the GridSpec from the Figure&#39;s own stored ratios so there is</span>
     <span class="c1"># exactly one source of truth.</span>
@@ -791,8 +882,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -826,7 +917,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
 </p></div>
       
     </div>

@@ -36,6 +36,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the PointWidget on a 1-D panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_point_widget_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_point_widget`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Draggable Point Widget</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel.">
 
 .. only:: html
@@ -51,6 +68,23 @@ interactions to live Python computations.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A noisy composite signal built from two Gaussians is displayed.  Two additional overlay lines show the individual component curves and a white sum curve that always equals the current manual model.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_interactive_fitting_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_interactive_fitting`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive 1-D Gaussian Fitting</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -62,5 +96,7 @@ interactions to live Python computations.
    :hidden:
 
    /auto_examples/Interactive/plot_key_bindings
+   /auto_examples/Interactive/plot_point_widget
    /auto_examples/Interactive/plot_interactive_fft
+   /auto_examples/Interactive/plot_interactive_fitting
 

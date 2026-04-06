@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
@@ -35,32 +35,38 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/widgets';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/_modules/anyplotlib/widgets.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
   </head>
-  
-  
-  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
-
+  <body data-default-mode="">
   
   
   <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
   
   <div id="pst-scroll-pixel-helper"></div>
   
@@ -92,7 +98,7 @@
 </div>
 
   
-    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
 <div class="bd-header__inner bd-page-width">
   <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
     <span class="fa-solid fa-bars"></span>
@@ -153,6 +159,20 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../auto_examples/index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -252,6 +272,20 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../auto_examples/index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -369,7 +403,7 @@
     <span class="s2">&quot;Widget&quot;</span><span class="p">,</span>
     <span class="s2">&quot;RectangleWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;CircleWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;AnnularWidget&quot;</span><span class="p">,</span>
     <span class="s2">&quot;CrosshairWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;PolygonWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;LabelWidget&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;VLineWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;HLineWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;RangeWidget&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;VLineWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;HLineWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;RangeWidget&quot;</span><span class="p">,</span> <span class="s2">&quot;PointWidget&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
@@ -577,6 +611,37 @@
         <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="s2">&quot;_cid&quot;</span><span class="p">):</span>
             <span class="n">cid</span> <span class="o">=</span> <span class="n">cid</span><span class="o">.</span><span class="n">_cid</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ── visibility ────────────────────────────────────────────────────────</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visible</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``True`` if the widget is rendered; ``False`` if hidden.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;visible&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@visible</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show</span><span class="p">()</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">hide</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Widget.show">
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.show">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show the widget.  Does not fire ``on_changed`` callbacks.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Widget.hide">
+<a class="viewcode-back" href="../../api/widgets.html#anyplotlib.Widget.hide">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hide</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Hide the widget without removing it or its callbacks.</span>
+
+<span class="sd">        Call :meth:`show` to make it visible again.</span>
+<span class="sd">        Does not fire ``on_changed`` callbacks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span></div>
 
 
     <span class="c1"># ── JS → Python sync ──────────────────────────────────────────────</span>
@@ -836,11 +901,20 @@
 <div class="viewcode-block" id="RangeWidget">
 <a class="viewcode-back" href="../../api/widgets.html#anyplotlib.RangeWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RangeWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable range selection widget (two connected vertical lines).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable range selection widget.</span>
 
-<span class="sd">    Allows interactive selection of a range on the x-axis. Both lines</span>
-<span class="sd">    move together when dragging, maintaining the range width. Either end</span>
-<span class="sd">    can be dragged independently to resize the range.</span>
+<span class="sd">    Two display styles are available:</span>
+
+<span class="sd">    ``style=&#39;band&#39;`` (default)</span>
+<span class="sd">        Two connected vertical lines with a translucent fill band.  Either</span>
+<span class="sd">        line can be dragged independently; the whole band can be dragged by</span>
+<span class="sd">        clicking inside it.</span>
+
+<span class="sd">    ``style=&#39;fwhm&#39;``</span>
+<span class="sd">        Two circular handles joined by a dashed horizontal line drawn at</span>
+<span class="sd">        height *y* (the half-maximum level).  Only the x-positions of the</span>
+<span class="sd">        handles are draggable.  Use this to show/edit a FWHM interval on a</span>
+<span class="sd">        peak.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -849,11 +923,45 @@
 <span class="sd">    x0, x1 : float</span>
 <span class="sd">        Initial left and right positions in data coordinates.</span>
 <span class="sd">    color : str, optional</span>
-<span class="sd">        CSS colour for both lines. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        CSS colour.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    style : {&#39;band&#39;, &#39;fwhm&#39;}, optional</span>
+<span class="sd">        Visual style.  Default ``&quot;band&quot;``.</span>
+<span class="sd">    y : float, optional</span>
+<span class="sd">        Y-position (data coordinates) for the connecting line when</span>
+<span class="sd">        ``style=&#39;fwhm&#39;``.  Ignored for ``style=&#39;band&#39;``.  Default ``0.0``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;range&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                 <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;range&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">style</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">style</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">))</span></div>
 
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">PointWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable point (control point) overlay widget for 1-D plots.</span>
+
+<span class="sd">    A free-moving handle that can be dragged to any position within the</span>
+<span class="sd">    plot area.  Reports its data-space ``x`` and ``y`` coordinates back</span>
+<span class="sd">    to Python via the standard callback hooks.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x : float</span>
+<span class="sd">        Initial x position in data coordinates.</span>
+<span class="sd">    y : float</span>
+<span class="sd">        Initial y position in data coordinates (value axis).</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the handle.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    show_crosshair : bool, optional</span>
+<span class="sd">        If ``True`` (default), draw dashed crosshair guide lines through the</span>
+<span class="sd">        handle.  Set to ``False`` for a bare draggable dot with no guides.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">show_crosshair</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;point&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">show_crosshair</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_crosshair</span><span class="p">))</span>
 </pre></div>
 
                 </article>
@@ -883,8 +991,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -918,7 +1026,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
 </p></div>
       
     </div>

@@ -27,8 +27,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
@@ -36,34 +36,40 @@
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
 
     <script src="../_static/documentation_options.js?v=01f34227"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/plot_bar';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/plot_bar.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="1D Spectra" href="plot_spectra1d.html" />
-    <link rel="prev" title="pcolormesh — non-linear axes" href="plot_pcolormesh.html" />
+    <link rel="next" title="Benchmarks" href="Benchmarks/index.html" />
+    <link rel="prev" title="1D Line Styles" href="plot_line_styles.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
   </head>
-  
-  
-  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
-
+  <body data-default-mode="">
   
   
   <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
   
   <div id="pst-scroll-pixel-helper"></div>
   
@@ -95,7 +101,7 @@
 </div>
 
   
-    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
 <div class="bd-header__inner bd-page-width">
   <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
     <span class="fa-solid fa-bars"></span>
@@ -156,6 +162,20 @@
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -260,6 +280,20 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
   </ul>
 </nav></div>
           
@@ -291,22 +325,35 @@
   </div>
   
     <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
         <div class="sidebar-primary-item">
+
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Bar Chart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_image2d.html">2D Image with Histogram</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Bar Chart</a></li>
 </ul>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="Benchmarks/index.html">Benchmarks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="Benchmarks/plot_benchmark_comparison.html">Plot Update Comparison</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="Markers/index.html">Markers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -402,18 +449,154 @@ to download the full example code.</p>
 </div>
 <section class="sphx-glr-example-title" id="bar-chart">
 <span id="sphx-glr-auto-examples-plot-bar-py"></span><h1>Bar Chart<a class="headerlink" href="#bar-chart" title="Link to this heading">#</a></h1>
-<p>Demonstrate <code class="xref py py-meth docutils literal notranslate"><span class="pre">bar()</span></code> with vertical and
-horizontal orientations, per-bar colours, category labels, and live data
-updates via <code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code>.</p>
-<p>Three separate figures are shown:</p>
-<ol class="arabic simple">
-<li><p><strong>Vertical bar chart</strong> – monthly sales data with a uniform colour.</p></li>
-<li><p><strong>Horizontal bar chart</strong> – ranked items with per-bar colours and value
-labels.</p></li>
-<li><p><strong>Side-by-side comparison</strong> – two panels sharing the same figure; one
-panel updates its data to show a different quarter.</p></li>
-</ol>
+<p>Demonstrate <code class="xref py py-meth docutils literal notranslate"><span class="pre">bar()</span></code> with:</p>
+<ul class="simple">
+<li><p><strong>Matplotlib-aligned API</strong> — <code class="docutils literal notranslate"><span class="pre">ax.bar(x,</span> <span class="pre">height,</span> <span class="pre">width,</span> <span class="pre">bottom,</span> <span class="pre">…)</span></code></p></li>
+<li><p>Vertical and horizontal orientations, per-bar colours, category labels</p></li>
+<li><p><strong>Grouped bars</strong> — pass a 2-D <em>height</em> array <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">G)</span></code></p></li>
+<li><p><strong>Log-scale value axis</strong> — <code class="docutils literal notranslate"><span class="pre">log_scale=True</span></code></p></li>
+<li><p>Live data updates via <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_data()</span></code></p></li>
+</ul>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
+
+<a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="numpy.random.Generator" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng" title="numpy.random.default_rng" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span></a><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+
+<span class="c1"># ── 1. Vertical bar chart — monthly sales ────────────────────────────────────</span>
+<span class="c1"># The first positional argument is now *x* (positions or labels), matching</span>
+<span class="c1"># ``matplotlib.pyplot.bar(x, height, width=0.8, bottom=0.0, ...)``.</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">months</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Jan&quot;</span><span class="p">,</span> <span class="s2">&quot;Feb&quot;</span><span class="p">,</span> <span class="s2">&quot;Mar&quot;</span><span class="p">,</span> <span class="s2">&quot;Apr&quot;</span><span class="p">,</span> <span class="s2">&quot;May&quot;</span><span class="p">,</span> <span class="s2">&quot;Jun&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;Jul&quot;</span><span class="p">,</span> <span class="s2">&quot;Aug&quot;</span><span class="p">,</span> <span class="s2">&quot;Sep&quot;</span><span class="p">,</span> <span class="s2">&quot;Oct&quot;</span><span class="p">,</span> <span class="s2">&quot;Nov&quot;</span><span class="p">,</span> <span class="s2">&quot;Dec&quot;</span><span class="p">]</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sales</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span><span class="mi">42</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">63</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">68</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">81</span><span class="p">,</span> <span class="mi">66</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">52</span><span class="p">,</span> <span class="mi">78</span><span class="p">],</span>
+                 <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+<span class="n">fig1</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">340</span><span class="p">))</span>
+<span class="n">bar1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">months</span></a><span class="p">,</span>           <span class="c1"># x  — category strings become x_labels automatically</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sales</span></a><span class="p">,</span>            <span class="c1"># height</span>
+    <span class="n">width</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span>
+    <span class="n">show_values</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">units</span><span class="o">=</span><span class="s2">&quot;Month&quot;</span><span class="p">,</span>
+    <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Units sold&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig1</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fdec5d18a" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_001.html" frameborder="0" scrolling="no" style="width:656px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fdec5d18a'),ifr=wrap.querySelector('iframe'),nw=656,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="horizontal-bar-chart-ranked-items">
+<h2>Horizontal bar chart — ranked items<a class="headerlink" href="#horizontal-bar-chart-ranked-items" title="Link to this heading">#</a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">orient=&quot;h&quot;</span></code> for a horizontal layout.  Pass a list of CSS colours
+to <code class="docutils literal notranslate"><span class="pre">colors</span></code> to give each bar its own colour.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">categories</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NumPy&quot;</span><span class="p">,</span> <span class="s2">&quot;SciPy&quot;</span><span class="p">,</span> <span class="s2">&quot;Matplotlib&quot;</span><span class="p">,</span> <span class="s2">&quot;Pandas&quot;</span><span class="p">,</span> <span class="s2">&quot;Scikit-learn&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;PyTorch&quot;</span><span class="p">,</span> <span class="s2">&quot;TensorFlow&quot;</span><span class="p">,</span> <span class="s2">&quot;JAX&quot;</span><span class="p">,</span> <span class="s2">&quot;Polars&quot;</span><span class="p">,</span> <span class="s2">&quot;Dask&quot;</span><span class="p">]</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scores</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span><span class="mi">95</span><span class="p">,</span> <span class="mi">88</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">87</span><span class="p">,</span> <span class="mi">83</span><span class="p">,</span> <span class="mi">79</span><span class="p">,</span> <span class="mi">76</span><span class="p">,</span> <span class="mi">72</span><span class="p">,</span> <span class="mi">68</span><span class="p">,</span> <span class="mi">65</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">palette</span></a> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;#ef5350&quot;</span><span class="p">,</span> <span class="s2">&quot;#ec407a&quot;</span><span class="p">,</span> <span class="s2">&quot;#ab47bc&quot;</span><span class="p">,</span> <span class="s2">&quot;#7e57c2&quot;</span><span class="p">,</span> <span class="s2">&quot;#42a5f5&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;#26c6da&quot;</span><span class="p">,</span> <span class="s2">&quot;#26a69a&quot;</span><span class="p">,</span> <span class="s2">&quot;#66bb6a&quot;</span><span class="p">,</span> <span class="s2">&quot;#d4e157&quot;</span><span class="p">,</span> <span class="s2">&quot;#ffa726&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">fig2</span><span class="p">,</span> <span class="n">ax2</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">540</span><span class="p">,</span> <span class="mi">400</span><span class="p">))</span>
+<span class="n">bar2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">categories</span></a><span class="p">,</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scores</span></a><span class="p">,</span>
+    <span class="n">orient</span><span class="o">=</span><span class="s2">&quot;h&quot;</span><span class="p">,</span>
+    <span class="n">colors</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">palette</span></a><span class="p">,</span>
+    <span class="n">width</span><span class="o">=</span><span class="mf">0.65</span><span class="p">,</span>
+    <span class="n">show_values</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Popularity score&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig2</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fda79af16" style="display:inline-block;overflow:hidden;position:relative;width:556px;height:416px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_002.html" frameborder="0" scrolling="no" style="width:556px;height:416px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fda79af16'),ifr=wrap.querySelector('iframe'),nw=556,nh=416;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="grouped-bar-chart-quarterly-comparison">
+<h2>Grouped bar chart — quarterly comparison<a class="headerlink" href="#grouped-bar-chart-quarterly-comparison" title="Link to this heading">#</a></h2>
+<p>Pass a 2-D <em>height</em> array of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">G)</span></code> to draw <em>G</em> bars side by
+side for each category.  Provide <code class="docutils literal notranslate"><span class="pre">group_labels</span></code> to show a legend and
+<code class="docutils literal notranslate"><span class="pre">group_colors</span></code> to customise each group’s colour.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">quarters</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Jan&quot;</span><span class="p">,</span> <span class="s2">&quot;Feb&quot;</span><span class="p">,</span> <span class="s2">&quot;Mar&quot;</span><span class="p">,</span> <span class="s2">&quot;Apr&quot;</span><span class="p">,</span> <span class="s2">&quot;May&quot;</span><span class="p">,</span> <span class="s2">&quot;Jun&quot;</span><span class="p">]</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q_data</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span>
+    <span class="p">[</span><span class="mi">42</span><span class="p">,</span> <span class="mi">58</span><span class="p">,</span> <span class="mi">51</span><span class="p">],</span>   <span class="c1"># Jan — Q1, Q2, Q3</span>
+    <span class="p">[</span><span class="mi">55</span><span class="p">,</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">59</span><span class="p">],</span>   <span class="c1"># Feb</span>
+    <span class="p">[</span><span class="mi">48</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">65</span><span class="p">],</span>   <span class="c1"># Mar</span>
+    <span class="p">[</span><span class="mi">63</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">71</span><span class="p">],</span>   <span class="c1"># Apr</span>
+    <span class="p">[</span><span class="mi">71</span><span class="p">,</span> <span class="mi">69</span><span class="p">,</span> <span class="mi">80</span><span class="p">],</span>   <span class="c1"># May</span>
+    <span class="p">[</span><span class="mi">68</span><span class="p">,</span> <span class="mi">83</span><span class="p">,</span> <span class="mi">77</span><span class="p">],</span>   <span class="c1"># Jun</span>
+<span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>     <span class="c1"># shape (6, 3) → 6 categories, 3 groups</span>
+
+<span class="n">fig3</span><span class="p">,</span> <span class="n">ax3</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">680</span><span class="p">,</span> <span class="mi">340</span><span class="p">))</span>
+<span class="n">bar3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">quarters</span></a><span class="p">,</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q_data</span></a><span class="p">,</span>
+    <span class="n">width</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">group_labels</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Q1&quot;</span><span class="p">,</span> <span class="s2">&quot;Q2&quot;</span><span class="p">,</span> <span class="s2">&quot;Q3&quot;</span><span class="p">],</span>
+    <span class="n">group_colors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="s2">&quot;#66bb6a&quot;</span><span class="p">],</span>
+    <span class="n">show_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Sales&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig3</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f3d69f0e7" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:350px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_003.html" frameborder="0" scrolling="no" style="width:696px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.982759);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f3d69f0e7'),ifr=wrap.querySelector('iframe'),nw=696,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="log-scale-value-axis">
+<h2>Log-scale value axis<a class="headerlink" href="#log-scale-value-axis" title="Link to this heading">#</a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">log_scale=True</span></code> for a logarithmic value axis.  Non-positive values
+are clamped to <code class="docutils literal notranslate"><span class="pre">1e-10</span></code> — no error is raised.  Tick marks are placed at
+each decade (10⁰, 10¹, 10², …) with faint minor gridlines at 2×, 3×, 5×
+multiples.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">log_labels</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">]</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">log_vals</span></a>   <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1_000</span><span class="p">,</span> <span class="mi">10_000</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+<span class="n">fig4</span><span class="p">,</span> <span class="n">ax4</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">340</span><span class="p">))</span>
+<span class="n">bar4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">log_labels</span></a><span class="p">,</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">log_vals</span></a><span class="p">,</span>
+    <span class="n">log_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ab47bc&quot;</span><span class="p">,</span>
+    <span class="n">show_values</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Count (log scale)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig4</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe5b76305" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_004.html" frameborder="0" scrolling="no" style="width:516px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe5b76305'),ifr=wrap.querySelector('iframe'),nw=516,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="side-by-side-comparison-update-data-live">
+<h2>Side-by-side comparison — update data live<a class="headerlink" href="#side-by-side-comparison-update-data-live" title="Link to this heading">#</a></h2>
+<p>Place two <a class="reference internal" href="../api/generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar" title="anyplotlib.figure_plots.PlotBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotBar</span></code></a> panels in one figure.
+Call <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_data()</span></code> to swap in Q2 data —
+the value-axis range recalculates automatically.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q1</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span><span class="mi">42</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">63</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">68</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">81</span><span class="p">,</span> <span class="mi">66</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">52</span><span class="p">,</span> <span class="mi">78</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q2</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span><span class="mi">58</span><span class="p">,</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">69</span><span class="p">,</span> <span class="mi">83</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">88</span><span class="p">,</span> <span class="mi">77</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">95</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">all_months</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Jan&quot;</span><span class="p">,</span> <span class="s2">&quot;Feb&quot;</span><span class="p">,</span> <span class="s2">&quot;Mar&quot;</span><span class="p">,</span> <span class="s2">&quot;Apr&quot;</span><span class="p">,</span> <span class="s2">&quot;May&quot;</span><span class="p">,</span> <span class="s2">&quot;Jun&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;Jul&quot;</span><span class="p">,</span> <span class="s2">&quot;Aug&quot;</span><span class="p">,</span> <span class="s2">&quot;Sep&quot;</span><span class="p">,</span> <span class="s2">&quot;Oct&quot;</span><span class="p">,</span> <span class="s2">&quot;Nov&quot;</span><span class="p">,</span> <span class="s2">&quot;Dec&quot;</span><span class="p">]</span>
+
+<span class="n">fig5</span><span class="p">,</span> <span class="p">(</span><span class="n">ax_left</span><span class="p">,</span> <span class="n">ax_right</span><span class="p">)</span> <span class="o">=</span> <span class="n">vw</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">820</span><span class="p">,</span> <span class="mi">320</span><span class="p">))</span>
+<span class="n">bar_left</span> <span class="o">=</span> <span class="n">ax_left</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">all_months</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q1</span></a><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="n">show_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Q1 sales&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">bar_right</span> <span class="o">=</span> <span class="n">ax_right</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">all_months</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q1</span></a><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="n">show_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="s2">&quot;Q2 sales&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">bar_right</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q2</span></a><span class="p">)</span>    <span class="c1"># swap in Q2 — axis range recalculates automatically</span>
+
+<span class="n">fig5</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f7e277dd0" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_005.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f7e277dd0'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="mutate-colours-annotations-and-scale-at-runtime">
+<h2>Mutate colours, annotations, and scale at runtime<a class="headerlink" href="#mutate-colours-annotations-and-scale-at-runtime" title="Link to this heading">#</a></h2>
+<p><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_color()</span></code> repaints all bars,
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_show_values()</span></code> toggles labels,
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_log_scale()</span></code> switches the
+value-axis between linear and logarithmic.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">bar1</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">)</span>
+<span class="n">bar1</span><span class="o">.</span><span class="n">set_show_values</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">fig1</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
 
 <a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="numpy.random.Generator" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng" title="numpy.random.default_rng" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span></a><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
@@ -437,8 +620,9 @@ panel updates its data to show a different quarter.</p></li>
 <span class="n">fig1</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd288c3d9" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_001.html" frameborder="0" scrolling="no" style="width:656px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd288c3d9'),ifr=wrap.querySelector('iframe'),nw=656,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="horizontal-bar-chart-ranked-items">
-<h2>Horizontal bar chart — ranked items<a class="headerlink" href="#horizontal-bar-chart-ranked-items" title="Link to this heading">#</a></h2>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f373ad037" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_006.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f373ad037'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="id1">
+<h2>Horizontal bar chart — ranked items<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
 <p>Set <code class="docutils literal notranslate"><span class="pre">orient=&quot;h&quot;</span></code> for a horizontal layout.  Pass a list of CSS colours to
 <code class="docutils literal notranslate"><span class="pre">colors</span></code> to give each bar its own colour, and use <code class="docutils literal notranslate"><span class="pre">show_values=True</span></code> to
 annotate each bar with its numeric value.</p>
@@ -464,12 +648,12 @@ annotate each bar with its numeric value.</p>
 <span class="n">fig2</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="faafe211d" style="display:inline-block;overflow:hidden;position:relative;width:556px;height:416px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_002.html" frameborder="0" scrolling="no" style="width:556px;height:416px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('faafe211d'),ifr=wrap.querySelector('iframe'),nw=556,nh=416;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
-<section id="side-by-side-comparison-update-data-live">
-<h2>Side-by-side comparison — update data live<a class="headerlink" href="#side-by-side-comparison-update-data-live" title="Link to this heading">#</a></h2>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f705e04d3" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_007.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f705e04d3'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<section id="id2">
+<h2>Side-by-side comparison — update data live<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
 <p>Place two <a class="reference internal" href="../api/generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar" title="anyplotlib.figure_plots.PlotBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotBar</span></code></a> panels in one
 <code class="xref py py-func docutils literal notranslate"><span class="pre">subplots()</span></code> figure.  Call
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code> to swap in Q2 data for the
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_data()</span></code> to swap in Q2 data for the
 right panel, demonstrating how the axis range re-calculates automatically.</p>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">quarters</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Jan&quot;</span><span class="p">,</span> <span class="s2">&quot;Feb&quot;</span><span class="p">,</span> <span class="s2">&quot;Mar&quot;</span><span class="p">,</span> <span class="s2">&quot;Apr&quot;</span><span class="p">,</span> <span class="s2">&quot;May&quot;</span><span class="p">,</span> <span class="s2">&quot;Jun&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Jul&quot;</span><span class="p">,</span> <span class="s2">&quot;Aug&quot;</span><span class="p">,</span> <span class="s2">&quot;Sep&quot;</span><span class="p">,</span> <span class="s2">&quot;Oct&quot;</span><span class="p">,</span> <span class="s2">&quot;Nov&quot;</span><span class="p">,</span> <span class="s2">&quot;Dec&quot;</span><span class="p">]</span>
@@ -498,12 +682,12 @@ right panel, demonstrating how the axis range re-calculates automatically.</p>
 <span class="p">)</span>
 
 <span class="c1"># Swap in Q2 data — range is recalculated automatically</span>
-<span class="n">bar_right</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q2</span></a><span class="p">)</span>
+<span class="n">bar_right</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">q2</span></a><span class="p">)</span>
 
 <span class="n">fig3</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f24f96676" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_003.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f24f96676'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f0d7aac00" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_008.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f0d7aac00'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
 <section id="mutate-colours-and-annotations-at-runtime">
 <h2>Mutate colours and annotations at runtime<a class="headerlink" href="#mutate-colours-and-annotations-at-runtime" title="Link to this heading">#</a></h2>
 <p><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_color()</span></code> repaints all bars with a
@@ -515,7 +699,7 @@ in-bar value annotations.</p>
 <span class="n">fig1</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f3036642b" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_004.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f3036642b'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 2.730 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd768c2c2" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_bar_009.html" frameborder="0" scrolling="no" style="width:836px;height:336px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.818182);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd768c2c2'),ifr=wrap.querySelector('iframe'),nw=836,nh=336;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 6.151 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plot-bar-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../_downloads/19332db9b669ba0ddb1165510ee608d1/plot_bar.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_bar.ipynb</span></code></a></p>
@@ -542,20 +726,20 @@ in-bar value annotations.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="plot_pcolormesh.html"
+       href="plot_line_styles.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">pcolormesh — non-linear axes</p>
+        <p class="prev-next-title">1D Line Styles</p>
       </div>
     </a>
     <a class="right-next"
-       href="plot_spectra1d.html"
+       href="Benchmarks/index.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">1D Spectra</p>
+        <p class="prev-next-title">Benchmarks</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -576,22 +760,27 @@ in-bar value annotations.</p>
     class="page-toc tocsection onthispage">
     <i class="fa-solid fa-list"></i> On this page
   </div>
-  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
-    <ul class="visible nav section-nav flex-column">
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#horizontal-bar-chart-ranked-items">Horizontal bar chart — ranked items</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#grouped-bar-chart-quarterly-comparison">Grouped bar chart — quarterly comparison</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#log-scale-value-axis">Log-scale value axis</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#side-by-side-comparison-update-data-live">Side-by-side comparison — update data live</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#mutate-colours-annotations-and-scale-at-runtime">Mutate colours, annotations, and scale at runtime</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Horizontal bar chart — ranked items</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Side-by-side comparison — update data live</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#mutate-colours-and-annotations-at-runtime">Mutate colours and annotations at runtime</a></li>
 </ul>
   </nav></div>
 
   <div class="sidebar-secondary-item">
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/auto_examples/plot_bar.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div></div>
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/auto_examples/plot_bar.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
 
 </div></div>
               
@@ -606,8 +795,8 @@ in-bar value annotations.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -641,7 +830,7 @@ in-bar value annotations.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
 </p></div>
       
     </div>

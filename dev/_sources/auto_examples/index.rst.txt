@@ -48,23 +48,6 @@ A collection of short, self-contained examples.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with vertical and horizontal orientations, per-bar colours, category labels, and live data updates via update.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_bar_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_bar`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">Bar Chart</div>
-    </div>
-
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="Plot a 1-D spectrum with a physical x-axis (energy in eV) using plot.">
 
 .. only:: html
@@ -114,6 +97,23 @@ A collection of short, self-contained examples.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with:">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_bar_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/plot_bar`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Bar Chart</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -126,10 +126,50 @@ A collection of short, self-contained examples.
 
    /auto_examples/plot_3d
    /auto_examples/plot_pcolormesh
-   /auto_examples/plot_bar
    /auto_examples/plot_spectra1d
    /auto_examples/plot_image2d
    /auto_examples/plot_line_styles
+   /auto_examples/plot_bar
+
+Benchmarks
+----------
+
+Timing comparisons for the Python-side data-push pipeline in anyplotlib,
+matplotlib, Plotly, and Bokeh.  All measurements capture only the
+**Python serialisation cost** — the bottleneck in a live Jupyter session
+where new data must be encoded and dispatched to the browser on every frame.
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="There are a couple of different &quot;costs&quot; asscociated with rendering plots and images. There is usually a Python-side cost as well as a browser-side rendering cost. We&#x27;ve broken down those two costs here comparing different libraries for the first cost.  The second is harder to measure.  We&#x27;ve done it for anyplotlib but doing it for ipympl, bokeh and plotly is a little more difficult.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Benchmarks/images/thumb/sphx_glr_plot_benchmark_comparison_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Benchmarks/plot_benchmark_comparison`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Plot Update Comparison</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
 
 Interactive Examples
 ====================
@@ -165,6 +205,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the PointWidget on a 1-D panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_point_widget_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_point_widget`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Draggable Point Widget</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel.">
 
 .. only:: html
@@ -177,6 +234,23 @@ interactions to live Python computations.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A noisy composite signal built from two Gaussians is displayed.  Two additional overlay lines show the individual component curves and a white sum curve that always equals the current manual model.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_interactive_fitting_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_interactive_fitting`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive 1-D Gaussian Fitting</div>
     </div>
 
 
@@ -566,6 +640,7 @@ Short examples of using widgets in anyplotlib
    :includehidden:
 
 
+   /auto_examples/Benchmarks/index.rst
    /auto_examples/Interactive/index.rst
    /auto_examples/Markers/index.rst
    /auto_examples/Widgets/index.rst
