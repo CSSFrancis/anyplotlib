@@ -55,6 +55,12 @@ INIT_P = [
 fig, ax = apl.subplots(1, 1, figsize=(720, 380))
 plot = ax.plot(signal, axes=[x], color="#adb5bd", linewidth=1.5,
                alpha=0.6, label="data")
+#
+# Live sum of all components — this IS the fit after pressing 'f'
+sum_line = plot.add_line(
+    sum(gaussian(x, **p) for p in INIT_P), x_axis=x,
+    color="#e0e0e0", linewidth=1.5, linestyle="dashed", label="sum",
+)
 
 comp_lines = [
     plot.add_line(gaussian(x, **p), x_axis=x,
@@ -63,11 +69,6 @@ comp_lines = [
     for i, (p, c) in enumerate(zip(INIT_P, COLORS))
 ]
 
-# Live sum of all components — this IS the fit after pressing 'f'
-sum_line = plot.add_line(
-    sum(gaussian(x, **p) for p in INIT_P), x_axis=x,
-    color="#e0e0e0", linewidth=1.5, linestyle="dashed", label="sum",
-)
 
 # ── GaussianComponent ──────────────────────────────────────────────────────
 
@@ -226,11 +227,14 @@ class Model:
         )
 
     def fit(self):
-        """Least-squares fit; snaps components to the result.
+        """Least-squares fit; snaps components and FWHM widgets to the result.
 
         Builds a generic n-Gaussian model from the component list and uses
         their current state as the initial guess.  On success every component
-        snaps to the fitted (amp, μ, σ) and the sum redraws as the best fit.
+        snaps to the fitted (amp, μ, σ): the component line, the peak handle,
+        **and** the FWHM range widget are all moved to the optimal values.
+        If a component's widgets have not been shown yet they are created and
+        revealed automatically.  The sum line redraws as the best fit.
         On failure the components are left unchanged.
         """
         n  = len(self.components)
