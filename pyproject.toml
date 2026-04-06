@@ -28,6 +28,7 @@ docs = [
     "playwright>=1.58.0",
     "plotly>=5.0",
     "bokeh>=3.0",
+    "scipy>=1.15.3",
 ]
 jupyter = [
     "jupyterlab>=4.5.5",
