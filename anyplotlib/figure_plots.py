@@ -1215,12 +1215,30 @@ class Plot2D:
                                 labels=labels, label=label)
 
     def remove_marker(self, marker_type: str, name: str) -> None:
+        """Remove a named marker collection by type and name.
+
+        Parameters
+        ----------
+        marker_type : str
+            Collection type, e.g. ``"points"``, ``"vlines"``.
+        name : str
+            The name used when the collection was created.
+        """
         self.markers.remove(marker_type, name)
 
     def clear_markers(self) -> None:
+        """Remove all marker collections from this panel."""
         self.markers.clear()
 
     def list_markers(self) -> list:
+        """Return a summary list of all marker collections on this panel.
+
+        Returns
+        -------
+        list of dict
+            Each dict has keys ``"type"``, ``"name"``, and ``"n"``
+            (number of markers in the collection).
+        """
         out = []
         for mtype, td in self.markers._types.items():
             for name, g in td.items():
@@ -1607,8 +1625,9 @@ class Plot3D:
 class Line1D:
     """Handle to a single line on a :class:`Plot1D` panel.
 
-    Returned by :meth:`Plot1D.add_line`.  Use it to register hover/click
-    callbacks scoped to just that line, or to remove it later.
+    Returned by :meth:`Plot1D.add_line`.  Use it to update the line data,
+    register hover/click callbacks scoped to just that line, or to remove
+    it later.
 
     Attributes
     ----------
@@ -1664,9 +1683,44 @@ class Line1D:
         fn._cid        = cid
         return fn
 
-    def disconnect(self, cid: int) -> None:
-        """Remove a callback registered by :meth:`on_hover` or :meth:`on_click`."""
-        self._plot.callbacks.disconnect(cid)
+    def set_data(self, y: "np.ndarray", x_axis=None) -> None:
+        """Update the y-data (and optionally x-axis) of this overlay line.
+
+        The y-axis range is recomputed and the panel re-renders immediately.
+
+        Parameters
+        ----------
+        y : array-like, shape (N,)
+            New y values.  Must be 1-D.
+        x_axis : array-like, shape (N,), optional
+            New x coordinates.  If omitted the existing x-axis is kept.
+
+        Raises
+        ------
+        ValueError
+            If called on the primary line (use :meth:`Plot1D.set_data`
+            instead), or if *y* is not 1-D.
+        KeyError
+            If this line has already been removed.
+        """
+        if self._lid is None:
+            raise ValueError(
+                "Cannot call set_data() on the primary line; "
+                "use plot.set_data() instead."
+            )
+        y = np.asarray(y, dtype=float)
+        if y.ndim != 1:
+            raise ValueError("y must be 1-D")
+        for entry in self._plot._state["extra_lines"]:
+            if entry["id"] == self._lid:
+                entry["data"] = y
+                if x_axis is not None:
+                    entry["x_axis"] = np.asarray(x_axis, dtype=float)
+                break
+        else:
+            raise KeyError(self._lid)
+        self._plot._recompute_data_range()
+        self._plot._push()
 
     def remove(self) -> None:
         """Remove this overlay line from its parent plot."""
@@ -2163,8 +2217,11 @@ class Plot1D:
         return widget
 
     def add_range_widget(self, x0: float, x1: float,
-                         color: str = "#00e5ff") -> _RangeWidget:
-        """Add a draggable range (two vertical lines + shaded fill) overlay.
+                         color: str = "#00e5ff",
+                         style: str = "band",
+                         y: float = 0.0,
+                         _push: bool = True) -> _RangeWidget:
+        """Add a draggable range overlay to this panel.
 
         Parameters
         ----------
@@ -2172,6 +2229,17 @@ class Plot1D:
             Initial left and right edges in data coordinates.
         color : str, optional
             CSS colour string.  Default ``"#00e5ff"``.
+        style : {'band', 'fwhm'}, optional
+            Visual style.  ``'band'`` (default) draws two vertical lines with
+            a translucent fill.  ``'fwhm'`` draws two draggable circles
+            connected by a dashed horizontal line at *y* (the half-maximum
+            level), giving an ``o-------o`` FWHM indicator.
+        y : float, optional
+            Y-coordinate (data space) for the connecting line when
+            ``style='fwhm'``.  Ignored when ``style='band'``.  Default 0.
+        _push : bool, optional
+            Push state to JS immediately. Set to ``False`` when adding
+            several widgets at once; call :meth:`_push` manually afterward.
 
         Returns
         -------
@@ -2179,7 +2247,8 @@ class Plot1D:
             Widget object.  Register position callbacks with
             :meth:`on_changed` / :meth:`on_release`.
         """
-        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1), color=color)
+        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
+                              color=color, style=style, y=float(y))
         plot_ref, wid_id = self, widget._id
         def _tp():
             if plot_ref._fig is not None:
@@ -2187,11 +2256,14 @@ class Plot1D:
                 plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
         widget._push_fn = _tp
         self._widgets[widget.id] = widget
-        self._push()
+        if _push:
+            self._push()
         return widget
 
     def add_point_widget(self, x: float, y: float,
-                         color: str = "#00e5ff") -> _PointWidget:
+                         color: str = "#00e5ff",
+                         show_crosshair: bool = True,
+                         _push: bool = True) -> _PointWidget:
         """Add a freely-draggable control point to this panel.
 
         Parameters
@@ -2202,12 +2274,19 @@ class Plot1D:
             Initial y position in data coordinates (value axis).
         color : str, optional
             CSS colour string.  Default ``"#00e5ff"``.
+        show_crosshair : bool, optional
+            Draw dashed guide lines through the handle.  Default ``True``.
+            Pass ``False`` for a plain dot with no guide lines.
+        _push : bool, optional
+            Push state to JS immediately. Set to ``False`` when adding
+            several widgets at once; call :meth:`_push` manually afterward.
 
         Returns
         -------
         PointWidget
         """
-        widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color)
+        widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color,
+                              show_crosshair=show_crosshair)
         plot_ref, wid_id = self, widget._id
         def _tp_point():
             if plot_ref._fig is not None:
@@ -2215,7 +2294,8 @@ class Plot1D:
                 plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
         widget._push_fn = _tp_point
         self._widgets[widget.id] = widget
-        self._push()
+        if _push:
+            self._push()
         return widget
 
     def get_widget(self, wid) -> Widget:
@@ -3209,9 +3289,13 @@ class PlotBar:
         return widget
 
     def add_range_widget(self, x0: float, x1: float,
-                         color: str = "#00e5ff") -> _RangeWidget:
-        """Add a draggable range (two vertical lines + shaded fill) overlay."""
-        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1), color=color)
+                         color: str = "#00e5ff",
+                         style: str = "band",
+                         y: float = 0.0,
+                         _push: bool = True) -> _RangeWidget:
+        """Add a draggable range overlay. See :meth:`Plot1D.add_range_widget` for full docs."""
+        widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
+                              color=color, style=style, y=float(y))
         plot_ref, wid_id = self, widget._id
         def _tp():
             if plot_ref._fig is not None:
@@ -3219,13 +3303,17 @@ class PlotBar:
                 plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
         widget._push_fn = _tp
         self._widgets[widget.id] = widget
-        self._push()
+        if _push:
+            self._push()
         return widget
 
     def add_point_widget(self, x: float, y: float,
-                         color: str = "#00e5ff") -> _PointWidget:
+                         color: str = "#00e5ff",
+                         show_crosshair: bool = True,
+                         _push: bool = True) -> _PointWidget:
         """Add a freely-draggable control point to this panel."""
-        widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color)
+        widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color,
+                              show_crosshair=show_crosshair)
         plot_ref, wid_id = self, widget._id
         def _tp():
             if plot_ref._fig is not None:
@@ -3233,7 +3321,8 @@ class PlotBar:
                 plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
         widget._push_fn = _tp
         self._widgets[widget.id] = widget
-        self._push()
+        if _push:
+            self._push()
         return widget
 
     def get_widget(self, wid) -> Widget:
