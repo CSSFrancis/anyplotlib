@@ -39,6 +39,50 @@ dev = [
     "playwright>=1.58.0",
     "pytest>=9.0.2",
     "scipy>=1.15.3",
+    "towncrier>=24.0.0",
 ]
+
+# ---------------------------------------------------------------------------
+# Changelog management (towncrier)
+# ---------------------------------------------------------------------------
+[tool.towncrier]
+package          = "anyplotlib"
+package_dir      = "anyplotlib"
+directory        = "upcoming_changes"
+filename         = "CHANGELOG.rst"
+start_string     = ".. towncrier release notes start\n"
+issue_format     = "`#{issue} <https://github.com/CSSFrancis/anyplotlib/pull/{issue}>`_"
+title_format     = "{version} ({project_date})"
+underlines       = ["=", "-", "~"]
+
+[[tool.towncrier.type]]
+directory    = "new_feature"
+name         = "New Features"
+showcontent  = true
+
+[[tool.towncrier.type]]
+directory    = "bugfix"
+name         = "Bug Fixes"
+showcontent  = true
+
+[[tool.towncrier.type]]
+directory    = "deprecation"
+name         = "Deprecations"
+showcontent  = true
+
+[[tool.towncrier.type]]
+directory    = "removal"
+name         = "Removals"
+showcontent  = true
+
+[[tool.towncrier.type]]
+directory    = "doc"
+name         = "Documentation"
+showcontent  = true
+
+[[tool.towncrier.type]]
+directory    = "maintenance"
+name         = "Maintenance"
+showcontent  = true
 
 
