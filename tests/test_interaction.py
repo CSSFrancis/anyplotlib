@@ -867,15 +867,15 @@ class TestScaledInteraction1D:
 def _to_page_scaled_2d(ccx: float, ccy: float, scale: float) -> tuple[int, int]:
     """Canvas coords for a 2D overlayCanvas → page coords under CSS scale.
 
-    For 2D panels the overlayCanvas is offset (PAD_L, PAD_T) inside the panel
-    wrap, which is itself offset GRID_PAD from the page origin::
+    For plain imshow panels (no physical axes) the overlayCanvas starts at
+    (0, 0) inside the panel wrap, so the only offset is GRID_PAD::
 
-        page_x = (GRID_PAD + PAD_L + ccx) * scale
-        page_y = (GRID_PAD + PAD_T + ccy) * scale
+        page_x = (GRID_PAD + ccx) * scale
+        page_y = (GRID_PAD + ccy) * scale
     """
     return (
-        int(round((GRID_PAD + PAD_L + ccx) * scale)),
-        int(round((GRID_PAD + PAD_T + ccy) * scale)),
+        int(round((GRID_PAD + ccx) * scale)),
+        int(round((GRID_PAD + ccy) * scale)),
     )
 
 
@@ -967,11 +967,12 @@ class TestScaledInteractionExtra:
         page = interact_page(fig)
         s = _inject_scale(page, self._SCALE)
 
-        # At zoom=1, center=(0.5,0.5), image 128×128 in panel 400×240:
-        #   imgW=330, imgH=186, fit=min(330/128,186/128)=1.453
-        #   fr = {x:72, y:0, w:186, h:186}
-        #   canvas pos of (64,64): ccx = 72+(64/128)*186 = 165, ccy = 93
-        ccx, ccy = 165.0, 93.0
+        # At zoom=1, center=(0.5,0.5), image 128×128 in panel 400×240,
+        # no physical axes so imgW=400, imgH=240:
+        #   fit = min(400/128, 240/128) = 1.875
+        #   fr = {x:80, y:0, w:240, h:240}
+        #   canvas pos of (64,64): ccx = 80+(64/128)*240 = 200, ccy = 120
+        ccx, ccy = 200.0, 120.0
         px_s, py_s = _to_page_scaled_2d(ccx, ccy, s)
 
         # Drag 40 canvas pixels to the right and down.

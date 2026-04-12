@@ -175,6 +175,19 @@ function render({ model, el }) {
   gridDiv.style.cssText = `display:grid;gap:4px;background:${theme.bg};padding:8px;border-radius:4px;`;
   outerDiv.appendChild(gridDiv);
 
+  // ── Inset overlay container ───────────────────────────────────────────────
+  // Covers the grid content area (inside gridDiv's 8 px padding).
+  // Individual insetDivs restore pointer-events:all so they capture mouse events.
+  const insetsContainer = document.createElement('div');
+  insetsContainer.style.cssText =
+    'position:absolute;top:8px;left:8px;pointer-events:none;z-index:20;overflow:visible;';
+  outerDiv.appendChild(insetsContainer);
+
+  // Inset layout constants
+  const INSET_TITLE_H = 22;   // px — title bar height
+  const INSET_GAP     = 8;    // px — gap between stacked insets in same corner
+  const INSET_MARGIN  = 10;   // px — distance from figure edge to first inset
+
   // Resize handle (figure-level)
   const resizeHandle = document.createElement('div');
   resizeHandle.style.cssText =
@@ -343,73 +356,70 @@ function render({ model, el }) {
         _resizePanelDOM(spec.id, spec.panel_width, spec.panel_height);
       }
     }
+
+    // Handle inset panels
+    const insetSpecs = layout.inset_specs || [];
+    for (const spec of insetSpecs) {
+      seen.add(spec.id);
+      const existing = panels.get(spec.id);
+      if (!existing) {
+        _createInsetDOM(spec);
+      } else {
+        existing.insetSpec = spec;
+      }
+    }
+
     for (const [id, p] of panels) {
       if (!seen.has(id)) { p.cell.remove(); panels.delete(id); }
     }
+
+    // Update insetsContainer size and reposition all insets
+    insetsContainer.style.width  = (layout.fig_width  || 640) + 'px';
+    insetsContainer.style.height = (layout.fig_height || 480) + 'px';
+    if (insetSpecs.length) _applyAllInsetStates(layout);
   }
 
-  function _createPanelDOM(id, kind, pw, ph, spec) {
-    const cell = document.createElement('div');
-    cell.style.cssText = 'position:relative;overflow:visible;line-height:0;display:flex;justify-content:center;align-items:flex-start;';
-    cell.style.gridRow    = `${spec.row_start+1} / ${spec.row_stop+1}`;
-    cell.style.gridColumn = `${spec.col_start+1} / ${spec.col_stop+1}`;
-    gridDiv.appendChild(cell);
-
+  // ── _buildCanvasStack ─────────────────────────────────────────────────────
+  // Creates the canvas/element stack for one panel kind and appends the
+  // top-level wrapper to `outerContainer`.  Returns all canvas/element refs.
+  // Used by both _createPanelDOM (cell → gridDiv) and _createInsetDOM
+  // (contentDiv → insetDiv).
+  function _buildCanvasStack(kind, pw, ph, outerContainer) {
     let plotCanvas, overlayCanvas, markersCanvas, statusBar;
     let xAxisCanvas=null, yAxisCanvas=null, scaleBar=null;
-    let _p2d = null;   // extra 2D DOM refs, null for 1D panels
-    let _wrapNode = null;  // container to which statsDiv is appended
+    let cbCanvas=null, cbCtx=null, plotWrap=null, wrapNode=null;
 
     if (kind === '2d') {
-      // ── 2D branch ──────────────────────────────────────────────────────────
-      // The outer container is exactly pw×ph — same as the 1D canvas.
-      // Inside it everything is absolutely positioned to mirror 1D's _plotRect1d:
-      //   image area : [PAD_L, PAD_T] → [pw-PAD_R, ph-PAD_B]
-      //   y-axis     : [0, PAD_T]     → [PAD_L,    ph-PAD_B]
-      //   x-axis     : [PAD_L, ph-PAD_B] → [pw-PAD_R, ph]
-      // This makes the bottom-left corner of the image/plot areas line up exactly.
-
-      const plotWrap = document.createElement('div');
-      plotWrap.style.cssText = `position:relative;display:inline-block;line-height:0;` +
+      plotWrap = document.createElement('div');
+      plotWrap.style.cssText = `position:relative;display:inline-block;vertical-align:top;line-height:0;` +
         `width:${pw}px;height:${ph}px;overflow:visible;flex-shrink:0;`;
 
-      // Image canvas — positioned at the inner plot area
       plotCanvas = document.createElement('canvas');
-      plotCanvas.style.cssText = `position:absolute;display:block;border-radius:2px;background:${theme.bgCanvas};`;
-
-      // Overlay + marker canvases (same size as plotCanvas, stacked on top)
+      plotCanvas.style.cssText =
+        `position:absolute;display:block;border-radius:2px;background:${theme.bgCanvas};`;
       overlayCanvas = document.createElement('canvas');
-      overlayCanvas.style.cssText = 'position:absolute;z-index:5;cursor:default;pointer-events:all;outline:none;';
+      overlayCanvas.style.cssText =
+        'position:absolute;z-index:5;cursor:default;pointer-events:all;outline:none;';
       overlayCanvas.tabIndex = 0;
       markersCanvas = document.createElement('canvas');
       markersCanvas.style.cssText = 'position:absolute;pointer-events:none;z-index:6;';
-
-      // Scale bar: single canvas drawn on demand
       scaleBar = document.createElement('canvas');
-      scaleBar.style.cssText =
-        'position:absolute;pointer-events:none;display:none;z-index:7;';
-      const sbLine  = null;   // unused — drawing handled by canvas
-      const sbLabel = null;   // unused — drawing handled by canvas
-      plotWrap.appendChild(scaleBar);
-
-      // Status bar: absolute, bottom-left of image area
+      scaleBar.style.cssText = 'position:absolute;pointer-events:none;display:none;z-index:7;';
       statusBar = document.createElement('div');
       statusBar.style.cssText =
-        'position:absolute;padding:2px 6px;' +
-        'background:rgba(0,0,0,0.55);color:white;font-size:10px;font-family:monospace;' +
-        'border-radius:4px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
-
-      // y-axis canvas: left gutter [0, PAD_T]..[PAD_L, ph-PAD_B]
+        'position:absolute;padding:2px 6px;background:rgba(0,0,0,0.55);color:white;' +
+        'font-size:10px;font-family:monospace;border-radius:4px;pointer-events:none;' +
+        'white-space:nowrap;display:none;z-index:9;';
       yAxisCanvas = document.createElement('canvas');
-      yAxisCanvas.style.cssText = `position:absolute;display:none;background:${theme.axisBg};`;
-
-      // x-axis canvas: bottom gutter [PAD_L, ph-PAD_B]..[pw-PAD_R, ph]
+      yAxisCanvas.style.cssText =
+        `position:absolute;display:none;background:${theme.axisBg};`;
       xAxisCanvas = document.createElement('canvas');
-      xAxisCanvas.style.cssText = `position:absolute;display:none;background:${theme.axisBg};`;
-
-      // Colorbar canvas: narrow strip (16 px) to the right of the image area
-      const cbCanvas = document.createElement('canvas');
-      cbCanvas.style.cssText = 'position:absolute;display:none;pointer-events:none;border-radius:0 2px 2px 0;';
+      xAxisCanvas.style.cssText =
+        `position:absolute;display:none;background:${theme.axisBg};`;
+      cbCanvas = document.createElement('canvas');
+      cbCanvas.style.cssText =
+        'position:absolute;display:none;pointer-events:none;border-radius:0 2px 2px 0;';
+      cbCtx = cbCanvas.getContext('2d');
 
       plotWrap.appendChild(plotCanvas);
       plotWrap.appendChild(overlayCanvas);
@@ -417,114 +427,124 @@ function render({ model, el }) {
       plotWrap.appendChild(yAxisCanvas);
       plotWrap.appendChild(xAxisCanvas);
       plotWrap.appendChild(cbCanvas);
+      plotWrap.appendChild(scaleBar);
       plotWrap.appendChild(statusBar);
-      cell.appendChild(plotWrap);
-
-      const cbCtx = cbCanvas.getContext('2d');
-      _p2d = { cbCanvas, cbCtx, plotWrap };
-      _wrapNode = plotWrap;
+      outerContainer.appendChild(plotWrap);
+      wrapNode = plotWrap;
 
     } else if (kind === '3d') {
-      // ── 3D branch: one full-panel plotCanvas + overlayCanvas on top ───────
       plotCanvas = document.createElement('canvas');
-      plotCanvas.style.cssText = `display:block;border-radius:2px;background:${theme.bgPlot};`;
-
+      plotCanvas.style.cssText =
+        `display:block;border-radius:2px;background:${theme.bgPlot};`;
       const wrap3 = document.createElement('div');
       wrap3.style.cssText = 'position:relative;display:inline-block;line-height:0;';
       wrap3.appendChild(plotCanvas);
-      cell.appendChild(wrap3);
-
+      outerContainer.appendChild(wrap3);
       overlayCanvas = document.createElement('canvas');
-      overlayCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:5;pointer-events:all;outline:none;';
+      overlayCanvas.style.cssText =
+        'position:absolute;top:0;left:0;z-index:5;pointer-events:all;outline:none;';
       wrap3.appendChild(overlayCanvas);
-
       markersCanvas = document.createElement('canvas');
-      markersCanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:6;display:none;';
+      markersCanvas.style.cssText =
+        'position:absolute;top:0;left:0;pointer-events:none;z-index:6;display:none;';
       wrap3.appendChild(markersCanvas);
-
       statusBar = document.createElement('div');
       statusBar.style.cssText =
         'position:absolute;bottom:4px;right:4px;padding:2px 6px;display:none;';
       wrap3.appendChild(statusBar);
-      _wrapNode = wrap3;
+      wrapNode = wrap3;
 
     } else {
-      // ── 1D / bar branch ───────────────────────────────────────────────────
+      // 1D / bar
       plotCanvas = document.createElement('canvas');
       plotCanvas.tabIndex = 1;
-      plotCanvas.style.cssText = 'outline:none;cursor:crosshair;display:block;border-radius:2px;';
-
-      // wrap gives us a positioned container for the absolute canvases + status bar
+      plotCanvas.style.cssText =
+        'outline:none;cursor:crosshair;display:block;border-radius:2px;';
       const wrap = document.createElement('div');
       wrap.style.cssText = 'position:relative;display:inline-block;line-height:0;';
       wrap.appendChild(plotCanvas);
-      cell.appendChild(wrap);
-
+      outerContainer.appendChild(wrap);
       overlayCanvas = document.createElement('canvas');
-      overlayCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:5;cursor:crosshair;pointer-events:all;';
+      overlayCanvas.style.cssText =
+        'position:absolute;top:0;left:0;z-index:5;cursor:crosshair;pointer-events:all;';
       wrap.appendChild(overlayCanvas);
       markersCanvas = document.createElement('canvas');
-      markersCanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:6;';
+      markersCanvas.style.cssText =
+        'position:absolute;top:0;left:0;pointer-events:none;z-index:6;';
       wrap.appendChild(markersCanvas);
-
-      // Status bar overlays the 1D plot area
       statusBar = document.createElement('div');
       statusBar.style.cssText =
         'position:absolute;bottom:4px;right:4px;padding:2px 6px;' +
         'background:rgba(0,0,0,0.55);color:white;font-size:10px;font-family:monospace;' +
         'border-radius:4px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
       wrap.appendChild(statusBar);
-      _wrapNode = wrap;
+      wrapNode = wrap;
     }
 
-    const plotCtx    = plotCanvas.getContext('2d');
-    const ovCtx      = overlayCanvas.getContext('2d');
-    const mkCtx      = markersCanvas.getContext('2d');
-    const xCtx       = xAxisCanvas ? xAxisCanvas.getContext('2d') : null;
-    const yCtx       = yAxisCanvas ? yAxisCanvas.getContext('2d') : null;
+    return { plotCanvas, overlayCanvas, markersCanvas, statusBar,
+             xAxisCanvas, yAxisCanvas, scaleBar,
+             cbCanvas, cbCtx, plotWrap, wrapNode };
+  }
 
-    const blitCache  = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
+  function _createPanelDOM(id, kind, pw, ph, spec) {
+    const cell = document.createElement('div');
+    cell.style.cssText =
+      'position:relative;overflow:visible;line-height:0;' +
+      'display:flex;justify-content:center;align-items:flex-start;';
+    cell.style.gridRow    = `${spec.row_start+1} / ${spec.row_stop+1}`;
+    cell.style.gridColumn = `${spec.col_start+1} / ${spec.col_stop+1}`;
+    gridDiv.appendChild(cell);
 
-    // ── stats overlay (top-left of panel) ────────────────────────────────
-    // Positioned absolutely inside the panel's wrap container so it floats
-    // over the plot area.  Visibility is toggled by the display_stats traitlet.
+    const stack = _buildCanvasStack(kind, pw, ph, cell);
+
+    const plotCtx = stack.plotCanvas.getContext('2d');
+    const ovCtx   = stack.overlayCanvas.getContext('2d');
+    const mkCtx   = stack.markersCanvas.getContext('2d');
+    const xCtx    = stack.xAxisCanvas ? stack.xAxisCanvas.getContext('2d') : null;
+    const yCtx    = stack.yAxisCanvas ? stack.yAxisCanvas.getContext('2d') : null;
+
+    const blitCache = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
+
     const statsDiv = document.createElement('div');
     statsDiv.style.cssText =
       'position:absolute;top:4px;left:4px;padding:4px 7px;' +
       'background:rgba(0,0,0,0.65);color:#e0e0e0;font-size:10px;' +
       'font-family:monospace;border-radius:4px;pointer-events:none;' +
       'white-space:pre;line-height:1.5;z-index:20;display:none;';
-    if (_wrapNode) _wrapNode.appendChild(statsDiv);
+    if (stack.wrapNode) stack.wrapNode.appendChild(statsDiv);
 
     const p = {
       id, kind, cell, pw, ph,
-      plotCanvas, overlayCanvas, markersCanvas,
+      plotCanvas:    stack.plotCanvas,
+      overlayCanvas: stack.overlayCanvas,
+      markersCanvas: stack.markersCanvas,
       plotCtx, ovCtx, mkCtx,
-      xAxisCanvas, yAxisCanvas, xCtx, yCtx,
-      scaleBar, statusBar,
-      statsDiv,        // ← per-panel FPS overlay element
-      frameTimes: [],  // ← rolling 60-entry timestamp buffer (performance.now())
+      xAxisCanvas:   stack.xAxisCanvas,
+      yAxisCanvas:   stack.yAxisCanvas,
+      xCtx, yCtx,
+      scaleBar:      stack.scaleBar,
+      statusBar:     stack.statusBar,
+      statsDiv,
+      frameTimes: [],
       blitCache,
-      ovDrag: null,
+      ovDrag: null, ovDrag2d: null,
       isPanning: false, panStart: {},
       state: null,
-      _hoverSi: -1, _hoverI: -1,   // index of hovered marker group / marker (-1 = none)
-      _hovBar:  null,                // {slot,group} of hovered bar, or null
-      lastWidgetId: null,           // id of the last clicked/dragged widget (for on_key Delete etc.)
-      mouseX: 0, mouseY: 0,        // last known canvas-relative cursor position
-      // 2D extras (null for non-2D panels)
-      cbCanvas:    _p2d ? _p2d.cbCanvas    : null,
-      cbCtx:       _p2d ? _p2d.cbCtx       : null,
-      sbLine:      null,
-      sbLabel:     null,
-      plotWrap:    _p2d ? _p2d.plotWrap    : null,
+      _hoverSi: -1, _hoverI: -1,
+      _hovBar: null,
+      lastWidgetId: null,
+      mouseX: 0, mouseY: 0,
+      cbCanvas:  stack.cbCanvas,
+      cbCtx:     stack.cbCtx,
+      sbLine:    null,
+      sbLabel:   null,
+      plotWrap:  stack.plotWrap,
     };
     panels.set(id, p);
 
     _resizePanelDOM(id, pw, ph);
     _attachPanelEvents(p);
 
-    // Listen for this panel's trait changes
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
@@ -534,9 +554,197 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    // Initial draw
     try { p.state = JSON.parse(model.get(`panel_${id}_json`)); } catch(_) {}
     _redrawPanel(p);
+  }
+
+  // ── _createInsetDOM ───────────────────────────────────────────────────────
+  // Builds a floating inset panel:
+  //   insetDiv (position:absolute inside insetsContainer)
+  //     ├── titleBar  — always visible; click to toggle min/normal
+  //     │    ├── titleSpan
+  //     │    └── maxBtn (⤢ / ⤡)
+  //     └── contentDiv — canvas stack; display:none when minimized
+  //          └── _buildCanvasStack(kind, pw, ph)
+  function _createInsetDOM(spec) {
+    const { id, kind, panel_width: pw, panel_height: ph, title, inset_state } = spec;
+
+    const insetDiv = document.createElement('div');
+    insetDiv.style.cssText =
+      'position:absolute;pointer-events:all;border-radius:4px;overflow:hidden;' +
+      `box-shadow:0 2px 14px rgba(0,0,0,0.55);border:1px solid ${theme.border};z-index:25;background:${theme.bg};`;
+    insetsContainer.appendChild(insetDiv);
+
+    // Title bar
+    const tbBg = theme.dark ? 'rgba(30,32,46,0.97)' : 'rgba(210,213,224,0.97)';
+    const titleBar = document.createElement('div');
+    titleBar.style.cssText =
+      `display:flex;align-items:center;height:${INSET_TITLE_H}px;` +
+      `cursor:pointer;padding:0 5px 0 8px;user-select:none;background:${tbBg};` +
+      `border-bottom:1px solid ${theme.border};box-sizing:border-box;flex-shrink:0;`;
+    insetDiv.appendChild(titleBar);
+
+    const titleSpan = document.createElement('span');
+    titleSpan.style.cssText =
+      `flex:1;font-size:11px;font-family:sans-serif;overflow:hidden;` +
+      `text-overflow:ellipsis;white-space:nowrap;color:${theme.tickText};`;
+    titleSpan.textContent = title || '';
+    titleBar.appendChild(titleSpan);
+
+
+    // Content div — wraps the canvas stack
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText =
+      `overflow:hidden;display:${inset_state === 'minimized' ? 'none' : 'block'};`;
+    insetDiv.appendChild(contentDiv);
+
+    // Canvas stack inside contentDiv
+    const stack = _buildCanvasStack(kind, pw, ph, contentDiv);
+
+    const plotCtx = stack.plotCanvas.getContext('2d');
+    const ovCtx   = stack.overlayCanvas.getContext('2d');
+    const mkCtx   = stack.markersCanvas.getContext('2d');
+    const xCtx    = stack.xAxisCanvas ? stack.xAxisCanvas.getContext('2d') : null;
+    const yCtx    = stack.yAxisCanvas ? stack.yAxisCanvas.getContext('2d') : null;
+
+    const blitCache = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
+
+    const statsDiv = document.createElement('div');
+    statsDiv.style.cssText =
+      'position:absolute;top:4px;left:4px;padding:4px 7px;' +
+      'background:rgba(0,0,0,0.65);color:#e0e0e0;font-size:10px;' +
+      'font-family:monospace;border-radius:4px;pointer-events:none;' +
+      'white-space:pre;line-height:1.5;z-index:20;display:none;';
+    if (stack.wrapNode) stack.wrapNode.appendChild(statsDiv);
+
+    const p = {
+      id, kind, pw, ph,
+      cell: insetDiv,   // stale-cleanup compatibility (p.cell.remove())
+      isInset: true, insetDiv, contentDiv, titleBar,
+      insetSpec: spec,
+      plotCanvas:    stack.plotCanvas,
+      overlayCanvas: stack.overlayCanvas,
+      markersCanvas: stack.markersCanvas,
+      plotCtx, ovCtx, mkCtx,
+      xAxisCanvas:   stack.xAxisCanvas,
+      yAxisCanvas:   stack.yAxisCanvas,
+      xCtx, yCtx,
+      scaleBar:      stack.scaleBar,
+      statusBar:     stack.statusBar,
+      statsDiv,
+      frameTimes: [], blitCache,
+      ovDrag: null, ovDrag2d: null,
+      isPanning: false, panStart: {},
+      state: null,
+      _hoverSi: -1, _hoverI: -1,
+      _hovBar: null,
+      lastWidgetId: null, mouseX: 0, mouseY: 0,
+      cbCanvas:  stack.cbCanvas,
+      cbCtx:     stack.cbCtx,
+      sbLine:    null, sbLabel: null,
+      plotWrap:  stack.plotWrap,
+    };
+    panels.set(id, p);
+
+    _resizePanelDOM(id, pw, ph);
+    _attachPanelEvents(p);
+
+    // Title bar click: toggle normal ↔ minimized
+    titleBar.addEventListener('click', (e) => {
+      const cur = p.insetSpec ? p.insetSpec.inset_state : 'normal';
+      _applyButtonState(p, cur === 'minimized' ? 'normal' : 'minimized');
+    });
+
+
+    model.on(`change:panel_${id}_json`, () => {
+      const p2 = panels.get(id);
+      if (!p2) return;
+      try { p2.state = JSON.parse(model.get(`panel_${id}_json`)); }
+      catch(_) { return; }
+      p2._hoverSi = -1; p2._hoverI = -1;
+      _redrawPanel(p2);
+    });
+
+    try { p.state = JSON.parse(model.get(`panel_${id}_json`)); } catch(_) {}
+    _redrawPanel(p);
+  }
+
+  // Optimistic local state update + Python notification.
+  function _applyButtonState(p, newState) {
+    try {
+      const layout = JSON.parse(model.get('layout_json'));
+      const spec = (layout.inset_specs || []).find(s => s.id === p.id);
+      if (spec) {
+        spec.inset_state = newState;
+        p.insetSpec = spec;
+        _applyAllInsetStates(layout);
+      }
+    } catch(_) {}
+    _emitEvent(p.id, 'on_inset_state_change', null, { new_state: newState });
+  }
+
+  // ── _applyAllInsetStates ──────────────────────────────────────────────────
+  // Positions every inset for the given layout snapshot.
+  // Groups insets by corner, stacks with INSET_GAP spacing.
+  // Minimized insets contribute only INSET_TITLE_H to the stack height.
+  // Maximized insets float centred at z-index:45, outside the stack.
+  function _applyAllInsetStates(layout) {
+    const insetSpecs = layout.inset_specs || [];
+    const fw = layout.fig_width  || 640;
+    const fh = layout.fig_height || 480;
+
+    insetsContainer.style.width  = fw + 'px';
+    insetsContainer.style.height = fh + 'px';
+
+    // Group by corner, preserving insertion order
+    const byCorner = {};
+    for (const spec of insetSpecs) {
+      (byCorner[spec.corner] = byCorner[spec.corner] || []).push(spec);
+    }
+
+    for (const [corner, group] of Object.entries(byCorner)) {
+      const isBottom = corner.startsWith('bottom');
+      const isRight  = corner.endsWith('right');
+      // Bottom corners: first-added is closest to the corner (stack upward),
+      // so reverse for the position loop (offset grows from the corner outward).
+      const walk = isBottom ? [...group].reverse() : group;
+      let offset = INSET_MARGIN;
+
+      for (const spec of walk) {
+        const p = panels.get(spec.id);
+        if (!p || !p.isInset) continue;
+
+        const pw    = spec.panel_width;
+        const ph    = spec.panel_height;
+        const state = spec.inset_state;
+
+
+        // Normal or minimized: compute position from corner
+        const stackH = state === 'minimized' ? INSET_TITLE_H : INSET_TITLE_H + ph;
+        const left   = isRight ? fw - pw - INSET_MARGIN : INSET_MARGIN;
+        const top    = isBottom ? fh - offset - stackH  : offset;
+
+        p.insetDiv.style.left   = left + 'px';
+        p.insetDiv.style.top    = top  + 'px';
+        p.insetDiv.style.width  = pw   + 'px';
+        p.insetDiv.style.height = stackH + 'px';
+        p.insetDiv.style.zIndex = '25';
+
+        if (state === 'minimized') {
+          p.contentDiv.style.display = 'none';
+        } else {
+          p.contentDiv.style.display = 'block';
+          p.contentDiv.style.height  = ph + 'px';
+          if (p.pw !== pw || p.ph !== ph) {
+            p.pw = pw; p.ph = ph;
+            _resizePanelDOM(spec.id, pw, ph);
+            _redrawPanel(p);
+          }
+        }
+
+        offset += stackH + INSET_GAP;
+      }
+    }
   }
 
   function _resizePanelDOM(id, pw, ph) {
@@ -552,11 +760,19 @@ function render({ model, el }) {
 
     if (p.kind === '2d') {
       // ── 2D: all elements absolutely positioned within pw×ph container ──
-      // The image/plot area mirrors 1D's _plotRect1d:
-      //   x: PAD_L → pw-PAD_R,  y: PAD_T → ph-PAD_B
-      const imgX = PAD_L, imgY = PAD_T;
-      const imgW = Math.max(1, pw - PAD_L - PAD_R);
-      const imgH = Math.max(1, ph - PAD_T - PAD_B);
+      // When physical axes are present, reserve PAD gutters for tick labels.
+      // When there are no axes (plain imshow) use the full canvas area so
+      // no dead space appears on the left / bottom.
+      const st = p.state;
+      const hasPhysAxis = st && (st.is_mesh || st.has_axes)
+                       && st.x_axis && st.x_axis.length >= 2
+                       && st.y_axis && st.y_axis.length >= 2;
+      const imgX = hasPhysAxis ? PAD_L : 0;
+      const imgY = hasPhysAxis ? PAD_T : 0;
+      const imgW = hasPhysAxis ? Math.max(1, pw - PAD_L - PAD_R) : pw;
+      const imgH = hasPhysAxis ? Math.max(1, ph - PAD_T - PAD_B) : ph;
+      // Store on panel so event handlers and draw functions don't recompute.
+      p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
 
       if (p.plotWrap) {
         p.plotWrap.style.width  = pw + 'px';
@@ -576,27 +792,21 @@ function render({ model, el }) {
       p.markersCanvas.style.top  = imgY + 'px';
       _sz(p.markersCanvas, p.mkCtx, imgW, imgH);
 
-      // Status bar: bottom-left of image area
+      // Status bar: 4px above bottom of image area, 4px right of left edge
       if (p.statusBar) {
         p.statusBar.style.left   = (imgX + 4) + 'px';
-        p.statusBar.style.bottom = (PAD_B + 4) + 'px';
+        p.statusBar.style.bottom = (ph - imgY - imgH + 4) + 'px';
         p.statusBar.style.top    = '';
       }
 
-      // Scale bar: bottom-right of image area
+      // Scale bar: 12px above bottom-right of image area
       if (p.scaleBar) {
-        p.scaleBar.style.right  = (PAD_R + 12) + 'px';
-        p.scaleBar.style.bottom = (PAD_B + 12) + 'px';
+        p.scaleBar.style.right  = (pw - imgX - imgW + 12) + 'px';
+        p.scaleBar.style.bottom = (ph - imgY - imgH + 12) + 'px';
         p.scaleBar.style.left   = '';
         p.scaleBar.style.top    = '';
       }
 
-      const st = p.state;
-      // Show axis canvases only when the user explicitly provided coordinate
-      // arrays (has_axes), or for pcolormesh panels (is_mesh, always has edges).
-      const hasPhysAxis = st && (st.is_mesh || st.has_axes)
-                       && st.x_axis && st.x_axis.length >= 2
-                       && st.y_axis && st.y_axis.length >= 2;
 
       // y-axis: left gutter [0, PAD_T]..[PAD_L, ph-PAD_B]
       if (p.yAxisCanvas && p.yCtx) {
@@ -751,9 +961,10 @@ function render({ model, el }) {
     // Re-sync axis/histogram canvas visibility whenever state changes
     _resizePanelDOM(p.id, p.pw, p.ph);
     const {pw,ph,plotCtx:ctx,blitCache} = p;
-    // The image canvas occupies the inner plot area, mirroring 1D's _plotRect1d
-    const imgW = Math.max(1, pw - PAD_L - PAD_R);
-    const imgH = Math.max(1, ph - PAD_T - PAD_B);
+    // p.imgW/imgH are set by _resizePanelDOM above (full panel when no axes,
+    // padded inner area when physical axes are present).
+    const imgW = p.imgW || Math.max(1, pw - PAD_L - PAD_R);
+    const imgH = p.imgH || Math.max(1, ph - PAD_T - PAD_B);
 
     // Decode base64 image bytes
     const b64=st.image_b64||'';
@@ -800,8 +1011,8 @@ function render({ model, el }) {
     const scaleX=st.scale_x||0;
     if(!scaleX||units==='px'){p.scaleBar.style.display='none';return;}
 
-    const imgW=Math.max(1,p.pw-PAD_L-PAD_R);
-    const imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+    const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R);
+    const imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
 
     // Compute bar width in the fit-rect pixel space
     const zoom=st.zoom||1;
@@ -875,7 +1086,7 @@ function render({ model, el }) {
     if(!vis) return;
 
     const cbW=16;
-    const imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+    const imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
     const ctx=p.cbCtx;
     ctx.clearRect(0,0,cbW,imgH);
 
@@ -913,8 +1124,8 @@ function render({ model, el }) {
   function _drawAxes2d(p) {
     const st=p.state; if(!st) return;
     const {pw,ph} = p;
-    const imgW = Math.max(1, pw - PAD_L - PAD_R);
-    const imgH = Math.max(1, ph - PAD_T - PAD_B);
+    const imgW = p.imgW||Math.max(1, pw - PAD_L - PAD_R);
+    const imgH = p.imgH||Math.max(1, ph - PAD_T - PAD_B);
     const xArr=st.x_axis||[], yArr=st.y_axis||[];
     const TICK=6;
     const zoom=st.zoom, cx=st.center_x, cy=st.center_y;
@@ -1013,7 +1224,7 @@ function render({ model, el }) {
   function drawOverlay2d(p) {
     const st=p.state; if(!st) return;
     const {pw,ph,ovCtx} = p;
-    const imgW=Math.max(1,pw-PAD_L-PAD_R), imgH=Math.max(1,ph-PAD_T-PAD_B);
+    const imgW=p.imgW||Math.max(1,pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,ph-PAD_T-PAD_B);
     ovCtx.clearRect(0,0,imgW,imgH);
     const widgets=st.overlay_widgets||[];
     const scale=_imgScale2d(st,imgW,imgH);
@@ -1069,7 +1280,7 @@ function render({ model, el }) {
   function drawMarkers2d(p, hoverState) {
     const st=p.state; if(!st) return;
     const {pw,ph,mkCtx} = p;
-    const imgW=Math.max(1,pw-PAD_L-PAD_R), imgH=Math.max(1,ph-PAD_T-PAD_B);
+    const imgW=p.imgW||Math.max(1,pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,ph-PAD_T-PAD_B);
     mkCtx.clearRect(0,0,imgW,imgH);
     const sets=st.markers||[];
     if(!sets.length) return;
@@ -2140,7 +2351,7 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('wheel',(e)=>{
       e.preventDefault();
       const st=p.state; if(!st) return;
-      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
       // Image point under cursor before zoom change
       const [anchorX,anchorY]=_canvasToImg2d(mx,my,st,imgW,imgH);
@@ -2166,7 +2377,7 @@ function render({ model, el }) {
       if(e.button!==0) return;
       const st=p.state; if(!st) return;
       overlayCanvas.focus();
-      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
       const hit=_ovHitTest2d(mx, my, p);
       if(hit){
@@ -2189,7 +2400,7 @@ function render({ model, el }) {
       }
       if(!p.isPanning) return;
       const st=p.state; if(!st) return;
-      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
       const z=st.zoom;
       const {mx:cmx,my:cmy}=_clientPos(e,overlayCanvas,imgW,imgH);
@@ -2214,7 +2425,7 @@ function render({ model, el }) {
       if(!p.isPanning) return;
       p.isPanning=false; overlayCanvas.style.cursor='default';
       const st=p.state; if(!st) return;
-      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
       const {mx:cmx,my:cmy}=_clientPos(e,overlayCanvas,imgW,imgH);
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/st.zoom));
@@ -2226,7 +2437,7 @@ function render({ model, el }) {
 
     // Status bar + tooltip + widget hover cursor
     overlayCanvas.addEventListener('mousemove',(e)=>{
-      const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
       p.mouseX=mx; p.mouseY=my;
       if(p.ovDrag2d) return; // handled by document mousemove
@@ -2284,7 +2495,7 @@ function render({ model, el }) {
       const st=p.state; if(!st) return;
       const regKeys=st.registered_keys||[];
       if(regKeys.includes(e.key)||regKeys.includes('*')){
-        const imgW=Math.max(1,p.pw-PAD_L-PAD_R), imgH=Math.max(1,p.ph-PAD_T-PAD_B);
+        const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
         const [imgX,imgY]=_canvasToImg2d(p.mouseX,p.mouseY,st,imgW,imgH);
         const xArr=st.x_axis||[], yArr=st.y_axis||[];
         const iw=st.image_width||1, ih=st.image_height||1;
@@ -2497,8 +2708,8 @@ function render({ model, el }) {
   //   'vertex_N'   – polygon vertex N
   function _ovHitTest2d(mx, my, p) {
     const st = p.state; if (!st) return null;
-    const imgW = Math.max(1, p.pw - PAD_L - PAD_R);
-    const imgH = Math.max(1, p.ph - PAD_T - PAD_B);
+    const imgW = p.imgW||Math.max(1, p.pw - PAD_L - PAD_R);
+    const imgH = p.imgH||Math.max(1, p.ph - PAD_T - PAD_B);
     const widgets = st.overlay_widgets || [];
     const scale   = _imgScale2d(st, imgW, imgH);
     const HR = 9; // handle grab radius (px)
@@ -2579,8 +2790,8 @@ function render({ model, el }) {
 
   function _doDrag2d(e, p) {
     const st = p.state; if (!st) return;
-    const imgW = Math.max(1, p.pw - PAD_L - PAD_R);
-    const imgH = Math.max(1, p.ph - PAD_T - PAD_B);
+    const imgW = p.imgW||Math.max(1, p.pw - PAD_L - PAD_R);
+    const imgH = p.imgH||Math.max(1, p.ph - PAD_T - PAD_B);
     const {mx, my} = _clientPos(e, p.overlayCanvas, imgW, imgH);
     const d     = p.ovDrag2d;
     const s     = d.snapW;
@@ -2837,6 +3048,25 @@ function render({ model, el }) {
     gridDiv.style.gridTemplateRows    = rowPx.map(px=>px+'px').join(' ');
     gridDiv.style.width  = '';
     gridDiv.style.height = '';
+
+    // CSS-only reposition of insets (no canvas redraw during live drag)
+    insetsContainer.style.width  = nfw + 'px';
+    insetsContainer.style.height = nfh + 'px';
+    const insetSpecs = layout.inset_specs || [];
+    for (const spec of insetSpecs) {
+      const pi = panels.get(spec.id);
+      if (!pi || !pi.isInset) continue;
+      const pw = Math.max(64, Math.round(nfw * spec.w_frac));
+      const ph = Math.max(64, Math.round(nfh * spec.h_frac));
+      pi.pw = pw; pi.ph = ph;
+      // Reuse _applyAllInsetStates logic inline (CSS only) by temporarily
+      // patching spec dimensions and calling the function with a fake layout.
+      spec.panel_width  = pw;
+      spec.panel_height = ph;
+    }
+    if (insetSpecs.length) {
+      _applyAllInsetStates({ ...layout, fig_width: nfw, fig_height: nfh });
+    }
   }
 
   // CSS-only resize: move/size elements without clearing canvas buffers.
@@ -2852,9 +3082,16 @@ function render({ model, el }) {
     }
 
     if (p.kind === '2d') {
-      const imgX = PAD_L, imgY = PAD_T;
-      const imgW = Math.max(1, pw - PAD_L - PAD_R);
-      const imgH = Math.max(1, ph - PAD_T - PAD_B);
+      const st = p.state;
+      const hasPhysAxis = st && (st.is_mesh || st.has_axes)
+                       && st.x_axis && st.x_axis.length >= 2
+                       && st.y_axis && st.y_axis.length >= 2;
+      const imgX = hasPhysAxis ? PAD_L : 0;
+      const imgY = hasPhysAxis ? PAD_T : 0;
+      const imgW = hasPhysAxis ? Math.max(1, pw - PAD_L - PAD_R) : pw;
+      const imgH = hasPhysAxis ? Math.max(1, ph - PAD_T - PAD_B) : ph;
+      // Update stored dims so event handlers stay consistent during CSS resize
+      p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
 
       if (p.plotWrap) { p.plotWrap.style.width=pw+'px'; p.plotWrap.style.height=ph+'px'; }
 
@@ -2866,8 +3103,8 @@ function render({ model, el }) {
       p.overlayCanvas.style.left = imgX+'px'; p.overlayCanvas.style.top = imgY+'px';
       p.markersCanvas.style.left = imgX+'px'; p.markersCanvas.style.top = imgY+'px';
 
-      if (p.statusBar) { p.statusBar.style.left=(imgX+4)+'px'; p.statusBar.style.bottom=(PAD_B+4)+'px'; }
-      if (p.scaleBar)  { p.scaleBar.style.right=(PAD_R+12)+'px'; p.scaleBar.style.bottom=(PAD_B+12)+'px'; }
+      if (p.statusBar) { p.statusBar.style.left=(imgX+4)+'px'; p.statusBar.style.bottom=(ph-imgY-imgH+4)+'px'; }
+      if (p.scaleBar)  { p.scaleBar.style.right=(pw-imgX-imgW+12)+'px'; p.scaleBar.style.bottom=(ph-imgY-imgH+12)+'px'; }
 
       // Axis canvases: just reposition, size handled on full redraw
       if (p.yAxisCanvas && p.yAxisCanvas.style.display !== 'none') {
@@ -2940,6 +3177,10 @@ function render({ model, el }) {
       for (const spec of layout.panel_specs) {
         const p = panels.get(spec.id);
         if (p) { spec.panel_width = p.pw; spec.panel_height = p.ph; }
+      }
+      for (const spec of (layout.inset_specs || [])) {
+        const pi = panels.get(spec.id);
+        if (pi) { spec.panel_width = pi.pw; spec.panel_height = pi.ph; }
       }
       model.set('layout_json', JSON.stringify(layout));
     } catch(_) {}

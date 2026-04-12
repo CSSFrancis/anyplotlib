@@ -25,7 +25,8 @@ Example
 from __future__ import annotations
 import json, pathlib
 import anywidget, numpy as np, traitlets
-from anyplotlib.figure_plots import GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh, Plot3D, PlotBar
+from anyplotlib.figure_plots import (GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh,
+                                      Plot3D, PlotBar, InsetAxes, _plot_kind)
 from anyplotlib.callbacks import Event
 
 __all__ = ["Figure", "GridSpec", "SubplotSpec", "subplots"]
@@ -124,6 +125,7 @@ class Figure(anywidget.AnyWidget):
         self._sharey = sharey
         self._axes_map: dict  = {}
         self._plots_map: dict = {}
+        self._insets_map: dict = {}
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -263,16 +265,30 @@ class Figure(anywidget.AnyWidget):
             plot     = self._plots_map.get(pid)
             panel_specs.append({
                 "id":           pid,
-                "kind":         ("3d"  if isinstance(plot, Plot3D)
-                             else "2d"  if isinstance(plot, (Plot2D, PlotMesh))
-                             else "bar" if isinstance(plot, PlotBar)
-                             else "1d"),
+                "kind":         _plot_kind(plot) if plot else "1d",
                 "row_start":    s.row_start,
                 "row_stop":     s.row_stop,
                 "col_start":    s.col_start,
                 "col_stop":     s.col_stop,
                 "panel_width":  pw,
                 "panel_height": ph,
+            })
+
+        inset_specs = []
+        for pid, inset_ax in self._insets_map.items():
+            plot = self._plots_map.get(pid)
+            pw = max(64, round(self.fig_width  * inset_ax.w_frac))
+            ph = max(64, round(self.fig_height * inset_ax.h_frac))
+            inset_specs.append({
+                "id":           pid,
+                "kind":         _plot_kind(plot) if plot else "1d",
+                "w_frac":       inset_ax.w_frac,
+                "h_frac":       inset_ax.h_frac,
+                "corner":       inset_ax.corner,
+                "title":        inset_ax.title,
+                "panel_width":  pw,
+                "panel_height": ph,
+                "inset_state":  inset_ax._inset_state,
             })
 
         self.layout_json = json.dumps({
@@ -284,7 +300,47 @@ class Figure(anywidget.AnyWidget):
             "fig_height":     self.fig_height,
             "panel_specs":    panel_specs,
             "share_groups":   share_groups,
+            "inset_specs":    inset_specs,
         })
+
+    # ── inset creation ────────────────────────────────────────────────────────
+    def add_inset(self, w_frac: float, h_frac: float, *,
+                  corner: str = "top-right", title: str = "") -> "InsetAxes":
+        """Create and return a floating inset axes.
+
+        The inset overlays the figure at the specified corner.  Call
+        plot-factory methods on the returned :class:`InsetAxes` to attach
+        data::
+
+            inset = fig.add_inset(0.3, 0.25, corner="top-right", title="Zoom")
+            inset.imshow(data)    # returns Plot2D
+            inset.plot(profile)   # returns Plot1D
+
+        Parameters
+        ----------
+        w_frac, h_frac : float
+            Width and height as fractions of the figure size (0–1).
+        corner : str, optional
+            Positioning corner: ``"top-right"`` (default), ``"top-left"``,
+            ``"bottom-right"``, or ``"bottom-left"``.
+        title : str, optional
+            Text displayed in the inset title bar.
+
+        Returns
+        -------
+        InsetAxes
+        """
+        return InsetAxes(self, w_frac, h_frac, corner=corner, title=title)
+
+    def _register_inset(self, inset_ax: "InsetAxes", plot) -> None:
+        """Register an inset plot, allocating its trait and updating layout."""
+        pid = plot._id
+        if not self.has_trait(f"panel_{pid}_json"):
+            self.add_traits(**{f"panel_{pid}_json": traitlets.Unicode("{}").tag(sync=True)})
+        self._plots_map[pid]  = plot
+        self._insets_map[pid] = inset_ax
+        self._push(pid)
+        self._push_layout()
 
     @traitlets.observe("fig_width", "fig_height")
     def _on_resize(self, change) -> None:
@@ -312,6 +368,16 @@ class Figure(anywidget.AnyWidget):
         widget_id  = msg.get("widget_id")
         data = {k: v for k, v in msg.items()
                 if k not in ("source", "panel_id", "event_type", "widget_id")}
+
+        # Inset state changes are handled before regular plot dispatch
+        if event_type == "on_inset_state_change":
+            inset_ax = self._insets_map.get(panel_id)
+            if inset_ax is not None:
+                new_state = data.get("new_state", "normal")
+                if new_state in ("normal", "minimized", "maximized"):
+                    inset_ax._inset_state = new_state
+                    self._push_layout()
+            return
 
         plot = self._plots_map.get(panel_id)
         if plot is None:
