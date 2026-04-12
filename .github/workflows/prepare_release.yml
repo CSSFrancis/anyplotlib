@@ -1,0 +1,218 @@
+name: Prepare Release
+
+# Run manually from the Actions tab.
+# Creates a branch + PR that bumps the version, builds the changelog,
+# and updates the docs switcher — ready to review before tagging.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version component to bump"
+        required: true
+        type: choice
+        options:
+          - minor
+          - bugfix
+          - major
+          - pre-release   # increments the bN counter on the current base version
+      beta:
+        description: "Mark as beta pre-release (adds bN suffix; always true for pre-release)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write        # push branch
+  pull-requests: write   # open PR
+
+jobs:
+  prepare:
+    name: Prepare release PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install dev dependencies
+        run: uv sync
+
+      # ── Compute the new version ──────────────────────────────────────────
+      - name: Compute new version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+          IS_BETA: ${{ inputs.beta }}
+        run: |
+          CURRENT=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          export CURRENT_VERSION="$CURRENT"
+
+          NEW_VERSION=$(python3 - <<'PYEOF'
+          import re, os
+
+          current = os.environ["CURRENT_VERSION"]
+          bump    = os.environ["BUMP"]
+          is_beta = os.environ["IS_BETA"].lower() == "true"
+
+          m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:b(\d+))?", current)
+          major  = int(m.group(1))
+          minor  = int(m.group(2))
+          patch  = int(m.group(3))
+          beta_n = int(m.group(4)) if m.group(4) else None
+
+          if bump == "major":
+              major, minor, patch = major + 1, 0, 0
+          elif bump == "minor":
+              minor, patch = minor + 1, 0
+          elif bump == "bugfix":
+              patch += 1
+          elif bump == "pre-release":
+              # Keep the same base; just walk the beta counter forward.
+              is_beta = True
+              beta_n  = (beta_n or 0) + 1
+
+          if is_beta:
+              if bump != "pre-release":
+                  beta_n = 1          # fresh beta series for the new base
+              print(f"{major}.{minor}.{patch}b{beta_n}", end="")
+          else:
+              print(f"{major}.{minor}.{patch}", end="")
+          PYEOF
+          )
+
+          echo "new_version=$NEW_VERSION"                  >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEW_VERSION"                         >> "$GITHUB_OUTPUT"
+          echo "branch=release/v$NEW_VERSION"              >> "$GITHUB_OUTPUT"
+          echo "is_beta=${{ inputs.beta }}"                >> "$GITHUB_OUTPUT"
+          echo "Bumping (${{ inputs.bump }}): $CURRENT → $NEW_VERSION"
+
+      # ── Bump version strings ─────────────────────────────────────────────
+      - name: Bump version in pyproject.toml
+        run: |
+          sed -i 's/^version = ".*"/version = "${{ steps.version.outputs.new_version }}"/' pyproject.toml
+
+      - name: Bump version in docs/conf.py
+        run: |
+          sed -i 's/^release = ".*"/release = "${{ steps.version.outputs.new_version }}"/' docs/conf.py
+
+      # ── Build changelog ──────────────────────────────────────────────────
+      - name: Build changelog with towncrier
+        run: |
+          FRAGMENT_COUNT=$(find upcoming_changes -maxdepth 1 -name "*.rst" \
+                            ! -name "README.rst" | wc -l)
+          if [ "$FRAGMENT_COUNT" -eq 0 ]; then
+            echo "⚠ No news fragments found — skipping towncrier (CHANGELOG.rst unchanged)."
+          else
+            uvx towncrier build --yes --version "${{ steps.version.outputs.new_version }}"
+          fi
+
+      # ── Update docs switcher.json ────────────────────────────────────────
+      - name: Update docs/switcher.json
+        env:
+          VERSION_TAG: ${{ steps.version.outputs.tag }}
+          IS_BETA: ${{ inputs.beta }}
+        shell: python
+        run: |
+          import json, re, pathlib, os
+
+          version = os.environ["VERSION_TAG"]
+          is_beta = os.environ["IS_BETA"].lower() == "true"
+
+          path = pathlib.Path("docs/_root/switcher.json")
+          text = path.read_text()
+          # The file may contain a trailing comma; strip it before parsing.
+          text_clean = re.sub(r",(\s*[\]\}])", r"\1", text)
+          entries = json.loads(text_clean)
+
+          # Remove any existing entry for this version (makes the step idempotent).
+          entries = [e for e in entries if e.get("version") != version]
+
+          label = f"{version} (beta)" if is_beta else f"{version} (stable)"
+          url   = f"https://cssfrancis.github.io/anyplotlib/{version}/"
+          # Insert right after the "dev" entry so newest stable floats to top.
+          entries.insert(1, {"name": label, "version": version, "url": url})
+
+          path.write_text(json.dumps(entries, indent=2) + "\n")
+
+      # ── Update root redirect for stable releases ─────────────────────────
+      - name: Update root redirect (stable releases only)
+        if: ${{ inputs.beta == false && inputs.bump != 'pre-release' }}
+        env:
+          VERSION_TAG: ${{ steps.version.outputs.tag }}
+        shell: python
+        run: |
+          import re, pathlib, os
+
+          version = os.environ["VERSION_TAG"]
+          path = pathlib.Path("docs/_root/index.html")
+          text = path.read_text()
+
+          text = re.sub(r'(content="0; url=)[^"]+(")',       rf"\g<1>{version}/\2",   text)
+          text = re.sub(r'(rel="canonical" href=")[^"]+(")', rf"\g<1>{version}/\2",   text)
+          text = re.sub(r'(<a href=")[^"]+(">[^<]*</a>)',    rf"\g<1>{version}/\2",   text)
+          text = re.sub(r'(Redirecting to <a href="[^"]+">)[^<]*(</a>)',
+                        rf"\g<1>{version} documentation\2", text)
+
+          path.write_text(text)
+
+      # ── Commit and push ──────────────────────────────────────────────────
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit release changes
+        run: |
+          git checkout -b "${{ steps.version.outputs.branch }}"
+
+          # Stage version bumps, updated changelog, and consumed fragments.
+          git add pyproject.toml docs/conf.py CHANGELOG.rst
+          git add docs/_root/switcher.json docs/_root/index.html
+          git add -A upcoming_changes/    # stages deleted fragment files
+
+          git commit -m "chore: prepare release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.branch }}"
+
+      # ── Open pull request ────────────────────────────────────────────────
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          BRANCH: ${{ steps.version.outputs.branch }}
+        run: |
+          gh pr create \
+            --title "Release ${TAG}" \
+            --base  main \
+            --head  "${BRANCH}" \
+            --body  "## Release ${TAG}
+
+          > Auto-generated by the **Prepare Release** workflow.
+
+          ### What changed
+          - Version bumped to \`${TAG}\` in \`pyproject.toml\` and \`docs/conf.py\`
+          - \`CHANGELOG.rst\` updated from towncrier fragments
+          - \`docs/_root/switcher.json\` updated with the new version entry
+          $([ '${{ inputs.beta }}' = 'false' ] && echo '- Root redirect updated to point to this release' || echo '')
+
+          ### Review checklist
+          - [ ] \`CHANGELOG.rst\` reads well — edit the fragment text directly if needed
+          - [ ] Version strings are correct in \`pyproject.toml\` and \`docs/conf.py\`
+          - [ ] \`switcher.json\` has the right label and URL
+          - [ ] CI passes
+
+          ### After merging
+          Create and push the tag to trigger the Release and Docs workflows:
+          \`\`\`bash
+          git fetch origin
+          git tag ${TAG} origin/main
+          git push origin ${TAG}
+          \`\`\`"
+
