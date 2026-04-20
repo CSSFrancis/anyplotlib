@@ -14,6 +14,7 @@ Figure Plots
    :nosignatures:
 
    Axes
+   InsetAxes
 
 .. rubric:: Plot Classes
 
@@ -37,6 +38,12 @@ Figure Plots
 .. rubric:: Full Reference
 
 .. autoclass:: anyplotlib.figure_plots.Axes
+   :members:
+   :show-inheritance:
+   :member-order: bysource
+   :no-index:
+
+.. autoclass:: anyplotlib.figure_plots.InsetAxes
    :members:
    :show-inheritance:
    :member-order: bysource

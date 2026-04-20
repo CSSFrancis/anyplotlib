@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:03.499** total execution time for 4 files **from auto_examples/Interactive**:
+**00:03.700** total execution time for 4 files **from auto_examples/Interactive**:
 
 .. container::
 
@@ -33,14 +33,14 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_interactive_fitting.py` (``plot_interactive_fitting.py``)
-     - 00:01.388
+     - 00:01.485
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_interactive_fft.py` (``plot_interactive_fft.py``)
-     - 00:00.725
+     - 00:00.753
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_key_bindings.py` (``plot_key_bindings.py``)
-     - 00:00.703
+     - 00:00.747
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_point_widget.py` (``plot_point_widget.py``)
-     - 00:00.683
+     - 00:00.715
      - 0.0

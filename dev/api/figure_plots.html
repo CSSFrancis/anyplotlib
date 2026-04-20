@@ -463,6 +463,9 @@ Plot1D          – 1-D line panel, full Viewer1D-compatible API.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Axes</span></code></a></p></td>
 <td><p>A single grid cell in a Figure.</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">InsetAxes</span></code></p></td>
+<td><p>A floating inset sub-plot that overlays the main Figure grid.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -751,6 +754,81 @@ are generated automatically (backward-compatible call form).</p></li>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar" title="anyplotlib.figure_plots.PlotBar">PlotBar</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure_plots.</span></span><span class="sig-name descname"><span class="pre">InsetAxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_frac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_frac</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">corner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top-right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#InsetAxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.figure_plots.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a></p>
+<p>A floating inset sub-plot that overlays the main Figure grid.</p>
+<p>Created via <code class="xref py py-meth docutils literal notranslate"><span class="pre">Figure.add_inset()</span></code>.  Supports the same plot-factory
+methods as <a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.figure_plots.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a> (<code class="docutils literal notranslate"><span class="pre">imshow</span></code>, <code class="docutils literal notranslate"><span class="pre">plot</span></code>, <code class="docutils literal notranslate"><span class="pre">pcolormesh</span></code>, etc.).</p>
+<p>The inset is positioned at a corner of the figure and can be minimized
+(title bar only), maximized (expanded to fill ~72% of the figure), or
+restored to its normal size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<a class="reference internal" href="generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><em>Figure</em></a>)</p></li>
+<li><p><strong>w_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure dimensions (0–1).</p></li>
+<li><p><strong>h_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure dimensions (0–1).</p></li>
+<li><p><strong>corner</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – One of <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;top-left&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;bottom-right&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;bottom-left&quot;</span></code>.  Default <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code>.</p></li>
+<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Text shown in the inset title bar.  Default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">480</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inset</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_inset</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">corner</span><span class="o">=</span><span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Zoom&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inset</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">64</span><span class="p">:</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">:</span><span class="mi">128</span><span class="p">])</span>
+</pre></div>
+</div>
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">inset_state</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;normal&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;minimized&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;maximized&quot;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current state</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">minimize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#InsetAxes.minimize"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Collapse the inset to its title bar only (idempotent).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">maximize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#InsetAxes.maximize"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Expand the inset to ~72 % of the figure, centred (idempotent).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure_plots.html#InsetAxes.restore"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Return the inset to its normal corner position (idempotent).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>

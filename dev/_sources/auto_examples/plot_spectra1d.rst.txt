@@ -85,7 +85,7 @@ Pan and zoom with the mouse; press **R** to reset the view.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="ffd119d5d" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('ffd119d5d'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f34b032cb" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f34b032cb'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -129,7 +129,7 @@ whose values fall outside the current bounds.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe19d696c" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe19d696c'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f8c8a0b89" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f8c8a0b89'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -166,7 +166,7 @@ is sparse or when you want to emphasise individual sample positions).
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f67599d41" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_003.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f67599d41'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd02a315e" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_003.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd02a315e'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -196,7 +196,7 @@ want to tweak the appearance of the main trace.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd62da573" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_004.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd62da573'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f4498bb7e" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_004.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f4498bb7e'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -206,7 +206,7 @@ want to tweak the appearance of the main trace.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 2.830 seconds)
+   **Total running time of the script:** (0 minutes 2.845 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_spectra1d.py:

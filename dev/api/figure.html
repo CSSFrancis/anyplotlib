@@ -606,6 +606,34 @@ tuple selects a single cell.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">add_inset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_frac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_frac</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">corner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top-right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure.add_inset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Create and return a floating inset axes.</p>
+<p>The inset overlays the figure at the specified corner.  Call
+plot-factory methods on the returned <code class="xref py py-class docutils literal notranslate"><span class="pre">InsetAxes</span></code> to attach
+data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inset</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_inset</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">corner</span><span class="o">=</span><span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Zoom&quot;</span><span class="p">)</span>
+<span class="n">inset</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>    <span class="c1"># returns Plot2D</span>
+<span class="n">inset</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">profile</span><span class="p">)</span>   <span class="c1"># returns Plot1D</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
+<li><p><strong>h_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
+<li><p><strong>corner</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Positioning corner: <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;top-left&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;bottom-right&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;bottom-left&quot;</span></code>.</p></li>
+<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Text displayed in the inset title bar.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>InsetAxes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">get_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure.html#Figure.get_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Return a list of all Axes, sorted by grid position.</p>
 <dl class="field-list simple">

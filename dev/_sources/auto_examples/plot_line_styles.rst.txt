@@ -64,7 +64,7 @@ Four separate figures are shown:
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f4a41a5c2" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_001.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f4a41a5c2'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f5baee9f3" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_001.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f5baee9f3'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -103,7 +103,7 @@ and :meth:`~anyplotlib.figure_plots.Plot1D.add_line`:
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f82d8501a" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_002.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f82d8501a'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f8b98bdb4" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_002.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f8b98bdb4'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -138,7 +138,7 @@ that share the same amplitude range.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd8eb81cc" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_003.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd8eb81cc'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f39198018" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_003.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f39198018'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -204,7 +204,7 @@ Supported symbols:
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f1dedc231" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:396px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_004.html" frameborder="0" scrolling="no" style="width:596px;height:396px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f1dedc231'),ifr=wrap.querySelector('iframe'),nw=596,nh=396;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f9cb92f4f" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:396px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_004.html" frameborder="0" scrolling="no" style="width:596px;height:396px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f9cb92f4f'),ifr=wrap.querySelector('iframe'),nw=596,nh=396;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -243,7 +243,7 @@ separate overlay lines.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe4dcf991" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_005.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe4dcf991'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe700da4c" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_005.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe700da4c'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -281,7 +281,7 @@ need to recreate the panel.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f6b7f76ae" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_006.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f6b7f76ae'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="faf662118" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_006.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('faf662118'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -291,7 +291,7 @@ need to recreate the panel.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 4.066 seconds)
+   **Total running time of the script:** (0 minutes 4.248 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_line_styles.py:

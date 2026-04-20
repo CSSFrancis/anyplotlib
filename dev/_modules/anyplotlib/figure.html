@@ -402,7 +402,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pathlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anywidget</span><span class="o">,</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="o">,</span><span class="w"> </span><span class="nn">traitlets</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.figure_plots</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSpec</span><span class="p">,</span> <span class="n">SubplotSpec</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">,</span> <span class="n">Plot3D</span><span class="p">,</span> <span class="n">PlotBar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.figure_plots</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">GridSpec</span><span class="p">,</span> <span class="n">SubplotSpec</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">,</span>
+                                      <span class="n">Plot3D</span><span class="p">,</span> <span class="n">PlotBar</span><span class="p">,</span> <span class="n">InsetAxes</span><span class="p">,</span> <span class="n">_plot_kind</span><span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Figure&quot;</span><span class="p">,</span> <span class="s2">&quot;GridSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;SubplotSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;subplots&quot;</span><span class="p">]</span>
@@ -503,6 +504,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_sharey</span> <span class="o">=</span> <span class="n">sharey</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="p">:</span> <span class="nb">dict</span>  <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_insets_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_trait_notifications</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>     <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span>    <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -648,16 +650,30 @@
             <span class="n">plot</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
             <span class="n">panel_specs</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
                 <span class="s2">&quot;id&quot;</span><span class="p">:</span>           <span class="n">pid</span><span class="p">,</span>
-                <span class="s2">&quot;kind&quot;</span><span class="p">:</span>         <span class="p">(</span><span class="s2">&quot;3d&quot;</span>  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">Plot3D</span><span class="p">)</span>
-                             <span class="k">else</span> <span class="s2">&quot;2d&quot;</span>  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="p">(</span><span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">))</span>
-                             <span class="k">else</span> <span class="s2">&quot;bar&quot;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">PlotBar</span><span class="p">)</span>
-                             <span class="k">else</span> <span class="s2">&quot;1d&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;kind&quot;</span><span class="p">:</span>         <span class="n">_plot_kind</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span> <span class="k">if</span> <span class="n">plot</span> <span class="k">else</span> <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;row_start&quot;</span><span class="p">:</span>    <span class="n">s</span><span class="o">.</span><span class="n">row_start</span><span class="p">,</span>
                 <span class="s2">&quot;row_stop&quot;</span><span class="p">:</span>     <span class="n">s</span><span class="o">.</span><span class="n">row_stop</span><span class="p">,</span>
                 <span class="s2">&quot;col_start&quot;</span><span class="p">:</span>    <span class="n">s</span><span class="o">.</span><span class="n">col_start</span><span class="p">,</span>
                 <span class="s2">&quot;col_stop&quot;</span><span class="p">:</span>     <span class="n">s</span><span class="o">.</span><span class="n">col_stop</span><span class="p">,</span>
                 <span class="s2">&quot;panel_width&quot;</span><span class="p">:</span>  <span class="n">pw</span><span class="p">,</span>
                 <span class="s2">&quot;panel_height&quot;</span><span class="p">:</span> <span class="n">ph</span><span class="p">,</span>
+            <span class="p">})</span>
+
+        <span class="n">inset_specs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">inset_ax</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insets_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+            <span class="n">pw</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>  <span class="o">*</span> <span class="n">inset_ax</span><span class="o">.</span><span class="n">w_frac</span><span class="p">))</span>
+            <span class="n">ph</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span> <span class="o">*</span> <span class="n">inset_ax</span><span class="o">.</span><span class="n">h_frac</span><span class="p">))</span>
+            <span class="n">inset_specs</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span>           <span class="n">pid</span><span class="p">,</span>
+                <span class="s2">&quot;kind&quot;</span><span class="p">:</span>         <span class="n">_plot_kind</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span> <span class="k">if</span> <span class="n">plot</span> <span class="k">else</span> <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;w_frac&quot;</span><span class="p">:</span>       <span class="n">inset_ax</span><span class="o">.</span><span class="n">w_frac</span><span class="p">,</span>
+                <span class="s2">&quot;h_frac&quot;</span><span class="p">:</span>       <span class="n">inset_ax</span><span class="o">.</span><span class="n">h_frac</span><span class="p">,</span>
+                <span class="s2">&quot;corner&quot;</span><span class="p">:</span>       <span class="n">inset_ax</span><span class="o">.</span><span class="n">corner</span><span class="p">,</span>
+                <span class="s2">&quot;title&quot;</span><span class="p">:</span>        <span class="n">inset_ax</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+                <span class="s2">&quot;panel_width&quot;</span><span class="p">:</span>  <span class="n">pw</span><span class="p">,</span>
+                <span class="s2">&quot;panel_height&quot;</span><span class="p">:</span> <span class="n">ph</span><span class="p">,</span>
+                <span class="s2">&quot;inset_state&quot;</span><span class="p">:</span>  <span class="n">inset_ax</span><span class="o">.</span><span class="n">_inset_state</span><span class="p">,</span>
             <span class="p">})</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">layout_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
@@ -669,7 +685,50 @@
             <span class="s2">&quot;fig_height&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span><span class="p">,</span>
             <span class="s2">&quot;panel_specs&quot;</span><span class="p">:</span>    <span class="n">panel_specs</span><span class="p">,</span>
             <span class="s2">&quot;share_groups&quot;</span><span class="p">:</span>   <span class="n">share_groups</span><span class="p">,</span>
+            <span class="s2">&quot;inset_specs&quot;</span><span class="p">:</span>    <span class="n">inset_specs</span><span class="p">,</span>
         <span class="p">})</span>
+
+    <span class="c1"># ── inset creation ────────────────────────────────────────────────────────</span>
+<div class="viewcode-block" id="Figure.add_inset">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.add_inset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_inset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                  <span class="n">corner</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;InsetAxes&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and return a floating inset axes.</span>
+
+<span class="sd">        The inset overlays the figure at the specified corner.  Call</span>
+<span class="sd">        plot-factory methods on the returned :class:`InsetAxes` to attach</span>
+<span class="sd">        data::</span>
+
+<span class="sd">            inset = fig.add_inset(0.3, 0.25, corner=&quot;top-right&quot;, title=&quot;Zoom&quot;)</span>
+<span class="sd">            inset.imshow(data)    # returns Plot2D</span>
+<span class="sd">            inset.plot(profile)   # returns Plot1D</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        w_frac, h_frac : float</span>
+<span class="sd">            Width and height as fractions of the figure size (0–1).</span>
+<span class="sd">        corner : str, optional</span>
+<span class="sd">            Positioning corner: ``&quot;top-right&quot;`` (default), ``&quot;top-left&quot;``,</span>
+<span class="sd">            ``&quot;bottom-right&quot;``, or ``&quot;bottom-left&quot;``.</span>
+<span class="sd">        title : str, optional</span>
+<span class="sd">            Text displayed in the inset title bar.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        InsetAxes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">InsetAxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_frac</span><span class="p">,</span> <span class="n">h_frac</span><span class="p">,</span> <span class="n">corner</span><span class="o">=</span><span class="n">corner</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_inset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inset_ax</span><span class="p">:</span> <span class="s2">&quot;InsetAxes&quot;</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register an inset plot, allocating its trait and updating layout.&quot;&quot;&quot;</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_id</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_trait</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;panel_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">_json&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_traits</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;panel_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">_json&quot;</span><span class="p">:</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">[</span><span class="n">pid</span><span class="p">]</span>  <span class="o">=</span> <span class="n">plot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_insets_map</span><span class="p">[</span><span class="n">pid</span><span class="p">]</span> <span class="o">=</span> <span class="n">inset_ax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
 
     <span class="nd">@traitlets</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;fig_width&quot;</span><span class="p">,</span> <span class="s2">&quot;fig_height&quot;</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_on_resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">change</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -697,6 +756,16 @@
         <span class="n">widget_id</span>  <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;widget_id&quot;</span><span class="p">)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="s2">&quot;panel_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_type&quot;</span><span class="p">,</span> <span class="s2">&quot;widget_id&quot;</span><span class="p">)}</span>
+
+        <span class="c1"># Inset state changes are handled before regular plot dispatch</span>
+        <span class="k">if</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s2">&quot;on_inset_state_change&quot;</span><span class="p">:</span>
+            <span class="n">inset_ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insets_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">panel_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">inset_ax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_state</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;new_state&quot;</span><span class="p">,</span> <span class="s2">&quot;normal&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">new_state</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span> <span class="s2">&quot;minimized&quot;</span><span class="p">,</span> <span class="s2">&quot;maximized&quot;</span><span class="p">):</span>
+                    <span class="n">inset_ax</span><span class="o">.</span><span class="n">_inset_state</span> <span class="o">=</span> <span class="n">new_state</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
+            <span class="k">return</span>
 
         <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">panel_id</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
