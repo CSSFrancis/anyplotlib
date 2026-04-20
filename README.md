@@ -1,6 +1,8 @@
 Anyplotlib
 ----------
 
+[![codecov](https://codecov.io/gh/CSSFrancis/anyplotlib/branch/main/graph/badge.svg)](https://codecov.io/gh/CSSFrancis/anyplotlib)
+
 Welcome to **anyplotlib** – a lightweight, interactive viewer for 1-D signals and
 2-D images, backed by [anywidget](https://anywidget.dev/) and a pure-JavaScript
 canvas renderer.  The goal is to duplicate and extend the interactive plotting capabilities of Matplotlib,
