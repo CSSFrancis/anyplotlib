@@ -1,0 +1,6 @@
+Added :class:`~anyplotlib.InsetAxes` — floating overlay sub-plots that sit
+above the main figure grid, created via :meth:`~anyplotlib.Figure.add_inset`
+and supporting all plot types (:meth:`~anyplotlib.Axes.imshow`,
+:meth:`~anyplotlib.Axes.plot`, :meth:`~anyplotlib.Axes.pcolormesh`, etc.)
+as well as interactive minimise, maximise, and restore states.
+
