@@ -55,7 +55,7 @@ Use ``markers["arrows"]["name"].set(...)`` to update them live.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f1aeb1839" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_arrows_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f1aeb1839'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fa20b19dd" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_arrows_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fa20b19dd'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -81,7 +81,7 @@ Change colour and width of every arrow in the group at once.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fdb748d92" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_arrows_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fdb748d92'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f2fa7c3a5" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_arrows_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f2fa7c3a5'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -91,7 +91,7 @@ Change colour and width of every arrow in the group at once.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.504 seconds)
+   **Total running time of the script:** (0 minutes 1.383 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Markers_plot_arrows.py:

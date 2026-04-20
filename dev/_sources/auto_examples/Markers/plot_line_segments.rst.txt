@@ -60,7 +60,7 @@ Use ``markers["lines"]["name"].set(...)`` to update them live.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f18946068" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_line_segments_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f18946068'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f7e07a8ec" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_line_segments_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f7e07a8ec'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -86,7 +86,7 @@ Update stroke colour and width for all segments at once.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f1c24ec61" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_line_segments_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f1c24ec61'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f412923d5" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_line_segments_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f412923d5'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -96,7 +96,7 @@ Update stroke colour and width for all segments at once.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.512 seconds)
+   **Total running time of the script:** (0 minutes 1.378 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Markers_plot_line_segments.py:

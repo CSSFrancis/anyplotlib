@@ -55,7 +55,7 @@ of the selected region, displayed in a side-by-side panel.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f930b2c95" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:355px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_interactive_fft_001.html" frameborder="0" scrolling="no" style="width:916px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.746725);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f930b2c95'),ifr=wrap.querySelector('iframe'),nw=916,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fed8e67e9" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:355px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_interactive_fft_001.html" frameborder="0" scrolling="no" style="width:916px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.746725);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fed8e67e9'),ifr=wrap.querySelector('iframe'),nw=916,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -221,7 +221,7 @@ of the selected region, displayed in a side-by-side panel.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.753 seconds)
+   **Total running time of the script:** (0 minutes 0.740 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Interactive_plot_interactive_fft.py:
