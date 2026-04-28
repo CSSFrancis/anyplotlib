@@ -755,6 +755,10 @@ class Plot2D:
             "overlay_widgets":   [],
             "markers":           [],
             "registered_keys":   [],
+            # Transparent mask overlay (set via set_overlay_mask)
+            "overlay_mask_b64":   "",
+            "overlay_mask_color": "#ff4444",
+            "overlay_mask_alpha": 0.4,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -845,6 +849,45 @@ class Plot2D:
             "raw_max":      vmax,
             "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
         })
+        self._push()
+
+    def set_overlay_mask(self, mask: "np.ndarray | None",
+                         color: str = "#ff4444",
+                         alpha: float = 0.4) -> None:
+        """Set (or clear) a transparent boolean mask drawn over the image.
+
+        The mask is composited client-side in the browser at *alpha* opacity
+        using *color* for all ``True`` pixels.  Call with ``mask=None`` to
+        remove any existing overlay.
+
+        Parameters
+        ----------
+        mask : ndarray of shape (H, W), bool or uint8, or None
+            Boolean array aligned to the image data.  ``True`` / non-zero
+            pixels are filled with *color* at transparency *alpha*.
+            Pass ``None`` to clear the overlay.
+        color : str, optional
+            CSS hex colour for the overlay, e.g. ``"#ff4444"``.  Default red.
+        alpha : float, optional
+            Opacity in [0, 1].  Default 0.4 (40 % opaque).
+        """
+        import base64
+        if mask is None:
+            self._state["overlay_mask_b64"]   = ""
+            self._state["overlay_mask_color"] = color
+            self._state["overlay_mask_alpha"] = float(alpha)
+        else:
+            arr = np.asarray(mask)
+            if arr.shape != (self._state["image_height"], self._state["image_width"]):
+                raise ValueError(
+                    f"mask shape {arr.shape} does not match image "
+                    f"({self._state['image_height']} x {self._state['image_width']})"
+                )
+            # Convert to uint8: True/non-zero → 255, False/zero → 0
+            u8 = (np.asarray(arr, dtype=bool).view(np.uint8) * 255).astype(np.uint8)
+            self._state["overlay_mask_b64"]   = base64.b64encode(u8.tobytes()).decode("ascii")
+            self._state["overlay_mask_color"] = color
+            self._state["overlay_mask_alpha"] = float(alpha)
         self._push()
 
     # ------------------------------------------------------------------
