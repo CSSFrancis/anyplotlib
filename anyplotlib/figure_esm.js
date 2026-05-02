@@ -198,8 +198,8 @@ function render({ model, el }) {
 
   const sizeLabel = document.createElement('div');
   sizeLabel.style.cssText =
-    'position:absolute;bottom:22px;right:22px;padding:3px 7px;background:rgba(0,0,0,0.7);' +
-    'color:white;font-size:11px;border-radius:4px;display:none;pointer-events:none;z-index:21;';
+    'position:absolute;bottom:22px;right:22px;padding:7px 14px;background:rgba(0,0,0,0.65);' +
+    'color:white;font-size:12px;font-family:monospace;border-radius:5px;display:none;pointer-events:none;z-index:21;';
   outerDiv.appendChild(sizeLabel);
 
   // ── Help badge (figure-level) ─────────────────────────────────────────────
@@ -407,8 +407,8 @@ function render({ model, el }) {
       scaleBar.style.cssText = 'position:absolute;pointer-events:none;display:none;z-index:7;';
       statusBar = document.createElement('div');
       statusBar.style.cssText =
-        'position:absolute;padding:2px 6px;background:rgba(0,0,0,0.55);color:white;' +
-        'font-size:10px;font-family:monospace;border-radius:4px;pointer-events:none;' +
+        'position:absolute;padding:7px 14px;background:rgba(0,0,0,0.65);color:white;' +
+        'font-size:12px;font-family:monospace;border-radius:5px;pointer-events:none;' +
         'white-space:nowrap;display:none;z-index:9;';
       yAxisCanvas = document.createElement('canvas');
       yAxisCanvas.style.cssText =
@@ -474,9 +474,9 @@ function render({ model, el }) {
       wrap.appendChild(markersCanvas);
       statusBar = document.createElement('div');
       statusBar.style.cssText =
-        'position:absolute;bottom:4px;right:4px;padding:2px 6px;' +
-        'background:rgba(0,0,0,0.55);color:white;font-size:10px;font-family:monospace;' +
-        'border-radius:4px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
+        'position:absolute;bottom:4px;right:4px;padding:7px 14px;' +
+        'background:rgba(0,0,0,0.65);color:white;font-size:12px;font-family:monospace;' +
+        'border-radius:5px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
       wrap.appendChild(statusBar);
       wrapNode = wrap;
     }
@@ -548,7 +548,16 @@ function render({ model, el }) {
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
-      try { p2.state = JSON.parse(model.get(`panel_${id}_json`)); }
+      try {
+        const newState = JSON.parse(model.get(`panel_${id}_json`));
+        // Preserve the current view (zoom/pan) so Python pushes don't reset it
+        if (p2.state && p2.kind === '2d') {
+          newState.zoom     = p2.state.zoom;
+          newState.center_x = p2.state.center_x;
+          newState.center_y = p2.state.center_y;
+        }
+        p2.state = newState;
+      }
       catch(_) { return; }
       p2._hoverSi = -1; p2._hoverI = -1;
       _redrawPanel(p2);
@@ -659,7 +668,16 @@ function render({ model, el }) {
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
-      try { p2.state = JSON.parse(model.get(`panel_${id}_json`)); }
+      try {
+        const newState = JSON.parse(model.get(`panel_${id}_json`));
+        // Preserve the current view (zoom/pan) so Python pushes don't reset it
+        if (p2.state && p2.kind === '2d') {
+          newState.zoom     = p2.state.zoom;
+          newState.center_x = p2.state.center_x;
+          newState.center_y = p2.state.center_y;
+        }
+        p2.state = newState;
+      }
       catch(_) { return; }
       p2._hoverSi = -1; p2._hoverI = -1;
       _redrawPanel(p2);
