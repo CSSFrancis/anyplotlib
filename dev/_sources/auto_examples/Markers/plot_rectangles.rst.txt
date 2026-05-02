@@ -53,7 +53,7 @@ Use ``markers["rectangles"]["name"].set(...)`` to update them live.
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f2d26b26f" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_rectangles_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f2d26b26f'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f32d63e94" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_rectangles_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f32d63e94'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -80,7 +80,7 @@ Live update
 
 .. raw:: html
 
-    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fafaaf41c" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_rectangles_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fafaaf41c'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
+    <div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f7ecbac74" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_rectangles_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f7ecbac74'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div>
 
 
 
@@ -90,7 +90,7 @@ Live update
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.388 seconds)
+   **Total running time of the script:** (0 minutes 1.135 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Markers_plot_rectangles.py:

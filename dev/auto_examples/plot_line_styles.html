@@ -27,11 +27,11 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -39,14 +39,15 @@
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
     <script src="../_static/documentation_options.js?v=01f34227"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/plot_line_styles';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -75,7 +76,9 @@
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>Back to top</button>
-
+  
+  
+  
   
   <dialog id="pst-search-dialog">
     
@@ -353,6 +356,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
 </details></li>
@@ -482,7 +486,7 @@ primary line; demonstrates post-construction setters.</p></li>
 <span class="n">fig1</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f003e2959" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_001.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f003e2959'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="the-ls-shorthand">
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fb52f6792" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_001.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fb52f6792'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="the-ls-shorthand">
 <h2>The <code class="docutils literal notranslate"><span class="pre">ls</span></code> shorthand<a class="headerlink" href="#the-ls-shorthand" title="Link to this heading">#</a></h2>
 <p>Each linestyle has a single-character (or two-character) shorthand that
 matches the matplotlib convention:</p>
@@ -501,7 +505,7 @@ and <code class="xref py py-meth docutils literal notranslate"><span class="pre"
 <span class="n">fig2a</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f840de3c6" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_002.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f840de3c6'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f58a66b86" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_002.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f58a66b86'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
 <section id="alpha-opacity">
 <h2>Alpha (opacity)<a class="headerlink" href="#alpha-opacity" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">alpha</span></code> controls line opacity on a 0–1 scale.  Values below 1 let
@@ -517,7 +521,7 @@ that share the same amplitude range.</p>
 <span class="n">fig2</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f04430f55" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_003.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f04430f55'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe1c11cdd" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_003.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe1c11cdd'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
 <section id="marker-symbols">
 <h2>Marker symbols<a class="headerlink" href="#marker-symbols" title="Link to this heading">#</a></h2>
 <p>Set <code class="docutils literal notranslate"><span class="pre">marker</span></code> to place a symbol at every data point.  Use a <strong>sparse</strong>
@@ -564,7 +568,7 @@ x-axis (few points) so the individual markers are legible.
 <span class="n">fig3</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fee142729" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:396px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_004.html" frameborder="0" scrolling="no" style="width:596px;height:396px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fee142729'),ifr=wrap.querySelector('iframe'),nw=596,nh=396;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f2de2071b" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:396px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_004.html" frameborder="0" scrolling="no" style="width:596px;height:396px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f2de2071b'),ifr=wrap.querySelector('iframe'),nw=596,nh=396;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
 <section id="combined-linestyle-alpha-marker">
 <h2>Combined — linestyle + alpha + marker<a class="headerlink" href="#combined-linestyle-alpha-marker" title="Link to this heading">#</a></h2>
 <p>All three style parameters can be combined freely on the same line or on
@@ -584,7 +588,7 @@ separate overlay lines.</p>
 <span class="n">fig4</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f86825fa3" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_005.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f86825fa3'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fdb7457b8" style="display:inline-block;overflow:hidden;position:relative;width:596px;height:316px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_005.html" frameborder="0" scrolling="no" style="width:596px;height:316px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fdb7457b8'),ifr=wrap.querySelector('iframe'),nw=596,nh=316;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
 <section id="post-construction-setters">
 <h2>Post-construction setters<a class="headerlink" href="#post-construction-setters" title="Link to this heading">#</a></h2>
 <p>Every primary-line style property has a matching setter method.  These
@@ -603,7 +607,7 @@ need to recreate the panel.</p>
 <span class="n">fig5</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe3472808" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_006.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe3472808'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 4.157 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fe4c3ab43" style="display:inline-block;overflow:hidden;position:relative;width:456px;height:236px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_line_styles_006.html" frameborder="0" scrolling="no" style="width:456px;height:236px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fe4c3ab43'),ifr=wrap.querySelector('iframe'),nw=456,nh=236;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 3.328 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plot-line-styles-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../_downloads/d915175c883aee0477cca58f1f934d6a/plot_line_styles.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_line_styles.ipynb</span></code></a></p>
@@ -696,8 +700,8 @@ need to recreate the panel.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -731,7 +735,7 @@ need to recreate the panel.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
 </p></div>
       
     </div>

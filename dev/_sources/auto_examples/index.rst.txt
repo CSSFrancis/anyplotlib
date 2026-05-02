@@ -5,6 +5,10 @@ Examples
 
 A collection of short, self-contained examples.
 
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
 
 .. raw:: html
 
@@ -141,6 +145,10 @@ where new data must be encoded and dispatched to the browser on every frame.
 
 
 
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
 
 .. raw:: html
 
@@ -178,6 +186,10 @@ Examples that use the callback / event system to connect widget
 interactions to live Python computations.
 
 
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
 
 
 .. raw:: html
@@ -239,6 +251,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Click on any region of the image to flood-fill all pixels of similar intensity — the union of all seeded regions is shown as a live semi-transparent overlay on the original image.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_segment_by_contrast_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_segment_by_contrast`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive Contrast Segmentation</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="A noisy composite signal built from two Gaussians is displayed.  Two additional overlay lines show the individual component curves and a white sum curve that always equals the current manual model.">
 
 .. only:: html
@@ -263,6 +292,10 @@ interactions to live Python computations.
 Markers
 -------
 A collection of short examples using markers
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
 
 
 .. raw:: html
@@ -467,6 +500,10 @@ A collection of short examples using markers
 Widgets
 -------
 Short examples of using widgets in anyplotlib
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
 
 
 .. raw:: html

@@ -6,6 +6,10 @@ Markers
 -------
 A collection of short examples using markers
 
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
 
 .. raw:: html
 

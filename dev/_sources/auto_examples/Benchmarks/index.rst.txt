@@ -12,6 +12,10 @@ where new data must be encoded and dispatched to the browser on every frame.
 
 
 
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
 
 .. raw:: html
 

@@ -27,11 +27,11 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -39,14 +39,15 @@
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/Interactive/index';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -75,7 +76,9 @@
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>Back to top</button>
-
+  
+  
+  
   
   <dialog id="pst-search-dialog">
     
@@ -353,6 +356,7 @@
 <li class="toctree-l2"><a class="reference internal" href="plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
 </details></li>
@@ -446,7 +450,7 @@
 <span id="sphx-glr-auto-examples-interactive"></span><h1>Interactive Examples<a class="headerlink" href="#interactive-examples" title="Link to this heading">#</a></h1>
 <p>Examples that use the callback / event system to connect widget
 interactions to live Python computations.</p>
-<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the on_key callback API: press a key while the plot is focused to add an overlay widget centred on the current cursor position, or press Backspace / Delete to remove the last widget you clicked."><img alt="" src="../../_images/sphx_glr_plot_key_bindings_thumb.png" />
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the on_key callback API: press a key while the plot is focused to add an overlay widget centred on the current cursor position, or press Backspace / Delete to remove the last widget you clicked."><img alt="" src="../../_images/sphx_glr_plot_key_bindings_thumb.png" />
 <p><a class="reference internal" href="plot_key_bindings.html"><span class="doc">Key-Press Widget Placement</span></a></p>
   <div class="sphx-glr-thumbnail-title">Key-Press Widget Placement</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the PointWidget on a 1-D panel."><img alt="" src="../../_images/sphx_glr_plot_point_widget_thumb.png" />
@@ -455,6 +459,9 @@ interactions to live Python computations.</p>
 </div><div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel."><img alt="" src="../../_images/sphx_glr_plot_interactive_fft_thumb.png" />
 <p><a class="reference internal" href="plot_interactive_fft.html"><span class="doc">Interactive FFT ROI</span></a></p>
   <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Click on any region of the image to flood-fill all pixels of similar intensity — the union of all seeded regions is shown as a live semi-transparent overlay on the original image."><img alt="" src="../../_images/sphx_glr_plot_segment_by_contrast_thumb.png" />
+<p><a class="reference internal" href="plot_segment_by_contrast.html"><span class="doc">Interactive Contrast Segmentation</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Interactive Contrast Segmentation</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="A noisy composite signal built from two Gaussians is displayed.  Two additional overlay lines show the individual component curves and a white sum curve that always equals the current manual model."><img alt="" src="../../_images/sphx_glr_plot_interactive_fitting_thumb.png" />
 <p><a class="reference internal" href="plot_interactive_fitting.html"><span class="doc">Interactive 1-D Gaussian Fitting</span></a></p>
   <div class="sphx-glr-thumbnail-title">Interactive 1-D Gaussian Fitting</div>
@@ -523,8 +530,8 @@ interactions to live Python computations.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -558,7 +565,7 @@ interactions to live Python computations.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
 </p></div>
       
     </div>

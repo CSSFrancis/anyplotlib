@@ -27,11 +27,11 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -39,14 +39,15 @@
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/anyplotlib.Plot2D';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -75,7 +76,9 @@
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>Back to top</button>
-
+  
+  
+  
   
   <dialog id="pst-search-dialog">
     
@@ -497,6 +500,30 @@ so the new data is displayed with the same orientation.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a>)</p></li>
 <li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Plot2D.set_overlay_mask">
+<span class="sig-name descname"><span class="pre">set_overlay_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff4444'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure_plots.html#Plot2D.set_overlay_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot2D.set_overlay_mask" title="Link to this definition">#</a></dt>
+<dd><p>Set (or clear) a transparent boolean mask drawn over the image.</p>
+<p>The mask is composited client-side in the browser at <em>alpha</em> opacity
+using <em>color</em> for all <code class="docutils literal notranslate"><span class="pre">True</span></code> pixels.  Call with <code class="docutils literal notranslate"><span class="pre">mask=None</span></code> to
+remove any existing overlay.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> (<em>ndarray</em><em> of </em><em>shape</em><em> (</em><em>H</em><em>, </em><em>W</em><em>)</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em> or </em><em>uint8</em><em>, or </em><em>None</em>) – Boolean array aligned to the image data.  <code class="docutils literal notranslate"><span class="pre">True</span></code> / non-zero
+pixels are filled with <em>color</em> at transparency <em>alpha</em>.
+Pass <code class="docutils literal notranslate"><span class="pre">None</span></code> to clear the overlay.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS hex colour for the overlay, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;#ff4444&quot;</span></code>.  Default red.
+Must be in <code class="docutils literal notranslate"><span class="pre">#RRGGBB</span></code> format.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity in [0, 1].  Default 0.4 (40 % opaque).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -934,6 +961,7 @@ y-extent is used for zoom calculation.</p></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.to_state_dict"><code class="docutils literal notranslate"><span class="pre">Plot2D.to_state_dict()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.data"><code class="docutils literal notranslate"><span class="pre">Plot2D.data</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_data"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_data()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_overlay_mask"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_overlay_mask()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_colormap"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_colormap()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_clim"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_clim()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_scale_mode"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_scale_mode()</span></code></a></li>
@@ -991,8 +1019,8 @@ y-extent is used for zoom calculation.</p></li>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -1026,7 +1054,7 @@ y-extent is used for zoom calculation.</p></li>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
 </p></div>
       
     </div>

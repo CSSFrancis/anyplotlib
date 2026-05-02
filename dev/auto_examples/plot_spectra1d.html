@@ -27,11 +27,11 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -39,14 +39,15 @@
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
     <script src="../_static/documentation_options.js?v=01f34227"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/plot_spectra1d';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -75,7 +76,9 @@
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>Back to top</button>
-
+  
+  
+  
   
   <dialog id="pst-search-dialog">
     
@@ -353,6 +356,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
 </details></li>
@@ -501,7 +505,7 @@ diamond markers.</p>
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f897ac8e7" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f897ac8e7'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="overlay-a-model-fit-linestyle-and-alpha">
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fdb25c026" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_001.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fdb25c026'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="overlay-a-model-fit-linestyle-and-alpha">
 <h2>Overlay a model fit — linestyle and alpha<a class="headerlink" href="#overlay-a-model-fit-linestyle-and-alpha" title="Link to this heading">#</a></h2>
 <p>Use <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_line()</span></code> to overlay additional
 curves.  Here the noiseless model fit is drawn as a <strong>dashed</strong> line so it
@@ -524,7 +528,7 @@ whose values fall outside the current bounds.</p>
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f9a6a04c9" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f9a6a04c9'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f1661b977" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_002.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f1661b977'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
 <section id="background-component-dotted-line-with-markers">
 <h2>Background component — dotted line with markers<a class="headerlink" href="#background-component-dotted-line-with-markers" title="Link to this heading">#</a></h2>
 <p>Draw the exponential background component as a <strong>dotted</strong> curve.  Passing
@@ -542,7 +546,7 @@ is sparse or when you want to emphasise individual sample positions).
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fcdd10e17" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_003.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fcdd10e17'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fd6011df2" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_003.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fd6011df2'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div></section>
 <section id="post-construction-setters">
 <h2>Post-construction setters<a class="headerlink" href="#post-construction-setters" title="Link to this heading">#</a></h2>
 <p>All primary-line style properties can be changed after the panel is created
@@ -554,7 +558,7 @@ want to tweak the appearance of the main trace.</p>
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f6e82fbc9" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_004.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f6e82fbc9'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 2.844 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f815c7002" style="display:inline-block;overflow:hidden;position:relative;width:636px;height:356px;"><iframe src="../_static/viewer_widgets/sphx_glr_plot_spectra1d_004.html" frameborder="0" scrolling="no" style="width:636px;height:356px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f815c7002'),ifr=wrap.querySelector('iframe'),nw=636,nh=356;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 2.333 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plot-spectra1d-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../_downloads/d21d159f249d730725dfa6634f9562bf/plot_spectra1d.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_spectra1d.ipynb</span></code></a></p>
@@ -645,8 +649,8 @@ want to tweak the appearance of the main trace.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -680,7 +684,7 @@ want to tweak the appearance of the main trace.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
 </p></div>
       
     </div>

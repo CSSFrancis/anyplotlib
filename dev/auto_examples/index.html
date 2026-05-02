@@ -27,11 +27,11 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -39,14 +39,15 @@
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
     <script src="../_static/documentation_options.js?v=01f34227"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/index';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -75,7 +76,9 @@
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>Back to top</button>
-
+  
+  
+  
   
   <dialog id="pst-search-dialog">
     
@@ -353,6 +356,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
 </details></li>
@@ -442,7 +446,7 @@
   <section id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h1>
 <p>A collection of short, self-contained examples.</p>
-<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view."><img alt="" src="../_images/sphx_glr_plot_3d_thumb.png" />
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view."><img alt="" src="../_images/sphx_glr_plot_3d_thumb.png" />
 <p><a class="reference internal" href="plot_3d.html"><span class="doc">3D Plotting</span></a></p>
   <div class="sphx-glr-thumbnail-title">3D Plotting</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate pcolormesh with non-uniform (log-spaced) x-edges and irregularly-spaced y-edges, mirroring matplotlib.axes.Axes.pcolormesh."><img alt="" src="../_images/sphx_glr_plot_pcolormesh_thumb.png" />
@@ -468,7 +472,7 @@
 matplotlib, Plotly, and Bokeh.  All measurements capture only the
 <strong>Python serialisation cost</strong> — the bottleneck in a live Jupyter session
 where new data must be encoded and dispatched to the browser on every frame.</p>
-<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="There are a couple of different &quot;costs&quot; asscociated with rendering plots and images. There is usually a Python-side cost as well as a browser-side rendering cost. We&#x27;ve broken down those two costs here comparing different libraries for the first cost.  The second is harder to measure.  We&#x27;ve done it for anyplotlib but doing it for ipympl, bokeh and plotly is a little more difficult."><img alt="" src="../_images/sphx_glr_plot_benchmark_comparison_thumb.png" />
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="There are a couple of different &quot;costs&quot; asscociated with rendering plots and images. There is usually a Python-side cost as well as a browser-side rendering cost. We&#x27;ve broken down those two costs here comparing different libraries for the first cost.  The second is harder to measure.  We&#x27;ve done it for anyplotlib but doing it for ipympl, bokeh and plotly is a little more difficult."><img alt="" src="../_images/sphx_glr_plot_benchmark_comparison_thumb.png" />
 <p><a class="reference internal" href="Benchmarks/plot_benchmark_comparison.html"><span class="doc">Plot Update Comparison</span></a></p>
   <div class="sphx-glr-thumbnail-title">Plot Update Comparison</div>
 </div></div></section>
@@ -477,7 +481,7 @@ where new data must be encoded and dispatched to the browser on every frame.</p>
 <h1>Interactive Examples<a class="headerlink" href="#interactive-examples" title="Link to this heading">#</a></h1>
 <p>Examples that use the callback / event system to connect widget
 interactions to live Python computations.</p>
-<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the on_key callback API: press a key while the plot is focused to add an overlay widget centred on the current cursor position, or press Backspace / Delete to remove the last widget you clicked."><img alt="" src="../_images/sphx_glr_plot_key_bindings_thumb.png" />
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the on_key callback API: press a key while the plot is focused to add an overlay widget centred on the current cursor position, or press Backspace / Delete to remove the last widget you clicked."><img alt="" src="../_images/sphx_glr_plot_key_bindings_thumb.png" />
 <p><a class="reference internal" href="Interactive/plot_key_bindings.html"><span class="doc">Key-Press Widget Placement</span></a></p>
   <div class="sphx-glr-thumbnail-title">Key-Press Widget Placement</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the PointWidget on a 1-D panel."><img alt="" src="../_images/sphx_glr_plot_point_widget_thumb.png" />
@@ -486,13 +490,16 @@ interactions to live Python computations.</p>
 </div><div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel."><img alt="" src="../_images/sphx_glr_plot_interactive_fft_thumb.png" />
 <p><a class="reference internal" href="Interactive/plot_interactive_fft.html"><span class="doc">Interactive FFT ROI</span></a></p>
   <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Click on any region of the image to flood-fill all pixels of similar intensity — the union of all seeded regions is shown as a live semi-transparent overlay on the original image."><img alt="" src="../_images/sphx_glr_plot_segment_by_contrast_thumb.png" />
+<p><a class="reference internal" href="Interactive/plot_segment_by_contrast.html"><span class="doc">Interactive Contrast Segmentation</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Interactive Contrast Segmentation</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="A noisy composite signal built from two Gaussians is displayed.  Two additional overlay lines show the individual component curves and a white sum curve that always equals the current manual model."><img alt="" src="../_images/sphx_glr_plot_interactive_fitting_thumb.png" />
 <p><a class="reference internal" href="Interactive/plot_interactive_fitting.html"><span class="doc">Interactive 1-D Gaussian Fitting</span></a></p>
   <div class="sphx-glr-thumbnail-title">Interactive 1-D Gaussian Fitting</div>
 </div></div><section id="markers">
 <h2>Markers<a class="headerlink" href="#markers" title="Link to this heading">#</a></h2>
 <p>A collection of short examples using markers</p>
-<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Draw static horizontal threshold lines on a 1-D plot with add_hlines. Use markers[&quot;hlines&quot;][&quot;name&quot;].set(...) to update them live."><img alt="" src="../_images/sphx_glr_plot_horizontal_lines_thumb.png" />
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Draw static horizontal threshold lines on a 1-D plot with add_hlines. Use markers[&quot;hlines&quot;][&quot;name&quot;].set(...) to update them live."><img alt="" src="../_images/sphx_glr_plot_horizontal_lines_thumb.png" />
 <p><a class="reference internal" href="Markers/plot_horizontal_lines.html"><span class="doc">Horizontal Lines</span></a></p>
   <div class="sphx-glr-thumbnail-title">Horizontal Lines</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="Draw static vertical marker lines on a 1-D plot with add_vlines. Use markers[&quot;vlines&quot;][&quot;name&quot;].set(...) to update them live."><img alt="" src="../_images/sphx_glr_plot_vertical_lines_thumb.png" />
@@ -529,7 +536,7 @@ interactions to live Python computations.</p>
 <section id="widgets">
 <h2>Widgets<a class="headerlink" href="#widgets" title="Link to this heading">#</a></h2>
 <p>Short examples of using widgets in anyplotlib</p>
-<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="A draggable horizontal line on a 1-D plot panel. Add it with add_hline_widget. Drag the line up or down to change the selected y value."><img alt="" src="../_images/sphx_glr_plot_widget1d_hline_thumb.png" />
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="A draggable horizontal line on a 1-D plot panel. Add it with add_hline_widget. Drag the line up or down to change the selected y value."><img alt="" src="../_images/sphx_glr_plot_widget1d_hline_thumb.png" />
 <p><a class="reference internal" href="Widgets/plot_widget1d_hline.html"><span class="doc">1D Horizontal Line Widget</span></a></p>
   <div class="sphx-glr-thumbnail-title">1D Horizontal Line Widget</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="A draggable vertical line on a 1-D plot panel. Add it with add_vline_widget. Drag the line left or right to change the selected x position."><img alt="" src="../_images/sphx_glr_plot_widget1d_vline_thumb.png" />
@@ -652,8 +659,8 @@ interactions to live Python computations.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -687,7 +694,7 @@ interactions to live Python computations.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
 </p></div>
       
     </div>
