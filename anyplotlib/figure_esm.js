@@ -550,8 +550,10 @@ function render({ model, el }) {
       if (!p2) return;
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
-        // Preserve the current view (zoom/pan) so Python pushes don't reset it
-        if (p2.state && p2.kind === '2d') {
+        // Preserve the current view (zoom/pan) so Python data pushes don't
+        // reset it — but only when Python has NOT explicitly requested a view
+        // change (set_view / reset_view set _view_from_python: true).
+        if (p2.state && p2.kind === '2d' && !newState._view_from_python) {
           newState.zoom     = p2.state.zoom;
           newState.center_x = p2.state.center_x;
           newState.center_y = p2.state.center_y;
@@ -670,8 +672,10 @@ function render({ model, el }) {
       if (!p2) return;
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
-        // Preserve the current view (zoom/pan) so Python pushes don't reset it
-        if (p2.state && p2.kind === '2d') {
+        // Preserve the current view (zoom/pan) so Python data pushes don't
+        // reset it — but only when Python has NOT explicitly requested a view
+        // change (set_view / reset_view set _view_from_python: true).
+        if (p2.state && p2.kind === '2d' && !newState._view_from_python) {
           newState.zoom     = p2.state.zoom;
           newState.center_x = p2.state.center_x;
           newState.center_y = p2.state.center_y;
@@ -1018,11 +1022,15 @@ function render({ model, el }) {
     // overlay_mask_b64: base64 uint8 bytes (0|255), same iw×ih as image.
     // Rendered at overlay_mask_alpha on top of the base image without clearing.
     const mob64=st.overlay_mask_b64||'';
-    if(mob64){
+    if(!mob64){
+      // Mask cleared — release cached bitmap so memory can be reclaimed.
+      if(p.maskCache) p.maskCache=null;
+    } else {
       const mColor=st.overlay_mask_color||'#ff4444';
       const mAlpha=st.overlay_mask_alpha!=null?st.overlay_mask_alpha:0.4;
-      const mKey=mob64+'|'+mColor+'|'+mAlpha;
-      if(!p.maskCache||p.maskCache.key!==mKey){
+      // Compare fields individually to avoid building a large concatenated key
+      // on every redraw during pan/zoom (mob64 can be very large).
+      if(!p.maskCache||p.maskCache.b64!==mob64||p.maskCache.color!==mColor||p.maskCache.alpha!==mAlpha){
         // Parse hex colour → r,g,b
         let mr=255,mg=68,mb=68;
         if(mColor.startsWith('#')&&mColor.length===7){
@@ -1043,7 +1051,7 @@ function render({ model, el }) {
           for(let i=0;i<mBytes.length;i++)out32m[i]=mBytes[i]?opaque:0;
           const moc=new OffscreenCanvas(iw,ih);
           moc.getContext('2d').putImageData(mImg,0,0);
-          p.maskCache={key:mKey,bitmap:moc};
+           p.maskCache={b64:mob64,color:mColor,alpha:mAlpha,bitmap:moc};
         }else{p.maskCache=null;}
       }
       if(p.maskCache&&p.maskCache.bitmap){
@@ -2522,7 +2530,7 @@ function render({ model, el }) {
             shift_key:_cc.shiftKey,
             mouse_x:_cc.mx, mouse_y:_cc.my,
           });
-          model.save_changes();
+          // _emitEvent already calls model.save_changes() — no duplicate needed.
           return;
         }
       }

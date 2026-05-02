@@ -759,6 +759,9 @@ class Plot2D:
             "overlay_mask_b64":   "",
             "overlay_mask_color": "#ff4444",
             "overlay_mask_alpha": 0.4,
+            # Set True when Python explicitly changes view; JS uses it to
+            # decide whether to preserve the current frontend zoom/pan state.
+            "_view_from_python":  False,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -868,14 +871,24 @@ class Plot2D:
             Pass ``None`` to clear the overlay.
         color : str, optional
             CSS hex colour for the overlay, e.g. ``"#ff4444"``.  Default red.
+            Must be in ``#RRGGBB`` format.
         alpha : float, optional
             Opacity in [0, 1].  Default 0.4 (40 % opaque).
         """
-        import base64
+        import base64, re
+        # Validate color format
+        if not re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+            raise ValueError(
+                f"color must be a CSS hex colour in '#RRGGBB' format, got {color!r}"
+            )
+        # Clamp alpha to [0, 1]
+        alpha = float(alpha)
+        if not (0.0 <= alpha <= 1.0):
+            raise ValueError(f"alpha must be in [0, 1], got {alpha!r}")
         if mask is None:
             self._state["overlay_mask_b64"]   = ""
             self._state["overlay_mask_color"] = color
-            self._state["overlay_mask_alpha"] = float(alpha)
+            self._state["overlay_mask_alpha"] = alpha
         else:
             arr = np.asarray(mask)
             if arr.shape != (self._state["image_height"], self._state["image_width"]):
@@ -883,11 +896,14 @@ class Plot2D:
                     f"mask shape {arr.shape} does not match image "
                     f"({self._state['image_height']} x {self._state['image_width']})"
                 )
+            # For origin='lower' the image data was flipped; flip mask to match.
+            if self._origin == "lower":
+                arr = np.flipud(arr)
             # Convert to uint8: True/non-zero → 255, False/zero → 0
             u8 = (np.asarray(arr, dtype=bool).view(np.uint8) * 255).astype(np.uint8)
             self._state["overlay_mask_b64"]   = base64.b64encode(u8.tobytes()).decode("ascii")
             self._state["overlay_mask_color"] = color
-            self._state["overlay_mask_alpha"] = float(alpha)
+            self._state["overlay_mask_alpha"] = alpha
         self._push()
 
     # ------------------------------------------------------------------
@@ -1118,14 +1134,18 @@ class Plot2D:
 
         if zoom_candidates:
             self._state["zoom"] = min(zoom_candidates)
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     def reset_view(self) -> None:
         """Reset pan and zoom to show the full image."""
         self._state["zoom"]     = 1.0
         self._state["center_x"] = 0.5
         self._state["center_y"] = 0.5
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     # ------------------------------------------------------------------
     # Marker API  (matplotlib-style kwargs → MarkerRegistry)
