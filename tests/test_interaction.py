@@ -1091,3 +1091,67 @@ class TestScaledInteractionExtra:
         )
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# 2D imshow click vs drag tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestImshow2DClickVsDrag:
+    """Verify that a short tap on a 2D imshow panel emits ``on_click`` while a
+    longer drag emits only a pan ``on_release`` — and not an ``on_click``."""
+
+    def _make_fig(self):
+        fig, ax = apl.subplots(1, 1, figsize=(FIG_W, FIG_H))
+        data = np.arange(64 * 64, dtype=np.float32).reshape(64, 64)
+        plot = ax.imshow(data)
+        return fig, plot
+
+    def _img_center_page(self) -> tuple[int, int]:
+        """Page coordinates of the centre of the image area."""
+        # For a 2D panel the canvas fills the full cell; the image is letterboxed
+        # inside the PAD region.  The centre of the drawable area:
+        cx = PAD_L + (FIG_W - PAD_L - PAD_R) // 2
+        cy = PAD_T + (FIG_H - PAD_T - PAD_B) // 2
+        return _to_page(cx, cy)
+
+    def test_short_click_emits_on_click(self, interact_page):
+        """A short mousedown/up without movement fires an ``on_click`` event."""
+        fig, plot = self._make_fig()
+        panel_id = plot._id
+
+        page = interact_page(fig)
+        px, py = self._img_center_page()
+
+        # Single click (no movement) — Playwright's click() is a
+        # mousedown + mouseup without intermediate moves, so _dist2 == 0
+        # and _dt is well within the 350 ms threshold.
+        page.mouse.click(px, py)
+        _rafter(page)
+
+        ev = _event(page)
+        assert ev.get("event_type") == "on_click", (
+            f"Expected on_click from a short tap; got {ev.get('event_type')!r}"
+        )
+        assert "img_x" in ev and "img_y" in ev, (
+            "on_click event must include img_x and img_y coordinates"
+        )
+
+    def test_drag_does_not_emit_on_click(self, interact_page):
+        """A visible drag (> 5 px) pans the image and must NOT fire ``on_click``."""
+        fig, plot = self._make_fig()
+        panel_id = plot._id
+
+        page = interact_page(fig)
+        px, py = self._img_center_page()
+
+        # Move mouse to start, press, drag 40 px right, release.
+        page.mouse.move(px, py)
+        page.mouse.down()
+        page.mouse.move(px + 40, py, steps=10)
+        page.mouse.up()
+        _rafter(page)
+
+        ev = _event(page)
+        assert ev.get("event_type") != "on_click", (
+            f"Expected pan (on_release), not on_click after a drag; "
+            f"got {ev.get('event_type')!r}"
+        )

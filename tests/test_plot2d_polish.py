@@ -271,3 +271,109 @@ def test_no_debug_print_in_on_event(capsys):
     captured = capsys.readouterr()
     assert captured.out == "", f"Unexpected stdout: {captured.out!r}"
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. set_overlay_mask()
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_set_overlay_mask_sets_state():
+    """set_overlay_mask with a valid mask populates overlay_mask_b64."""
+    plot = _make_plot2d((16, 16))
+    mask = np.zeros((16, 16), dtype=bool)
+    mask[4:12, 4:12] = True
+    plot.set_overlay_mask(mask)
+    assert plot._state["overlay_mask_b64"] != ""
+    assert plot._state["overlay_mask_color"] == "#ff4444"
+    assert plot._state["overlay_mask_alpha"] == 0.4
+
+
+def test_set_overlay_mask_clear():
+    """set_overlay_mask(None) clears the overlay."""
+    plot = _make_plot2d((16, 16))
+    mask = np.ones((16, 16), dtype=bool)
+    plot.set_overlay_mask(mask)
+    assert plot._state["overlay_mask_b64"] != ""
+
+    plot.set_overlay_mask(None)
+    assert plot._state["overlay_mask_b64"] == ""
+
+
+def test_set_overlay_mask_shape_mismatch():
+    """set_overlay_mask with wrong shape raises ValueError."""
+    plot = _make_plot2d((16, 32))
+    bad_mask = np.zeros((8, 8), dtype=bool)
+    with pytest.raises(ValueError, match="mask shape"):
+        plot.set_overlay_mask(bad_mask)
+
+
+def test_set_overlay_mask_alpha_validation():
+    """set_overlay_mask clamps alpha to [0, 1]; out-of-range raises ValueError."""
+    plot = _make_plot2d((16, 16))
+    mask = np.zeros((16, 16), dtype=bool)
+    # Valid boundary values should work
+    plot.set_overlay_mask(mask, alpha=0.0)
+    assert plot._state["overlay_mask_alpha"] == 0.0
+    plot.set_overlay_mask(mask, alpha=1.0)
+    assert plot._state["overlay_mask_alpha"] == 1.0
+    # Out-of-range should raise
+    with pytest.raises(ValueError, match="alpha"):
+        plot.set_overlay_mask(mask, alpha=1.5)
+    with pytest.raises(ValueError, match="alpha"):
+        plot.set_overlay_mask(mask, alpha=-0.1)
+
+
+def test_set_overlay_mask_color_validation():
+    """set_overlay_mask raises ValueError for non-#RRGGBB color strings."""
+    plot = _make_plot2d((16, 16))
+    mask = np.zeros((16, 16), dtype=bool)
+    # Valid color should work
+    plot.set_overlay_mask(mask, color="#aabbcc")
+    assert plot._state["overlay_mask_color"] == "#aabbcc"
+    # Short hex, named colors, or malformed should raise
+    with pytest.raises(ValueError, match="color"):
+        plot.set_overlay_mask(mask, color="red")
+    with pytest.raises(ValueError, match="color"):
+        plot.set_overlay_mask(mask, color="#fff")
+    with pytest.raises(ValueError, match="color"):
+        plot.set_overlay_mask(mask, color="#GGGGGG")
+
+
+def test_set_overlay_mask_origin_lower_flips():
+    """For origin='lower' the mask is flipped to match the internally-flipped image."""
+    import base64
+    fig, ax = apl.subplots(1, 1)
+    data = np.zeros((4, 4))
+    plot = ax.imshow(data, origin="lower")
+
+    # Mask with only the top row (row 0) set True
+    mask = np.zeros((4, 4), dtype=bool)
+    mask[0, :] = True
+
+    plot.set_overlay_mask(mask)
+    # Decode the stored bytes
+    raw = base64.b64decode(plot._state["overlay_mask_b64"])
+    stored = np.frombuffer(raw, dtype=np.uint8).reshape(4, 4)
+    # After flipud the True row should be at the last row (index 3), not row 0
+    assert stored[3, 0] == 255
+    assert stored[0, 0] == 0
+
+
+def test_view_from_python_flag_set_view():
+    """set_view() sets _view_from_python briefly; it is False after push."""
+    data = np.zeros((32, 32))
+    x_axis = np.linspace(0.0, 32.0, 32)
+    fig, ax = apl.subplots(1, 1)
+    plot = ax.imshow(data, axes=[x_axis, None])
+
+    plot.set_view(x0=8.0, x1=24.0)
+    # After the push completes _view_from_python must be reset
+    assert plot._state["_view_from_python"] is False
+
+
+def test_view_from_python_flag_reset_view():
+    """reset_view() sets _view_from_python briefly; it is False after push."""
+    plot = _make_plot2d()
+    plot.reset_view()
+    assert plot._state["_view_from_python"] is False
+
+
