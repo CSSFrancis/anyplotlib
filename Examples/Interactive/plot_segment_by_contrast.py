@@ -1,0 +1,237 @@
+"""
+Interactive Contrast Segmentation
+===================================
+
+Click on any region of the image to flood-fill all pixels of similar
+intensity — the union of all seeded regions is shown as a live
+semi-transparent overlay on the original image.
+
+**Interaction**
+
++-----------------------------------+-----------------------------------------+
+| Action                            | Effect                                  |
++===================================+=========================================+
+| **Left-click**                    | Add a *positive* seed (green dot).      |
+|                                   | Flood-fill grows from that pixel.       |
++-----------------------------------+-----------------------------------------+
+| **Shift + left-click**            | Add a *negative* seed (red dot).        |
+|                                   | Subtracts that connected region from    |
+|                                   | the current mask.                       |
++-----------------------------------+-----------------------------------------+
+| **Hover + Delete / Backspace**    | Remove the nearest seed within          |
+|                                   | 12 image-px of the cursor.              |
++-----------------------------------+-----------------------------------------+
+| **+** / **=**                     | Increase tolerance (grow regions).      |
++-----------------------------------+-----------------------------------------+
+| **-**                             | Decrease tolerance (shrink regions).    |
++-----------------------------------+-----------------------------------------+
+| **c**  (while focused)            | Clear all seeds and reset mask.         |
++-----------------------------------+-----------------------------------------+
+
+The current boolean mask numpy array is always accessible as ``mask``.
+
+.. note::
+   Move the cursor over the plot so it receives keyboard focus before
+   pressing keys.  The tolerance is shown in the plot title.
+"""
+
+import numpy as np
+import anyplotlib as vw
+
+# ── Synthetic multi-region image ──────────────────────────────────────────────
+# Five Gaussian blobs at different intensity levels on a smooth background,
+# plus mild Poisson-like noise — gives interesting connected regions to segment.
+
+N = 256
+rng = np.random.default_rng(7)
+
+xx, yy = np.meshgrid(np.arange(N), np.arange(N))
+
+def _gauss(cx, cy, sigma, amplitude):
+    return amplitude * np.exp(-((xx - cx)**2 + (yy - cy)**2) / (2 * sigma**2))
+
+image = (
+      _gauss( 64,  72, 28, 0.85)   # bright top-left blob
+    + _gauss(190,  60, 22, 0.70)   # mid top-right blob
+    + _gauss(128, 128, 40, 0.55)   # dim centre blob (large)
+    + _gauss( 55, 195, 20, 0.90)   # bright bottom-left blob
+    + _gauss(200, 185, 30, 0.60)   # mid bottom-right blob
+    + 0.08 * rng.standard_normal((N, N))   # noise
+)
+# Normalise to [0, 1]
+image = (image - image.min()) / (image.max() - image.min())
+
+# ── Segmentation: pure-numpy BFS flood-fill ───────────────────────────────────
+
+def _bfs_region(img, row: int, col: int, tol: float) -> np.ndarray:
+    """Return a boolean mask for the connected region reachable from (row, col).
+
+    Connectivity is 4-connected.  A neighbour is accepted when
+    ``|img[neighbour] - centre_value| <= tol``, where *centre_value* is the
+    intensity of the seed pixel (fixed, not growing).
+    """
+    H, W = img.shape
+    seed_val = img[row, col]
+    visited = np.zeros((H, W), dtype=bool)
+    visited[row, col] = True
+    stack = [(row, col)]
+    while stack:
+        r, c = stack.pop()
+        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < H and 0 <= nc < W and not visited[nr, nc]:
+                if abs(float(img[nr, nc]) - float(seed_val)) <= tol:
+                    visited[nr, nc] = True
+                    stack.append((nr, nc))
+    return visited
+
+
+def _compute_mask(img, pos_seeds, neg_seeds, tol):
+    """Union of positive-seed BFS regions minus any negative-seed regions."""
+    if not pos_seeds:
+        return np.zeros(img.shape, dtype=bool)
+    combined = np.zeros(img.shape, dtype=bool)
+    for r, c in pos_seeds:
+        combined |= _bfs_region(img, r, c, tol)
+    for r, c in neg_seeds:
+        combined &= ~_bfs_region(img, r, c, tol)
+    return combined
+
+
+# ── State ─────────────────────────────────────────────────────────────────────
+
+pos_seeds: list[tuple[int, int]] = []   # (row, col)
+neg_seeds: list[tuple[int, int]] = []   # (row, col)
+tolerance: float = 0.08
+mask = np.zeros((N, N), dtype=bool)     # exposed numpy array
+
+TOL_STEP  = 0.01
+TOL_MIN   = 0.005
+TOL_MAX   = 0.40
+SEED_RADIUS_PIXELS = 5   # marker radius for seed dots
+
+# ── Figure ────────────────────────────────────────────────────────────────────
+
+fig, ax = vw.subplots(figsize=(520, 520),
+    help="Left-click          →  add positive seed (grow mask)\n"
+         "Shift + Left-click  →  add negative seed (shrink mask)\n"
+         "Hover + Delete      →  remove nearest seed\n"
+         "+  /  -             →  increase / decrease tolerance\n"
+         "c                   →  clear all seeds")
+
+plot = ax.imshow(image)
+plot.set_colormap("gray")
+
+# ── Persistent marker groups ──────────────────────────────────────────────────
+# Create named groups once so _refresh() can update them with .set() instead of
+# clear_markers() + add_circles().  Placing the placeholder far off-screen means
+# empty groups render nothing without needing a special empty-list code path.
+_HIDDEN = [[-9999.0, -9999.0]]   # off-screen placeholder for an empty group
+
+plot.add_circles(_HIDDEN, name="pos",
+                 facecolors="#00c853", edgecolors="#ffffff",
+                 radius=SEED_RADIUS_PIXELS)
+plot.add_circles(_HIDDEN, name="neg",
+                 facecolors="#b71c1c", edgecolors="#ffffff",
+                 radius=SEED_RADIUS_PIXELS)
+
+# ── Helpers: marker refresh and mask push ────────────────────────────────────
+
+def _refresh():
+    """Recompute mask and push updated markers + overlay in one go.
+
+    Updates the two persistent marker groups in-place (no clear → blank → add
+    cycle) so there is no visible flicker when a seed is removed.
+    Each group has its own fixed colour string so the JS fill_color field
+    always receives a valid CSS colour (not a mixed list).
+    """
+    global mask
+    mask = _compute_mask(image, pos_seeds, neg_seeds, tolerance)
+
+    # Update offsets for each group; fall back to off-screen placeholder when empty.
+    pos_offsets = [(c, r) for r, c in pos_seeds] or _HIDDEN
+    neg_offsets = [(c, r) for r, c in neg_seeds] or _HIDDEN
+    plot.markers["circles"]["pos"].set(offsets=pos_offsets)
+    plot.markers["circles"]["neg"].set(offsets=neg_offsets)
+
+    # Transparent overlay — teal for positive mask regions.
+    plot.set_overlay_mask(mask, color="#00e5ff", alpha=0.38)
+
+
+# ── Click handler ─────────────────────────────────────────────────────────────
+
+@plot.on_click
+def _on_click(event):
+    """Left-click → positive seed; Shift+Left-click → negative seed."""
+    # img_x = column, img_y = row (image-pixel coordinates)
+    col = int(round(float(event.img_x)))
+    row = int(round(float(event.img_y)))
+    # Clamp to image bounds
+    col = max(0, min(N - 1, col))
+    row = max(0, min(N - 1, row))
+
+    if getattr(event, "shift_key", False):
+        neg_seeds.append((row, col))
+    else:
+        pos_seeds.append((row, col))
+
+    _refresh()
+
+
+# ── Key bindings ──────────────────────────────────────────────────────────────
+
+@plot.on_key('+')
+@plot.on_key('=')   # '+' on most keyboards requires Shift; '=' is the unshifted key
+def _tol_up(event):
+    """Increase tolerance → flood-fill grows to wider intensity range."""
+    global tolerance
+    tolerance = min(TOL_MAX, round(tolerance + TOL_STEP, 4))
+    _refresh()
+    print(f"  tolerance = {tolerance:.3f}", end="\r")
+
+
+@plot.on_key('-')
+def _tol_down(event):
+    """Decrease tolerance → flood-fill shrinks to narrower range."""
+    global tolerance
+    tolerance = max(TOL_MIN, round(tolerance - TOL_STEP, 4))
+    _refresh()
+    print(f"  tolerance = {tolerance:.3f}", end="\r")
+
+
+@plot.on_key('c')
+def _clear(event):
+    """Clear all seeds and reset the mask."""
+    pos_seeds.clear()
+    neg_seeds.clear()
+    _refresh()
+    print("  seeds cleared", end="\r")
+
+
+@plot.on_key('Delete')
+@plot.on_key('Backspace')
+def _delete_nearest(event):
+    """Remove the seed (positive or negative) nearest to the cursor."""
+    cx = float(event.img_x)
+    cy = float(event.img_y)   # img_y = row
+
+    best_dist = float("inf")
+    best_list = None
+    best_idx  = -1
+
+    for lst in (pos_seeds, neg_seeds):
+        for i, (r, c) in enumerate(lst):
+            d = (c - cx) ** 2 + (r - cy) ** 2
+            if d < best_dist:
+                best_dist = d
+                best_list = lst
+                best_idx  = i
+
+    if best_list is not None and best_dist <= (12 ** 2):
+        best_list.pop(best_idx)
+        _refresh()
+
+
+fig
+
+
