@@ -198,8 +198,8 @@ function render({ model, el }) {
 
   const sizeLabel = document.createElement('div');
   sizeLabel.style.cssText =
-    'position:absolute;bottom:22px;right:22px;padding:3px 7px;background:rgba(0,0,0,0.7);' +
-    'color:white;font-size:11px;border-radius:4px;display:none;pointer-events:none;z-index:21;';
+    'position:absolute;bottom:22px;right:22px;padding:7px 14px;background:rgba(0,0,0,0.65);' +
+    'color:white;font-size:12px;font-family:monospace;border-radius:5px;display:none;pointer-events:none;z-index:21;';
   outerDiv.appendChild(sizeLabel);
 
   // ── Help badge (figure-level) ─────────────────────────────────────────────
@@ -407,8 +407,8 @@ function render({ model, el }) {
       scaleBar.style.cssText = 'position:absolute;pointer-events:none;display:none;z-index:7;';
       statusBar = document.createElement('div');
       statusBar.style.cssText =
-        'position:absolute;padding:2px 6px;background:rgba(0,0,0,0.55);color:white;' +
-        'font-size:10px;font-family:monospace;border-radius:4px;pointer-events:none;' +
+        'position:absolute;padding:7px 14px;background:rgba(0,0,0,0.65);color:white;' +
+        'font-size:12px;font-family:monospace;border-radius:5px;pointer-events:none;' +
         'white-space:nowrap;display:none;z-index:9;';
       yAxisCanvas = document.createElement('canvas');
       yAxisCanvas.style.cssText =
@@ -474,9 +474,9 @@ function render({ model, el }) {
       wrap.appendChild(markersCanvas);
       statusBar = document.createElement('div');
       statusBar.style.cssText =
-        'position:absolute;bottom:4px;right:4px;padding:2px 6px;' +
-        'background:rgba(0,0,0,0.55);color:white;font-size:10px;font-family:monospace;' +
-        'border-radius:4px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
+        'position:absolute;bottom:4px;right:4px;padding:7px 14px;' +
+        'background:rgba(0,0,0,0.65);color:white;font-size:12px;font-family:monospace;' +
+        'border-radius:5px;pointer-events:none;white-space:nowrap;display:none;z-index:9;';
       wrap.appendChild(statusBar);
       wrapNode = wrap;
     }
@@ -548,7 +548,18 @@ function render({ model, el }) {
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
-      try { p2.state = JSON.parse(model.get(`panel_${id}_json`)); }
+      try {
+        const newState = JSON.parse(model.get(`panel_${id}_json`));
+        // Preserve the current view (zoom/pan) so Python data pushes don't
+        // reset it — but only when Python has NOT explicitly requested a view
+        // change (set_view / reset_view set _view_from_python: true).
+        if (p2.state && p2.kind === '2d' && !newState._view_from_python) {
+          newState.zoom     = p2.state.zoom;
+          newState.center_x = p2.state.center_x;
+          newState.center_y = p2.state.center_y;
+        }
+        p2.state = newState;
+      }
       catch(_) { return; }
       p2._hoverSi = -1; p2._hoverI = -1;
       _redrawPanel(p2);
@@ -659,7 +670,18 @@ function render({ model, el }) {
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
-      try { p2.state = JSON.parse(model.get(`panel_${id}_json`)); }
+      try {
+        const newState = JSON.parse(model.get(`panel_${id}_json`));
+        // Preserve the current view (zoom/pan) so Python data pushes don't
+        // reset it — but only when Python has NOT explicitly requested a view
+        // change (set_view / reset_view set _view_from_python: true).
+        if (p2.state && p2.kind === '2d' && !newState._view_from_python) {
+          newState.zoom     = p2.state.zoom;
+          newState.center_x = p2.state.center_x;
+          newState.center_y = p2.state.center_y;
+        }
+        p2.state = newState;
+      }
       catch(_) { return; }
       p2._hoverSi = -1; p2._hoverI = -1;
       _redrawPanel(p2);
@@ -994,6 +1016,60 @@ function render({ model, el }) {
       blitCache.bitmap=oc; blitCache.bytesKey=bytes; blitCache.lutKey=lk;
       blitCache.w=iw; blitCache.h=ih;
       _blit2d(oc, st, imgW, imgH, ctx);
+    }
+
+    // ── Overlay mask compositing ─────────────────────────────────────────────
+    // overlay_mask_b64: base64 uint8 bytes (0|255), same iw×ih as image.
+    // Rendered at overlay_mask_alpha on top of the base image without clearing.
+    const mob64=st.overlay_mask_b64||'';
+    if(!mob64){
+      // Mask cleared — release cached bitmap so memory can be reclaimed.
+      if(p.maskCache) p.maskCache=null;
+    } else {
+      const mColor=st.overlay_mask_color||'#ff4444';
+      const mAlpha=st.overlay_mask_alpha!=null?st.overlay_mask_alpha:0.4;
+      // Compare fields individually to avoid building a large concatenated key
+      // on every redraw during pan/zoom (mob64 can be very large).
+      if(!p.maskCache||p.maskCache.b64!==mob64||p.maskCache.color!==mColor||p.maskCache.alpha!==mAlpha){
+        // Parse hex colour → r,g,b
+        let mr=255,mg=68,mb=68;
+        if(mColor.startsWith('#')&&mColor.length===7){
+          mr=parseInt(mColor.slice(1,3),16);
+          mg=parseInt(mColor.slice(3,5),16);
+          mb=parseInt(mColor.slice(5,7),16);
+        }
+        let mBytes;
+        try{const bin=atob(mob64);mBytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)mBytes[i]=bin.charCodeAt(i);}catch(_){mBytes=null;}
+        if(mBytes&&mBytes.length===iw*ih){
+          const mImg=new ImageData(iw,ih);
+          // Write colour where mask=255; transparent where mask=0.
+          // Store full-alpha pixel; globalAlpha controls final transparency.
+          const buf4=new ArrayBuffer(4);const dv4=new DataView(buf4);const u32m=new Uint32Array(buf4);
+          dv4.setUint8(0,mr);dv4.setUint8(1,mg);dv4.setUint8(2,mb);dv4.setUint8(3,255);
+          const opaque=u32m[0];
+          const out32m=new Uint32Array(mImg.data.buffer);
+          for(let i=0;i<mBytes.length;i++)out32m[i]=mBytes[i]?opaque:0;
+          const moc=new OffscreenCanvas(iw,ih);
+          moc.getContext('2d').putImageData(mImg,0,0);
+           p.maskCache={b64:mob64,color:mColor,alpha:mAlpha,bitmap:moc};
+        }else{p.maskCache=null;}
+      }
+      if(p.maskCache&&p.maskCache.bitmap){
+        // Blit at the same zoom/pan as the base image (inline, no clearRect).
+        const {x:_mx,y:_my,w:_mw,h:_mh}=_imgFitRect(iw,ih,imgW,imgH);
+        const _mz=st.zoom,_mcx=st.center_x,_mcy=st.center_y;
+        ctx.save();ctx.globalAlpha=mAlpha;ctx.imageSmoothingEnabled=false;
+        if(_mz>=1.0){
+          const _vw=iw/_mz,_vh=ih/_mz;
+          const _sx=Math.max(0,Math.min(iw-_vw,_mcx*iw-_vw/2));
+          const _sy=Math.max(0,Math.min(ih-_vh,_mcy*ih-_vh/2));
+          ctx.drawImage(p.maskCache.bitmap,_sx,_sy,_vw,_vh,_mx,_my,_mw,_mh);
+        }else{
+          const _dw=_mw*_mz,_dh=_mh*_mz;
+          ctx.drawImage(p.maskCache.bitmap,0,0,iw,ih,_mx+(_mw-_dw)/2,_my+(_mh-_dh)/2,_dw,_dh);
+        }
+        ctx.restore();
+      }
     }
     // Axes / scalebar / colorbar
     _drawAxes2d(p);
@@ -2389,6 +2465,8 @@ function render({ model, el }) {
       // Store pan start in canvas-pixel coords so the drag delta is also
       // in canvas-pixel space and matches fr.w/fr.h (both canvas-pixel).
       panStart={mx,my,cx:st.center_x,cy:st.center_y};
+      // Track potential click: distance + time guards distinguish click from pan.
+      p.clickCandidate={mx,my,t:Date.now(),shiftKey:e.shiftKey};
       p.isPanning=true; overlayCanvas.style.cursor='grabbing'; e.preventDefault();
     });
     document.addEventListener('mousemove',(e)=>{
@@ -2404,6 +2482,8 @@ function render({ model, el }) {
       const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
       const z=st.zoom;
       const {mx:cmx,my:cmy}=_clientPos(e,overlayCanvas,imgW,imgH);
+      // Invalidate click candidate once the cursor has clearly moved (>4 px).
+      if(p.clickCandidate){const _dx=cmx-p.clickCandidate.mx,_dy=cmy-p.clickCandidate.my;if(_dx*_dx+_dy*_dy>16)p.clickCandidate=null;}
       localOnly=true;
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/z));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/z));
@@ -2428,6 +2508,33 @@ function render({ model, el }) {
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
       const {mx:cmx,my:cmy}=_clientPos(e,overlayCanvas,imgW,imgH);
+      // ── Click detection: short-duration + small-movement mousedown/up ────────
+      // Criteria: candidate still alive (not cleared by mousemove) AND ≤300 ms.
+      // We also re-check final distance as a safety net for document-level moves
+      // that didn't fire our mousemove guard (e.g. rapid trackpad flicks).
+      if(p.clickCandidate){
+        const _cc=p.clickCandidate; p.clickCandidate=null;
+        const _dx=cmx-_cc.mx, _dy=cmy-_cc.my;
+        const _dist2=_dx*_dx+_dy*_dy;
+        const _dt=Date.now()-_cc.t;
+        if(_dist2<=25&&_dt<=350){
+          // Genuine click — skip pan-settle, emit on_click with image coords.
+          const [imgX,imgY]=_canvasToImg2d(_cc.mx,_cc.my,st,imgW,imgH);
+          const xArr=st.x_axis||[], yArr=st.y_axis||[];
+          const _iw=st.image_width||1, _ih=st.image_height||1;
+          const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/_iw):imgX;
+          const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/_ih):imgY;
+          _emitEvent(p.id,'on_click',null,{
+            img_x:imgX, img_y:imgY,
+            phys_x:physX, phys_y:physY,
+            shift_key:_cc.shiftKey,
+            mouse_x:_cc.mx, mouse_y:_cc.my,
+          });
+          // _emitEvent already calls model.save_changes() — no duplicate needed.
+          return;
+        }
+      }
+      // ── Normal pan settle ───────────────────────────────────────────────────
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/st.zoom));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/st.zoom));
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
