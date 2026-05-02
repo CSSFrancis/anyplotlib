@@ -129,10 +129,10 @@ plot.set_colormap("gray")
 _HIDDEN = [[-9999.0, -9999.0]]   # off-screen placeholder for an empty group
 
 plot.add_circles(_HIDDEN, name="pos",
-                 facecolors="#69f0ae", edgecolors="#ffffff",
+                 facecolors="#00c853", edgecolors="#ffffff",
                  radius=SEED_RADIUS_PIXELS)
 plot.add_circles(_HIDDEN, name="neg",
-                 facecolors="#ff5252", edgecolors="#ffffff",
+                 facecolors="#b71c1c", edgecolors="#ffffff",
                  radius=SEED_RADIUS_PIXELS)
 
 # ── Helpers: marker refresh and mask push ────────────────────────────────────
