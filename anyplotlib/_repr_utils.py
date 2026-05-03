@@ -129,23 +129,51 @@ _PAGE_TEMPLATE = """\
 <div id="widget-root"></div>
 <script type="module">
 const STATE = {state_json};
+// Identifies this iframe to the parent-page anywidget bridge.
+// null → no Pyodide wiring (plain notebook / static docs embed).
+const FIG_ID = {fig_id_json};
+
+// Loop-prevention flag: set while applying a parent-originated update so
+// set() doesn't double-fire callbacks that save_changes() will also fire.
+let _fromParent = false;
+// Dirty flag: true only when model.set('event_json', ...) was called in the
+// current transaction.
+let _eventJsonDirty = false;
 
 function makeModel(state) {{
   const _data   = Object.assign({{}}, state);
   const _cbs    = {{}};
   const _anyCbs = [];
   return {{
-    get(key)          {{ return _data[key]; }},
-    set(key, val)     {{
+    get(key)      {{ return _data[key]; }},
+    set(key, val) {{
       _data[key] = val;
-      const ev = 'change:' + key;
-      if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try {{ cb({{ new: val }}); }} catch(_) {{}}
-      for (const cb of [..._anyCbs]) try {{ cb(); }} catch(_) {{}}
+      if (key === 'event_json') _eventJsonDirty = true;
+      // Only fire synchronously when NOT processing an inbound awi_state
+      // message (save_changes() will fire listeners once in that path).
+      if (!_fromParent) {{
+        const ev = 'change:' + key;
+        if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try {{ cb({{ new: val }}); }} catch(_) {{}}
+        for (const cb of [..._anyCbs]) try {{ cb(); }} catch(_) {{}}
+      }}
     }},
-    save_changes()    {{
+    save_changes() {{
       for (const [ev, cbs] of Object.entries(_cbs))
         for (const cb of cbs) try {{ cb({{ new: _data[ev.slice(7)] }}); }} catch(_) {{}}
       for (const cb of _anyCbs) try {{ cb(); }} catch(_) {{}}
+      // Forward interaction events to the parent-page Pyodide instance.
+      if (!_fromParent && FIG_ID && window.parent !== window && _eventJsonDirty) {{
+        _eventJsonDirty = false;
+        try {{
+          const ev = JSON.parse(_data.event_json || '{{}}');
+          if (ev && ev.source !== 'python') {{
+            window.parent.postMessage(
+              {{ type: 'awi_event', figId: FIG_ID, data: _data.event_json }}, '*');
+          }}
+        }} catch(_) {{}}
+      }} else {{
+        _eventJsonDirty = false;
+      }}
     }},
     on(event, cb)  {{
       if (event === "change") {{ _anyCbs.push(cb); return; }}
@@ -176,13 +204,23 @@ import(blobUrl).then(mod => {{
   el.textContent = "Widget load error: " + err;
   console.error(err);
 }});
+
+// ── Inbound state updates from parent-page Pyodide ───────────────────────────
+window.addEventListener('message', (e) => {{
+  if (!e.data || e.data.type !== 'awi_state') return;
+  _fromParent = true;
+  model.set(e.data.key, e.data.value);
+  model.save_changes();
+  _fromParent = false;
+}});
 </script>
 </body>
 </html>
 """
 
 
-def build_standalone_html(widget, *, resizable: bool = True) -> str:
+def build_standalone_html(widget, *, resizable: bool = True,
+                           fig_id: str | None = None) -> str:
     """Return a self-contained HTML page that renders *widget* interactively.
 
     Parameters
@@ -193,6 +231,9 @@ def build_standalone_html(widget, *, resizable: bool = True) -> str:
         When ``True`` (default) the widget's built-in resize handle is
         preserved.  When ``False`` the handle is hidden via CSS and the page
         is sized exactly to the widget's natural dimensions.
+    fig_id : str or None
+        When provided, embedded as ``FIG_ID`` so the parent-page bridge
+        can route ``postMessage`` state updates to this iframe.
     """
     state = _widget_state(widget)
 
@@ -210,6 +251,7 @@ def build_standalone_html(widget, *, resizable: bool = True) -> str:
         extra_css=extra_css,
         state_json=json.dumps(state, default=str),
         esm_json=json.dumps(esm),
+        fig_id_json=json.dumps(fig_id),
     )
 
 
