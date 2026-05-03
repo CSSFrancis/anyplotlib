@@ -34,6 +34,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
     "sphinx_design",
+    "anyplotlib.sphinx_anywidget",
 ]
 
 autosummary_generate = True
@@ -82,10 +83,8 @@ sphinx_gallery_conf = {
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-
-# pyodide_bridge.js adds the "⚡" activation button to gallery pages and boots
-# a single shared Pyodide instance for the whole page on click.
-html_js_files = ["pyodide_bridge.js"]
+# anywidget_bridge.js is injected by the anyplotlib.sphinx_anywidget extension;
+# the stale pyodide_bridge.js reference has been removed.
 
 html_theme_options = {
     "github_url": "https://github.com/CSSFrancis/anyplotlib",
