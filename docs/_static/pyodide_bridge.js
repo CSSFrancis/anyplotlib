@@ -202,40 +202,27 @@
         document.head.appendChild(s);
       }));
     }
+    console.info('[anyplotlib] pyodide.js ready');
 
     // 2. Initialise Pyodide
     const pyodide = await _step('init pyodide',
       loadPyodide({ indexURL: PYODIDE_CDN }));
+    console.info('[anyplotlib] Pyodide initialised');
 
     // 3. Install packages
-    //
-    //  numpy    — pre-built binary in Pyodide's package index.
-    //  traitlets, colorcet — pure-Python; fetched from PyPI via micropip.
-    //  anyplotlib — wheel from _static/wheels/ (same source tree as the docs).
-    //
-    //  anyplotlib declares anywidget as a dep; anywidget → psygnal may have
-    //  no Pyodide-compatible wheel.  Safe strategy:
-    //    a) load numpy + micropip from Pyodide's bundled index (fast),
-    //    b) install traitlets + colorcet via micropip in Python (avoids
-    //       JS-Array → Python-list coercion when calling the PyProxy),
-    //    c) pre-populate sys.modules['anywidget'] with a HasTraits stub so
-    //       micropip never tries to fetch it,
-    //    d) install the anyplotlib wheel with deps=False.
-
-    // a) Pyodide-bundled packages
     await _step('load numpy',
       pyodide.loadPackage(['micropip', 'numpy']));
+    console.info('[anyplotlib] numpy + micropip loaded');
 
-    // b) Pure-Python deps — run as Python to avoid JS array coercion issues
+    // b) Pure-Python deps
     await _step('install traitlets/colorcet',
       pyodide.runPythonAsync(`
 import micropip
 await micropip.install(['traitlets', 'colorcet'])
 `));
+    console.info('[anyplotlib] traitlets + colorcet installed');
 
-    // 4. Stub anywidget BEFORE installing the anyplotlib wheel.
-    //    anyplotlib/figure.py imports anywidget inside a try/except and will
-    //    pick up this stub as _AnyWidgetBase automatically.
+    // 4. Stub anywidget
     await _step('stub anywidget',
       pyodide.runPythonAsync(`
 import sys, traitlets as _tr
@@ -252,23 +239,19 @@ class _AnyWidgetMod:
 sys.modules['anywidget'] = _AnyWidgetMod()
 _APL_REGISTRY = {}
 `));
+    console.info('[anyplotlib] anywidget stub installed');
 
-    // c) Install anyplotlib wheel directly via pyodide.loadPackage(url).
-    //    loadPackage accepts wheel URLs and installs them without dependency
-    //    resolution, which sidesteps the micropip "Attempted to install wheel
-    //    before downloading it" bug that is triggered by deps=False on URL
-    //    installs in Pyodide 0.27.x.  anywidget is already in sys.modules so
-    //    importing anyplotlib will use our stub.
+    // c) Install anyplotlib wheel
     const wheelUrl = _DOCS_ROOT + '_static/wheels/anyplotlib-0.0.0-py3-none-any.whl';
+    console.info('[anyplotlib] installing anyplotlib wheel from', wheelUrl);
     await _step('install anyplotlib wheel', pyodide.loadPackage(wheelUrl));
+    console.info('[anyplotlib] anyplotlib installed');
 
-    // 5. Expose window._aplPush so Python can push state into iframes
+    // 5. Expose window._aplPush
     window._aplPush = (figId, key, value) =>
       _postToIframe(String(figId), String(key), String(value));
 
-    // 6. Install the push hook — from now on every Figure._push() /
-    //    _push_layout() / _push_widget() call routes through _aplPush
-    //    instead of writing to a Jupyter traitlet.
+    // 6. Install the push hook
     await _step('install push hook',
       pyodide.runPythonAsync(`
 import anyplotlib.figure as _af
@@ -281,6 +264,7 @@ def _push_hook(fig, key, value_str):
 
 _af._pyodide_push_hook = _push_hook
 `));
+    console.info('[anyplotlib] push hook installed');
 
     // 7. Collect text/x-python script blocks, group by src-file so each
     //    example source runs exactly once even if it creates multiple figures.
@@ -305,12 +289,18 @@ _af._pyodide_push_hook = _push_hook
 
     // 8. Run each example source once, tag created figures in creation order,
     //    then push the current Python state into the matching iframes.
+    const _execErrors = [];
     for (const [srcFile, { src, pairs }] of srcGroups) {
       const figIdList = JSON.stringify(pairs.map(p => p.figId));
+      console.info(`[anyplotlib] running example: ${srcFile} (${pairs.length} figure(s))`);
+      // Pre-assign the srcFile name to a Python variable to avoid embedding
+      // JSON.stringify output (which uses double quotes) inside Python f-strings.
+      const _srcFileRepr = JSON.stringify(srcFile);
       try {
         await pyodide.runPythonAsync(`
 import anyplotlib.figure as _af
 
+_SRC_FILE     = ${_srcFileRepr}
 _CREATED_FIGS = []
 _SEEN_IDS     = set()
 _orig_init    = _af.Figure.__init__
@@ -322,14 +312,18 @@ def _tracked_init(self, *a, **kw):
         _CREATED_FIGS.append(self)
 
 _af.Figure.__init__ = _tracked_init
+_exec_error = None
 try:
-    exec(${JSON.stringify(src)}, {})
+    exec(${JSON.stringify(src)}, {"__name__": "__main__"})
 except Exception as _e:
-    print(f"[anyplotlib] exec error in ${JSON.stringify(srcFile)}: {_e}")
+    import traceback as _tb
+    _exec_error = _tb.format_exc()
+    print("[anyplotlib] exec error in " + _SRC_FILE + ":\\n" + _exec_error)
 finally:
     _af.Figure.__init__ = _orig_init
 
 _fig_ids = ${figIdList}
+_wired = 0
 for _i, _fid in enumerate(_fig_ids):
     if _i < len(_CREATED_FIGS):
         _fig = _CREATED_FIGS[_i]
@@ -338,21 +332,41 @@ for _i, _fid in enumerate(_fig_ids):
         _fig._push_layout()
         for _pid in list(_fig._plots_map):
             _fig._push(_pid)
+        _wired += 1
+
+print("[anyplotlib] wired " + str(_wired) + "/" + str(len(_fig_ids)) + " figures for " + _SRC_FILE)
+if _exec_error:
+    raise RuntimeError("exec failed: " + _exec_error)
 `);
       } catch (err) {
-        console.warn(`[anyplotlib] Pyodide failed for ${srcFile}:`, err);
+        const msg = String(err.message || err);
+        console.warn(`[anyplotlib] Pyodide failed for ${srcFile}:`, msg);
+        _execErrors.push(`${srcFile}: ${msg.split('\n').filter(Boolean).pop()}`);
       }
+    }
+
+    // Surface exec errors in the button tooltip so the user can open DevTools
+    if (_execErrors.length > 0) {
+      btn.title = 'Python active (some examples failed — open DevTools console for details)\n\n'
+                + _execErrors.join('\n');
     }
 
     // 9. Route interaction events from iframes → Pyodide callbacks
     window.addEventListener('message', async (e) => {
       if (!e.data || e.data.type !== 'apl_event') return;
       const { figId, data } = e.data;
+      console.debug('[anyplotlib] apl_event received', figId,
+                    JSON.parse(data || '{}').event_type);
+      const _figIdRepr = JSON.stringify(figId);
+      const _dataRepr  = JSON.stringify(data);
       try {
         await pyodide.runPythonAsync(`
-_fig = _APL_REGISTRY.get(${JSON.stringify(figId)})
+_FIG_ID = ${_figIdRepr}
+_fig = _APL_REGISTRY.get(_FIG_ID)
 if _fig is not None:
-    _fig._dispatch_event(${JSON.stringify(data)})
+    _fig._dispatch_event(${_dataRepr})
+else:
+    print("[anyplotlib] no figure registered for figId=" + repr(_FIG_ID) + "; registry keys: " + str(list(_APL_REGISTRY.keys())))
 `);
       } catch (err) {
         console.warn('[anyplotlib] event dispatch error:', err);

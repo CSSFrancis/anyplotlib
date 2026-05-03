@@ -18,8 +18,6 @@ In your ``conf.py``::
     # Package whose wheel is built and served to Pyodide at runtime.
     anywidget_pyodide_package = "mypackage"
 
-    # Optional icon on static (non-interactive) figure snapshots.
-    anywidget_static_icon = "📷"   # default
 
 The extension:
 * builds a pure-Python wheel at docs-build time;
@@ -48,8 +46,7 @@ _STATIC_SRC = _HERE / "static"
 
 def setup(app):
     """Register sphinx_anywidget with Sphinx."""
-    app.add_config_value("anywidget_pyodide_package", default=None,        rebuild="html")
-    app.add_config_value("anywidget_static_icon",     default="\U0001f4f7", rebuild="html")
+    app.add_config_value("anywidget_pyodide_package", default=None, rebuild="html")
 
     from anyplotlib.sphinx_anywidget._directive import AnywidgetFigureDirective
     app.add_directive("anywidget-figure", AnywidgetFigureDirective)
@@ -57,7 +54,10 @@ def setup(app):
     app.connect("builder-inited", _copy_static_assets)
     app.connect("builder-inited", _build_pyodide_wheel)
 
-    app.add_js_file("anywidget_bridge.js", loading_method="defer")
+    # anywidget_config.js is written dynamically by _build_pyodide_wheel;
+    # it must load BEFORE anywidget_bridge.js so _inferPackageName sees the name.
+    app.add_js_file("anywidget_config.js", loading_method="defer", priority=490)
+    app.add_js_file("anywidget_bridge.js", loading_method="defer", priority=500)
     app.add_css_file("anywidget_overlay.css")
 
     return {
@@ -87,11 +87,18 @@ def _build_pyodide_wheel(app):
         )
         return
 
-    from anyplotlib.sphinx_anywidget._wheel_builder import build_wheel
     conf_dir     = Path(app.confdir)
-    project_root = conf_dir.parent
     static_dir   = conf_dir / "_static"
     static_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write a tiny config script so anywidget_bridge.js can find the package
+    # name without fragile heuristics.  Loaded before anywidget_bridge.js.
+    import json as _json
+    config_js = f"window._anywidgetPackage = {_json.dumps(pkg)};\n"
+    (static_dir / "anywidget_config.js").write_text(config_js, encoding="utf-8")
+
+    from anyplotlib.sphinx_anywidget._wheel_builder import build_wheel
+    project_root = conf_dir.parent
     build_wheel(static_dir, pkg, project_root)
 
 

@@ -24,7 +24,7 @@ Example::
     fig  # Interactive
 
 Without the comment the figure is rendered as a plain static iframe with
-only the snapshot (📷) badge — no Pyodide wiring at all.
+no Pyodide wiring.
 
 Usage in ``conf.py``::
 
@@ -128,7 +128,6 @@ def _iframe_html(
     h: int,
     fig_id: str | None = None,
     interactive: bool = False,
-    static_icon: str = "\U0001f4f7",  # 📷
 ) -> str:
     """Return a single-line HTML snippet embedding *src* responsively.
 
@@ -142,9 +141,6 @@ def _iframe_html(
         Stable identifier; used as the ``data-awi-fig`` attribute.
     interactive : bool
         When True, renders the ⚡ activation badge.
-    static_icon : str
-        Unicode character (or HTML entity) displayed as the "static snapshot"
-        badge icon.  Configurable via ``anywidget_static_icon`` in ``conf.py``.
     """
     uid = fig_id or f"f{uuid4().hex[:8]}"
 
@@ -171,21 +167,22 @@ def _iframe_html(
         f"}})()"
     )
 
-    # Badge HTML — always includes static icon; ⚡ only when interactive.
-    badge_parts = [
-        f'<span class="awi-badge-icon awi-static-icon" title="Static snapshot">{static_icon}</span>'
-    ]
+    # Badge HTML — only the ⚡ button when interactive; nothing otherwise.
+    badge_parts = []
     if interactive:
         badge_parts.append(
             f'<button class="awi-badge-icon awi-activate-btn" '
             f'data-awi-fig="{uid}" '
             f'title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button>'
         )
-    badge_html = (
-        f'<div class="awi-badge" data-awi-badge="{uid}">'
-        + "".join(badge_parts)
-        + "</div>"
-    )
+    if not badge_parts:
+        badge_html = ""
+    else:
+        badge_html = (
+            f'<div class="awi-badge" data-awi-badge="{uid}">'
+            + "".join(badge_parts)
+            + "</div>"
+        )
 
     return (
         f'<div style="display:block;text-align:center;line-height:0;margin:12px 0;">'
@@ -210,17 +207,9 @@ def _iframe_html(
 
 class AnywidgetScraper:
     """Sphinx Gallery image scraper for any ``anywidget.AnyWidget`` subclass.
-
-    Parameters
-    ----------
-    static_icon : str
-        Unicode character shown as the "static snapshot" badge.
-        Default ``"📷"``.  Override via the ``anywidget_static_icon`` Sphinx
-        config value when using the ``sphinx_anywidget`` extension.
     """
 
-    def __init__(self, static_icon: str = "\U0001f4f7"):
-        self.static_icon = static_icon
+    def __init__(self):
         # Maps src_file → list of fig_ids emitted so far (creation order).
         self._example_figs: dict = {}
 
@@ -289,7 +278,6 @@ class AnywidgetScraper:
                 src, w, h,
                 fig_id=fig_id,
                 interactive=is_interactive,
-                static_icon=self.static_icon,
             )
 
             rst = "\n\n.. raw:: html\n\n    " + iframe_block + "\n\n"

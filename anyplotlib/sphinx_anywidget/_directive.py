@@ -24,9 +24,6 @@ Options
     source is embedded for live re-execution by the Pyodide bridge.
 ``:width:`` (int, default 684)
     Maximum display width in pixels.
-``:static-icon:`` (str, default "📷")
-    Unicode character for the static snapshot badge.  Falls back to the
-    ``anywidget_static_icon`` Sphinx config value, then ``"📷"``.
 """
 
 from __future__ import annotations
@@ -50,7 +47,6 @@ class AnywidgetFigureDirective(Directive):
     option_spec = {
         "interactive": directives.flag,
         "width":       directives.nonnegative_int,
-        "static-icon": directives.unchanged,
     }
 
     def run(self):
@@ -73,10 +69,6 @@ class AnywidgetFigureDirective(Directive):
         # ── options ──────────────────────────────────────────────────────
         is_interactive = "interactive" in self.options
         max_width = self.options.get("width", 684)
-        static_icon = self.options.get(
-            "static-icon",
-            getattr(config, "anywidget_static_icon", "\U0001f4f7"),
-        )
 
         # ── execute the script to get the widget ─────────────────────────
         try:
@@ -133,7 +125,6 @@ class AnywidgetFigureDirective(Directive):
             src_url, w, h,
             fig_id=fig_id,
             interactive=is_interactive,
-            static_icon=static_icon,
         )
 
         raw_html = "\n" + iframe_block + "\n"

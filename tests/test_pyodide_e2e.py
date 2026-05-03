@@ -298,7 +298,6 @@ window.loadPyodide = async function({{indexURL}}) {{
                    overflow:hidden;display:block;">
     </iframe>
     <div class="awi-badge" data-awi-badge="{fig_id}">
-      <span class="awi-badge-icon awi-static-icon">📷</span>
       <button class="awi-badge-icon awi-activate-btn"
               data-awi-fig="{fig_id}"
               title="Make interactive">&#x26A1;</button>

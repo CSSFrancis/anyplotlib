@@ -105,5 +105,5 @@ def _settled(event):
     _draw_tangent(event.x)
 
 
-fig
+fig  # Interactive
 
