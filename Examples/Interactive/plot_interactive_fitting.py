@@ -289,4 +289,4 @@ for comp, line in zip(components, comp_lines):
     def _clicked(event, c=comp):
         c.toggle()
 
-fig
+fig # Interactive

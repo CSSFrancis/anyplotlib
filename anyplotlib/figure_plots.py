@@ -531,13 +531,29 @@ class Axes:
         self._attach(plot)
         return plot
 
+    def _panel_id_from_spec(self) -> str:
+        """Derive a deterministic, position-based panel ID from the SubplotSpec.
+
+        The ID is ``"p"`` followed by the first 7 hex characters of a SHA-256
+        hash of the row/col bounds, e.g. ``"p6a2f3b1"``.  This is:
+
+        * **Deterministic** – the same SubplotSpec always produces the same ID
+          across Python processes and after code edits.
+        * **Starts with "p"** – satisfies the JS naming convention and makes it
+          easy to grep for panel traits (``panel_{id}_json``).
+        * **Short** – 8 characters total; safe to embed in CSS selectors.
+        """
+        import hashlib as _hl
+        key = f"{self._spec.row_start},{self._spec.row_stop},{self._spec.col_start},{self._spec.col_stop}"
+        return "p" + _hl.sha256(key.encode()).hexdigest()[:7]
+
     def _attach(self, plot: "Plot1D | Plot2D | PlotMesh | Plot3D | PlotBar") -> None:
         """Register a plot on this axes (replace any previous plot)."""
         # Allocate a panel id if needed; reuse if replacing
         if self._plot is not None:
             panel_id = self._plot._id
         else:
-            panel_id = str(_uuid.uuid4())[:8]
+            panel_id = self._panel_id_from_spec()
         plot._id  = panel_id
         plot._fig = self._fig
         self._plot = plot

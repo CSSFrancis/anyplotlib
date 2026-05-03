@@ -236,6 +236,25 @@ window.loadPyodide = async function({{indexURL}}) {{
         return;
       }}
 
+      // ── exec(example_src) + _push_layout() + _push(panel_id) ────────
+      // Triggered by the `_fig_ids = …` line that anywidget_bridge.js
+      // wraps around every example exec call.  We skip the actual Python
+      // exec and instead push pre-collected state directly.
+      // NOTE: checked BEFORE the monkey-patch pattern because step 9 in
+      // anywidget_bridge.js contains both _fig_ids and _anywidget_fig_id.
+      if (src.includes('_fig_ids')) {{
+        window._APL_BOOT_STEPS.push('run_example');
+        const fid = window._MOCK_FIG_ID;
+        if (window._anywidgetPush) {{
+          window._anywidgetPush(fid, 'layout_json', window._MOCK_LAYOUT);
+          for (const entry of window._MOCK_PANELS) {{
+            window._anywidgetPush(fid, entry.key, entry.value);
+          }}
+        }}
+        window._APL_FIGS_PUSHED = true;
+        return;
+      }}
+
       // ── install generic anywidget monkey-patch ─────────────────────
       // Identified by the '_patched_init' marker in the monkey-patch code.
       // Installs window._anywidgetPush so postMessage reaches the iframe.
@@ -249,23 +268,6 @@ window.loadPyodide = async function({{indexURL}}) {{
               {{type: 'awi_state', key: key, value: value}}, '*');
           }}
         }};
-        return;
-      }}
-
-      // ── exec(example_src) + _push_layout() + _push(panel_id) ────────
-      // Triggered by the `_fig_ids = …` line that anywidget_bridge.js
-      // wraps around every example exec call.  We skip the actual Python
-      // exec and instead push pre-collected state directly.
-      if (src.includes('_fig_ids')) {{
-        window._APL_BOOT_STEPS.push('run_example');
-        const fid = window._MOCK_FIG_ID;
-        if (window._anywidgetPush) {{
-          window._anywidgetPush(fid, 'layout_json', window._MOCK_LAYOUT);
-          for (const entry of window._MOCK_PANELS) {{
-            window._anywidgetPush(fid, entry.key, entry.value);
-          }}
-        }}
-        window._APL_FIGS_PUSHED = true;
         return;
       }}
 
