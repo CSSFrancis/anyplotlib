@@ -237,7 +237,7 @@ print('[sphinx_anywidget] anywidget monkey-patch installed')
 
     // 8. Collect text/x-python script blocks, group by src-file so each
     //    example source runs exactly once even with multiple figures.
-    const srcGroups = new Map();  // srcFile → { src, pairs: [{figId, figIndex}] }
+    const srcGroups = new Map();  // srcFile → { src, pairs: [{figId, figIndex}], packages: [] }
 
     for (const script of document.querySelectorAll(
         'script[type="text/x-python"][data-fig-id]')) {
@@ -246,9 +246,14 @@ print('[sphinx_anywidget] anywidget monkey-patch installed')
       const figIndex = parseInt(script.dataset.figIndex || '0', 10);
       let src = '';
       try { src = JSON.parse(script.dataset.src || 'null') || ''; } catch (_) {}
+      let packages = [];
+      try { packages = JSON.parse(script.dataset.pyodidePackages || 'null') || []; } catch (_) {}
 
-      if (!srcGroups.has(srcFile)) srcGroups.set(srcFile, { src, pairs: [] });
-      srcGroups.get(srcFile).pairs.push({ figId, figIndex });
+      if (!srcGroups.has(srcFile)) srcGroups.set(srcFile, { src, pairs: [], packages });
+      const grp = srcGroups.get(srcFile);
+      grp.pairs.push({ figId, figIndex });
+      // Merge any packages declared by any script tag for this source file.
+      for (const p of packages) if (!grp.packages.includes(p)) grp.packages.push(p);
     }
 
     for (const g of srcGroups.values())
@@ -257,10 +262,19 @@ print('[sphinx_anywidget] anywidget monkey-patch installed')
     // 9. Run each example source once, assign _anywidget_fig_id in creation
     //    order, then push current state into the matching iframes.
     const _execErrors = [];
-    for (const [srcFile, { src, pairs }] of srcGroups) {
+    for (const [srcFile, { src, pairs, packages }] of srcGroups) {
       const figIdList = JSON.stringify(pairs.map(p => p.figId));
       console.info(`[sphinx_anywidget] running: ${srcFile} (${pairs.length} figure(s))`);
       const _srcFileRepr = JSON.stringify(srcFile);
+
+      // Load any extra packages declared by this example (e.g. scipy).
+      if (packages.length > 0) {
+        console.info(`[sphinx_anywidget] loading extra packages for ${srcFile}:`, packages);
+        await _step(`load packages for ${srcFile}`,
+          pyodide.loadPackage(packages));
+        console.info(`[sphinx_anywidget] extra packages loaded for ${srcFile}`);
+      }
+
       try {
         await pyodide.runPythonAsync(`
 import anywidget as _aw

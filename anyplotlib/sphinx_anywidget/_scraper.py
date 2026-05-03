@@ -51,6 +51,11 @@ MAX_DOC_WIDTH = 684
 # Sentinel that marks a code block as interactive.
 _INTERACTIVE_RE = re.compile(r"#\s*interactive\s*$", re.IGNORECASE | re.MULTILINE)
 
+# Pattern that extracts _PYODIDE_PACKAGES = [...] declarations from source.
+_PYODIDE_PACKAGES_RE = re.compile(
+    r"^_PYODIDE_PACKAGES\s*=\s*(\[[^\]]*\])", re.MULTILINE
+)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -293,11 +298,28 @@ class AnywidgetScraper:
 
                 if python_src:
                     data_src = _html_escape(_json.dumps(python_src), quote=True)
+
+                    # Detect _PYODIDE_PACKAGES = [...] in the source.
+                    _pkg_attr = ""
+                    m = _PYODIDE_PACKAGES_RE.search(python_src)
+                    if m:
+                        try:
+                            import ast as _ast
+                            pkgs = _ast.literal_eval(m.group(1))
+                            if pkgs:
+                                _pkg_attr = (
+                                    f' data-pyodide-packages='
+                                    f'"{_html_escape(_json.dumps(pkgs), quote=True)}"'
+                                )
+                        except Exception:
+                            pass
+
                     python_block = (
                         f'<script type="text/x-python"'
                         f' data-fig-id="{fig_id}"'
                         f' data-fig-index="{fig_index}"'
                         f' data-src-file="{Path(src_file).stem}"'
+                        f'{_pkg_attr}'
                         f' data-src="{data_src}"></script>'
                     )
                     rst += "\n\n.. raw:: html\n\n    " + python_block + "\n\n"
