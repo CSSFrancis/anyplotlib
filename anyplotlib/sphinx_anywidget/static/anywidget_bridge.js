@@ -89,7 +89,6 @@
       btn.textContent = '✓';
       btn.dataset.state = 'active';
       btn.title = 'Python active';
-      // Mark the wrapper so CSS can hide the static icon
       const wrap = btn.closest('.awi-fig-wrap');
       if (wrap) wrap.dataset.awiLive = 'true';
     }
@@ -353,6 +352,8 @@ elif _widget is None:
   // ── package name inference ────────────────────────────────────────────────
 
   function _inferPackageName() {
+    // 0. Authoritative: set by anywidget_config.js (written at build time)
+    if (window._anywidgetPackage) return window._anywidgetPackage;
     // 1. Check for a <meta name="anywidget:package"> tag (set by the extension)
     const meta = document.querySelector('meta[name="anywidget:package"]');
     if (meta) return meta.getAttribute('content');

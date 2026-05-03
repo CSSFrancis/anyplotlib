@@ -19,9 +19,8 @@ assert '"tf"' in html, 'Missing fig_id in HTML'
 w, h = _widget_px(fig)
 assert w == 416, f'Expected 416 got {w}'
 
-b = _iframe_html('t.html', 400, 300, fig_id='a', interactive=True, static_icon='P')
+b = _iframe_html('t.html', 400, 300, fig_id='a', interactive=True)
 assert 'awi-activate-btn' in b, 'Missing activate button'
-assert 'awi-static-icon' in b, 'Missing static icon'
 
 s = _iframe_html('t.html', 400, 300, fig_id='a', interactive=False)
 assert 'awi-activate-btn' not in s, 'Should not have activate btn on static'

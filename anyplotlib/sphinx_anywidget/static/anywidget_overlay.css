@@ -9,7 +9,6 @@
  *   <div class="awi-fig-wrap" data-awi-fig="FIGID">
  *     <iframe data-awi-fig="FIGID" ...></iframe>
  *     <div class="awi-badge" data-awi-badge="FIGID">
- *       <span class="awi-badge-icon awi-static-icon">📷</span>
  *       <button class="awi-badge-icon awi-activate-btn">⚡</button>  <!-- interactive only -->
  *     </div>
  *   </div>
@@ -23,38 +22,34 @@
 /* ── badge container ─────────────────────────────────────────────────────── */
 .awi-badge {
   position:    absolute;
-  top:         6px;
-  right:       6px;
+  top:         8px;
+  right:       8px;
   display:     flex;
   align-items: center;
-  gap:         4px;
+  gap:         8px;
   z-index:     10;
-  pointer-events: none; /* icons are pointer-none by default; button overrides */
+  pointer-events: none;
 }
+
+/* ── after activation: no change needed — stays top-right ───────────────── */
 
 /* ── shared icon style ───────────────────────────────────────────────────── */
 .awi-badge-icon {
   display:      flex;
   align-items:  center;
   justify-content: center;
-  width:        28px;
-  height:       28px;
+  width:        38px;
+  height:       38px;
   border-radius: 50%;
-  font-size:    14px;
+  font-size:    18px;
   line-height:  1;
-  background:   rgba(30, 30, 46, 0.72);
-  backdrop-filter: blur(4px);
-  border:       1px solid rgba(255, 255, 255, 0.18);
+  background:   rgba(30, 30, 46, 0.82);
+  backdrop-filter: blur(6px);
+  border:       1px solid rgba(255, 255, 255, 0.25);
   color:        #fff;
-  box-shadow:   0 1px 4px rgba(0,0,0,0.4);
+  box-shadow:   0 2px 8px rgba(0,0,0,0.5);
   transition:   opacity 0.25s, background 0.2s, transform 0.15s;
-  opacity:      0.80;
-}
-
-/* ── static snapshot icon (📷 or custom) ────────────────────────────────── */
-.awi-static-icon {
-  opacity: 0.55;
-  cursor: default;
+  opacity:      0.90;
 }
 
 /* ── ⚡ activation button ────────────────────────────────────────────────── */
@@ -101,9 +96,5 @@
   pointer-events: none;
 }
 
-/* ── hide static icon once active (cleans up the badge) ─────────────────── */
-.awi-fig-wrap[data-awi-live="true"] .awi-static-icon {
-  opacity: 0;
-  pointer-events: none;
-}
+
 

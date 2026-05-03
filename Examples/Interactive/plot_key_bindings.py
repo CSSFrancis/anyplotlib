@@ -118,5 +118,4 @@ def log_key(event):
     print(f"[on_key] key={event.key!r}  img={pos}"
           f"  last_widget={event.last_widget_id!r}")
 
-fig
-
+fig  # Interactive
