@@ -1,0 +1,7 @@
+* Added ``anyplotlib.sphinx_anywidget`` Sphinx extension for interactive,
+  Pyodide-powered figures in documentation (``.. anywidget-figure::`` directive,
+  automatic wheel building, Sphinx Gallery integration).
+* Improved widget–parent page postMessage communication bridge.
+* Made colormap LUT construction more robust against unknown colormap names.
+* Subplot panels now use deterministic IDs.
+* Added end-to-end test for the Playwright thumbnail scraper.
