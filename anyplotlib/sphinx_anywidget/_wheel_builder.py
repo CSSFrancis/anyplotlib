@@ -8,6 +8,7 @@ the exact library version that generated the docs — no PyPI release required.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -40,7 +41,10 @@ def build_wheel(
     wheels_dir = static_dir / "wheels"
     wheels_dir.mkdir(parents=True, exist_ok=True)
 
-    for old in wheels_dir.glob(f"{package_name}*.whl"):
+    # PEP 427 normalises distribution names: hyphens and dots → underscores.
+    normalised = re.sub(r"[-.]", "_", package_name)
+
+    for old in wheels_dir.glob(f"{normalised}*.whl"):
         old.unlink(missing_ok=True)
 
     result = subprocess.run(
@@ -61,12 +65,12 @@ def build_wheel(
         )
         return None
 
-    wheels = sorted(wheels_dir.glob(f"{package_name}*.whl"))
+    wheels = sorted(wheels_dir.glob(f"{normalised}*.whl"))
     if not wheels:
         print(f"\n[sphinx_anywidget] WARNING: no wheel found for {package_name!r}")
         return None
 
-    stable = wheels_dir / f"{package_name}-0.0.0-py3-none-any.whl"
+    stable = wheels_dir / f"{normalised}-0.0.0-py3-none-any.whl"
     stable.unlink(missing_ok=True)
     wheels[-1].rename(stable)
     print(f"[sphinx_anywidget] wheel → {stable}")

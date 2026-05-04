@@ -62,10 +62,20 @@
     return document.querySelector('button.awi-activate-btn') !== null;
   }
 
-  /** Deliver a state-update message into the iframe for figId. */
-  function _postToIframe(figId, key, value) {
+  /** Deliver a state-update message into the iframe for figId.
+   *
+   * rawValue is always a JSON-encoded string (Python serialises every trait
+   * with json.dumps so numeric/boolean/object traits are not type-erased when
+   * the iframe receives them).
+   */
+  function _postToIframe(figId, key, rawValue) {
     const iframe = document.querySelector(`iframe[data-awi-fig="${figId}"]`);
     if (iframe && iframe.contentWindow) {
+      // JSON.parse recovers the real JS type (number, bool, array, object …).
+      // Plain Python strings are also JSON-encoded (quoted), so they round-trip
+      // correctly too.
+      let value = rawValue;
+      try { value = JSON.parse(rawValue); } catch (_) {}
       iframe.contentWindow.postMessage({ type: 'awi_state', key, value }, '*');
     }
   }
@@ -225,7 +235,9 @@ def _patched_init(self, *args, **kw):
             return
         import json as _j
         val = change['new']
-        val_str = val if isinstance(val, str) else _j.dumps(val, default=str)
+        # Always JSON-encode so the JS bridge can JSON.parse to recover the
+        # correct type — strings, numbers, bools and objects all round-trip.
+        val_str = _j.dumps(val, default=str)
         js.window._anywidgetPush(fid, tname, val_str)
 
     self.observe(_push_cb, names=_tr.All)
@@ -317,7 +329,9 @@ for _i, _fid in enumerate(_fig_ids):
             _val = getattr(_w, _tname, None)
             if _val is None:
                 continue
-            _vs = _val if isinstance(_val, str) else _jj.dumps(_val, default=str)
+            # Always JSON-encode (matching the live observer above) so the
+            # JS bridge can JSON.parse to recover the correct type.
+            _vs = _jj.dumps(_val, default=str)
             import js as _js
             _js.window._anywidgetPush(_fid, _tname, _vs)
         _wired += 1
