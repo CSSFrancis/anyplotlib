@@ -123,13 +123,27 @@ autodoc_typehints = "description"
 # pyodide_bridge.js derives the wheel URL from its own script src, which
 # already carries the version prefix.
 def setup(app):
-    """Build the anyplotlib wheel for the in-browser Pyodide bridge."""
+    """Build the anyplotlib wheel for the in-browser Pyodide bridge.
+
+    In CI the workflow pre-builds the wheel before sphinx-build runs, so we
+    skip the build step if ``anyplotlib-0.0.0-py3-none-any.whl`` is already
+    present.  This avoids a redundant ``pip wheel`` invocation and keeps the
+    local ``make html`` path working without needing ``uv build``.
+    """
     import subprocess
     import sys
     from pathlib import Path
 
     wheels_dir = Path(__file__).parent / "_static" / "wheels"
     wheels_dir.mkdir(parents=True, exist_ok=True)
+
+    stable = wheels_dir / "anyplotlib-0.0.0-py3-none-any.whl"
+
+    # If the wheel was already built by the workflow step (or a previous local
+    # build), reuse it rather than rebuilding.
+    if stable.exists():
+        print(f"[pyodide_bridge] wheel already present → {stable}")
+        return
 
     # Remove stale wheels from previous builds.
     for old in wheels_dir.glob("anyplotlib*.whl"):
@@ -153,13 +167,11 @@ def setup(app):
         print(f"\n[pyodide_bridge] WARNING: wheel build failed:\n{result.stderr}")
         return
 
-    # Rename to a stable, version-agnostic filename so pyodide_bridge.js can
-    # reference it without knowing the current version string.
-    # NOTE: "latest" is NOT a valid PEP 440 version; micropip rejects it.
-    # "0.0.0" is the simplest valid sentinel that micropip accepts when the
-    # wheel is installed via URL (no PyPI version-check happens for URL installs).
+    # Rename to the stable sentinel name micropip accepts for URL installs.
+    # "0.0.0" is a valid PEP 440 version; micropip skips PyPI checks for
+    # wheels installed by URL so the actual version number doesn't matter.
     wheels = sorted(wheels_dir.glob("anyplotlib*.whl"))
     if wheels:
-        stable = wheels_dir / "anyplotlib-0.0.0-py3-none-any.whl"
         stable.unlink(missing_ok=True)
         wheels[-1].rename(stable)
+        print(f"[pyodide_bridge] wheel → {stable}")
