@@ -133,6 +133,7 @@ def _iframe_html(
     h: int,
     fig_id: str | None = None,
     interactive: bool = False,
+    max_width: int | None = None,
 ) -> str:
     """Return a single-line HTML snippet embedding *src* responsively.
 
@@ -146,10 +147,13 @@ def _iframe_html(
         Stable identifier; used as the ``data-awi-fig`` attribute.
     interactive : bool
         When True, renders the ⚡ activation badge.
+    max_width : int or None
+        Override the default ``MAX_DOC_WIDTH`` cap (pixels).
     """
     uid = fig_id or f"f{uuid4().hex[:8]}"
+    cap = max_width if max_width is not None else MAX_DOC_WIDTH
 
-    init_scale = min(1.0, MAX_DOC_WIDTH / w)
+    init_scale = min(1.0, cap / w)
     init_w = round(w * init_scale)
     init_h = round(h * init_scale)
     scale_css = f"{init_scale:.6f}".rstrip("0").rstrip(".")
