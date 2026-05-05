@@ -51,7 +51,8 @@ class AnywidgetFigureDirective(Directive):
     has_content = False
     option_spec = {
         "interactive": directives.flag,
-        "width":       directives.nonnegative_int,
+        "width":       directives.unchanged,   # e.g. "684", "100%", "80%"
+        "height":      directives.unchanged,   # e.g. "400px", "400"
     }
 
     def run(self):
@@ -60,7 +61,13 @@ class AnywidgetFigureDirective(Directive):
 
         # ── resolve the source file path ─────────────────────────────────
         src_arg  = self.arguments[0]
-        conf_dir = Path(env.confdir)
+        # env.confdir was removed in Sphinx 9; fall back to env.app.confdir
+        # then env.srcdir so the directive works on all supported versions.
+        conf_dir = Path(
+            getattr(env, "confdir", None)
+            or getattr(env.app, "confdir", None)
+            or env.srcdir
+        )
         src_path = (conf_dir / src_arg).resolve()
 
         if not src_path.exists():
@@ -73,7 +80,30 @@ class AnywidgetFigureDirective(Directive):
 
         # ── options ──────────────────────────────────────────────────────
         is_interactive = "interactive" in self.options
-        max_width = self.options.get("width", None)  # None → use _iframe_html default
+
+        # :width: accepts "684" (pixels) or "100%" / "80%" (percentage).
+        # A percentage means "use the full container width" — we pass
+        # max_width=None so _iframe_html uses its default MAX_DOC_WIDTH cap
+        # and the CSS wrapper fills the container via its inline-block rule.
+        max_width = None
+        raw_width = self.options.get("width", None)
+        if raw_width is not None:
+            raw_width = str(raw_width).strip()
+            if not raw_width.endswith("%"):
+                try:
+                    max_width = int(raw_width.replace("px", "").strip())
+                except (ValueError, TypeError):
+                    max_width = None
+            # else: percentage → leave max_width=None (full-width default)
+
+        # :height: accepts "400px" or "400".
+        max_height = None
+        raw_height = self.options.get("height", None)
+        if raw_height is not None:
+            try:
+                max_height = int(str(raw_height).lower().replace("px", "").strip())
+            except (ValueError, TypeError):
+                max_height = None
 
         # ── execute the script to get the widget ─────────────────────────
         try:
@@ -119,10 +149,14 @@ class AnywidgetFigureDirective(Directive):
         w, h = _widget_px(widget)
 
         # Compute relative path from the current RST file's output dir
-        # to _static/viewer_widgets/
+        # to _static/viewer_widgets/.
+        # doc_name is the docname without extension, e.g. "index" or "dev/index".
+        # The output HTML sits at {out_dir}/{doc_name}.html, so the number of
+        # "../" hops needed to reach {out_dir}/_static/ equals the depth of the
+        # *directory* part of the docname (not the filename itself).
         try:
-            doc_name = env.docname  # e.g. "getting_started"
-            rel_depth = len(Path(doc_name).parts)  # depth from out root
+            doc_name = env.docname  # e.g. "index" or "dev/index"
+            rel_depth = len(Path(doc_name).parent.parts)  # parent dirs only
             prefix = "../" * rel_depth
         except Exception:
             prefix = ""
@@ -131,6 +165,8 @@ class AnywidgetFigureDirective(Directive):
         iframe_kw = {}
         if max_width is not None:
             iframe_kw["max_width"] = max_width
+        if max_height is not None:
+            iframe_kw["max_height"] = max_height
         iframe_block = _iframe_html(
             src_url, w, h,
             fig_id=fig_id,
