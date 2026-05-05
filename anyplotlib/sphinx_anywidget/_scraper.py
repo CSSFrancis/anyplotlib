@@ -85,7 +85,6 @@ def _find_widget(globals_dict: dict):
 
 def _make_thumbnail_png(widget) -> bytes:
     """Render *widget* in headless Chromium and return a dark-theme PNG screenshot."""
-    from playwright.sync_api import sync_playwright
     from anyplotlib.sphinx_anywidget._repr_utils import build_standalone_html
 
     html = build_standalone_html(widget, resizable=False)
@@ -101,7 +100,9 @@ def _make_thumbnail_png(widget) -> bytes:
         fh.write(html)
         tmp_path = Path(fh.name)
 
-    try:
+    def _run_playwright(tmp_path: Path) -> bytes:
+        from playwright.sync_api import sync_playwright
+
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
                 headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"]
@@ -117,10 +118,28 @@ def _make_thumbnail_png(widget) -> bytes:
                     "() => new Promise(r =>"
                     " requestAnimationFrame(() => requestAnimationFrame(r)))"
                 )
-                png_bytes = page.locator("#widget-root").screenshot()
+                return page.locator("#widget-root").screenshot()
             finally:
                 page.close()
                 browser.close()
+
+    try:
+        import asyncio
+        import concurrent.futures
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None and loop.is_running():
+            # Playwright sync API cannot be used inside a running asyncio loop.
+            # Run it in a separate thread where there is no event loop.
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(_run_playwright, tmp_path)
+                png_bytes = future.result()
+        else:
+            png_bytes = _run_playwright(tmp_path)
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -134,6 +153,7 @@ def _iframe_html(
     fig_id: str | None = None,
     interactive: bool = False,
     max_width: int | None = None,
+    max_height: int | None = None,
 ) -> str:
     """Return a single-line HTML snippet embedding *src* responsively.
 
@@ -149,11 +169,16 @@ def _iframe_html(
         When True, renders the ⚡ activation badge.
     max_width : int or None
         Override the default ``MAX_DOC_WIDTH`` cap (pixels).
+    max_height : int or None
+        Maximum display height in pixels.  When provided, the scale factor is
+        also constrained so the rendered iframe never exceeds this height.
     """
     uid = fig_id or f"f{uuid4().hex[:8]}"
     cap = max_width if max_width is not None else MAX_DOC_WIDTH
 
     init_scale = min(1.0, cap / w)
+    if max_height is not None and h > 0:
+        init_scale = min(init_scale, max_height / h)
     init_w = round(w * init_scale)
     init_h = round(h * init_scale)
     scale_css = f"{init_scale:.6f}".rstrip("0").rstrip(".")
