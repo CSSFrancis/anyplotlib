@@ -1,21 +1,17 @@
 """
-_repr_utils.py
-==============
+sphinx_anywidget/_repr_utils.py
+================================
 
-Produces a self-contained HTML page that renders anywidget Widgets
-interactively without a live Jupyter kernel.
+Self-contained HTML builder for any ``anywidget.AnyWidget`` subclass.
+No runtime dependency on anyplotlib or any specific widget library.
 
 Strategy
 --------
-1. Serialise every synced traitlet value to a plain JSON dict.
+1. Serialise every ``sync=True`` traitlet to a plain JSON dict.
 2. Embed that dict and the widget's ``_esm`` source directly in the page.
 3. Provide a minimal model shim (get/set/on/save_changes) so the ESM's
    render() function works without any Jupyter comm infrastructure.
-4. Import the ESM as a Blob URL and call render({ model, el }).
-
-When resizable=False (the default for documentation) the resize handle is
-hidden via CSS and the iframe is sized exactly to the widget's own dimensions,
-producing a tight, centred embed with no dead space.
+4. Import the ESM as a Blob URL and call ``render({ model, el })``.
 """
 
 from __future__ import annotations
@@ -25,8 +21,6 @@ from html import escape
 from uuid import uuid4
 
 # Maximum display width (px) for the non-resizable notebook embed.
-# Figures wider than this are scaled down proportionally via CSS transform.
-# 860 px fits comfortably in a standard JupyterLab / VS Code notebook cell.
 MAX_NOTEBOOK_WIDTH = 860
 
 
@@ -49,54 +43,50 @@ def _widget_state(widget) -> dict:
 
 
 def _widget_px(widget) -> tuple[int, int]:
-    """Return (width_px, height_px) for the widget's full rendered size.
+    """Return ``(width_px, height_px)`` for any anywidget subclass.
 
-    These are the *outer* pixel dimensions of the widget's root DOM element,
-    including any padding the widget JS adds around the canvas grid.
+    Tries common trait names in priority order before falling back to a
+    sensible default.  Widget authors can override by adding
+    ``_display_width`` and ``_display_height`` *non-synced* attributes.
     """
-    try:
-        kind = type(widget).__name__
-        if kind == "Figure":
-            # figure_esm.js: gridDiv has padding:8px on all sides → +16 each axis
+    # Explicit override
+    if hasattr(widget, "_display_width") and hasattr(widget, "_display_height"):
+        return int(widget._display_width), int(widget._display_height)
+
+    kind = type(widget).__name__
+
+    # anyplotlib Figure — gridDiv adds 16 px padding on each side
+    if kind == "Figure":
+        try:
             return int(widget.fig_width) + 16, int(widget.fig_height) + 16
-        # Viewer1D / Viewer2D — the outerContainer has padding:10px
-        w = int(getattr(widget, "viewer_width",  480))
-        h = int(getattr(widget, "viewer_height", 256))
-        PAD = 20  # 10px padding each side
-        if kind == "Viewer2D":
-            # Add axis canvas gutters (AXIS_SIZE = 40 in viewer2d JS)
-            AXIS = 40
-            w += AXIS + PAD
-            h += AXIS + PAD
-            if getattr(widget, "histogram_visible", False):
-                h_gap = int(getattr(widget, "gap", 10))
-                h_hw  = int(getattr(widget, "histogram_width", 120))
-                w    += h_hw + h_gap
-        else:
-            # Viewer1D: PAD_L=58, PAD_R=12, PAD_T=12, PAD_B=36 + outer 10px pad each side
-            w += 58 + 12 + 20   # PAD_L + PAD_R + outer
-            h += 12 + 36 + 20   # PAD_T + PAD_B + outer
-        return w, h
-    except Exception:
-        return 560, 340
+        except Exception:
+            pass
+
+    # Common viewer patterns: viewer_width / viewer_height traits
+    if hasattr(widget, "viewer_width") and hasattr(widget, "viewer_height"):
+        return int(widget.viewer_width) + 20, int(widget.viewer_height) + 20
+
+    # width / height traits
+    if hasattr(widget, "width") and hasattr(widget, "height"):
+        try:
+            return int(widget.width), int(widget.height)
+        except Exception:
+            pass
+
+    return 560, 340
 
 
 # ---------------------------------------------------------------------------
 # HTML builder
 # ---------------------------------------------------------------------------
 
-# Extra CSS injected when resizable=False:
-# - hides every resize-handle div
-# - locks the outermost container to exact pixel dims so it can't grow
 _NO_RESIZE_CSS = """\
   /* ── resizable=False overrides ─────────────────────────────── */
-  /* Hide all resize handles rendered by the widget JS */
   div[style*="nwse-resize"],
   div[title="Drag to resize"],
   div[title="Drag to resize figure"] {{
     display: none !important;
   }}
-  /* Remove any bottom-right padding that was reserved for the handle */
   #widget-root > div {{
     padding-bottom: 0 !important;
     padding-right:  0 !important;
@@ -114,7 +104,6 @@ _PAGE_TEMPLATE = """\
     padding: 0;
     background: transparent;
     overflow: hidden;
-    /* Size the document exactly to the widget so scrollHeight == widget height */
     width:  {width}px;
     height: {height}px;
   }}
@@ -134,7 +123,7 @@ const STATE = {state_json};
 const FIG_ID = {fig_id_json};
 
 // Loop-prevention flag: set while applying a parent-originated update so
-// set() doesn't double-fire callbacks that save_changes() will also fire.
+// save_changes() doesn't echo the change back as an awi_event.
 let _fromParent = false;
 // Dirty flag: true only when model.set('event_json', ...) was called in the
 // current transaction.
@@ -149,13 +138,6 @@ function makeModel(state) {{
     set(key, val) {{
       _data[key] = val;
       if (key === 'event_json') _eventJsonDirty = true;
-      // Only fire synchronously when NOT processing an inbound awi_state
-      // message (save_changes() will fire listeners once in that path).
-      if (!_fromParent) {{
-        const ev = 'change:' + key;
-        if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try {{ cb({{ new: val }}); }} catch(_) {{}}
-        for (const cb of [..._anyCbs]) try {{ cb(); }} catch(_) {{}}
-      }}
     }},
     save_changes() {{
       for (const [ev, cbs] of Object.entries(_cbs))
@@ -229,8 +211,8 @@ def build_standalone_html(widget, *, resizable: bool = True,
         Any ``anywidget.AnyWidget`` subclass with ``_esm`` defined.
     resizable : bool
         When ``True`` (default) the widget's built-in resize handle is
-        preserved.  When ``False`` the handle is hidden via CSS and the page
-        is sized exactly to the widget's natural dimensions.
+        preserved.  When ``False`` the handle is hidden and the page is
+        sized exactly to the widget's natural dimensions.
     fig_id : str or None
         When provided, embedded as ``FIG_ID`` so the parent-page bridge
         can route ``postMessage`` state updates to this iframe.
@@ -258,24 +240,7 @@ def build_standalone_html(widget, *, resizable: bool = True,
 def repr_html_iframe(widget, *, resizable: bool = False,
                      max_width: int = MAX_NOTEBOOK_WIDTH,
                      max_height: int = 800) -> str:
-    """Return a centred, responsive ``<iframe srcdoc=...>`` embedding *widget*.
-
-    Parameters
-    ----------
-    widget :
-        Any ``anywidget.AnyWidget`` subclass.
-    resizable : bool
-        Passed to :func:`build_standalone_html`.  Default ``False`` for
-        documentation embeds — hides the resize handle and sizes the iframe
-        exactly to the widget.
-    max_width : int
-        Maximum display width in pixels.  Figures wider than this are scaled
-        down proportionally via ``transform:scale()`` so they never overflow
-        the notebook cell.  Default ``MAX_NOTEBOOK_WIDTH`` (860 px).
-    max_height : int
-        Upper bound on iframe height in pixels (only used when
-        ``resizable=True``).
-    """
+    """Return a centred, responsive ``<iframe srcdoc=...>`` embedding *widget*."""
     inner_html = build_standalone_html(widget, resizable=resizable)
     escaped    = escape(inner_html, quote=True)
     uid        = str(uuid4()).replace("-", "")
@@ -283,17 +248,6 @@ def repr_html_iframe(widget, *, resizable: bool = False,
     w, h = _widget_px(widget)
 
     if not resizable:
-        # ── Responsive fixed-size embed ────────────────────────────────────
-        # The iframe always renders at its native resolution so the widget
-        # is pixel-perfect on wide screens.  On narrower cells a CSS
-        # transform:scale() shrinks it proportionally — CSS transforms
-        # correctly route pointer events so interaction still works.
-        #
-        # The static scale (baked into the style attribute) renders correctly
-        # before JS runs.  requestAnimationFrame defers the first JS
-        # measurement until after layout is complete so offsetWidth is
-        # always valid; the !avail guard prevents a not-yet-reflowed parent
-        # from collapsing the wrapper.
         init_scale = min(1.0, max_width / w)
         init_w     = round(w * init_scale)
         init_h     = round(h * init_scale)
@@ -330,7 +284,6 @@ def repr_html_iframe(widget, *, resizable: bool = False,
             f'</div>'
         )
     else:
-        # ── Resizable embed (fills cell width, auto-sizes height) ──────────
         return (
             f'<iframe id="vw-{uid}" srcdoc="{escaped}" frameborder="0" '
             f'style="width:100%;height:{h}px;border:none;overflow:hidden;" '

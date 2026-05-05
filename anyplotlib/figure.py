@@ -351,7 +351,22 @@ class Figure(anywidget.AnyWidget):
     @traitlets.observe("event_json")
     def _on_event(self, change) -> None:
         """Dispatch a JS interaction event to the relevant plot and widget callbacks."""
-        raw = change["new"]
+        self._dispatch_event(change["new"])
+
+    def _dispatch_event(self, raw: str) -> None:
+        """Process a raw JSON event string from the JS side.
+
+        Called by ``_on_event`` (traitlets observer) and also directly by the
+        Pyodide bridge (``anywidget_bridge.js``) when forwarding user interaction
+        events from the iframe back to Python callbacks.
+
+        Parameters
+        ----------
+        raw : str
+            JSON-encoded event message.  Expected keys: ``event_type``,
+            ``panel_id``, and optionally ``source``, ``widget_id``, plus
+            any event-specific payload fields.
+        """
         if not raw or raw == "{}":
             return
         try:

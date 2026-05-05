@@ -1,0 +1,100 @@
+/*
+ * anywidget_overlay.css
+ * =====================
+ * Styles for the per-figure interaction badges injected by AnywidgetScraper
+ * and the .. anywidget-figure:: RST directive.
+ *
+ * Badge structure (rendered by _scraper._iframe_html):
+ *
+ *   <div class="awi-fig-wrap" data-awi-fig="FIGID">
+ *     <iframe data-awi-fig="FIGID" ...></iframe>
+ *     <div class="awi-badge" data-awi-badge="FIGID">
+ *       <button class="awi-badge-icon awi-activate-btn">⚡</button>  <!-- interactive only -->
+ *     </div>
+ *   </div>
+ */
+
+/* ── figure wrapper ──────────────────────────────────────────────────────── */
+.awi-fig-wrap {
+  position: relative;  /* Badge positions relative to this */
+}
+
+/* ── badge container ─────────────────────────────────────────────────────── */
+.awi-badge {
+  position:    absolute;
+  top:         8px;
+  right:       8px;
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  z-index:     10;
+  pointer-events: none;
+}
+
+/* ── after activation: no change needed — stays top-right ───────────────── */
+
+/* ── shared icon style ───────────────────────────────────────────────────── */
+.awi-badge-icon {
+  display:      flex;
+  align-items:  center;
+  justify-content: center;
+  width:        38px;
+  height:       38px;
+  border-radius: 50%;
+  font-size:    18px;
+  line-height:  1;
+  background:   rgba(30, 30, 46, 0.82);
+  backdrop-filter: blur(6px);
+  border:       1px solid rgba(255, 255, 255, 0.25);
+  color:        #fff;
+  box-shadow:   0 2px 8px rgba(0,0,0,0.5);
+  transition:   opacity 0.25s, background 0.2s, transform 0.15s;
+  opacity:      0.90;
+}
+
+/* ── ⚡ activation button ────────────────────────────────────────────────── */
+.awi-activate-btn {
+  cursor:         pointer;
+  pointer-events: auto;
+  padding:        0;
+  font-family:    inherit;
+  border-color:   rgba(98, 114, 164, 0.7);
+  background:     rgba(30, 30, 46, 0.80);
+}
+
+.awi-activate-btn:hover {
+  background: rgba(98, 114, 164, 0.85);
+  opacity:    1;
+  transform:  scale(1.12);
+}
+
+.awi-activate-btn:focus-visible {
+  outline: 2px solid #8be9fd;
+  outline-offset: 2px;
+}
+
+/* ── loading state (⏳) ──────────────────────────────────────────────────── */
+.awi-activate-btn[data-state="loading"] {
+  cursor:        default;
+  pointer-events: none;
+  background:    rgba(189, 147, 249, 0.85);
+}
+
+/* ── active / live state (✓) ─────────────────────────────────────────────── */
+.awi-activate-btn[data-state="active"] {
+  background:  rgba(80, 250, 123, 0.85);
+  color:       #1e1e2e;
+  cursor:      default;
+  pointer-events: none;
+  font-weight: 700;
+}
+
+/* ── error state (❌) ────────────────────────────────────────────────────── */
+.awi-activate-btn[data-state="error"] {
+  background:     rgba(255, 85, 85, 0.85);
+  cursor:         default;
+  pointer-events: none;
+}
+
+
+
