@@ -8,7 +8,6 @@
     padding: 0;
     background: transparent;
     overflow: hidden;
-    /* Size the document exactly to the widget so scrollHeight == widget height */
     width:  716px;
     height: 416px;
   }
@@ -17,13 +16,11 @@
     line-height: 0;
   }
   /* ── resizable=False overrides ─────────────────────────────── */
-  /* Hide all resize handles rendered by the widget JS */
   div[style*="nwse-resize"],
   div[title="Drag to resize"],
   div[title="Drag to resize figure"] {
     display: none !important;
   }
-  /* Remove any bottom-right padding that was reserved for the handle */
   #widget-root > div {
     padding-bottom: 0 !important;
     padding-right:  0 !important;
@@ -33,24 +30,45 @@
 <body>
 <div id="widget-root"></div>
 <script type="module">
-const STATE = {"display_stats": false, "event_json": "{}", "fig_height": 400, "fig_width": 700, "help_text": "", "layout": "Layout()", "layout_json": "{\"nrows\": 1, \"ncols\": 1, \"width_ratios\": [1], \"height_ratios\": [1], \"fig_width\": 700, \"fig_height\": 400, \"panel_specs\": [{\"id\": \"460cd4c9\", \"kind\": \"bar\", \"row_start\": 0, \"row_stop\": 1, \"col_start\": 0, \"col_stop\": 1, \"panel_width\": 700, \"panel_height\": 400}], \"share_groups\": {}, \"inset_specs\": []}", "panel_460cd4c9_json": "{\"kind\": \"bar\", \"values\": [[0.02919833334165863, 19.593333333331007], [0.09255366668033578, 20.333333333333332], [0.7201336666753377, 21.480000000000775], [7.04362133332855, 152.41333333333412]], \"groups\": 2, \"x_centers\": [0.0, 1.0, 2.0, 3.0], \"x_labels\": [\"100\", \"1,000\", \"10,000\", \"100,000\"], \"bar_color\": \"#4fc3f7\", \"bar_colors\": [], \"group_labels\": [\"Python prep\", \"JS canvas render\"], \"group_colors\": [\"#1976D2\", \"#4CAF50\"], \"bar_width\": 0.7, \"orient\": \"v\", \"baseline\": 0.0, \"log_scale\": true, \"show_values\": false, \"data_min\": 0.02067083700027005, \"data_max\": 215.2895556344371, \"units\": \"Number of points  \\u2014  anyplotlib 1-D line\", \"y_units\": \"ms per call (log scale)\", \"x_axis\": [-0.5, 3.5], \"view_x0\": 0.0, \"view_x1\": 1.0, \"overlay_widgets\": [], \"registered_keys\": []}", "tabbable": null, "tooltip": null};
+const STATE = {"display_stats": false, "event_json": "{}", "fig_height": 400, "fig_width": 700, "help_text": "", "layout": "Layout()", "layout_json": "{\"nrows\": 1, \"ncols\": 1, \"width_ratios\": [1], \"height_ratios\": [1], \"fig_width\": 700, \"fig_height\": 400, \"panel_specs\": [{\"id\": \"p5b4415d\", \"kind\": \"bar\", \"row_start\": 0, \"row_stop\": 1, \"col_start\": 0, \"col_stop\": 1, \"panel_width\": 700, \"panel_height\": 400}], \"share_groups\": {}, \"inset_specs\": []}", "panel_p5b4415d_json": "{\"kind\": \"bar\", \"values\": [[0.0325309999974858, 20.079999999998837], [0.09159799999262457, 19.31333333333217], [0.6529446666737234, 21.06000000000155], [6.205890999998094, 139.8533333333345]], \"groups\": 2, \"x_centers\": [0.0, 1.0, 2.0, 3.0], \"x_labels\": [\"100\", \"1,000\", \"10,000\", \"100,000\"], \"bar_color\": \"#4fc3f7\", \"bar_colors\": [], \"group_labels\": [\"Python prep\", \"JS canvas render\"], \"group_colors\": [\"#1976D2\", \"#4CAF50\"], \"bar_width\": 0.7, \"orient\": \"v\", \"baseline\": 0.0, \"log_scale\": true, \"show_values\": false, \"data_min\": 0.023030184310020477, \"data_max\": 197.54808407397584, \"units\": \"Number of points  \\u2014  anyplotlib 1-D line\", \"y_units\": \"ms per call (log scale)\", \"x_axis\": [-0.5, 3.5], \"view_x0\": 0.0, \"view_x1\": 1.0, \"overlay_widgets\": [], \"registered_keys\": []}", "tabbable": null, "tooltip": null};
+// Identifies this iframe to the parent-page anywidget bridge.
+// null → no Pyodide wiring (plain notebook / static docs embed).
+const FIG_ID = "sphx_glr_plot_benchmark_comparison_005";
+
+// Loop-prevention flag: set while applying a parent-originated update so
+// save_changes() doesn't echo the change back as an awi_event.
+let _fromParent = false;
+// Dirty flag: true only when model.set('event_json', ...) was called in the
+// current transaction.
+let _eventJsonDirty = false;
 
 function makeModel(state) {
   const _data   = Object.assign({}, state);
   const _cbs    = {};
   const _anyCbs = [];
   return {
-    get(key)          { return _data[key]; },
-    set(key, val)     {
+    get(key)      { return _data[key]; },
+    set(key, val) {
       _data[key] = val;
-      const ev = 'change:' + key;
-      if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try { cb({ new: val }); } catch(_) {}
-      for (const cb of [..._anyCbs]) try { cb(); } catch(_) {}
+      if (key === 'event_json') _eventJsonDirty = true;
     },
-    save_changes()    {
+    save_changes() {
       for (const [ev, cbs] of Object.entries(_cbs))
         for (const cb of cbs) try { cb({ new: _data[ev.slice(7)] }); } catch(_) {}
       for (const cb of _anyCbs) try { cb(); } catch(_) {}
+      // Forward interaction events to the parent-page Pyodide instance.
+      if (!_fromParent && FIG_ID && window.parent !== window && _eventJsonDirty) {
+        _eventJsonDirty = false;
+        try {
+          const ev = JSON.parse(_data.event_json || '{}');
+          if (ev && ev.source !== 'python') {
+            window.parent.postMessage(
+              { type: 'awi_event', figId: FIG_ID, data: _data.event_json }, '*');
+          }
+        } catch(_) {}
+      } else {
+        _eventJsonDirty = false;
+      }
     },
     on(event, cb)  {
       if (event === "change") { _anyCbs.push(cb); return; }
@@ -80,6 +98,15 @@ import(blobUrl).then(mod => {
 }).catch(err => {
   el.textContent = "Widget load error: " + err;
   console.error(err);
+});
+
+// ── Inbound state updates from parent-page Pyodide ───────────────────────────
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'awi_state') return;
+  _fromParent = true;
+  model.set(e.data.key, e.data.value);
+  model.save_changes();
+  _fromParent = false;
 });
 </script>
 </body>

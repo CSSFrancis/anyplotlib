@@ -31,6 +31,7 @@
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,7 +48,9 @@
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../_static/anywidget_config.js?v=cd5adc06"></script>
     <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../_static/anywidget_bridge.js?v=422328bf"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/Markers/plot_ellipses';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -182,6 +185,13 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
   </ul>
 </nav></div>
       
@@ -297,6 +307,13 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
   </ul>
 </nav></div>
           
@@ -339,15 +356,7 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="../plot_3d.html">3D Plotting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_spectra1d.html">1D Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_image2d.html">2D Image with Histogram</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_line_styles.html">1D Line Styles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_bar.html">Bar Chart</a></li>
-</ul>
-<ul class="current nav bd-sidenav">
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../Benchmarks/index.html">Benchmarks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../Benchmarks/plot_benchmark_comparison.html">Plot Update Comparison</a></li>
 </ul>
@@ -356,6 +365,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_3d_spectral_viewer.html">Interactive 3D Spectral Viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
@@ -480,7 +490,7 @@ Use <code class="docutils literal notranslate"><span class="pre">markers[&quot;e
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f5676c229" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_ellipses_001.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f5676c229'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="live-update">
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_ellipses_001" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_ellipses_001" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_ellipses_001.html" data-awi-fig="sphx_glr_plot_ellipses_001" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_ellipses_001'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><section id="live-update">
 <h2>Live update<a class="headerlink" href="#live-update" title="Link to this heading">#</a></h2>
 <p>Resize all ellipses and change colour in one call.</p>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="s2">&quot;ellipses&quot;</span><span class="p">][</span><span class="s2">&quot;grains&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">widths</span><span class="o">=</span><span class="mi">38</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
@@ -489,7 +499,7 @@ Use <code class="docutils literal notranslate"><span class="pre">markers[&quot;e
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="f0500a41d" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_ellipses_002.html" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('f0500a41d'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 1.152 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_ellipses_002" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_ellipses_002" style="display:inline-block;overflow:hidden;position:relative;width:476px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_ellipses_002.html" data-awi-fig="sphx_glr_plot_ellipses_002" frameborder="0" scrolling="no" style="width:476px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_ellipses_002'),ifr=wrap.querySelector('iframe'),nw=476,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 1.175 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-markers-plot-ellipses-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/75b58fc2c41dd34c2478a6c6446ce8e7/plot_ellipses.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_ellipses.ipynb</span></code></a></p>

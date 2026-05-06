@@ -31,6 +31,7 @@
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,7 +48,9 @@
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../_static/anywidget_config.js?v=cd5adc06"></script>
     <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../_static/anywidget_bridge.js?v=422328bf"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/Interactive/plot_key_bindings';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -182,6 +185,13 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
   </ul>
 </nav></div>
       
@@ -297,6 +307,13 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
   </ul>
 </nav></div>
           
@@ -339,15 +356,7 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="../plot_3d.html">3D Plotting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_spectra1d.html">1D Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_image2d.html">2D Image with Histogram</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_line_styles.html">1D Line Styles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot_bar.html">Bar Chart</a></li>
-</ul>
-<ul class="current nav bd-sidenav">
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../Benchmarks/index.html">Benchmarks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../Benchmarks/plot_benchmark_comparison.html">Plot Update Comparison</a></li>
 </ul>
@@ -356,6 +365,7 @@
 <li class="toctree-l2 current active"><a class="current reference internal" href="#">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_3d_spectral_viewer.html">Interactive 3D Spectral Viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
@@ -515,7 +525,7 @@ where the cursor was when the key was pressed.</p>
 then press a key.  On macOS the backspace key (⌫) is used for deletion;
 on Windows / Linux use the <strong>Delete</strong> key.</p>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="fbc27581e" style="display:inline-block;overflow:hidden;position:relative;width:536px;height:536px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_key_bindings_001.html" frameborder="0" scrolling="no" style="width:536px;height:536px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('fbc27581e'),ifr=wrap.querySelector('iframe'),nw=536,nh=536;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_key_bindings_001" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_key_bindings_001" style="display:inline-block;overflow:hidden;position:relative;width:536px;height:536px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_key_bindings_001.html" data-awi-fig="sphx_glr_plot_key_bindings_001" frameborder="0" scrolling="no" style="width:536px;height:536px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_key_bindings_001"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_key_bindings_001" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_key_bindings_001'),ifr=wrap.querySelector('iframe'),nw=536,nh=536;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_key_bindings_001" data-fig-index="0" data-src-file="plot_key_bindings" data-src="&quot;\&quot;\&quot;\&quot;\nKey-Press Widget Placement\n==========================\n\nDemonstrates the ``on_key`` callback API: press a key while the plot is\nfocused to add an overlay widget centred on the current cursor position,\nor press **Backspace / Delete** to remove the last widget you clicked.\n\n**Key bindings**\n\n+-------------------------------+---------------------------+\n| Key                           | Action                    |\n+===============================+===========================+\n| ``q``                         | Add a rectangle           |\n+-------------------------------+---------------------------+\n| ``w``                         | Add a circle              |\n+-------------------------------+---------------------------+\n| ``e``                         | Add an annulus            |\n+-------------------------------+---------------------------+\n| ``Backspace`` (macOS \u232b)       | Remove last-clicked       |\n| ``Delete`` (Windows / Linux)  |                           |\n+-------------------------------+---------------------------+\n\n**Built-in 2-D shortcuts** (not overridden in this example):\n\n+-------+---------------------------+\n| Key   | Action                    |\n+=======+===========================+\n| ``r`` | Reset zoom / pan          |\n+-------+---------------------------+\n| ``c`` | Toggle colorbar           |\n+-------+---------------------------+\n| ``l`` | Toggle log scale          |\n+-------+---------------------------+\n| ``s`` | Toggle symlog scale       |\n+-------+---------------------------+\n\nThe cursor coordinates reported in the event (``event.img_x``,\n``event.img_y``) are in image-pixel space, so widgets are centred exactly\nwhere the cursor was when the key was pressed.\n\n.. note::\n   Move the mouse over the image first so the plot panel receives focus,\n   then press a key.  On macOS the backspace key (\u232b) is used for deletion;\n   on Windows / Linux use the **Delete** key.\n\&quot;\&quot;\&quot;\n\nimport numpy as np\nimport anyplotlib as vw\n\n# \u2500\u2500 Synthetic test image \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nrng = np.random.default_rng(0)\nN = 256\nx = np.linspace(0, 4 * np.pi, N)\nXX, YY = np.meshgrid(x, x)\ndata = np.sin(XX) * np.cos(YY) + 0.15 * rng.standard_normal((N, N))\n\n# \u2500\u2500 Figure \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfig, ax = vw.subplots(figsize=(520, 520))\nplot = ax.imshow(data)\n\n# \u2500\u2500 Key handlers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n@plot.on_key(&#x27;q&#x27;)\ndef add_rectangle(event):\n    \&quot;\&quot;\&quot;Press &#x27;q&#x27; \u2014 add a rectangle centred on the cursor.\&quot;\&quot;\&quot;\n    cx, cy = event.img_x, event.img_y\n    half_w, half_h = N * 0.08, N * 0.08\n    plot.add_widget(\n        \&quot;rectangle\&quot;,\n        x=cx - half_w, y=cy - half_h,\n        w=half_w * 2,  h=half_h * 2,\n        color=\&quot;#ffd54f\&quot;,\n    )\n\n\n@plot.on_key(&#x27;w&#x27;)\ndef add_circle(event):\n    \&quot;\&quot;\&quot;Press &#x27;w&#x27; \u2014 add a circle centred on the cursor.\&quot;\&quot;\&quot;\n    plot.add_widget(\n        \&quot;circle\&quot;,\n        cx=event.img_x, cy=event.img_y,\n        r=N * 0.07,\n        color=\&quot;#80cbc4\&quot;,\n    )\n\n\n@plot.on_key(&#x27;e&#x27;)\ndef add_annulus(event):\n    \&quot;\&quot;\&quot;Press &#x27;e&#x27; \u2014 add an annulus centred on the cursor.\&quot;\&quot;\&quot;\n    plot.add_widget(\n        \&quot;annular\&quot;,\n        cx=event.img_x, cy=event.img_y,\n        r_outer=N * 0.12,\n        r_inner=N * 0.06,\n        color=\&quot;#ce93d8\&quot;,\n    )\n\n\n# macOS sends &#x27;Backspace&#x27; for the \u232b key; Windows/Linux send &#x27;Delete&#x27;.\n# Register both so the example works cross-platform.\n@plot.on_key(&#x27;Backspace&#x27;)\n@plot.on_key(&#x27;Delete&#x27;)\ndef delete_last(event):\n    \&quot;\&quot;\&quot;Press Backspace/Delete \u2014 remove the last widget that was clicked.\&quot;\&quot;\&quot;\n    wid = event.last_widget_id\n    if wid and wid in {w.id for w in plot.list_widgets()}:\n        plot.remove_widget(wid)\n\n\n# \u2500\u2500 Catch-all handler (optional) \u2014 log every registered key press \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n@plot.on_key\ndef log_key(event):\n    img_x = getattr(event, &#x27;img_x&#x27;, None)\n    img_y = getattr(event, &#x27;img_y&#x27;, None)\n    pos = f\&quot;({img_x:.1f}, {img_y:.1f})\&quot; if img_x is not None else \&quot;n/a\&quot;\n    print(f\&quot;[on_key] key={event.key!r}  img={pos}\&quot;\n          f\&quot;  last_widget={event.last_widget_id!r}\&quot;)\n\nfig  # Interactive\n&quot;"></script><div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">vw</span>
 
 <span class="c1"># ── Synthetic test image ──────────────────────────────────────────────────────</span>
@@ -588,10 +598,10 @@ on Windows / Linux use the <strong>Delete</strong> key.</p>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[on_key] key=</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">key</span><span class="si">!r}</span><span class="s2">  img=</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">&quot;</span>
           <span class="sa">f</span><span class="s2">&quot;  last_widget=</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">last_widget_id</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<span class="n">fig</span>
+<span class="n">fig</span>  <span class="c1"># Interactive</span>
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.608 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.595 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-interactive-plot-key-bindings-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/df280cdd733bc2aa7f46d43ae22b8712/plot_key_bindings.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_key_bindings.ipynb</span></code></a></p>

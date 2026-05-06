@@ -74,6 +74,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="A side-by-side viewer for a 3-D (y, x, energy) dataset.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_3d_spectral_viewer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_3d_spectral_viewer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive 3D Spectral Viewer</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Click on any region of the image to flood-fill all pixels of similar intensity — the union of all seeded regions is shown as a live semi-transparent overlay on the original image.">
 
 .. only:: html
@@ -119,6 +136,7 @@ interactions to live Python computations.
    /auto_examples/Interactive/plot_key_bindings
    /auto_examples/Interactive/plot_point_widget
    /auto_examples/Interactive/plot_interactive_fft
+   /auto_examples/Interactive/plot_3d_spectral_viewer
    /auto_examples/Interactive/plot_segment_by_contrast
    /auto_examples/Interactive/plot_interactive_fitting
 

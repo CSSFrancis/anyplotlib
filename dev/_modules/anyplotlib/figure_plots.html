@@ -30,6 +30,7 @@
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -46,7 +47,9 @@
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../_static/anywidget_config.js?v=cd5adc06"></script>
     <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../_static/anywidget_bridge.js?v=422328bf"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/figure_plots';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
@@ -179,6 +182,13 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
   </ul>
 </nav></div>
       
@@ -289,6 +299,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../benchmarking.html">
     Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
   </a>
 </li>
 
@@ -940,13 +957,29 @@
         <span class="k">return</span> <span class="n">plot</span></div>
 
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_panel_id_from_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Derive a deterministic, position-based panel ID from the SubplotSpec.</span>
+
+<span class="sd">        The ID is ``&quot;p&quot;`` followed by the first 7 hex characters of a SHA-256</span>
+<span class="sd">        hash of the row/col bounds, e.g. ``&quot;p6a2f3b1&quot;``.  This is:</span>
+
+<span class="sd">        * **Deterministic** – the same SubplotSpec always produces the same ID</span>
+<span class="sd">          across Python processes and after code edits.</span>
+<span class="sd">        * **Starts with &quot;p&quot;** – satisfies the JS naming convention and makes it</span>
+<span class="sd">          easy to grep for panel traits (``panel_{id}_json``).</span>
+<span class="sd">        * **Short** – 8 characters total; safe to embed in CSS selectors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_hl</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">row_start</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">row_stop</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">col_start</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">col_stop</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;p&quot;</span> <span class="o">+</span> <span class="n">_hl</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">7</span><span class="p">]</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_attach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">:</span> <span class="s2">&quot;Plot1D | Plot2D | PlotMesh | Plot3D | PlotBar&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a plot on this axes (replace any previous plot).&quot;&quot;&quot;</span>
         <span class="c1"># Allocate a panel id if needed; reuse if replacing</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">panel_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">_id</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">panel_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
+            <span class="n">panel_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_panel_id_from_spec</span><span class="p">()</span>
         <span class="n">plot</span><span class="o">.</span><span class="n">_id</span>  <span class="o">=</span> <span class="n">panel_id</span>
         <span class="n">plot</span><span class="o">.</span><span class="n">_fig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="o">=</span> <span class="n">plot</span>
@@ -1002,26 +1035,42 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_colormap_lut</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a 256-entry ``[[r, g, b], ...]`` LUT for the named colormap.</span>
 
-<span class="sd">    Uses **colorcet** exclusively.  Common matplotlib colormap names are</span>
-<span class="sd">    transparently remapped via :data:`_CMAP_ALIASES` so callers can keep</span>
-<span class="sd">    using names like ``&quot;viridis&quot;`` or ``&quot;hot&quot;`` without any matplotlib</span>
-<span class="sd">    dependency.  Falls back to a plain gray ramp for unknown names.</span>
+<span class="sd">    Priority order:</span>
+
+<span class="sd">    1. **colorcet** — preferred; common matplotlib names are remapped via</span>
+<span class="sd">       :data:`_CMAP_ALIASES` so callers can use ``&quot;viridis&quot;`` etc.</span>
+<span class="sd">    2. **matplotlib** — fallback when colorcet is not installed (e.g. in</span>
+<span class="sd">       Pyodide before micropip finishes, or in minimal test environments).</span>
+<span class="sd">    3. **Built-in gray ramp** — final fallback for unknown names.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">colorcet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cc</span>
+    <span class="c1"># ── 1. Try colorcet ───────────────────────────────────────────────────</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">colorcet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cc</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="n">_CMAP_ALIASES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">palette</span>  <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">palette</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">palette</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n</span>   <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">palette</span><span class="p">)</span>
+            <span class="n">lut</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">256</span><span class="p">):</span>
+                <span class="n">h</span> <span class="o">=</span> <span class="n">palette</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">255</span><span class="p">))]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+                <span class="n">lut</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="mi">16</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="mi">16</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="mi">16</span><span class="p">)])</span>
+            <span class="k">return</span> <span class="n">lut</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">pass</span>
 
-    <span class="n">resolved</span> <span class="o">=</span> <span class="n">_CMAP_ALIASES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-    <span class="n">palette</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">palette</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+    <span class="c1"># ── 2. Try matplotlib ─────────────────────────────────────────────────</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.cm</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_cm</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_np</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">_cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+        <span class="n">rgba</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span>
+        <span class="k">return</span> <span class="p">[[</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)]</span>
+                <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">rgba</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">pass</span>
 
-    <span class="k">if</span> <span class="n">palette</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># Unknown name → linear gray ramp</span>
-        <span class="k">return</span> <span class="p">[[</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">256</span><span class="p">)]</span>
-
-    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">palette</span><span class="p">)</span>
-    <span class="n">lut</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">256</span><span class="p">):</span>
-        <span class="n">h</span> <span class="o">=</span> <span class="n">palette</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">255</span><span class="p">))]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
-        <span class="n">lut</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="mi">16</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="mi">16</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="mi">16</span><span class="p">)])</span>
-    <span class="k">return</span> <span class="n">lut</span>
+    <span class="c1"># ── 3. Gray ramp fallback ─────────────────────────────────────────────</span>
+    <span class="k">return</span> <span class="p">[[</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">256</span><span class="p">)]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_resample_mesh</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>

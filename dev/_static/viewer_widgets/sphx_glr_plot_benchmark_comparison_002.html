@@ -8,7 +8,6 @@
     padding: 0;
     background: transparent;
     overflow: hidden;
-    /* Size the document exactly to the widget so scrollHeight == widget height */
     width:  916px;
     height: 496px;
   }
@@ -17,13 +16,11 @@
     line-height: 0;
   }
   /* ── resizable=False overrides ─────────────────────────────── */
-  /* Hide all resize handles rendered by the widget JS */
   div[style*="nwse-resize"],
   div[title="Drag to resize"],
   div[title="Drag to resize figure"] {
     display: none !important;
   }
-  /* Remove any bottom-right padding that was reserved for the handle */
   #widget-root > div {
     padding-bottom: 0 !important;
     padding-right:  0 !important;
@@ -33,24 +30,45 @@
 <body>
 <div id="widget-root"></div>
 <script type="module">
-const STATE = {"display_stats": false, "event_json": "{}", "fig_height": 480, "fig_width": 900, "help_text": "", "layout": "Layout()", "layout_json": "{\"nrows\": 1, \"ncols\": 1, \"width_ratios\": [1], \"height_ratios\": [1], \"fig_width\": 900, \"fig_height\": 480, \"panel_specs\": [{\"id\": \"d080abe0\", \"kind\": \"bar\", \"row_start\": 0, \"row_stop\": 1, \"col_start\": 0, \"col_stop\": 1, \"panel_width\": 900, \"panel_height\": 480}], \"share_groups\": {}, \"inset_specs\": []}", "panel_d080abe0_json": "{\"kind\": \"bar\", \"values\": [[0.27770433333292505, 15.48789266666025, 7.3528593333283725, 13.60244300000583], [0.8074373333310328, 22.486750000003514, 97.23986366666774, 23.133755666672567], [2.577040666665198, 32.55637800000007, 380.2427453333337, 52.3174926666646], [10.866272666665585, 70.23444000000723, 1520.3082046666718, 169.43100666667496], [56.11923500000179, 231.98871566666904, 5969.44419833333, 657.7760586666651]], \"groups\": 4, \"x_centers\": [0.0, 1.0, 2.0, 3.0, 4.0], \"x_labels\": [\"64\\u00b2\", \"256\\u00b2\", \"512\\u00b2\", \"1024\\u00b2\", \"2048\\u00b2\"], \"bar_color\": \"#4fc3f7\", \"bar_colors\": [], \"group_labels\": [\"anyplotlib  (float\\u2192uint8\\u2192b64\\u2192json\\u2192traitlet)\", \"ipympl      (set_data + Agg render \\u2192 PNG comm)\", \"Plotly      (z=list + to_json)\", \"Bokeh       (source.data + json_item)\"], \"group_colors\": [\"#1976D2\", \"#E64A19\", \"#7B1FA2\", \"#2E7D32\"], \"bar_width\": 0.85, \"orient\": \"v\", \"baseline\": 0.0, \"log_scale\": true, \"show_values\": false, \"data_min\": 0.19659961208825172, \"data_max\": 8432.064050676308, \"units\": \"Array size\", \"y_units\": \"ms per call (log scale)\", \"x_axis\": [-0.5, 4.5], \"view_x0\": 0.0, \"view_x1\": 1.0, \"overlay_widgets\": [], \"registered_keys\": []}", "tabbable": null, "tooltip": null};
+const STATE = {"display_stats": false, "event_json": "{}", "fig_height": 480, "fig_width": 900, "help_text": "", "layout": "Layout()", "layout_json": "{\"nrows\": 1, \"ncols\": 1, \"width_ratios\": [1], \"height_ratios\": [1], \"fig_width\": 900, \"fig_height\": 480, \"panel_specs\": [{\"id\": \"p5b4415d\", \"kind\": \"bar\", \"row_start\": 0, \"row_stop\": 1, \"col_start\": 0, \"col_stop\": 1, \"panel_width\": 900, \"panel_height\": 480}], \"share_groups\": {}, \"inset_specs\": []}", "panel_p5b4415d_json": "{\"kind\": \"bar\", \"values\": [[0.28670566666733066, 15.321260666667058, 7.760306666668271, 13.789986333335946], [0.6908476666656801, 18.404955666667888, 102.28450500000008, 22.607260999999806], [1.8449150000018715, 27.14921566666817, 401.9347026666698, 50.86340100000086], [6.669772666664168, 53.28807066666741, 1604.8307649999979, 164.64147900000134], [34.35719966666303, 181.39561233333268, 6410.526057666668, 618.5634843333313]], \"groups\": 4, \"x_centers\": [0.0, 1.0, 2.0, 3.0, 4.0], \"x_labels\": [\"64\\u00b2\", \"256\\u00b2\", \"512\\u00b2\", \"1024\\u00b2\", \"2048\\u00b2\"], \"bar_color\": \"#4fc3f7\", \"bar_colors\": [], \"group_labels\": [\"anyplotlib  (float\\u2192uint8\\u2192b64\\u2192json\\u2192traitlet)\", \"ipympl      (set_data + Agg render \\u2192 PNG comm)\", \"Plotly      (z=list + to_json)\", \"Bokeh       (source.data + json_item)\"], \"group_colors\": [\"#1976D2\", \"#E64A19\", \"#7B1FA2\", \"#2E7D32\"], \"bar_width\": 0.85, \"orient\": \"v\", \"baseline\": 0.0, \"log_scale\": true, \"show_values\": false, \"data_min\": 0.20297206807618057, \"data_max\": 9055.108737236662, \"units\": \"Array size\", \"y_units\": \"ms per call (log scale)\", \"x_axis\": [-0.5, 4.5], \"view_x0\": 0.0, \"view_x1\": 1.0, \"overlay_widgets\": [], \"registered_keys\": []}", "tabbable": null, "tooltip": null};
+// Identifies this iframe to the parent-page anywidget bridge.
+// null → no Pyodide wiring (plain notebook / static docs embed).
+const FIG_ID = "sphx_glr_plot_benchmark_comparison_002";
+
+// Loop-prevention flag: set while applying a parent-originated update so
+// save_changes() doesn't echo the change back as an awi_event.
+let _fromParent = false;
+// Dirty flag: true only when model.set('event_json', ...) was called in the
+// current transaction.
+let _eventJsonDirty = false;
 
 function makeModel(state) {
   const _data   = Object.assign({}, state);
   const _cbs    = {};
   const _anyCbs = [];
   return {
-    get(key)          { return _data[key]; },
-    set(key, val)     {
+    get(key)      { return _data[key]; },
+    set(key, val) {
       _data[key] = val;
-      const ev = 'change:' + key;
-      if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try { cb({ new: val }); } catch(_) {}
-      for (const cb of [..._anyCbs]) try { cb(); } catch(_) {}
+      if (key === 'event_json') _eventJsonDirty = true;
     },
-    save_changes()    {
+    save_changes() {
       for (const [ev, cbs] of Object.entries(_cbs))
         for (const cb of cbs) try { cb({ new: _data[ev.slice(7)] }); } catch(_) {}
       for (const cb of _anyCbs) try { cb(); } catch(_) {}
+      // Forward interaction events to the parent-page Pyodide instance.
+      if (!_fromParent && FIG_ID && window.parent !== window && _eventJsonDirty) {
+        _eventJsonDirty = false;
+        try {
+          const ev = JSON.parse(_data.event_json || '{}');
+          if (ev && ev.source !== 'python') {
+            window.parent.postMessage(
+              { type: 'awi_event', figId: FIG_ID, data: _data.event_json }, '*');
+          }
+        } catch(_) {}
+      } else {
+        _eventJsonDirty = false;
+      }
     },
     on(event, cb)  {
       if (event === "change") { _anyCbs.push(cb); return; }
@@ -80,6 +98,15 @@ import(blobUrl).then(mod => {
 }).catch(err => {
   el.textContent = "Widget load error: " + err;
   console.error(err);
+});
+
+// ── Inbound state updates from parent-page Pyodide ───────────────────────────
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'awi_state') return;
+  _fromParent = true;
+  model.set(e.data.key, e.data.value);
+  model.save_changes();
+  _fromParent = false;
 });
 </script>
 </body>

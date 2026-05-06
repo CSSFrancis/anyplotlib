@@ -19,6 +19,9 @@ The components — and all active widgets — will snap to the fitted values,
 and the sum curve will jump to the optimal fit.
 Click a component line again to hide its widgets.
 """
+# Packages required when running interactively in Pyodide (docs live mode).
+_PYODIDE_PACKAGES = ["scipy"]
+
 import numpy as np
 from scipy.optimize import curve_fit
 import anyplotlib as apl
@@ -289,4 +292,4 @@ for comp, line in zip(components, comp_lines):
     def _clicked(event, c=comp):
         c.toggle()
 
-fig
+fig # Interactive

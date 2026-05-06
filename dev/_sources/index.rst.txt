@@ -8,6 +8,32 @@ the object-oriented Matplotlib API — create a ``Figure``, call methods on ``Ax
 delivering real-time interactivity and high performance on large datasets through canvas-based
 blitting instead of SVG.
 
+.. grid:: 2
+   :gutter: 3
+
+   .. grid-item::
+      :columns: 7
+
+      .. anywidget-figure:: ../Examples/Interactive/plot_3d_spectral_viewer.py
+         :width: 100%
+         :height: 400px
+         :interactive:
+
+   .. grid-item::
+      :columns: 5
+
+      .. raw:: html
+
+         <p style="margin-top:1rem;margin-bottom:4px;font-weight:600;color:var(--pst-color-primary,#0d6efd);">
+           ⚡ Try it out — no install needed
+         </p>
+         <p style="margin-top:0;font-size:0.9em;color:var(--pst-color-text-muted,#6c757d);">
+           Drag the crosshair to update the spectrum live &middot;
+           press <kbd>i</kbd> on the image to switch to an 8&times;8 integration window &middot;
+           press <kbd>s</kbd> on the spectrum to filter the image by energy range.
+         </p>
+
+
 .. grid:: 2 3 3 3
    :gutter: 2
 
@@ -63,6 +89,16 @@ blitting instead of SVG.
       baselines, best practices, and the CI strategy that makes timing
       comparisons hardware-agnostic.
 
+   .. grid-item-card::
+      :link: dev/index
+      :link-type: doc
+
+      :octicon:`people;2em;sd-text-info` Developer Docs
+      ^^^
+
+      Contributing guide: environment setup, architecture overview, writing
+      tests, Sphinx documentation, and interactive Sphinx Gallery examples.
+
 .. toctree::
    :hidden:
    :maxdepth: 2
@@ -72,6 +108,7 @@ blitting instead of SVG.
    auto_examples/index
    Performance <auto_examples/Benchmarks/plot_benchmark_comparison>
    benchmarking
+   dev/index
 
 * :ref:`genindex`
 * :ref:`modindex`

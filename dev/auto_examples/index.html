@@ -31,6 +31,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/anywidget_overlay.css?v=a271c467" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,14 +48,16 @@
     <script src="../_static/documentation_options.js?v=01f34227"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../_static/anywidget_config.js?v=cd5adc06"></script>
     <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../_static/anywidget_bridge.js?v=422328bf"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/index';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/index.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="3D Plotting" href="plot_3d.html" />
+    <link rel="next" title="Benchmarks" href="Benchmarks/index.html" />
     <link rel="prev" title="anyplotlib.Event" href="../api/generated/anyplotlib.Event.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -182,6 +185,13 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
   </ul>
 </nav></div>
       
@@ -297,6 +307,13 @@
   </a>
 </li>
 
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
   </ul>
 </nav></div>
           
@@ -340,14 +357,6 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_image2d.html">2D Image with Histogram</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
-</ul>
-<ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="Benchmarks/index.html">Benchmarks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="Benchmarks/plot_benchmark_comparison.html">Plot Update Comparison</a></li>
 </ul>
@@ -356,6 +365,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_3d_spectral_viewer.html">Interactive 3D Spectral Viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 </ul>
@@ -446,27 +456,7 @@
   <section id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h1>
 <p>A collection of short, self-contained examples.</p>
-<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view."><img alt="" src="../_images/sphx_glr_plot_3d_thumb.png" />
-<p><a class="reference internal" href="plot_3d.html"><span class="doc">3D Plotting</span></a></p>
-  <div class="sphx-glr-thumbnail-title">3D Plotting</div>
-</div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate pcolormesh with non-uniform (log-spaced) x-edges and irregularly-spaced y-edges, mirroring matplotlib.axes.Axes.pcolormesh."><img alt="" src="../_images/sphx_glr_plot_pcolormesh_thumb.png" />
-<p><a class="reference internal" href="plot_pcolormesh.html"><span class="doc">pcolormesh — non-linear axes</span></a></p>
-  <div class="sphx-glr-thumbnail-title">pcolormesh — non-linear axes</div>
-</div><div class="sphx-glr-thumbcontainer" tooltip="Plot a 1-D spectrum with a physical x-axis (energy in eV) using plot."><img alt="" src="../_images/sphx_glr_plot_spectra1d_thumb.png" />
-<p><a class="reference internal" href="plot_spectra1d.html"><span class="doc">1D Spectra</span></a></p>
-  <div class="sphx-glr-thumbnail-title">1D Spectra</div>
-</div><div class="sphx-glr-thumbcontainer" tooltip="Display a 2-D image with physical axes, a colourmap, and an interactive histogram below — all wired together with draggable threshold widgets."><img alt="" src="../_images/sphx_glr_plot_image2d_thumb.png" />
-<p><a class="reference internal" href="plot_image2d.html"><span class="doc">2D Image with Histogram</span></a></p>
-  <div class="sphx-glr-thumbnail-title">2D Image with Histogram</div>
-</div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the line-style, opacity, and per-point marker parameters available on plot and add_line."><img alt="" src="../_images/sphx_glr_plot_line_styles_thumb.png" />
-<p><a class="reference internal" href="plot_line_styles.html"><span class="doc">1D Line Styles</span></a></p>
-  <div class="sphx-glr-thumbnail-title">1D Line Styles</div>
-</div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with:"><img alt="" src="../_images/sphx_glr_plot_bar_thumb.png" />
-<p><a class="reference internal" href="plot_bar.html"><span class="doc">Bar Chart</span></a></p>
-  <div class="sphx-glr-thumbnail-title">Bar Chart</div>
-</div></div><div class="toctree-wrapper compound">
-</div>
-<section id="benchmarks">
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"></div><section id="benchmarks">
 <h2>Benchmarks<a class="headerlink" href="#benchmarks" title="Link to this heading">#</a></h2>
 <p>Timing comparisons for the Python-side data-push pipeline in anyplotlib,
 matplotlib, Plotly, and Bokeh.  All measurements capture only the
@@ -490,6 +480,9 @@ interactions to live Python computations.</p>
 </div><div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel."><img alt="" src="../_images/sphx_glr_plot_interactive_fft_thumb.png" />
 <p><a class="reference internal" href="Interactive/plot_interactive_fft.html"><span class="doc">Interactive FFT ROI</span></a></p>
   <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="A side-by-side viewer for a 3-D (y, x, energy) dataset."><img alt="" src="../_images/sphx_glr_plot_3d_spectral_viewer_thumb.png" />
+<p><a class="reference internal" href="Interactive/plot_3d_spectral_viewer.html"><span class="doc">Interactive 3D Spectral Viewer</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Interactive 3D Spectral Viewer</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="Click on any region of the image to flood-fill all pixels of similar intensity — the union of all seeded regions is shown as a live semi-transparent overlay on the original image."><img alt="" src="../_images/sphx_glr_plot_segment_by_contrast_thumb.png" />
 <p><a class="reference internal" href="Interactive/plot_segment_by_contrast.html"><span class="doc">Interactive Contrast Segmentation</span></a></p>
   <div class="sphx-glr-thumbnail-title">Interactive Contrast Segmentation</div>
@@ -597,11 +590,11 @@ interactions to live Python computations.</p>
       </div>
     </a>
     <a class="right-next"
-       href="plot_3d.html"
+       href="Benchmarks/index.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">3D Plotting</p>
+        <p class="prev-next-title">Benchmarks</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

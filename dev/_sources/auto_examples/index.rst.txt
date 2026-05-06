@@ -16,124 +16,11 @@ A collection of short, self-contained examples.
 
 .. thumbnail-parent-div-open
 
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_3d_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_3d`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">3D Plotting</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate pcolormesh with non-uniform (log-spaced) x-edges and irregularly-spaced y-edges, mirroring matplotlib.axes.Axes.pcolormesh.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_pcolormesh_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_pcolormesh`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">pcolormesh — non-linear axes</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Plot a 1-D spectrum with a physical x-axis (energy in eV) using plot.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_spectra1d_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_spectra1d`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">1D Spectra</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Display a 2-D image with physical axes, a colourmap, and an interactive histogram below — all wired together with draggable threshold widgets.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_image2d_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_image2d`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">2D Image with Histogram</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the line-style, opacity, and per-point marker parameters available on plot and add_line.">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_line_styles_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_line_styles`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">1D Line Styles</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with:">
-
-.. only:: html
-
-  .. image:: /auto_examples/images/thumb/sphx_glr_plot_bar_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/plot_bar`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">Bar Chart</div>
-    </div>
-
-
 .. thumbnail-parent-div-close
 
 .. raw:: html
 
     </div>
-
-
-.. toctree::
-   :hidden:
-
-   /auto_examples/plot_3d
-   /auto_examples/plot_pcolormesh
-   /auto_examples/plot_spectra1d
-   /auto_examples/plot_image2d
-   /auto_examples/plot_line_styles
-   /auto_examples/plot_bar
 
 Benchmarks
 ----------
@@ -246,6 +133,23 @@ interactions to live Python computations.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A side-by-side viewer for a 3-D (y, x, energy) dataset.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_3d_spectral_viewer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_3d_spectral_viewer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive 3D Spectral Viewer</div>
     </div>
 
 
