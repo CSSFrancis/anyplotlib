@@ -531,13 +531,29 @@ class Axes:
         self._attach(plot)
         return plot
 
+    def _panel_id_from_spec(self) -> str:
+        """Derive a deterministic, position-based panel ID from the SubplotSpec.
+
+        The ID is ``"p"`` followed by the first 7 hex characters of a SHA-256
+        hash of the row/col bounds, e.g. ``"p6a2f3b1"``.  This is:
+
+        * **Deterministic** – the same SubplotSpec always produces the same ID
+          across Python processes and after code edits.
+        * **Starts with "p"** – satisfies the JS naming convention and makes it
+          easy to grep for panel traits (``panel_{id}_json``).
+        * **Short** – 8 characters total; safe to embed in CSS selectors.
+        """
+        import hashlib as _hl
+        key = f"{self._spec.row_start},{self._spec.row_stop},{self._spec.col_start},{self._spec.col_stop}"
+        return "p" + _hl.sha256(key.encode()).hexdigest()[:7]
+
     def _attach(self, plot: "Plot1D | Plot2D | PlotMesh | Plot3D | PlotBar") -> None:
         """Register a plot on this axes (replace any previous plot)."""
         # Allocate a panel id if needed; reuse if replacing
         if self._plot is not None:
             panel_id = self._plot._id
         else:
-            panel_id = str(_uuid.uuid4())[:8]
+            panel_id = self._panel_id_from_spec()
         plot._id  = panel_id
         plot._fig = self._fig
         self._plot = plot
@@ -592,26 +608,42 @@ _CMAP_ALIASES: dict[str, str] = {
 def _build_colormap_lut(name: str) -> list:
     """Return a 256-entry ``[[r, g, b], ...]`` LUT for the named colormap.
 
-    Uses **colorcet** exclusively.  Common matplotlib colormap names are
-    transparently remapped via :data:`_CMAP_ALIASES` so callers can keep
-    using names like ``"viridis"`` or ``"hot"`` without any matplotlib
-    dependency.  Falls back to a plain gray ramp for unknown names.
+    Priority order:
+
+    1. **colorcet** — preferred; common matplotlib names are remapped via
+       :data:`_CMAP_ALIASES` so callers can use ``"viridis"`` etc.
+    2. **matplotlib** — fallback when colorcet is not installed (e.g. in
+       Pyodide before micropip finishes, or in minimal test environments).
+    3. **Built-in gray ramp** — final fallback for unknown names.
     """
-    import colorcet as cc
+    # ── 1. Try colorcet ───────────────────────────────────────────────────
+    try:
+        import colorcet as cc
+        resolved = _CMAP_ALIASES.get(name, name)
+        palette  = cc.palette.get(resolved)
+        if palette is not None:
+            n   = len(palette)
+            lut: list = []
+            for i in range(256):
+                h = palette[int(round(i * (n - 1) / 255))].lstrip("#")
+                lut.append([int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)])
+            return lut
+    except Exception:
+        pass
 
-    resolved = _CMAP_ALIASES.get(name, name)
-    palette = cc.palette.get(resolved)
+    # ── 2. Try matplotlib ─────────────────────────────────────────────────
+    try:
+        import matplotlib.cm as _cm
+        import numpy as _np
+        cmap = _cm.get_cmap(name, 256)
+        rgba = cmap(_np.linspace(0, 1, 256))
+        return [[int(r * 255), int(g * 255), int(b * 255)]
+                for r, g, b, _ in rgba]
+    except Exception:
+        pass
 
-    if palette is None:
-        # Unknown name → linear gray ramp
-        return [[v, v, v] for v in range(256)]
-
-    n = len(palette)
-    lut: list = []
-    for i in range(256):
-        h = palette[int(round(i * (n - 1) / 255))].lstrip("#")
-        lut.append([int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)])
-    return lut
+    # ── 3. Gray ramp fallback ─────────────────────────────────────────────
+    return [[v, v, v] for v in range(256)]
 
 
 def _resample_mesh(data: np.ndarray, x_edges, y_edges) -> np.ndarray:

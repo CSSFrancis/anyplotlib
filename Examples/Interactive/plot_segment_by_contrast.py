@@ -232,6 +232,6 @@ def _delete_nearest(event):
         _refresh()
 
 
-fig
+fig # Interactive
 
 
