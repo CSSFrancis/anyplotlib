@@ -37,6 +37,12 @@ extensions = [
     "anyplotlib.sphinx_anywidget",
 ]
 
+# Package name for the Pyodide wheel — must match the wheel filename stem.
+# The sphinx_anywidget extension will look for
+#   _static/wheels/anyplotlib-0.0.0-py3-none-any.whl
+# and write window._anywidgetPackage = "anyplotlib" into anywidget_config.js.
+anywidget_pyodide_package = "anyplotlib"
+
 autosummary_generate = True
 
 napoleon_google_docstring = False

@@ -86,6 +86,7 @@ def _build_pyodide_wheel(app):
     static_dir.mkdir(parents=True, exist_ok=True)
 
     import json as _json
+    import re as _re
 
     if not pkg:
         print(
@@ -105,6 +106,16 @@ def _build_pyodide_wheel(app):
     # name without fragile heuristics.  Loaded before anywidget_bridge.js.
     config_js = f"window._anywidgetPackage = {_json.dumps(pkg)};\n"
     (static_dir / "anywidget_config.js").write_text(config_js, encoding="utf-8")
+
+    # If a stable wheel was already placed here (e.g. by the CI ``uv build``
+    # step that runs before sphinx-build), reuse it rather than deleting it
+    # and trying to rebuild — pip may not be available in a uv-managed venv.
+    normalised = _re.sub(r"[-.]", "_", pkg)
+    wheels_dir = static_dir / "wheels"
+    stable = wheels_dir / f"{normalised}-0.0.0-py3-none-any.whl"
+    if stable.exists():
+        print(f"[sphinx_anywidget] wheel already present → {stable}")
+        return
 
     from anyplotlib.sphinx_anywidget._wheel_builder import build_wheel
     project_root = _find_project_root(conf_dir)

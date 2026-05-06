@@ -44,35 +44,42 @@ def build_wheel(
     # PEP 427 normalises distribution names: hyphens and dots → underscores.
     normalised = re.sub(r"[-.]", "_", package_name)
 
-    for old in wheels_dir.glob(f"{normalised}*.whl"):
-        old.unlink(missing_ok=True)
-
-    result = subprocess.run(
-        [
-            sys.executable, "-m", "pip", "wheel",
-            "--no-deps", "--quiet",
-            "--wheel-dir", str(wheels_dir),
-            str(project_root),
-        ],
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode != 0:
-        print(
-            f"\n[sphinx_anywidget] WARNING: wheel build failed "
-            f"for {package_name!r}:\n{result.stderr}"
-        )
-        return None
-
-    wheels = sorted(wheels_dir.glob(f"{normalised}*.whl"))
-    if not wheels:
-        print(f"\n[sphinx_anywidget] WARNING: no wheel found for {package_name!r}")
-        return None
-
     stable = wheels_dir / f"{normalised}-0.0.0-py3-none-any.whl"
-    stable.unlink(missing_ok=True)
-    wheels[-1].rename(stable)
+
+    # Build into a temporary sub-directory so we never clobber the existing
+    # stable wheel until we know the new build actually succeeded.
+    import tempfile
+    with tempfile.TemporaryDirectory(dir=wheels_dir) as tmp_str:
+        tmp_dir = Path(tmp_str)
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "pip", "wheel",
+                "--no-deps", "--quiet",
+                "--wheel-dir", str(tmp_dir),
+                str(project_root),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            print(
+                f"\n[sphinx_anywidget] WARNING: wheel build failed "
+                f"for {package_name!r}:\n{result.stderr}"
+            )
+            return None
+
+        new_wheels = sorted(tmp_dir.glob(f"{normalised}*.whl"))
+        if not new_wheels:
+            print(f"\n[sphinx_anywidget] WARNING: no wheel found for {package_name!r}")
+            return None
+
+        # Build succeeded — now replace the stable wheel atomically.
+        stable.unlink(missing_ok=True)
+        # Remove any other stale versioned wheels before moving the new one.
+        for old in wheels_dir.glob(f"{normalised}*.whl"):
+            old.unlink(missing_ok=True)
+        new_wheels[-1].rename(stable)
     print(f"[sphinx_anywidget] wheel → {stable}")
     return stable
 
