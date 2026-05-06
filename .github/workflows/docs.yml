@@ -53,6 +53,20 @@ jobs:
       - name: Install Playwright browser
         run: uv run playwright install chromium --with-deps
 
+      # ── Build Pyodide wheel ───────────────────────────────────────────────
+      # Produces docs/_static/wheels/anyplotlib-0.0.0-py3-none-any.whl so the
+      # in-browser Pyodide bridge can install the exact source tree that built
+      # these docs — no PyPI release required.
+      - name: Build Pyodide wheel
+        run: |
+          mkdir -p docs/_static/wheels
+          uv build --wheel --out-dir docs/_static/wheels/
+          # Rename to the stable sentinel name micropip expects for URL installs.
+          cd docs/_static/wheels
+          for f in anyplotlib-*.whl; do
+            [ "$f" != "anyplotlib-0.0.0-py3-none-any.whl" ] && mv "$f" anyplotlib-0.0.0-py3-none-any.whl
+          done
+
       # ── Sphinx build ─────────────────────────────────────────────────────
       # -W turns warnings into errors; --keep-going collects all of them.
       - name: Build HTML documentation
@@ -109,6 +123,16 @@ jobs:
           else
             echo "dest_dir=dev" >> "$GITHUB_OUTPUT"
           fi
+
+      # ── Build Pyodide wheel ───────────────────────────────────────────────
+      - name: Build Pyodide wheel
+        run: |
+          mkdir -p docs/_static/wheels
+          uv build --wheel --out-dir docs/_static/wheels/
+          cd docs/_static/wheels
+          for f in anyplotlib-*.whl; do
+            [ "$f" != "anyplotlib-0.0.0-py3-none-any.whl" ] && mv "$f" anyplotlib-0.0.0-py3-none-any.whl
+          done
 
       # ── Sphinx build ─────────────────────────────────────────────────────
       - name: Build HTML documentation

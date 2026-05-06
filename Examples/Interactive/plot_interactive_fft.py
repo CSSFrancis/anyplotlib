@@ -178,7 +178,4 @@ def _roi_released(event):
     v_fft.set_data(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/\u00c5")
 
 
-fig
-
-
-
+fig  # Interactive
