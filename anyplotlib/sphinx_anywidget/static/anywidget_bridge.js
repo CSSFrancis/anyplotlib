@@ -189,7 +189,13 @@ _AWI_REGISTRY = {}   # fig_id → widget instance
 `));
     console.info('[sphinx_anywidget] anywidget stub installed');
 
-    // 6. Install package wheel
+    // 6. Install package wheel via micropip.
+    //    anywidget is already stubbed in sys.modules (step 5).  Register it as
+    //    a mock package so micropip does not try to download it from PyPI when
+    //    it resolves the wheel's declared deps.  numpy/traitlets/colorcet are
+    //    properly installed above so micropip will find them and skip them.
+    //    We do NOT pass deps=False — that triggers a micropip 0.7.x internal
+    //    bug ("attempted to install wheel before downloading it").
     const wheelUrl = _DOCS_ROOT + '_static/wheels/';
     // Discover wheel name: try the configured package name from the <script>
     // data-package attribute injected by _build_pyodide_wheel, else fall back
@@ -197,7 +203,13 @@ _AWI_REGISTRY = {}   # fig_id → widget instance
     const pkgName = _inferPackageName();
     const fullWheelUrl = wheelUrl + pkgName + '-0.0.0-py3-none-any.whl';
     console.info('[sphinx_anywidget] installing wheel from', fullWheelUrl);
-    await _step('install wheel', pyodide.loadPackage(fullWheelUrl));
+    await _step('install wheel', pyodide.runPythonAsync(`
+import micropip
+# Register anywidget as a mock so micropip skips it during dep resolution.
+# Our sys.modules stub (installed in step 5) takes priority at import time.
+micropip.add_mock_package("anywidget", "999.0.0")
+await micropip.install(${JSON.stringify(fullWheelUrl)})
+`));
     console.info('[sphinx_anywidget] package wheel installed');
 
     // 7. Install generic anywidget monkey-patch
