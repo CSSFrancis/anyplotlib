@@ -46,7 +46,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["anyplotlib/tests"]
 addopts = "--cov=anyplotlib --cov-report=xml --cov-report=term-missing"
 
 [tool.coverage.run]

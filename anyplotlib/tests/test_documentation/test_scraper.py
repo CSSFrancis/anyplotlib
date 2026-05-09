@@ -14,7 +14,7 @@ import pytest
 
 import anyplotlib as apl
 from anyplotlib.sphinx_anywidget._scraper import _make_thumbnail_png
-from tests._png_utils import decode_png
+from anyplotlib.tests._png_utils import decode_png
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
