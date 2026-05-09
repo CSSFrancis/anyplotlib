@@ -36,7 +36,7 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from tests._png_utils import decode_png, encode_png, compare_arrays
+from anyplotlib.tests._png_utils import decode_png, encode_png, compare_arrays
 
 BASELINES = pathlib.Path(__file__).parent / "baselines"
 
