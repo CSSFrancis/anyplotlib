@@ -6,8 +6,6 @@ Shared low-level utilities used across plot subpackages.
 
 from __future__ import annotations
 
-import base64
-
 import numpy as np
 
 _LINESTYLE_ALIASES: dict[str, str] = {
