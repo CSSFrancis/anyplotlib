@@ -68,7 +68,7 @@ class InsetAxes(Axes):
             )
         # Pass a dummy SubplotSpec so Axes.__init__ doesn't fail — InsetAxes
         # never occupies a grid cell, only overlays the figure.
-        from anyplotlib.figure_plots import SubplotSpec
+        from anyplotlib.figure._gridspec import SubplotSpec
         super().__init__(fig, SubplotSpec(None, 0, 1, 0, 1))
         self.w_frac = w_frac
         self.h_frac = h_frac

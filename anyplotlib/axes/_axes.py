@@ -16,7 +16,7 @@ from anyplotlib.plot3d import Plot3D
 
 if TYPE_CHECKING:
     from anyplotlib.figure import Figure
-    from anyplotlib.figure_plots import SubplotSpec
+    from anyplotlib.figure._gridspec import SubplotSpec
 
 
 class Axes:
