@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Callable
 
-from anyplotlib.callbacks import CallbackRegistry, Event
+from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
@@ -17,7 +17,6 @@ from anyplotlib.widgets import (
     RangeWidget as _RangeWidget,
     PointWidget as _PointWidget,
 )
-from anyplotlib._utils import _arr_to_b64
 
 
 # ---------------------------------------------------------------------------
