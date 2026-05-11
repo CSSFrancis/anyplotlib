@@ -27,11 +27,15 @@ htmlcov/
 
 # Sphinx build output
 docs/_build/
+docs/api/generated/
+docs/auto_examples/
+docs/sg_execution_times.rst
 build/html/
 build/doctrees/
 
 # Generated Pyodide wheel (built by workflow / make html — never commit)
 docs/_static/wheels/
+docs/_static/anywidget_config.js
 
 # Editor / IDE
 .idea/
@@ -41,5 +45,3 @@ docs/_static/wheels/
 
 # macOS
 .DS_Store
-
-
