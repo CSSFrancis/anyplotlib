@@ -1,0 +1,2 @@
+Refactored the testssuite. Moved to a new directory, combined liked
+t1ests into single files, added a couple new tests and removed some redundant tests.
