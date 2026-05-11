@@ -2,11 +2,10 @@
 tests/test_gridspec.py
 ======================
 
-Tests for GridSpec / SubplotSpec indexing AND the figure sizing pipeline
-(_compute_cell_sizes) that converts grid specs + figsize into per-panel
-canvas pixel dimensions.
+Tests for GridSpec / SubplotSpec indexing, the figure sizing pipeline
+(_compute_cell_sizes), and per-panel plot-area alignment.
 
-The sizing contract (all measured at the *canvas* level, before PAD margins):
+Sizing contract (all measured at the *canvas* level, before PAD margins):
   - All panels in the same grid column have the same canvas width  (pw).
   - All panels in the same grid row    have the same canvas height (ph).
   - Grid tracks are pure ratio math — no aspect-locking.
@@ -19,6 +18,13 @@ The sizing contract (all measured at the *canvas* level, before PAD margins):
     sum(row tracks) <= fh.
   - Images are rendered "contain" (letterboxed) in JS — the Python layout
     engine never modifies tracks because of image content.
+
+Alignment contract (inner plot-area coordinates, shared PAD constants):
+  - PAD_L=58  PAD_R=12  PAD_T=12  PAD_B=42
+  - The inner plot/image area for any panel kind is:
+      x=PAD_L, y=PAD_T, w=pw-PAD_L-PAD_R, h=ph-PAD_T-PAD_B
+  - All panels in the same column share pw → same left/right edges.
+  - All panels in the same row share ph → same top/bottom edges.
 """
 
 from __future__ import annotations
@@ -30,6 +36,9 @@ import pytest
 import anyplotlib as vw
 from anyplotlib.figure import Figure
 from anyplotlib.figure_plots import GridSpec, SubplotSpec, Axes  # noqa: F401
+
+# PAD constants must match figure_esm.js (used in panel-alignment tests)
+PAD_L, PAD_R, PAD_T, PAD_B = 58, 12, 12, 42
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -703,6 +712,129 @@ class TestEdgeCases:
         layout = _layout(fig)
         assert layout["fig_width"]  == 777
         assert layout["fig_height"] == 555
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Part 8 – Panel alignment
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _plot_area(pw: int, ph: int) -> tuple[int, int, int, int]:
+    """Return (x, y, w, h) of the inner plot/image area for any panel kind.
+
+    Both 1-D and 2-D panels use the same PAD constants in figure_esm.js,
+    so as long as Python assigns the same (pw, ph) to sibling panels they
+    are guaranteed to be pixel-aligned inside the shared canvas grid cell.
+    """
+    return PAD_L, PAD_T, pw - PAD_L - PAD_R, ph - PAD_T - PAD_B
+
+
+class TestPanelAlignment:
+    """Same-row / same-column panels must share canvas dimensions and
+    therefore produce identical inner plot-area coordinates."""
+
+    # ── two-row, one-column ───────────────────────────────────────────────
+
+    def test_2row_1col_same_width(self):
+        fig, axs = vw.subplots(2, 1, figsize=(600, 600))
+        v2d = axs[0].imshow(np.random.rand(128, 128))
+        v1d = axs[1].plot(np.sin(np.linspace(0, 6, 256)))
+        s = _sizes(fig)
+        pw2d = s[v2d._id][0]
+        pw1d = s[v1d._id][0]
+        assert pw2d == pw1d, (
+            f"Panels in same column must have equal width: 2D={pw2d}, 1D={pw1d}"
+        )
+
+    def test_2row_1col_left_edge_aligned(self):
+        """Left edge of the 2D image area and 1D plot area must both be PAD_L."""
+        fig, axs = vw.subplots(2, 1, figsize=(600, 600))
+        v2d = axs[0].imshow(np.random.rand(128, 128))
+        v1d = axs[1].plot(np.sin(np.linspace(0, 6, 256)))
+        s = _sizes(fig)
+        x2d = _plot_area(*s[v2d._id])[0]
+        x1d = _plot_area(*s[v1d._id])[0]
+        assert x2d == x1d == PAD_L, (
+            f"Left edge must be PAD_L={PAD_L}: 2D={x2d}, 1D={x1d}"
+        )
+
+    def test_2row_1col_plot_area_widths_equal(self):
+        """Plot-area widths must match when panels share a column."""
+        fig, axs = vw.subplots(2, 1, figsize=(600, 600))
+        v2d = axs[0].imshow(np.random.rand(128, 128))
+        v1d = axs[1].plot(np.sin(np.linspace(0, 6, 256)))
+        s = _sizes(fig)
+        w2d = _plot_area(*s[v2d._id])[2]
+        w1d = _plot_area(*s[v1d._id])[2]
+        assert w2d == w1d, f"Plot area widths: 2D={w2d}, 1D={w1d}"
+
+    # ── one-row, two-column ───────────────────────────────────────────────
+
+    def test_1row_2col_same_height(self):
+        fig, axs = vw.subplots(1, 2, figsize=(800, 400))
+        v2d = axs[0].imshow(np.random.rand(64, 64))
+        v1d = axs[1].plot(np.cos(np.linspace(0, 6, 256)))
+        s = _sizes(fig)
+        ph2d = s[v2d._id][1]
+        ph1d = s[v1d._id][1]
+        assert ph2d == ph1d, (
+            f"Panels in same row must have equal height: 2D={ph2d}, 1D={ph1d}"
+        )
+
+    def test_1row_2col_top_bottom_aligned(self):
+        """Top and bottom y-coordinates of plot areas must match across the row."""
+        fig, axs = vw.subplots(1, 2, figsize=(800, 400))
+        v2d = axs[0].imshow(np.random.rand(64, 64))
+        v1d = axs[1].plot(np.cos(np.linspace(0, 6, 256)))
+        s = _sizes(fig)
+        y2d, h2d = _plot_area(*s[v2d._id])[1], _plot_area(*s[v2d._id])[3]
+        y1d, h1d = _plot_area(*s[v1d._id])[1], _plot_area(*s[v1d._id])[3]
+        assert y2d == y1d == PAD_T, f"Top y: 2D={y2d}, 1D={y1d}"
+        assert h2d == h1d, f"Plot area heights: 2D={h2d}, 1D={h1d}"
+
+    # ── 2D panel canvas equals its grid cell ─────────────────────────────
+
+    def test_square_image_gets_square_canvas(self):
+        """A 128×128 image in a 500×500 figsize → canvas is 500×500 (pw == ph).
+        Images are letterboxed in JS; the Python layout never changes the cell."""
+        fig, axs = vw.subplots(1, 1, figsize=(500, 500))
+        v2d = axs.imshow(np.random.rand(128, 128))
+        pw, ph = _sizes(fig)[v2d._id]
+        assert pw == ph, f"Square figsize must give pw==ph: pw={pw}, ph={ph}"
+
+    def test_wide_image_canvas_equals_cell(self):
+        """A 2:1 image in a square cell gets a square canvas — no aspect-lock."""
+        fig, axs = vw.subplots(1, 1, figsize=(512, 512))
+        v2d = axs.imshow(np.random.rand(128, 256))  # w=256, h=128
+        pw, ph = _sizes(fig)[v2d._id]
+        assert pw == 512 and ph == 512, (
+            f"Canvas should equal full figsize 512×512, got {pw}×{ph}"
+        )
+
+    # ── non-square 2D panel plus 1D panel — column width consistent ───────
+
+    def test_nonsquare_2d_and_1d_same_column(self):
+        """A tall non-square image in a 2-row, 1-col layout must not affect the
+        1D panel's canvas width — both must equal the column track width."""
+        fig, axs = vw.subplots(2, 1, figsize=(600, 800))
+        v2d = axs[0].imshow(np.random.rand(256, 128))  # tall image
+        v1d = axs[1].plot(np.random.rand(256))
+        s = _sizes(fig)
+        pw2d = s[v2d._id][0]
+        pw1d = s[v1d._id][0]
+        assert pw2d == pw1d, (
+            f"Same-column panels must have equal width: 2D={pw2d}, 1D={pw1d}"
+        )
+
+    # ── plot-area dimensions are positive ─────────────────────────────────
+
+    def test_plot_areas_positive(self):
+        fig, axs = vw.subplots(2, 1, figsize=(400, 400))
+        v2d = axs[0].imshow(np.random.rand(64, 64))
+        v1d = axs[1].plot(np.random.rand(128))
+        for pid, (pw, ph) in _sizes(fig).items():
+            x, y, w, h = _plot_area(pw, ph)
+            assert w > 0, f"Panel {pid}: plot area width must be positive, got {w}"
+            assert h > 0, f"Panel {pid}: plot area height must be positive, got {h}"
 
 
 
