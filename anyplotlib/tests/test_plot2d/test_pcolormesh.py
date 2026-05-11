@@ -1,16 +1,17 @@
 """
-tests/test_pcolormesh_extras.py
-================================
+tests/test_plot2d/test_pcolormesh.py
+=====================================
 
 Tests for PlotMesh (pcolormesh) mirroring Examples/plot_pcolormesh.py.
 
 Covers:
   * Basic construction with non-uniform edges
-  * set_colormap()
-  * set_data() — data replacement
-  * add_circles / add_lines marker helpers
-  * Restriction to circles+lines only
-  * State dict keys
+  * Edge-count validation (wrong x/y edge count)
+  * set_colormap() — name and LUT update
+  * set_data() — replacement, units, wrong ndim, wrong edge count
+  * Markers: add_circles, add_lines, labels, mutate via .set()
+  * Marker restrictions: arrows and ellipses disallowed on mesh
+  * to_wire_list round-trip
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ from anyplotlib.figure_plots import PlotMesh
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _mesh(M=8, N=12):
+def _mesh(M=8, N=12) -> PlotMesh:
     rng = np.random.default_rng(42)
     data = rng.standard_normal((M, N))
     x_edges = np.linspace(0, N, N + 1)
@@ -34,11 +35,12 @@ def _mesh(M=8, N=12):
     return ax.pcolormesh(data, x_edges=x_edges, y_edges=y_edges)
 
 
-def _log_mesh():
+def _log_mesh() -> PlotMesh:
     """Mesh with non-uniform (log-spaced) x edges, as in the gallery example."""
     M, N = 32, 48
     rng = np.random.default_rng(1)
-    data = np.sin(np.linspace(0, 3 * np.pi, N)) + np.cos(np.linspace(0, 2 * np.pi, M))[:, None]
+    data = (np.sin(np.linspace(0, 3 * np.pi, N))
+            + np.cos(np.linspace(0, 2 * np.pi, M))[:, None])
     data += rng.normal(scale=0.15, size=(M, N))
     x_edges = np.logspace(-1, 2, N + 1)
     y_edges = np.linspace(0, 100, M + 1)
@@ -46,9 +48,9 @@ def _log_mesh():
     return ax.pcolormesh(data, x_edges=x_edges, y_edges=y_edges, units="arb.")
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Construction
-# ---------------------------------------------------------------------------
+# ===========================================================================
 
 class TestPlotMeshConstruction:
 
@@ -73,12 +75,12 @@ class TestPlotMeshConstruction:
         mesh = _log_mesh()
         assert mesh._state["units"] == "arb."
 
-    def test_log_x_edges(self):
+    def test_log_x_edges_accepted(self):
         """Non-uniform (log-spaced) edges should be accepted without error."""
         mesh = _log_mesh()
         assert mesh._state["image_width"] == 48
 
-    def test_default_colormap(self):
+    def test_default_colormap_present(self):
         mesh = _mesh()
         assert "colormap_name" in mesh._state
 
@@ -99,9 +101,9 @@ class TestPlotMeshConstruction:
             ax.pcolormesh(data, x_edges=x_edges, y_edges=y_edges)
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Mutations
-# ---------------------------------------------------------------------------
+# ===========================================================================
 
 class TestPlotMeshMutations:
 
@@ -141,9 +143,9 @@ class TestPlotMeshMutations:
             mesh.set_data(new_data, x_edges=bad_x)
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Markers
-# ---------------------------------------------------------------------------
+# ===========================================================================
 
 class TestPlotMeshMarkers:
 
@@ -153,7 +155,7 @@ class TestPlotMeshMarkers:
         mesh.add_circles(pts, name="peaks", radius=0.5, edgecolors="#ff1744")
         assert "peaks" in mesh.markers["circles"]
 
-    def test_add_circles_labels(self):
+    def test_add_circles_with_labels(self):
         mesh = _mesh()
         pts = np.array([[1.0, 2.0], [5.0, 4.0], [9.0, 6.0], [11.0, 2.0]])
         mesh.add_circles(pts, name="pks", radius=0.3,
@@ -178,7 +180,7 @@ class TestPlotMeshMarkers:
         with pytest.raises(ValueError, match="not allowed"):
             mesh.add_ellipses([[0.0, 0.0]], widths=5, heights=3)
 
-    def test_circles_set(self):
+    def test_circles_mutate_via_set(self):
         mesh = _mesh()
         mesh.add_circles([[2.0, 2.0]], name="c", radius=1.0)
         mesh.markers["circles"]["c"].set(radius=2.0)

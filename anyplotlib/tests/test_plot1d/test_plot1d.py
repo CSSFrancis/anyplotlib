@@ -1,0 +1,661 @@
+"""
+tests/test_plot1d/test_plot1d.py
+=================================
+
+Unit tests for Plot1D — covering:
+
+  * _norm_linestyle helper
+  * Default state values
+  * Construction via Axes.plot() (linestyle, ls shorthand, alpha, marker)
+  * Setter methods: set_color, set_linewidth, set_linestyle, set_alpha,
+                    set_marker, set_data
+  * data property (read-only view)
+  * line property returning Line1D
+  * add_line() / remove_line() / clear_lines() and Line1D handle
+  * add_line() field parity (linestyle/alpha/marker in extra_lines dicts)
+  * State-dict round-trip (to_state_dict)
+  * Data-range recomputation (data_min / data_max) after overlay changes
+  * add_span() / remove_span() / clear_spans()
+  * add_vline_widget() / add_hline_widget() / add_range_widget()
+  * Widget management: get_widget, remove_widget, list_widgets, clear_widgets
+  * Marker helpers: add_points, add_vlines, add_hlines,
+                    list_markers, remove_marker, clear_markers
+"""
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+import anyplotlib as apl
+from anyplotlib.figure_plots import _norm_linestyle, Line1D, Plot1D
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _plot(n: int = 128, **kwargs) -> Plot1D:
+    """Create a Plot1D attached to a one-panel Figure with deterministic data."""
+    fig, ax = apl.subplots(1, 1)
+    data = np.sin(np.linspace(0, 2 * np.pi, n))
+    return ax.plot(data, **kwargs)
+
+
+def _plot_lin(n: int = 32, **kwargs) -> Plot1D:
+    """Create a Plot1D with linspace data (useful for range tests)."""
+    fig, ax = apl.subplots(1, 1)
+    return ax.plot(np.linspace(0.0, 1.0, n), **kwargs)
+
+
+t = np.linspace(0, 2 * np.pi, 128)
+
+
+# ===========================================================================
+# _norm_linestyle
+# ===========================================================================
+
+class TestNormLinestyle:
+
+    def test_canonical_names_round_trip(self):
+        for ls in ("solid", "dashed", "dotted", "dashdot"):
+            assert _norm_linestyle(ls) == ls
+
+    def test_shorthand_solid(self):
+        assert _norm_linestyle("-") == "solid"
+
+    def test_shorthand_dashed(self):
+        assert _norm_linestyle("--") == "dashed"
+
+    def test_shorthand_dotted(self):
+        assert _norm_linestyle(":") == "dotted"
+
+    def test_shorthand_dashdot(self):
+        assert _norm_linestyle("-.") == "dashdot"
+
+    def test_invalid_raises(self):
+        with pytest.raises(ValueError, match="Unknown linestyle"):
+            _norm_linestyle("loose")
+
+    def test_invalid_empty_raises(self):
+        with pytest.raises(ValueError):
+            _norm_linestyle("")
+
+
+# ===========================================================================
+# Default state values
+# ===========================================================================
+
+class TestPlot1DDefaults:
+
+    def test_linestyle_default(self):
+        p = _plot_lin()
+        assert p._state["line_linestyle"] == "solid"
+
+    def test_alpha_default(self):
+        p = _plot_lin()
+        assert p._state["line_alpha"] == 1.0
+
+    def test_marker_default(self):
+        p = _plot_lin()
+        assert p._state["line_marker"] == "none"
+
+    def test_markersize_default(self):
+        p = _plot_lin()
+        assert p._state["line_markersize"] == 4.0
+
+
+# ===========================================================================
+# Construction via Axes.plot()
+# ===========================================================================
+
+class TestPlot1DConstruction:
+
+    def test_linestyle_dashed(self):
+        p = _plot(linestyle="dashed")
+        assert p._state["line_linestyle"] == "dashed"
+
+    def test_linestyle_dotted(self):
+        p = _plot(linestyle="dotted")
+        assert p._state["line_linestyle"] == "dotted"
+
+    def test_linestyle_dashdot(self):
+        p = _plot(linestyle="-.")
+        assert p._state["line_linestyle"] == "dashdot"
+
+    def test_ls_shorthand(self):
+        p = _plot(ls="--")
+        assert p._state["line_linestyle"] == "dashed"
+
+    def test_ls_shorthand_takes_precedence_over_linestyle(self):
+        p = _plot_lin(linestyle="solid", ls="--")
+        assert p._state["line_linestyle"] == "dashed"
+
+    def test_ls_only(self):
+        p = _plot_lin(ls=":")
+        assert p._state["line_linestyle"] == "dotted"
+
+    def test_alpha_stored(self):
+        p = _plot(alpha=0.4)
+        assert p._state["line_alpha"] == pytest.approx(0.4)
+
+    def test_marker_stored(self):
+        p = _plot(marker="s", markersize=5)
+        assert p._state["line_marker"] == "s"
+        assert p._state["line_markersize"] == pytest.approx(5.0)
+
+    def test_markersize_stored(self):
+        p = _plot_lin(marker="s", markersize=8.0)
+        assert p._state["line_markersize"] == pytest.approx(8.0)
+
+    def test_marker_none_string(self):
+        p = _plot_lin(marker="none")
+        assert p._state["line_marker"] == "none"
+
+    def test_invalid_linestyle_raises(self):
+        with pytest.raises(ValueError, match="Unknown linestyle"):
+            _plot_lin(linestyle="zigzag")
+
+    def test_all_known_markers(self):
+        for sym in ("o", "s", "^", "v", "D", "+", "x", "none"):
+            p = _plot_lin(marker=sym)
+            assert p._state["line_marker"] == sym
+
+
+# ===========================================================================
+# Setter methods
+# ===========================================================================
+
+class TestPlot1DSetters:
+
+    def test_set_color(self):
+        p = _plot(color="#4fc3f7")
+        p.set_color("#ff7043")
+        assert p._state["line_color"] == "#ff7043"
+
+    def test_set_linewidth(self):
+        p = _plot()
+        p.set_linewidth(3.0)
+        assert p._state["line_linewidth"] == pytest.approx(3.0)
+
+    def test_set_linestyle_canonical(self):
+        p = _plot_lin()
+        p.set_linestyle("dotted")
+        assert p._state["line_linestyle"] == "dotted"
+
+    def test_set_linestyle_word(self):
+        p = _plot()
+        p.set_linestyle("dashed")
+        assert p._state["line_linestyle"] == "dashed"
+
+    def test_set_linestyle_shorthand_dashdot(self):
+        p = _plot()
+        p.set_linestyle("-.")
+        assert p._state["line_linestyle"] == "dashdot"
+
+    def test_set_linestyle_shorthand_colon(self):
+        p = _plot_lin()
+        p.set_linestyle(":")
+        assert p._state["line_linestyle"] == "dotted"
+
+    def test_set_linestyle_invalid_raises(self):
+        p = _plot_lin()
+        with pytest.raises(ValueError):
+            p.set_linestyle("bad")
+
+    def test_set_alpha(self):
+        p = _plot()
+        p.set_alpha(0.5)
+        assert p._state["line_alpha"] == pytest.approx(0.5)
+
+    def test_set_marker_with_size(self):
+        p = _plot()
+        p.set_marker("o", markersize=6)
+        assert p._state["line_marker"] == "o"
+        assert p._state["line_markersize"] == pytest.approx(6.0)
+
+    def test_set_marker_symbol_only(self):
+        p = _plot_lin()
+        p.set_marker("D")
+        assert p._state["line_marker"] == "D"
+
+    def test_set_marker_no_size_leaves_default(self):
+        p = _plot_lin()
+        p.set_marker("^")
+        assert p._state["line_markersize"] == pytest.approx(4.0)
+
+    def test_set_marker_none_normalised(self):
+        p = _plot_lin(marker="o")
+        p.set_marker(None)  # type: ignore[arg-type]
+        assert p._state["line_marker"] == "none"
+
+    def test_setters_chain_without_error(self):
+        """Multiple setter calls in sequence must not raise."""
+        p = _plot_lin()
+        p.set_color("#aabbcc")
+        p.set_linewidth(2.5)
+        p.set_linestyle("--")
+        p.set_alpha(0.8)
+        p.set_marker("o", markersize=6)
+        assert p._state["line_linestyle"] == "dashed"
+        assert p._state["line_alpha"] == pytest.approx(0.8)
+        assert p._state["line_marker"] == "o"
+
+    def test_set_data_replaces_primary(self):
+        p = _plot(n=64)
+        new_data = np.cos(np.linspace(0, 2 * np.pi, 64))
+        p.set_data(new_data)
+        np.testing.assert_allclose(p._state["data"], new_data)
+
+    def test_set_data_with_new_x_axis(self):
+        p = _plot(n=32)
+        y = np.ones(32)
+        x = np.linspace(10, 42, 32)
+        p.set_data(y, x_axis=x)
+        np.testing.assert_allclose(p._state["x_axis"], x)
+
+    def test_set_data_updates_units(self):
+        p = _plot()
+        p.set_data(np.zeros(128), units="eV")
+        assert p._state["units"] == "eV"
+
+    def test_set_data_2d_raises(self):
+        p = _plot()
+        with pytest.raises(ValueError):
+            p.set_data(np.ones((4, 4)))
+
+    def test_data_property_readonly(self):
+        p = _plot()
+        arr = p.data
+        assert not arr.flags.writeable
+
+    def test_line_property_returns_line1d(self):
+        p = _plot()
+        assert isinstance(p.line, Line1D)
+        assert p.line.id is None
+
+
+# ===========================================================================
+# Overlay lines (add_line / remove_line / clear_lines / Line1D handle)
+# ===========================================================================
+
+class TestPlot1DOverlayLines:
+
+    def test_add_line_returns_line1d(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        assert isinstance(line, Line1D)
+        assert line.id is not None
+
+    def test_add_line_stored_in_extra_lines(self):
+        p = _plot()
+        p.add_line(np.cos(t), color="#ff7043", label="cos")
+        assert len(p._state["extra_lines"]) == 1
+        assert p._state["extra_lines"][0]["color"] == "#ff7043"
+
+    def test_add_line_linestyle_alpha_marker(self):
+        p = _plot()
+        p.add_line(np.cos(t), linestyle="dashed", alpha=0.75, marker="o", markersize=5)
+        entry = p._state["extra_lines"][0]
+        assert entry["linestyle"] == "dashed"
+        assert entry["alpha"] == pytest.approx(0.75)
+        assert entry["marker"] == "o"
+
+    def test_add_line_ls_shorthand(self):
+        p = _plot()
+        p.add_line(np.cos(t), ls=":")
+        assert p._state["extra_lines"][0]["linestyle"] == "dotted"
+
+    def test_add_multiple_lines(self):
+        p = _plot()
+        p.add_line(np.cos(t))
+        p.add_line(np.cos(t) * 0.5)
+        assert len(p._state["extra_lines"]) == 2
+
+    def test_remove_line_by_id(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        p.remove_line(line.id)
+        assert len(p._state["extra_lines"]) == 0
+
+    def test_remove_line_by_line1d(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        p.remove_line(line)
+        assert len(p._state["extra_lines"]) == 0
+
+    def test_remove_line_bad_id_raises(self):
+        p = _plot()
+        with pytest.raises(KeyError):
+            p.remove_line("nonexistent")
+
+    def test_clear_lines(self):
+        p = _plot()
+        p.add_line(np.cos(t))
+        p.add_line(np.cos(2 * t))
+        p.clear_lines()
+        assert p._state["extra_lines"] == []
+
+    def test_line1d_set_data(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        new_y = np.zeros(128)
+        line.set_data(new_y)
+        entry = next(e for e in p._state["extra_lines"] if e["id"] == line.id)
+        np.testing.assert_allclose(entry["data"], new_y)
+
+    def test_line1d_set_data_primary_raises(self):
+        p = _plot()
+        primary = Line1D(p, None)
+        with pytest.raises(ValueError, match="primary line"):
+            primary.set_data(np.zeros(10))
+
+    def test_line1d_set_data_bad_id_raises(self):
+        p = _plot()
+        phantom = Line1D(p, "deadbeef")
+        with pytest.raises(KeyError):
+            phantom.set_data(np.zeros(128))
+
+    def test_line1d_remove(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        line.remove()
+        assert len(p._state["extra_lines"]) == 0
+
+    def test_line1d_remove_primary_raises(self):
+        p = _plot()
+        primary = Line1D(p, None)
+        with pytest.raises(ValueError):
+            primary.remove()
+
+    def test_line1d_eq_str(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        assert line == line.id
+        assert not (line == "other")
+
+    def test_line1d_hash(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        d = {line: "val"}
+        assert d[line] == "val"
+
+    def test_line1d_str(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        assert str(line) == line.id
+
+
+# ===========================================================================
+# add_line() field parity
+# ===========================================================================
+
+class TestAddLineParity:
+
+    def _extra(self, **kwargs) -> dict:
+        p = _plot_lin()
+        p.add_line(np.ones(32), **kwargs)
+        return p._state["extra_lines"][0]
+
+    def test_default_linestyle(self):
+        assert self._extra()["linestyle"] == "solid"
+
+    def test_linestyle_stored(self):
+        assert self._extra(linestyle="dashed")["linestyle"] == "dashed"
+
+    def test_ls_shorthand(self):
+        assert self._extra(ls=":")["linestyle"] == "dotted"
+
+    def test_ls_overrides_linestyle(self):
+        assert self._extra(linestyle="solid", ls="--")["linestyle"] == "dashed"
+
+    def test_default_alpha(self):
+        assert self._extra()["alpha"] == pytest.approx(1.0)
+
+    def test_alpha_stored(self):
+        assert self._extra(alpha=0.4)["alpha"] == pytest.approx(0.4)
+
+    def test_default_marker(self):
+        assert self._extra()["marker"] == "none"
+
+    def test_marker_stored(self):
+        ex = self._extra(marker="o", markersize=6.0)
+        assert ex["marker"] == "o"
+        assert ex["markersize"] == pytest.approx(6.0)
+
+    def test_invalid_linestyle_raises(self):
+        p = _plot_lin()
+        with pytest.raises(ValueError):
+            p.add_line(np.ones(32), linestyle="bad")
+
+    def test_multiple_extra_lines_independent(self):
+        p = _plot_lin()
+        p.add_line(np.ones(32), linestyle="dashed", alpha=0.5)
+        p.add_line(np.ones(32), linestyle="dotted", alpha=0.8)
+        assert p._state["extra_lines"][0]["linestyle"] == "dashed"
+        assert p._state["extra_lines"][1]["linestyle"] == "dotted"
+        assert p._state["extra_lines"][0]["alpha"] == pytest.approx(0.5)
+        assert p._state["extra_lines"][1]["alpha"] == pytest.approx(0.8)
+
+
+# ===========================================================================
+# State-dict round-trip (to_state_dict)
+# ===========================================================================
+
+class TestStateDict:
+
+    def test_primary_keys_present(self):
+        p = _plot_lin(linestyle="dotted", alpha=0.7, marker="s", markersize=5.0)
+        sd = p.to_state_dict()
+        assert sd["line_linestyle"] == "dotted"
+        assert sd["line_alpha"] == pytest.approx(0.7)
+        assert sd["line_marker"] == "s"
+        assert sd["line_markersize"] == pytest.approx(5.0)
+
+    def test_extra_line_keys_present(self):
+        p = _plot_lin()
+        p.add_line(np.zeros(32), linestyle="dashdot", alpha=0.6, marker="D")
+        sd = p.to_state_dict()
+        ex = sd["extra_lines"][0]
+        assert ex["linestyle"] == "dashdot"
+        assert ex["alpha"] == pytest.approx(0.6)
+        assert ex["marker"] == "D"
+
+
+# ===========================================================================
+# Data-range recomputation
+# ===========================================================================
+
+class TestDataRangeRecompute:
+    """data_min/data_max must always cover all visible lines."""
+
+    def test_add_line_expands_range_upward(self):
+        p = _plot_lin()
+        primary_max = p._state["data_max"]
+        p.add_line(np.full(32, 5.0))
+        assert p._state["data_max"] > primary_max
+        assert p._state["data_max"] >= 5.0
+
+    def test_add_line_expands_range_downward(self):
+        p = _plot_lin()
+        primary_min = p._state["data_min"]
+        p.add_line(np.full(32, -5.0))
+        assert p._state["data_min"] < primary_min
+        assert p._state["data_min"] <= -5.0
+
+    def test_add_line_both_directions(self):
+        p = _plot_lin()
+        p.add_line(np.full(32, 10.0))
+        p.add_line(np.full(32, -10.0))
+        assert p._state["data_max"] >= 10.0
+        assert p._state["data_min"] <= -10.0
+
+    def test_remove_line_shrinks_range(self):
+        p = _plot_lin()
+        lid = p.add_line(np.full(32, 100.0))
+        assert p._state["data_max"] >= 100.0
+        p.remove_line(lid)
+        assert p._state["data_max"] < 10.0
+
+    def test_clear_lines_restores_primary_range(self):
+        p = _plot_lin()
+        original_min = p._state["data_min"]
+        original_max = p._state["data_max"]
+        p.add_line(np.full(32, 50.0))
+        p.add_line(np.full(32, -50.0))
+        p.clear_lines()
+        assert p._state["data_min"] == pytest.approx(original_min)
+        assert p._state["data_max"] == pytest.approx(original_max)
+
+    def test_range_includes_padding(self):
+        """5 % padding must be applied after recompute."""
+        p = _plot_lin()
+        p.add_line(np.zeros(32) + 3.0)
+        assert p._state["data_max"] >= 3.0 * 1.05 - 0.01
+
+    def test_overlay_within_bounds_does_not_change_range(self):
+        p = _plot_lin()
+        pre_min = p._state["data_min"]
+        pre_max = p._state["data_max"]
+        p.add_line(np.full(32, 0.5))
+        assert p._state["data_min"] == pytest.approx(pre_min)
+        assert p._state["data_max"] == pytest.approx(pre_max)
+
+    def test_sin_overlay_expands_max(self):
+        p = _plot()
+        old_max = p._state["data_max"]
+        p.add_line(np.sin(t) + 5)
+        assert p._state["data_max"] > old_max
+
+
+# ===========================================================================
+# Spans
+# ===========================================================================
+
+class TestPlot1DSpans:
+
+    def test_add_span_returns_id(self):
+        p = _plot()
+        sid = p.add_span(1.0, 2.0)
+        assert isinstance(sid, str)
+        assert len(p._state["spans"]) == 1
+
+    def test_add_span_y_axis(self):
+        p = _plot()
+        p.add_span(0.5, 0.8, axis="y", color="#ff0000")
+        assert p._state["spans"][0]["axis"] == "y"
+
+    def test_remove_span(self):
+        p = _plot()
+        sid = p.add_span(1.0, 2.0)
+        p.remove_span(sid)
+        assert p._state["spans"] == []
+
+    def test_remove_span_bad_id_raises(self):
+        p = _plot()
+        with pytest.raises(KeyError):
+            p.remove_span("nonexistent")
+
+    def test_clear_spans(self):
+        p = _plot()
+        p.add_span(1.0, 2.0)
+        p.add_span(3.0, 4.0)
+        p.clear_spans()
+        assert p._state["spans"] == []
+
+
+# ===========================================================================
+# Widgets
+# ===========================================================================
+
+class TestPlot1DWidgets:
+
+    def test_add_vline_widget(self):
+        p = _plot()
+        w = p.add_vline_widget(1.5, color="#ff6e40")
+        assert w is not None
+        assert len(p._widgets) == 1
+
+    def test_add_hline_widget(self):
+        p = _plot()
+        p.add_hline_widget(0.5)
+        assert len(p._widgets) == 1
+
+    def test_add_range_widget(self):
+        p = _plot()
+        p.add_range_widget(1.0, 3.0)
+        assert len(p._widgets) == 1
+
+    def test_get_widget_by_id(self):
+        p = _plot()
+        w = p.add_vline_widget(1.0)
+        assert p.get_widget(w.id) is w
+
+    def test_get_widget_by_widget(self):
+        p = _plot()
+        w = p.add_vline_widget(1.0)
+        assert p.get_widget(w) is w
+
+    def test_get_widget_missing_raises(self):
+        p = _plot()
+        with pytest.raises(KeyError):
+            p.get_widget("bad_id")
+
+    def test_remove_widget(self):
+        p = _plot()
+        w = p.add_vline_widget(1.0)
+        p.remove_widget(w)
+        assert len(p._widgets) == 0
+
+    def test_remove_widget_missing_raises(self):
+        p = _plot()
+        with pytest.raises(KeyError):
+            p.remove_widget("bad_id")
+
+    def test_list_widgets(self):
+        p = _plot()
+        p.add_vline_widget(1.0)
+        p.add_hline_widget(0.5)
+        assert len(p.list_widgets()) == 2
+
+    def test_clear_widgets(self):
+        p = _plot()
+        p.add_vline_widget(1.0)
+        p.add_hline_widget(0.5)
+        p.clear_widgets()
+        assert p.list_widgets() == []
+
+
+# ===========================================================================
+# Marker helpers
+# ===========================================================================
+
+class TestPlot1DMarkerHelpers:
+
+    def test_add_points_with_facecolors(self):
+        p = _plot()
+        offsets = np.column_stack([[1.0, 2.0], [0.5, 0.8]])
+        p.add_points(offsets, name="peaks", sizes=7,
+                     color="#ff1744", facecolors="#ff174433")
+        wl = p.markers.to_wire_list()
+        assert any(w["type"] == "points" for w in wl)
+
+    def test_list_markers_count(self):
+        p = _plot()
+        offsets = np.column_stack([[1.0, 2.0, 3.0], [0.1, 0.2, 0.3]])
+        p.add_points(offsets, name="pts")
+        info = p.list_markers()
+        assert any(d["name"] == "pts" and d["n"] == 3 for d in info)
+
+    def test_remove_marker(self):
+        p = _plot()
+        p.add_vlines([1.0, 2.0], name="m")
+        p.remove_marker("vlines", "m")
+        assert p.markers.to_wire_list() == []
+
+    def test_clear_markers(self):
+        p = _plot()
+        p.add_vlines([1.0], name="v")
+        p.add_hlines([0.5], name="h")
+        p.clear_markers()
+        assert p.markers.to_wire_list() == []
+

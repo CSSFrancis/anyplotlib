@@ -57,7 +57,7 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from tests.conftest import _run_bench
+from anyplotlib.tests.conftest import _run_bench
 
 # ── constants ────────────────────────────────────────────────────────────────
 BASELINES_PATH = pathlib.Path(__file__).parent / "benchmarks" / "baselines.json"

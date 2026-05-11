@@ -1,16 +1,18 @@
 """
-tests/test_events.py
-====================
+tests/test_interactive/test_callbacks.py
+========================================
 
 Tests for the unified object-level callback system.
 
+Covers:
   * Event dataclass  – event_type / source / data / attribute forwarding
   * CallbackRegistry – connect / disconnect / fire (event_type dispatch only)
   * Plot2D / Plot1D / PlotMesh / Plot3D – on_changed / on_release / on_click
-  * Widget-level – @wid.on_changed / @wid.on_release / @wid.on_click
   * Figure._on_event – JSON routing to widget + plot callbacks
   * Practical patterns
-  * Interactive FFT example – unit tests (pure Python, no browser)
+
+Widget-level callback and event-dispatch integration tests live in
+``test_widgets.py``.
 """
 
 from __future__ import annotations
@@ -457,138 +459,10 @@ class TestPlot3DCallbacks:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 7. Widget-level callbacks (@wid.on_changed / on_release / on_click)
+# 7. Figure._on_event routing
 # ─────────────────────────────────────────────────────────────────────────────
 
-class TestWidgetLevelCallbacks:
-
-    def test_on_changed_fires_on_drag_frame(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.imshow(np.zeros((32, 32)))
-        wid = v.add_widget("circle")
-        fired = []
-
-        @wid.on_changed
-        def cb(event): fired.append(event)
-
-        _simulate_js_event(fig, v, "on_changed", widget_id=wid, cx=10.0, cy=20.0)
-        assert len(fired) == 1
-        assert fired[0].cx == pytest.approx(10.0)
-        assert fired[0].source is wid
-
-    def test_on_release_fires_on_mouseup(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.imshow(np.zeros((32, 32)))
-        wid = v.add_widget("rectangle")
-        fired = []
-
-        @wid.on_release
-        def cb(event): fired.append(event)
-
-        _simulate_js_event(fig, v, "on_release", widget_id=wid,
-                           x=5.0, y=5.0, w=20.0, h=20.0)
-        assert len(fired) == 1
-        assert fired[0].event_type == "on_release"
-
-    def test_on_click_fires_without_state_change(self):
-        """on_click must fire even when no field values changed."""
-        fig, ax = apl.subplots(1, 1)
-        v = ax.imshow(np.zeros((32, 32)))
-        wid = v.add_widget("crosshair", cx=16.0, cy=16.0)
-        fired = []
-
-        @wid.on_click
-        def cb(event): fired.append(event)
-
-        _simulate_js_event(fig, v, "on_click", widget_id=wid, cx=16.0, cy=16.0)
-        assert len(fired) == 1
-
-    def test_on_changed_not_fire_for_release(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.imshow(np.zeros((32, 32)))
-        wid = v.add_widget("circle")
-        fired = []
-
-        @wid.on_changed
-        def cb(event): fired.append(event)
-
-        _simulate_js_event(fig, v, "on_release", widget_id=wid, cx=5.0, cy=5.0)
-        assert fired == []
-
-    def test_widget_and_plot_both_fire(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.imshow(np.zeros((32, 32)))
-        wid = v.add_widget("circle")
-        w_fired, p_fired = [], []
-
-        @wid.on_release
-        def wc(event): w_fired.append(event)
-
-        @v.on_release
-        def pc(event): p_fired.append(event)
-
-        _simulate_js_event(fig, v, "on_release", widget_id=wid, cx=5.0, cy=5.0)
-        assert len(w_fired) == 1 and len(p_fired) == 1
-        assert w_fired[0].source is wid
-        assert p_fired[0].source is wid
-
-    def test_widget_state_updated_after_js_event(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.imshow(np.zeros((32, 32)))
-        wid = v.add_widget("rectangle", x=0.0, y=0.0, w=10.0, h=10.0)
-
-        _simulate_js_event(fig, v, "on_changed", widget_id=wid,
-                           x=50.0, y=60.0, w=20.0, h=20.0)
-        assert wid.x == pytest.approx(50.0)
-        assert wid.y == pytest.approx(60.0)
-
-    def test_no_echo_from_python_push(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.imshow(np.zeros((32, 32)))
-        wid = v.add_widget("circle")
-        fired = []
-
-        @wid.on_changed
-        def cb(event): fired.append(event)
-
-        fig._on_event({"new": json.dumps({
-            "source": "python", "panel_id": v._id,
-            "widget_id": wid._id, "cx": 99.0
-        })})
-        assert fired == []
-
-    def test_1d_vline_widget_event(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.plot(np.zeros(64))
-        wid = v.add_vline_widget(x=10.0)
-        fired = []
-
-        @wid.on_changed
-        def cb(event): fired.append(event)
-
-        _simulate_js_event(fig, v, "on_changed", widget_id=wid, x=30.0)
-        assert len(fired) == 1
-        assert fired[0].x == pytest.approx(30.0)
-
-    def test_1d_range_widget_event(self):
-        fig, ax = apl.subplots(1, 1)
-        v = ax.plot(np.zeros(64))
-        wid = v.add_range_widget(x0=5.0, x1=15.0)
-        fired = []
-
-        @wid.on_release
-        def cb(event): fired.append(event)
-
-        _simulate_js_event(fig, v, "on_release", widget_id=wid, x0=8.0, x1=20.0)
-        assert len(fired) == 1
-        assert fired[0].x0 == pytest.approx(8.0)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 8. Figure._on_event routing
-# ─────────────────────────────────────────────────────────────────────────────
-
-class TestFigureOnEvent:
+class TestFigureEventRouting:
 
     def test_dispatch_reaches_plot_callbacks(self):
         fig, ax = apl.subplots(1, 1)
@@ -609,6 +483,25 @@ class TestFigureOnEvent:
 
         _simulate_js_event(fig, v, "on_changed", widget_id=wid, cx=5.0)
         assert wid.cx == pytest.approx(5.0)
+
+    def test_widget_and_plot_callbacks_both_fire(self):
+        """A single JS event bearing a widget_id fires both the widget-level
+        and the plot-level on_release callbacks, with the widget as source."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        wid = v.add_widget("circle")
+        w_fired, p_fired = [], []
+
+        @wid.on_release
+        def wc(event): w_fired.append(event)
+
+        @v.on_release
+        def pc(event): p_fired.append(event)
+
+        _simulate_js_event(fig, v, "on_release", widget_id=wid, cx=5.0, cy=5.0)
+        assert len(w_fired) == 1 and len(p_fired) == 1
+        assert w_fired[0].source is wid
+        assert p_fired[0].source is wid
 
     def test_dispatch_wrong_panel_id_ignored(self):
         fig, ax = apl.subplots(1, 1)
@@ -690,7 +583,7 @@ class TestFigureOnEvent:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 9. Practical patterns
+# 8. Practical patterns
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TestPracticalPatterns:

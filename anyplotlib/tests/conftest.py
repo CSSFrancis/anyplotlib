@@ -167,7 +167,7 @@ def _build_ready_html(widget):
 
 def _screenshot_widget(browser, widget):
     """Render *widget* in headless Chromium; return an H×W×C uint8 ndarray."""
-    from tests._png_utils import decode_png
+    from anyplotlib.tests._png_utils import decode_png
 
     html = _build_ready_html(widget)
 
