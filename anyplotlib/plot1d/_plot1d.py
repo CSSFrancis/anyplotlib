@@ -12,7 +12,7 @@ import numpy as np
 from typing import Callable
 
 from anyplotlib.markers import MarkerRegistry
-from anyplotlib.callbacks import CallbackRegistry, Event
+from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
