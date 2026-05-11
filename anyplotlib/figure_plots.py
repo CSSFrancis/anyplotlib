@@ -1,19 +1,14 @@
 """
-figure_plots.py
-===============
+figure_plots.py (compatibility shim)
+=====================================
+This module re-exports classes that have been moved to dedicated subpackages.
+Import directly from those subpackages for clarity:
 
-Pure-Python plot objects returned by Axes.imshow() / Axes.plot().
-
-These are NOT anywidget subclasses.  They hold all state in plain dicts and
-push changes into the parent Figure's per-panel traitlet via _push().
-
-Public classes
---------------
-GridSpec        – describes a grid layout (nrows x ncols, ratios).
-SubplotSpec     – a slice of a GridSpec (row/col spans).
-Axes            – a grid cell; .imshow() / .plot() return a plot object.
-Plot2D          – 2-D image panel, full Viewer2D-compatible API.
-Plot1D          – 1-D line panel, full Viewer1D-compatible API.
+    from anyplotlib.plot2d import Plot2D, PlotMesh
+    from anyplotlib.plot3d import Plot3D
+    from anyplotlib.plot1d import Plot1D, PlotBar
+    from anyplotlib.axes import Axes, InsetAxes
+    from anyplotlib.figure import Figure, GridSpec, SubplotSpec
 """
 
 from __future__ import annotations
