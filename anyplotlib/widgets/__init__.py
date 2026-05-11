@@ -1,3 +1,4 @@
+"""anyplotlib.widgets — interactive overlay widget classes."""
 from anyplotlib.widgets._base import Widget
 from anyplotlib.widgets._widgets2d import (
     RectangleWidget, CircleWidget, AnnularWidget,
