@@ -1,6 +1,6 @@
 """
-tests/test_widgets.py
-=====================
+tests/test_interactive/test_widgets.py
+=======================================
 
 Tests for the Widget class system and the event_json dispatch pipeline.
 
@@ -8,11 +8,14 @@ Covers:
   * Widget creation, attribute access, set(), to_dict(), __setattr__
   * on_changed / on_release / on_click decorator + disconnect
   * _update_from_js — always fires for on_release/on_click
-  * Plot2D / Plot1D widget integration
+  * Widget visibility — hide() / show()
+  * Plot2D / Plot1D widget integration (add / remove / list / clear)
   * Figure event_json dispatch (JS→Python path via _simulate_js_event)
-  * widget.x = 40 attribute assignment
-  * widget.x read-back after JS event
   * End-to-end FFT example with simulated JS drag
+  * Interactive fitting scenario (PointWidget + RangeWidget + line.on_click)
+
+Callback infrastructure (Event, CallbackRegistry, plot-level callbacks,
+Figure routing) is tested in ``test_callbacks.py``.
 """
 
 from __future__ import annotations
