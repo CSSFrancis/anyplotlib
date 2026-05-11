@@ -46,7 +46,8 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from anyplotlib.figure_plots import _normalize_image, Plot2D
+from anyplotlib._utils import _normalize_image
+from anyplotlib.plot2d import Plot2D
 
 BASELINES_PATH = pathlib.Path(__file__).parent / "benchmarks" / "baselines.json"
 
