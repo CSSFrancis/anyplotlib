@@ -13,22 +13,6 @@ Import directly from those subpackages for clarity:
 
 from __future__ import annotations
 
-import uuid as _uuid
-import numpy as np
-from typing import Callable
-
-from anyplotlib.markers import MarkerRegistry
-from anyplotlib.callbacks import CallbackRegistry
-from anyplotlib.widgets import (
-    Widget,
-    RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget,
-    VLineWidget as _VLineWidget,
-    HLineWidget as _HLineWidget,
-    RangeWidget as _RangeWidget,
-    PointWidget as _PointWidget,
-)
-
 # Backward compatibility: helpers now live in _utils
 from anyplotlib._utils import (  # noqa: F401
     _arr_to_b64, _norm_linestyle, _normalize_image,
