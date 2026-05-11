@@ -1,5 +1,8 @@
 from anyplotlib.figure import Figure, GridSpec, SubplotSpec, subplots
-from anyplotlib.figure_plots import Axes, InsetAxes, Plot1D, Plot2D, PlotMesh, Plot3D, PlotBar
+from anyplotlib.axes import Axes, InsetAxes
+from anyplotlib.plot1d import Plot1D, PlotBar
+from anyplotlib.plot2d import Plot2D, PlotMesh
+from anyplotlib.plot3d import Plot3D
 from anyplotlib.callbacks import CallbackRegistry, Event
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,

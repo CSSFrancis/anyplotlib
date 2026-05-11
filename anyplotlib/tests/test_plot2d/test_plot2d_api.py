@@ -14,7 +14,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 import anyplotlib as apl
-from anyplotlib.figure_plots import Plot1D, Plot2D, Plot3D, PlotBar
+from anyplotlib.plot1d import Plot1D, PlotBar
+from anyplotlib.plot2d import Plot2D
+from anyplotlib.plot3d import Plot3D
 from anyplotlib.callbacks import CallbackRegistry, Event
 # ---------------------------------------------------------------------------
 # Helpers
@@ -73,7 +75,7 @@ def test_plot1d_add_circles_still_uses_points():
 # Colormap alias
 # ===========================================================================
 def test_cividis_alias_resolves():
-    from anyplotlib.figure_plots import _build_colormap_lut, _CMAP_ALIASES
+    from anyplotlib._utils import _build_colormap_lut, _CMAP_ALIASES
     alias = _CMAP_ALIASES.get("cividis", "cividis")
     assert alias != "dimgray"
     import colorcet as cc

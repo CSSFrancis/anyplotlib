@@ -24,7 +24,7 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from anyplotlib.figure_plots import Plot2D
+from anyplotlib.plot2d import Plot2D
 
 
 # ---------------------------------------------------------------------------
