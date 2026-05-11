@@ -33,7 +33,7 @@ import pytest
 
 import anyplotlib as apl
 from anyplotlib.callbacks import CallbackRegistry, Event
-from anyplotlib.figure_plots import PlotBar
+from anyplotlib.plot1d import PlotBar
 
 
 # ---------------------------------------------------------------------------

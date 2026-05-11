@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from anyplotlib.figure_plots import Plot3D
+from anyplotlib.plot3d import Plot3D
 
 
 # ---------------------------------------------------------------------------
