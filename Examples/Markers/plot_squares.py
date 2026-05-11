@@ -3,7 +3,7 @@ Squares
 =======
 
 Draw squares on a 2-D image with
-:meth:`~anyplotlib.figure_plots.Plot2D.add_squares`.
+:meth:`~anyplotlib.plot2d.Plot2D.add_squares`.
 Use ``markers["squares"]["name"].set(...)`` to update them live.
 """
 import numpy as np

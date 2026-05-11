@@ -24,7 +24,7 @@ Given the dragged x position *xq*, the code evaluates:
 * **Derivative** (central finite difference): ``dy/dx ≈ [f(xq+h) − f(xq−h)] / 2h``
 * **Tangent line**: ``y_tan(x) = yq + slope · (x − xq)``
 
-The tangent line is added with :meth:`~anyplotlib.figure_plots.Plot1D.add_line`
+The tangent line is added with :meth:`~anyplotlib.plot1d.Plot1D.add_line`
 and the previous one is removed, so only one tangent is shown at a time.
 
 .. note::

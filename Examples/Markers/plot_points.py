@@ -3,7 +3,7 @@ Points
 ======
 
 Mark specific (x, y) positions on a 1-D plot with
-:meth:`~anyplotlib.figure_plots.Plot1D.add_points`.
+:meth:`~anyplotlib.plot1d.Plot1D.add_points`.
 Use ``markers["points"]["name"].set(...)`` to update them live.
 """
 import numpy as np
