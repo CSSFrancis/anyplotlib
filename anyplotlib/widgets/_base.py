@@ -6,7 +6,7 @@ Base Widget class shared by all interactive overlay widgets.
 
 from __future__ import annotations
 import uuid as _uuid
-from typing import Any
+from typing import Any, Callable
 from anyplotlib.callbacks import CallbackRegistry, Event
 
 
@@ -34,13 +34,13 @@ class Widget:
         - ``@widget.on_click`` — fires on click event
     """
 
-    def __init__(self, wtype: str, push_fn, **kwargs):
+    def __init__(self, wtype: str, push_fn: Callable, **kwargs):
         self._id: str = str(_uuid.uuid4())[:8]
         self._type: str = wtype
         self._data: dict = dict(kwargs)
         self._data["id"] = self._id
         self._data["type"] = wtype
-        self._push_fn = push_fn
+        self._push_fn: Callable = push_fn
         self.callbacks: CallbackRegistry = CallbackRegistry()
 
     # ── attribute read ────────────────────────────────────────────────
@@ -125,7 +125,7 @@ class Widget:
 
     # ── callback decorator methods ────────────────────────────────────
 
-    def on_changed(self, fn) -> Any:
+    def on_changed(self, fn: Callable) -> Callable:
         """Decorator: register fn to fire on every drag frame.
 
         Use this for high-frequency updates (keep handler fast).
@@ -144,7 +144,7 @@ class Widget:
         fn._cid = cid
         return fn
 
-    def on_release(self, fn) -> Any:
+    def on_release(self, fn: Callable) -> Callable:
         """Decorator: register fn to fire once when drag settles.
 
         Use this for expensive operations triggered after user stops dragging.
@@ -163,7 +163,7 @@ class Widget:
         fn._cid = cid
         return fn
 
-    def on_click(self, fn) -> Any:
+    def on_click(self,   fn: Callable) -> Callable:
         """Decorator: register fn to fire on widget click.
 
         Parameters
