@@ -16,6 +16,8 @@ Two sections:
 
 from __future__ import annotations
 
+import importlib.util as _ilu
+
 import numpy as np
 import pytest
 
@@ -91,9 +93,13 @@ class TestThumbnailFormat:
 # Section 2 — Dark-theme pixel validation  (requires Playwright)
 # ─────────────────────────────────────────────────────────────────────────────
 
-pytest.importorskip("playwright", reason="playwright not installed")
+_requires_playwright = pytest.mark.skipif(
+    _ilu.find_spec("playwright") is None,
+    reason="playwright not installed",
+)
 
 
+@_requires_playwright
 class TestThumbnailDarkTheme:
     """Verify the top-left pixel of each thumbnail is dark-blue, matching the
     library's default dark theme.  These tests are skipped when Playwright is
