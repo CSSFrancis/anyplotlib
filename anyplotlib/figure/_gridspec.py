@@ -6,8 +6,6 @@ Grid layout descriptors: GridSpec and SubplotSpec.
 
 from __future__ import annotations
 
-from typing import Union
-
 
 class SubplotSpec:
     """Describes which grid cells a subplot occupies."""

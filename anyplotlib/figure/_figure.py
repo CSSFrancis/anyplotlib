@@ -14,7 +14,7 @@ import traitlets
 
 from anyplotlib.axes import Axes, InsetAxes
 from anyplotlib.axes._inset_axes import _plot_kind
-from anyplotlib.figure._gridspec import GridSpec, SubplotSpec
+from anyplotlib.figure._gridspec import SubplotSpec
 from anyplotlib.callbacks import Event
 from anyplotlib._repr_utils import repr_html_iframe
 

@@ -10,7 +10,6 @@ import numpy as np
 
 from anyplotlib.figure._figure import Figure
 from anyplotlib.figure._gridspec import GridSpec
-from anyplotlib.axes import Axes
 
 
 def subplots(nrows=1, ncols=1, *,
@@ -21,7 +20,7 @@ def subplots(nrows=1, ncols=1, *,
              gridspec_kw=None,
              display_stats=False,
              help=""):
-    """Create a :class:`Figure` and a grid of :class:`~anyplotlib.figure_plots.Axes`.
+    """Create a :class:`Figure` and a grid of :class:`~anyplotlib.axes.Axes`.
 
     Mirrors :func:`matplotlib.pyplot.subplots`.
 
