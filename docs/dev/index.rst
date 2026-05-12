@@ -65,7 +65,7 @@ The library is split into focused subpackages.
      - Interactive draggable overlays (``RectangleWidget``,
        ``CrosshairWidget``, etc.).
    * - ``anyplotlib/callbacks.py``
-     - Multi-tier event system (``on_change`` / ``on_release``).
+     - Multi-tier event system (``on_changed`` / ``on_release``).
    * - ``anyplotlib/sphinx_anywidget/``
      - Sphinx extension for interactive docs via Pyodide.
 
