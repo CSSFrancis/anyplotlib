@@ -401,6 +401,146 @@ A collection of short examples using markers
 
     </div>
 
+Plot Types
+----------
+A collection of short examples showing different plot types.
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_3d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_3d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3D Plotting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate pcolormesh with non-uniform (log-spaced) x-edges and irregularly-spaced y-edges, mirroring matplotlib.axes.Axes.pcolormesh.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_pcolormesh_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_pcolormesh`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">pcolormesh — non-linear axes</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Plot a 1-D spectrum with a physical x-axis (energy in eV) using plot.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_spectra1d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_spectra1d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Spectra</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Floating informational sub-plots that overlay the main figure — useful for displaying supplementary data alongside a primary image, as seen in orientation mapping, phase analysis, and similar workflows.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_inset_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_inset`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inset Plots</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Display a 2-D image with physical axes, a colourmap, and an interactive histogram below — all wired together with draggable threshold widgets.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_image2d_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_image2d`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Image with Histogram</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the line-style, opacity, and per-point marker parameters available on plot and add_line.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_line_styles_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_line_styles`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Line Styles</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate bar with:">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_bar_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_bar`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Bar Chart</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
 Widgets
 -------
 Short examples of using widgets in anyplotlib
@@ -584,6 +724,7 @@ Short examples of using widgets in anyplotlib
    /auto_examples/Benchmarks/index.rst
    /auto_examples/Interactive/index.rst
    /auto_examples/Markers/index.rst
+   /auto_examples/PlotTypes/index.rst
    /auto_examples/Widgets/index.rst
 
 

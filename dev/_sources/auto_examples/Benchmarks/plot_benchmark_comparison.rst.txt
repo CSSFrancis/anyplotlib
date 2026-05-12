@@ -187,7 +187,7 @@ Scatter Plotting Costs
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (3 minutes 11.991 seconds)
+   **Total running time of the script:** (3 minutes 2.157 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Benchmarks_plot_benchmark_comparison.py:

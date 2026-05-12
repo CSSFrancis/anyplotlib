@@ -8,7 +8,6 @@
     padding: 0;
     background: transparent;
     overflow: hidden;
-    /* Size the document exactly to the widget so scrollHeight == widget height */
     width:  556px;
     height: 416px;
   }
@@ -17,13 +16,11 @@
     line-height: 0;
   }
   /* ── resizable=False overrides ─────────────────────────────── */
-  /* Hide all resize handles rendered by the widget JS */
   div[style*="nwse-resize"],
   div[title="Drag to resize"],
   div[title="Drag to resize figure"] {
     display: none !important;
   }
-  /* Remove any bottom-right padding that was reserved for the handle */
   #widget-root > div {
     padding-bottom: 0 !important;
     padding-right:  0 !important;
@@ -33,24 +30,45 @@
 <body>
 <div id="widget-root"></div>
 <script type="module">
-const STATE = {"display_stats": false, "event_json": "{}", "fig_height": 400, "fig_width": 540, "help_text": "", "layout": "Layout()", "layout_json": "{\"nrows\": 1, \"ncols\": 1, \"width_ratios\": [1], \"height_ratios\": [1], \"fig_width\": 540, \"fig_height\": 400, \"panel_specs\": [{\"id\": \"7b68421c\", \"kind\": \"bar\", \"row_start\": 0, \"row_stop\": 1, \"col_start\": 0, \"col_stop\": 1, \"panel_width\": 540, \"panel_height\": 400}], \"share_groups\": {}, \"inset_specs\": []}", "panel_7b68421c_json": "{\"kind\": \"bar\", \"values\": [[95.0], [88.0], [91.0], [87.0], [83.0], [79.0], [76.0], [72.0], [68.0], [65.0]], \"groups\": 1, \"x_centers\": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], \"x_labels\": [\"NumPy\", \"SciPy\", \"Matplotlib\", \"Pandas\", \"Scikit-learn\", \"PyTorch\", \"TensorFlow\", \"JAX\", \"Polars\", \"Dask\"], \"bar_color\": \"#4fc3f7\", \"bar_colors\": [\"#ef5350\", \"#ec407a\", \"#ab47bc\", \"#7e57c2\", \"#42a5f5\", \"#26c6da\", \"#26a69a\", \"#66bb6a\", \"#d4e157\", \"#ffa726\"], \"group_labels\": [], \"group_colors\": [], \"bar_width\": 0.65, \"orient\": \"h\", \"baseline\": 0.0, \"log_scale\": false, \"show_values\": true, \"data_min\": 0.0, \"data_max\": 101.65, \"units\": \"\", \"y_units\": \"Popularity score\", \"x_axis\": [-0.5, 9.5], \"view_x0\": 0.0, \"view_x1\": 1.0, \"overlay_widgets\": [], \"registered_keys\": []}", "tabbable": null, "tooltip": null};
+const STATE = {"display_stats": false, "event_json": "{}", "fig_height": 400, "fig_width": 540, "help_text": "", "layout": "Layout()", "layout_json": "{\"nrows\": 1, \"ncols\": 1, \"width_ratios\": [1], \"height_ratios\": [1], \"fig_width\": 540, \"fig_height\": 400, \"panel_specs\": [{\"id\": \"p5b4415d\", \"kind\": \"bar\", \"row_start\": 0, \"row_stop\": 1, \"col_start\": 0, \"col_stop\": 1, \"panel_width\": 540, \"panel_height\": 400}], \"share_groups\": {}, \"inset_specs\": []}", "panel_p5b4415d_json": "{\"kind\": \"bar\", \"values\": [[95.0], [88.0], [91.0], [87.0], [83.0], [79.0], [76.0], [72.0], [68.0], [65.0]], \"groups\": 1, \"x_centers\": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], \"x_labels\": [\"NumPy\", \"SciPy\", \"Matplotlib\", \"Pandas\", \"Scikit-learn\", \"PyTorch\", \"TensorFlow\", \"JAX\", \"Polars\", \"Dask\"], \"bar_color\": \"#4fc3f7\", \"bar_colors\": [\"#ef5350\", \"#ec407a\", \"#ab47bc\", \"#7e57c2\", \"#42a5f5\", \"#26c6da\", \"#26a69a\", \"#66bb6a\", \"#d4e157\", \"#ffa726\"], \"group_labels\": [], \"group_colors\": [], \"bar_width\": 0.65, \"orient\": \"h\", \"baseline\": 0.0, \"log_scale\": false, \"show_values\": true, \"data_min\": 0.0, \"data_max\": 101.65, \"units\": \"\", \"y_units\": \"Popularity score\", \"x_axis\": [-0.5, 9.5], \"view_x0\": 0.0, \"view_x1\": 1.0, \"overlay_widgets\": [], \"registered_keys\": []}", "tabbable": null, "tooltip": null};
+// Identifies this iframe to the parent-page anywidget bridge.
+// null → no Pyodide wiring (plain notebook / static docs embed).
+const FIG_ID = "sphx_glr_plot_bar_002";
+
+// Loop-prevention flag: set while applying a parent-originated update so
+// save_changes() doesn't echo the change back as an awi_event.
+let _fromParent = false;
+// Dirty flag: true only when model.set('event_json', ...) was called in the
+// current transaction.
+let _eventJsonDirty = false;
 
 function makeModel(state) {
   const _data   = Object.assign({}, state);
   const _cbs    = {};
   const _anyCbs = [];
   return {
-    get(key)          { return _data[key]; },
-    set(key, val)     {
+    get(key)      { return _data[key]; },
+    set(key, val) {
       _data[key] = val;
-      const ev = 'change:' + key;
-      if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try { cb({ new: val }); } catch(_) {}
-      for (const cb of [..._anyCbs]) try { cb(); } catch(_) {}
+      if (key === 'event_json') _eventJsonDirty = true;
     },
-    save_changes()    {
+    save_changes() {
       for (const [ev, cbs] of Object.entries(_cbs))
         for (const cb of cbs) try { cb({ new: _data[ev.slice(7)] }); } catch(_) {}
       for (const cb of _anyCbs) try { cb(); } catch(_) {}
+      // Forward interaction events to the parent-page Pyodide instance.
+      if (!_fromParent && FIG_ID && window.parent !== window && _eventJsonDirty) {
+        _eventJsonDirty = false;
+        try {
+          const ev = JSON.parse(_data.event_json || '{}');
+          if (ev && ev.source !== 'python') {
+            window.parent.postMessage(
+              { type: 'awi_event', figId: FIG_ID, data: _data.event_json }, '*');
+          }
+        } catch(_) {}
+      } else {
+        _eventJsonDirty = false;
+      }
     },
     on(event, cb)  {
       if (event === "change") { _anyCbs.push(cb); return; }
@@ -80,6 +98,15 @@ import(blobUrl).then(mod => {
 }).catch(err => {
   el.textContent = "Widget load error: " + err;
   console.error(err);
+});
+
+// ── Inbound state updates from parent-page Pyodide ───────────────────────────
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'awi_state') return;
+  _fromParent = true;
+  model.set(e.data.key, e.data.value);
+  model.save_changes();
+  _fromParent = false;
 });
 </script>
 </body>
