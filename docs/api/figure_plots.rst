@@ -1,6 +1,6 @@
-============
-Figure Plots
-============
+====================
+Axes, Plots & Layout
+====================
 
 .. currentmodule:: anyplotlib
 
