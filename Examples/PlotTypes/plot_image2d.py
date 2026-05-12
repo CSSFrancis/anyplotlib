@@ -69,19 +69,10 @@ vmax_init = float(image.max())
 v = ax_img.imshow(image, axes=[x, y], units="nm",
                   cmap="inferno", vmin=vmin_init, vmax=vmax_init)
 
-# First-order spot markers
-dx = x[1] - x[0]
-
-
-def phys_to_px(val):
-    return (np.asarray(val) - x[0]) / dx
-
-
+# First-order spot markers in the same physical coordinates used by imshow
 spot_nm = np.array([[ 2.1,  0.0], [-2.1,  0.0],
                     [ 0.0,  2.1], [ 0.0, -2.1]])
-spot_px = np.column_stack([phys_to_px(spot_nm[:, 0]),
-                           phys_to_px(spot_nm[:, 1])])
-v.add_circles(spot_px, name="spots", radius=7,
+v.add_circles(spot_nm, name="spots", radius=7,
               edgecolors="#00e5ff", facecolors="#00e5ff22",
               labels=["g1", "g1_bar", "g2", "g2_bar"])
 
