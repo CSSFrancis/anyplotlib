@@ -3,7 +3,7 @@ Rectangles
 ==========
 
 Draw bounding boxes on a 2-D image with
-:meth:`~anyplotlib.figure_plots.Plot2D.add_rectangles`.
+:meth:`~anyplotlib.plot2d.Plot2D.add_rectangles`.
 Use ``markers["rectangles"]["name"].set(...)`` to update them live.
 """
 import numpy as np

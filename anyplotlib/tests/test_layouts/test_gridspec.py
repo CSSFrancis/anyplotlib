@@ -35,7 +35,8 @@ import pytest
 
 import anyplotlib as vw
 from anyplotlib.figure import Figure
-from anyplotlib.figure_plots import GridSpec, SubplotSpec, Axes  # noqa: F401
+from anyplotlib.figure import GridSpec, SubplotSpec
+from anyplotlib.axes import Axes  # noqa: F401
 
 # PAD constants must match figure_esm.js (used in panel-alignment tests)
 PAD_L, PAD_R, PAD_T, PAD_B = 58, 12, 12, 42

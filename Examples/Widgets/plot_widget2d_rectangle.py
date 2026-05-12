@@ -3,7 +3,7 @@
 ====================
 
 A draggable, resizable rectangle overlay on a 2-D image panel.
-Add it with :meth:`~anyplotlib.figure_plots.Plot2D.add_widget` using
+Add it with :meth:`~anyplotlib.plot2d.Plot2D.add_widget` using
 ``kind="rectangle"``.
 """
 import numpy as np

@@ -3,7 +3,7 @@ Text Labels
 ===========
 
 Place text annotations on a 2-D image with
-:meth:`~anyplotlib.figure_plots.Plot2D.add_texts`.
+:meth:`~anyplotlib.plot2d.Plot2D.add_texts`.
 Use ``markers["texts"]["name"].set(...)`` to update them live.
 """
 import numpy as np

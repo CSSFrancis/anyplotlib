@@ -3,7 +3,7 @@ Circles
 =======
 
 Mark circular features on a 2-D image with
-:meth:`~anyplotlib.figure_plots.Plot2D.add_circles`.
+:meth:`~anyplotlib.plot2d.Plot2D.add_circles`.
 Use ``markers["circles"]["name"].set(...)`` to update them live.
 """
 import numpy as np

@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from anyplotlib.figure_plots import PlotMesh
+from anyplotlib.plot2d import PlotMesh
 
 
 # ---------------------------------------------------------------------------
