@@ -2,7 +2,7 @@
 API Reference
 =============
 
-The anyplotlib public API is organized into five modules below.
+The anyplotlib public API is organized into the sections below.
 Click a card to browse the module page, or use the summary tables to jump
 directly to a class or function.
 
@@ -34,23 +34,14 @@ directly to a class or function.
       :link: figure_plots
       :link-type: doc
 
-      :octicon:`graph;2em;sd-text-info` Axes & Plots
+      :octicon:`graph;2em;sd-text-info` Axes, Plots & Layout
       ^^^
 
-      :class:`~anyplotlib.Axes` and the five plot classes:
-      :class:`~anyplotlib.Plot1D`, :class:`~anyplotlib.Plot2D`,
+      :class:`~anyplotlib.Axes` and the five plot classes
+      (:class:`~anyplotlib.Plot1D`, :class:`~anyplotlib.Plot2D`,
       :class:`~anyplotlib.PlotMesh`, :class:`~anyplotlib.Plot3D`,
-      :class:`~anyplotlib.PlotBar`.
-
-   .. grid-item-card::
-      :link: figure_plots
-      :link-type: doc
-
-      :octicon:`rows;2em;sd-text-info` Layout
-      ^^^
-
-      :class:`~anyplotlib.GridSpec` and :class:`~anyplotlib.SubplotSpec`
-      for building flexible multi-panel figure layouts.
+      :class:`~anyplotlib.PlotBar`), plus :class:`~anyplotlib.GridSpec`
+      and :class:`~anyplotlib.SubplotSpec` for multi-panel layouts.
 
    .. grid-item-card::
       :link: markers

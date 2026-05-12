@@ -134,7 +134,7 @@ All line properties can be changed after creation without recreating the panel::
   ``v.add_vlines(x_values)`` / ``v.add_hlines(y_values)`` / … —
   static marker collections at explicit data coordinates.
 
-See :class:`~anyplotlib.figure_plots.Plot1D` for the full API reference, and
+See :class:`~anyplotlib.Plot1D` for the full API reference, and
 the :doc:`auto_examples/index` gallery (e.g. *1D Line Styles* or *1D Spectra*)
 for worked examples.
 
