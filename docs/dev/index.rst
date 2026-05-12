@@ -26,11 +26,7 @@ management.
    uv sync
 
    # Run the full test suite
-   uv run pytest tests/
-
-   # Quick smoke tests (no pytest overhead)
-   uv run python test_figure.py
-   uv run python test_pcolormesh.py
+   uv run pytest anyplotlib/tests/
 
 The ``dev`` dependency group (declared in ``pyproject.toml``) pulls in
 ``pytest``, ``playwright``, ``sphinx``, ``docutils``, and other tools
@@ -41,30 +37,36 @@ needed for both tests and docs builds.
 Architecture Overview
 =====================
 
-The library is split into a small number of focused modules.
+The library is split into focused subpackages.
 
 .. list-table::
    :header-rows: 1
    :widths: 25 75
 
-   * - File
+   * - Module
      - Purpose
-   * - ``figure.py``
+   * - ``anyplotlib/figure/``
      - ``Figure`` — the only ``anywidget.AnyWidget`` subclass.
        Owns all traitlets and is the Python ↔ JS bridge.
-   * - ``figure_plots.py``
-     - ``Plot2D``, ``Plot1D``, ``PlotMesh``, ``Plot3D``, ``Axes``,
-       ``GridSpec``, ``subplots()``.  Plain Python classes — *no* traitlets.
+       Also contains ``GridSpec``, ``SubplotSpec``, and ``subplots()``.
+   * - ``anyplotlib/axes/``
+     - ``Axes`` and ``InsetAxes``.  Plain Python classes — *no* traitlets.
+   * - ``anyplotlib/plot1d/``
+     - ``Plot1D`` and ``PlotBar``.  Plain Python classes — *no* traitlets.
+   * - ``anyplotlib/plot2d/``
+     - ``Plot2D`` and ``PlotMesh``.  Plain Python classes — *no* traitlets.
+   * - ``anyplotlib/plot3d/``
+     - ``Plot3D``.  Plain Python class — *no* traitlets.
    * - ``figure_esm.js``
      - Pure-JS canvas renderer (≈ 4 000 lines).
-   * - ``markers.py``
+   * - ``anyplotlib/markers.py``
      - Static visual overlays (circles, arrows, lines, etc.).
-   * - ``widgets.py``
+   * - ``anyplotlib/widgets/``
      - Interactive draggable overlays (``RectangleWidget``,
        ``CrosshairWidget``, etc.).
-   * - ``callbacks.py``
+   * - ``anyplotlib/callbacks.py``
      - Multi-tier event system (``on_change`` / ``on_release``).
-   * - ``sphinx_anywidget/``
+   * - ``anyplotlib/sphinx_anywidget/``
      - Sphinx extension for interactive docs via Pyodide.
 
 **Python → JS flow:** ``plot._push()`` → ``figure._push(panel_id)`` →
@@ -79,15 +81,15 @@ Python observer calls ``Widget._update_from_js()`` and fires callbacks.
 Running & Writing Tests
 =======================
 
-Tests live in ``tests/``
+Tests live in ``anyplotlib/tests/``
 
 Run the full suite::
 
-   uv run pytest tests/
+   uv run pytest anyplotlib/tests/
 
 Run a specific module::
 
-   uv run pytest tests/test_sphinx_anywidget.py -v
+   uv run pytest anyplotlib/tests/test_documentation/test_sphinx_anywidget.py -v
 
 The Playwright end-to-end tests (``test_pyodide_e2e.py``) require the
 Playwright browsers.  Install them once with::
@@ -231,7 +233,7 @@ separate code block with its own prose cell::
    # %%
    # Adjusting the colour map
    # -------------------------
-   # :meth:`~anyplotlib.figure_plots.Plot2D.set_colormap` switches the palette.
+   # :meth:`~anyplotlib.Plot2D.set_colormap` switches the palette.
 
    v.set_colormap("viridis")
    fig
