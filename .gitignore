@@ -45,3 +45,6 @@ docs/_static/anywidget_config.js
 
 # macOS
 .DS_Store
+
+# Git worktrees
+.worktrees/

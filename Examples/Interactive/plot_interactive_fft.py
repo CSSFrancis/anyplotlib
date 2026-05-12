@@ -10,12 +10,12 @@ of the selected region, displayed in a side-by-side panel.
 * The left panel shows a synthetic real-space image (a periodic lattice with
   noise, similar to an atomic-resolution STEM image).
 * A yellow rectangle widget marks the region-of-interest (ROI).
-* Whenever the ROI is moved or resized the :meth:`~anyplotlib.figure_plots.Plot2D.on_release`
+* Whenever the ROI is moved or resized the :meth:`~anyplotlib.plot2d.Plot2D.on_release`
   callback re-computes ``numpy.fft.fft2`` on the cropped pixels, applies a
   Hann window to reduce edge ringing, takes the log-magnitude, and pushes the
   result into the right panel with
-  :meth:`~anyplotlib.figure_plots.Plot2D.update`.
-* A second :meth:`~anyplotlib.figure_plots.Plot2D.on_change` callback updates
+  :meth:`~anyplotlib.plot2d.Plot2D.update`.
+* A second :meth:`~anyplotlib.plot2d.Plot2D.on_change` callback updates
   a lightweight text readout (ROI size in pixels) on every drag frame without
   re-running the FFT.
 

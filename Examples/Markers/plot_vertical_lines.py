@@ -3,7 +3,7 @@ Vertical Lines
 ==============
 
 Draw static vertical marker lines on a 1-D plot with
-:meth:`~anyplotlib.figure_plots.Plot1D.add_vlines`.
+:meth:`~anyplotlib.plot1d.Plot1D.add_vlines`.
 Use ``markers["vlines"]["name"].set(...)`` to update them live.
 """
 import numpy as np

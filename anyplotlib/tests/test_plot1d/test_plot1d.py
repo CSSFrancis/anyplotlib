@@ -27,7 +27,9 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from anyplotlib.figure_plots import _norm_linestyle, Line1D, Plot1D
+from anyplotlib._utils import _norm_linestyle
+from anyplotlib.plot1d import Plot1D
+from anyplotlib.plot1d._plot1d import Line1D
 
 
 # ---------------------------------------------------------------------------

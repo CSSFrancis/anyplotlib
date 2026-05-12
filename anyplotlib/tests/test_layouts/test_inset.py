@@ -38,7 +38,7 @@ import pathlib
 import numpy as np
 import pytest
 import anyplotlib as apl
-from anyplotlib.figure_plots import InsetAxes
+from anyplotlib.axes import InsetAxes
 
 
 # ── helpers (unit tests) ──────────────────────────────────────────────────────

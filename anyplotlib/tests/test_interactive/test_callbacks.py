@@ -23,7 +23,9 @@ import pytest
 
 import anyplotlib as apl
 from anyplotlib.callbacks import CallbackRegistry, Event
-from anyplotlib.figure_plots import Plot1D, Plot2D, PlotMesh, Plot3D
+from anyplotlib.plot1d import Plot1D
+from anyplotlib.plot2d import Plot2D, PlotMesh
+from anyplotlib.plot3d import Plot3D
 
 
 # ─────────────────────────────────────────────────────────────────────────────

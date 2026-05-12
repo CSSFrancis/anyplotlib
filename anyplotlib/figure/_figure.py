@@ -1,37 +1,24 @@
 """
-figure.py
-=========
-
-Top-level :class:`Figure` widget and the :func:`subplots` factory.
-
-``Figure`` is the only ``anywidget.AnyWidget`` subclass in anyplotlib.
-It owns all traitlets and acts as the Python ↔ JavaScript bridge.
-Use :func:`subplots` (the recommended entry-point) or construct a
-``Figure`` directly and call :meth:`Figure.add_subplot` to attach data.
-
-Example
--------
-.. code-block:: python
-
-    import numpy as np
-    import anyplotlib as apl
-
-    fig, axs = apl.subplots(1, 2, figsize=(800, 400))
-    axs[0].imshow(np.random.standard_normal((128, 128)))
-    axs[1].plot(np.sin(np.linspace(0, 6.28, 256)))
-    fig
+figure/_figure.py
+=================
+Top-level Figure widget (the single anywidget.AnyWidget subclass).
 """
 
 from __future__ import annotations
-import json, pathlib
-import anywidget, numpy as np, traitlets
-from anyplotlib.figure_plots import (GridSpec, SubplotSpec, Axes, Plot2D, PlotMesh,
-                                      Plot3D, PlotBar, InsetAxes, _plot_kind)
+
+import json
+import pathlib
+
+import anywidget
+import traitlets
+
+from anyplotlib.axes import Axes, InsetAxes
+from anyplotlib.axes._inset_axes import _plot_kind
+from anyplotlib.figure._gridspec import SubplotSpec
 from anyplotlib.callbacks import Event
+from anyplotlib._repr_utils import repr_html_iframe
 
-__all__ = ["Figure", "GridSpec", "SubplotSpec", "subplots"]
-
-_HERE = pathlib.Path(__file__).parent
+_HERE = pathlib.Path(__file__).parent.parent
 _ESM_SOURCE = (_HERE / "figure_esm.js").read_text(encoding="utf-8")
 
 
@@ -441,104 +428,9 @@ class Figure(anywidget.AnyWidget):
         str
             HTML string containing an embedded iframe with srcdoc attribute.
         """
-        from anyplotlib._repr_utils import repr_html_iframe
         return repr_html_iframe(self)
 
     def __repr__(self) -> str:
         return (f"Figure({self._nrows}x{self._ncols}, "
                 f"panels={len(self._plots_map)}, "
                 f"size={self.fig_width}x{self.fig_height})")
-
-
-# ---------------------------------------------------------------------------
-# subplots — module-level convenience
-# ---------------------------------------------------------------------------
-
-def subplots(nrows=1, ncols=1, *,
-             sharex=False, sharey=False,
-             figsize=(640, 480),
-             width_ratios=None,
-             height_ratios=None,
-             gridspec_kw=None,
-             display_stats=False,
-             help=""):
-    """Create a :class:`Figure` and a grid of :class:`~anyplotlib.figure_plots.Axes`.
-
-    Mirrors :func:`matplotlib.pyplot.subplots`.
-
-    Parameters
-    ----------
-    nrows, ncols : int
-        Number of rows and columns in the grid.
-    sharex, sharey : bool
-        Link pan/zoom across all panels on the respective axis.
-    figsize : (width, height)
-        Figure size in CSS pixels.  Default ``(640, 480)``.
-    width_ratios : list of float, optional
-        Relative column widths.  Equivalent to
-        ``gridspec_kw={"width_ratios": ...}``.
-    height_ratios : list of float, optional
-        Relative row heights.  Equivalent to
-        ``gridspec_kw={"height_ratios": ...}``.
-    gridspec_kw : dict, optional
-        Extra keyword arguments forwarded to :class:`GridSpec`.
-        Recognised keys: ``width_ratios``, ``height_ratios``.
-    display_stats : bool, optional
-        Show per-panel FPS / frame-time overlay.  Default False.
-    help : str, optional
-        Help text shown when the user clicks the **?** badge on the figure.
-        Newlines (``\\n``) create separate lines in the card.  The badge is
-        hidden when *help* is empty (default).  Suppressed globally when
-        ``apl.show_help = False``.
-
-    Returns
-    -------
-    fig : Figure
-    axs : Axes  or  numpy array of Axes
-        - Single cell  → scalar ``Axes``.
-        - Single row   → 1-D array of shape ``(ncols,)``.
-        - Single column → 1-D array of shape ``(nrows,)``.
-        - Otherwise    → 2-D array of shape ``(nrows, ncols)``.
-
-    Examples
-    --------
-    >>> import anyplotlib as vw
-    >>> import numpy as np
-    >>> fig, axs = vw.subplots(2, 1, figsize=(640, 600))
-    >>> v2d = axs[0].imshow(np.random.rand(128, 128))
-    >>> v1d = axs[1].plot(np.sin(np.linspace(0, 6.28, 256)))
-    >>> fig
-    """
-    # Merge gridspec_kw into width_ratios / height_ratios (matplotlib compat)
-    if gridspec_kw:
-        width_ratios  = gridspec_kw.get("width_ratios",  width_ratios)
-        height_ratios = gridspec_kw.get("height_ratios", height_ratios)
-
-    fig = Figure(
-        nrows=nrows, ncols=ncols, figsize=figsize,
-        width_ratios=width_ratios, height_ratios=height_ratios,
-        sharex=sharex, sharey=sharey,
-        display_stats=display_stats,
-        help=help,
-    )
-    # Build the GridSpec from the Figure's own stored ratios so there is
-    # exactly one source of truth.
-    gs = GridSpec(
-        nrows, ncols,
-        width_ratios=fig._width_ratios,
-        height_ratios=fig._height_ratios,
-    )
-    axes_grid = np.empty((nrows, ncols), dtype=object)
-    for r in range(nrows):
-        for c in range(ncols):
-            axes_grid[r, c] = fig.add_subplot(gs[r, c])
-
-    if nrows == 1 and ncols == 1:
-        return fig, axes_grid[0, 0]
-    if nrows == 1:
-        return fig, axes_grid[0, :]
-    if ncols == 1:
-        return fig, axes_grid[:, 0]
-    return fig, axes_grid
-
-

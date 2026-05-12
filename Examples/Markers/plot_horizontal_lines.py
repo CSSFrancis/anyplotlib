@@ -3,7 +3,7 @@ Horizontal Lines
 ================
 
 Draw static horizontal threshold lines on a 1-D plot with
-:meth:`~anyplotlib.figure_plots.Plot1D.add_hlines`.
+:meth:`~anyplotlib.plot1d.Plot1D.add_hlines`.
 Use ``markers["hlines"]["name"].set(...)`` to update them live.
 """
 import numpy as np
