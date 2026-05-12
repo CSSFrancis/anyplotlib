@@ -2,10 +2,6 @@
 Figure Plots
 ============
 
-.. automodule:: anyplotlib.figure_plots
-   :no-members:
-   :no-undoc-members:
-
 .. currentmodule:: anyplotlib
 
 .. rubric:: Axes
@@ -37,55 +33,55 @@ Figure Plots
 
 .. rubric:: Full Reference
 
-.. autoclass:: anyplotlib.figure_plots.Axes
+.. autoclass:: anyplotlib.axes.Axes
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.InsetAxes
+.. autoclass:: anyplotlib.axes.InsetAxes
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.Plot1D
+.. autoclass:: anyplotlib.plot1d.Plot1D
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.Plot2D
+.. autoclass:: anyplotlib.plot2d.Plot2D
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.PlotMesh
+.. autoclass:: anyplotlib.plot2d.PlotMesh
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.Plot3D
+.. autoclass:: anyplotlib.plot3d.Plot3D
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.PlotBar
+.. autoclass:: anyplotlib.plot1d.PlotBar
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.GridSpec
+.. autoclass:: anyplotlib.figure.GridSpec
    :members:
    :show-inheritance:
    :member-order: bysource
    :no-index:
 
-.. autoclass:: anyplotlib.figure_plots.SubplotSpec
+.. autoclass:: anyplotlib.figure.SubplotSpec
    :members:
    :show-inheritance:
    :member-order: bysource
