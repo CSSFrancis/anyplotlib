@@ -3,7 +3,7 @@
 ==========================
 
 A draggable horizontal line on a 1-D plot panel.
-Add it with :meth:`~anyplotlib.figure_plots.Plot1D.add_hline_widget`.
+Add it with :meth:`~anyplotlib.plot1d.Plot1D.add_hline_widget`.
 Drag the line up or down to change the selected y value.
 """
 import numpy as np

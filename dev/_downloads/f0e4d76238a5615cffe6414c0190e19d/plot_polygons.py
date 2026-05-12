@@ -3,7 +3,7 @@ Polygons
 ========
 
 Draw closed polygons on a 2-D image with
-:meth:`~anyplotlib.figure_plots.Plot2D.add_polygons`.
+:meth:`~anyplotlib.plot2d.Plot2D.add_polygons`.
 Use ``markers["polygons"]["name"].set(...)`` to update them live.
 """
 import numpy as np

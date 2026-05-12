@@ -22,7 +22,7 @@
 ================
 
 A draggable range selector on a 1-D plot panel with two handles.
-Add it with :meth:`~anyplotlib.figure_plots.Plot1D.add_range_widget`.
+Add it with :meth:`~anyplotlib.plot1d.Plot1D.add_range_widget`.
 Drag either handle to resize the selected interval, or drag the band
 to move it.
 
@@ -58,7 +58,7 @@ to move it.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.581 seconds)
+   **Total running time of the script:** (0 minutes 0.603 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Widgets_plot_widget1d_range.py:

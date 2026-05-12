@@ -3,7 +3,7 @@ Line Segments
 =============
 
 Draw line segments on a 2-D image with
-:meth:`~anyplotlib.figure_plots.Plot2D.add_lines`.
+:meth:`~anyplotlib.plot2d.Plot2D.add_lines`.
 Use ``markers["lines"]["name"].set(...)`` to update them live.
 """
 import numpy as np

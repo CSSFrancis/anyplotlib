@@ -22,7 +22,7 @@ Ellipses
 ========
 
 Draw ellipses on a 2-D image with
-:meth:`~anyplotlib.figure_plots.Plot2D.add_ellipses`.
+:meth:`~anyplotlib.plot2d.Plot2D.add_ellipses`.
 Use ``markers["ellipses"]["name"].set(...)`` to update them live.
 
 .. GENERATED FROM PYTHON SOURCE LINES 9-29
@@ -93,7 +93,7 @@ Resize all ellipses and change colour in one call.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.208 seconds)
+   **Total running time of the script:** (0 minutes 1.238 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Markers_plot_ellipses.py:

@@ -22,7 +22,7 @@
 =================
 
 A draggable, resizable circle overlay on a 2-D image panel.
-Add it with :meth:`~anyplotlib.figure_plots.Plot2D.add_widget` using
+Add it with :meth:`~anyplotlib.plot2d.Plot2D.add_widget` using
 ``kind="circle"``.
 
 .. GENERATED FROM PYTHON SOURCE LINES 9-23
@@ -59,7 +59,7 @@ Add it with :meth:`~anyplotlib.figure_plots.Plot2D.add_widget` using
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.603 seconds)
+   **Total running time of the script:** (0 minutes 0.607 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Widgets_plot_widget2d_circle.py:

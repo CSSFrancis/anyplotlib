@@ -465,7 +465,7 @@
 <h1>anyplotlib.Figure<a class="headerlink" href="#anyplotlib-figure" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.Figure">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.</span></span><span class="sig-name descname"><span class="pre">Figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure.html#Figure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.</span></span><span class="sig-name descname"><span class="pre">Figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnyWidget</span></code></p>
 <p>Multi-panel interactive figure widget.</p>
 <p>The top-level container for all plots and the only <code class="docutils literal notranslate"><span class="pre">anywidget.AnyWidget</span></code>
@@ -537,7 +537,7 @@ Default False (independent pan/zoom per panel).</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Figure.set_help">
-<span class="sig-name descname"><span class="pre">set_help</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure.html#Figure.set_help"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.set_help" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_help</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.set_help"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.set_help" title="Link to this definition">#</a></dt>
 <dd><p>Set (or clear) the figure-level help text shown in the <strong>?</strong> badge.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -558,7 +558,7 @@ Newlines (<code class="docutils literal notranslate"><span class="pre">\n</span>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Figure.add_subplot">
-<span class="sig-name descname"><span class="pre">add_subplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure.html#Figure.add_subplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.add_subplot" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_subplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.add_subplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.add_subplot" title="Link to this definition">#</a></dt>
 <dd><p>Add a subplot cell and return its <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -589,7 +589,7 @@ tuple selects a single cell.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Figure.add_inset">
-<span class="sig-name descname"><span class="pre">add_inset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_frac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_frac</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">corner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top-right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure.html#Figure.add_inset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.add_inset" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_inset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_frac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_frac</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">corner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top-right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.add_inset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.add_inset" title="Link to this definition">#</a></dt>
 <dd><p>Create and return a floating inset axes.</p>
 <p>The inset overlays the figure at the specified corner.  Call
 plot-factory methods on the returned <code class="xref py py-class docutils literal notranslate"><span class="pre">InsetAxes</span></code> to attach
@@ -617,7 +617,7 @@ data:</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Figure.get_axes">
-<span class="sig-name descname"><span class="pre">get_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure.html#Figure.get_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.get_axes" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.get_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.get_axes" title="Link to this definition">#</a></dt>
 <dd><p>Return a list of all Axes, sorted by grid position.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>

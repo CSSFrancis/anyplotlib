@@ -465,7 +465,7 @@
 <h1>anyplotlib.Widget<a class="headerlink" href="#anyplotlib-widget" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.Widget">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.</span></span><span class="sig-name descname"><span class="pre">Widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.</span></span><span class="sig-name descname"><span class="pre">Widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for all overlay widgets.</p>
 <p>Provides attribute-based state access, callbacks for interaction events,
@@ -495,7 +495,7 @@ and automatic synchronization with the JavaScript renderer.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.set">
-<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.set" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.set" title="Link to this definition">#</a></dt>
 <dd><p>Update properties and send targeted update to JavaScript.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -516,7 +516,7 @@ This is more efficient for frequent updates during dragging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.get">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.get" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.get" title="Link to this definition">#</a></dt>
 <dd><p>Get a widget property by name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -536,7 +536,7 @@ This is more efficient for frequent updates during dragging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.to_dict" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.to_dict" title="Link to this definition">#</a></dt>
 <dd><p>Return a dict copy of the widget state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -550,7 +550,7 @@ This is more efficient for frequent updates during dragging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.on_changed">
-<span class="sig-name descname"><span class="pre">on_changed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.on_changed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_changed" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">on_changed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.on_changed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_changed" title="Link to this definition">#</a></dt>
 <dd><p>Decorator: register fn to fire on every drag frame.</p>
 <p>Use this for high-frequency updates (keep handler fast).</p>
 <dl class="field-list simple">
@@ -568,7 +568,7 @@ This is more efficient for frequent updates during dragging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.on_release">
-<span class="sig-name descname"><span class="pre">on_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.on_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_release" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">on_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.on_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_release" title="Link to this definition">#</a></dt>
 <dd><p>Decorator: register fn to fire once when drag settles.</p>
 <p>Use this for expensive operations triggered after user stops dragging.</p>
 <dl class="field-list simple">
@@ -586,7 +586,7 @@ This is more efficient for frequent updates during dragging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.on_click">
-<span class="sig-name descname"><span class="pre">on_click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.on_click"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_click" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">on_click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.on_click"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_click" title="Link to this definition">#</a></dt>
 <dd><p>Decorator: register fn to fire on widget click.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -603,7 +603,7 @@ This is more efficient for frequent updates during dragging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.disconnect">
-<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.disconnect" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.disconnect" title="Link to this definition">#</a></dt>
 <dd><p>Remove the callback registered under <em>cid</em>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -624,7 +624,7 @@ or the decorated function itself (carries a <code class="docutils literal notran
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.show">
-<span class="sig-name descname"><span class="pre">show</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.show"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.show" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">show</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.show"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.show" title="Link to this definition">#</a></dt>
 <dd><p>Show the widget.  Does not fire <code class="docutils literal notranslate"><span class="pre">on_changed</span></code> callbacks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -635,7 +635,7 @@ or the decorated function itself (carries a <code class="docutils literal notran
 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.hide">
-<span class="sig-name descname"><span class="pre">hide</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets.html#Widget.hide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.hide" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">hide</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.hide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.hide" title="Link to this definition">#</a></dt>
 <dd><p>Hide the widget without removing it or its callbacks.</p>
 <p>Call <a class="reference internal" href="#anyplotlib.Widget.show" title="anyplotlib.Widget.show"><code class="xref py py-meth docutils literal notranslate"><span class="pre">show()</span></code></a> to make it visible again.
 Does not fire <code class="docutils literal notranslate"><span class="pre">on_changed</span></code> callbacks.</p>
