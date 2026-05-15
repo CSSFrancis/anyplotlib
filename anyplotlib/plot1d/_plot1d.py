@@ -12,7 +12,7 @@ import numpy as np
 from typing import Callable
 
 from anyplotlib.markers import MarkerRegistry
-from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.callbacks import CallbackRegistry, _EventMixin
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
@@ -77,16 +77,37 @@ class Line1D:
         fn._cid        = cid
         return fn
 
-    def on_click(self, fn: Callable) -> Callable:
-        """Decorator: fires when the user clicks on *this* line only."""
+    def add_event_handler(self, fn_or_type, *args, **kwargs):
+        """Register a handler scoped to this line only.
+
+        Wraps the plot-level pointer_move / pointer_down handler
+        with a line_id filter. Only pointer_move and pointer_down
+        are meaningful on a line handle.
+        """
         target_lid = self._lid
+
+        if callable(fn_or_type):
+            fn = fn_or_type
+            types = args
+            return self._wrap_and_register(fn, types, target_lid, **kwargs)
+        else:
+            all_types = (fn_or_type,) + args
+            def _decorator(fn):
+                return self._wrap_and_register(fn, all_types, target_lid, **kwargs)
+            return _decorator
+
+    def _wrap_and_register(self, fn, types, target_lid, **kwargs):
+        from functools import wraps
+        @wraps(fn)
         def _filtered(event):
-            if event.data.get("line_id") == target_lid:
+            if event.line_id == target_lid:
                 fn(event)
-        cid = self._plot.callbacks.connect("on_line_click", _filtered)
-        _filtered._cid = cid
-        fn._cid        = cid
-        return fn
+        _filtered.__wrapped__ = fn
+        return self._plot.add_event_handler(_filtered, *types, **kwargs)
+
+    def remove_handler(self, cid_or_fn, *types):
+        """Remove a handler registered via this line handle."""
+        self._plot.remove_handler(cid_or_fn, *types)
 
     def set_data(self, y: "np.ndarray", x_axis=None) -> None:
         """Update the y-data (and optionally x-axis) of this overlay line.
@@ -138,7 +159,7 @@ class Line1D:
 # Plot1D
 # ---------------------------------------------------------------------------
 
-class Plot1D:
+class Plot1D(_EventMixin):
     """1-D line plot panel returned by :meth:`Axes.plot`.
 
     All display state is stored in a plain ``_state`` dict.  Every mutation
@@ -276,13 +297,19 @@ class Plot1D:
             "spans":            [],
             "overlay_widgets":  [],
             "markers":          [],
-            "registered_keys":  [],
+            "pointer_settled_ms":    0,
+            "pointer_settled_delta": 4,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
                                       allowed=MarkerRegistry._KNOWN_1D)
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
+
+    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+        self._state["pointer_settled_ms"]    = ms
+        self._state["pointer_settled_delta"] = delta
+        self._push()
 
     def _push(self) -> None:
         if self._fig is None:
@@ -729,95 +756,6 @@ class Plot1D:
         """Remove all interactive overlay widgets from this panel."""
         self._widgets.clear()
         self._push()
-
-    # ------------------------------------------------------------------
-    # Callback API  (Plot1D)
-    # ------------------------------------------------------------------
-    def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: fires on every drag/zoom frame on this panel."""
-        cid = self.callbacks.connect("on_changed", fn)
-        fn._cid = cid
-        return fn
-
-    def on_release(self, fn: Callable) -> Callable:
-        """Decorator: fires once when drag/zoom settles on this panel."""
-        cid = self.callbacks.connect("on_release", fn)
-        fn._cid = cid
-        return fn
-
-    def on_click(self, fn: Callable) -> Callable:
-        """Decorator: fires on click on this panel."""
-        cid = self.callbacks.connect("on_click", fn)
-        fn._cid = cid
-        return fn
-
-    def on_key(self, key_or_fn=None) -> Callable:
-        """Register a key-press handler for this panel.
-
-        Two call forms are supported::
-
-            @plot.on_key('q')          # fires only when 'q' is pressed
-            def handler(event): ...
-
-            @plot.on_key               # fires for every registered key
-            def handler(event): ...
-
-        The event carries: ``key``, ``mouse_x``, ``mouse_y``, ``phys_x``,
-        and ``last_widget_id``.
-
-        .. note::
-            Registered keys take priority over the built-in **r** (reset view)
-            shortcut.
-        """
-        if callable(key_or_fn):
-            return self._connect_on_key(None, key_or_fn)
-        key = key_or_fn
-        def _decorator(fn):
-            return self._connect_on_key(key, fn)
-        return _decorator
-
-    def _connect_on_key(self, key, fn) -> Callable:
-        if key is None:
-            if '*' not in self._state['registered_keys']:
-                self._state['registered_keys'].append('*')
-                self._push()
-            cid = self.callbacks.connect("on_key", fn)
-        else:
-            if key not in self._state['registered_keys']:
-                self._state['registered_keys'].append(key)
-                self._push()
-            def _wrapped(event):
-                if event.data.get('key') == key:
-                    fn(event)
-            cid = self.callbacks.connect("on_key", _wrapped)
-            _wrapped._cid = cid
-        fn._cid = cid
-        return fn
-
-    def disconnect(self, cid: int) -> None:
-        """Remove the callback registered under integer *cid*."""
-        self.callbacks.disconnect(cid)
-
-    def on_line_hover(self, fn: Callable) -> Callable:
-        """Decorator: fires when the cursor moves over *any* line on this panel.
-
-        The event carries ``event.line_id`` (``None`` = primary line,
-        str = overlay), ``event.x``, and ``event.y`` in data coordinates.
-        For per-line filtering use :meth:`Line1D.on_hover` instead.
-        """
-        cid = self.callbacks.connect("on_line_hover", fn)
-        fn._cid = cid
-        return fn
-
-    def on_line_click(self, fn: Callable) -> Callable:
-        """Decorator: fires when the user clicks *any* line on this panel.
-
-        The event carries the same fields as :meth:`on_line_hover`.
-        For per-line filtering use :meth:`Line1D.on_click` instead.
-        """
-        cid = self.callbacks.connect("on_line_click", fn)
-        fn._cid = cid
-        return fn
 
     # ------------------------------------------------------------------
     # View control
