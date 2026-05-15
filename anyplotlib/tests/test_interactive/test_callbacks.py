@@ -75,6 +75,8 @@ class TestEvent:
         assert e.line_id == "abc12345"
         assert e.bar_index == 2
         assert e.key == "q"
+        assert e.dx == 10.0
+        assert e.dy == -5.0
 
     def test_no_data_dict_attribute(self):
         e = Event(event_type="pointer_move")
@@ -83,3 +85,7 @@ class TestEvent:
     def test_repr_includes_event_type(self):
         e = Event(event_type="pointer_down", x=10, y=20)
         assert "pointer_down" in repr(e)
+
+    def test_stop_propagation_not_in_repr(self):
+        e = Event(event_type="pointer_down", stop_propagation=True)
+        assert "stop_propagation" not in repr(e)
