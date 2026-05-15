@@ -180,5 +180,38 @@ class CallbackRegistry:
         while self._held:
             self._dispatch(self._held.popleft())
 
+    @contextmanager
+    def pause_events(self, *types: str):
+        """Suppress events of the given types while inside this context.
+        All types are paused when called with no arguments.
+        Pause wins over hold for the same type."""
+        target = types if types else ("*",)
+        for t in target:
+            self._pause_counts[t] = self._pause_counts.get(t, 0) + 1
+        try:
+            yield
+        finally:
+            for t in target:
+                self._pause_counts[t] -= 1
+                if self._pause_counts[t] == 0:
+                    del self._pause_counts[t]
+
+    @contextmanager
+    def hold_events(self, *types: str):
+        """Buffer events of the given types; flush when the outermost hold exits.
+        All types are held when called with no arguments."""
+        target = types if types else ("*",)
+        for t in target:
+            self._hold_counts[t] = self._hold_counts.get(t, 0) + 1
+        try:
+            yield
+        finally:
+            for t in target:
+                self._hold_counts[t] -= 1
+                if self._hold_counts[t] == 0:
+                    del self._hold_counts[t]
+            if not self._hold_counts:
+                self._flush()
+
     def __bool__(self) -> bool:
         return any(bool(v) for v in self._handlers.values())

@@ -200,3 +200,94 @@ class TestCallbackRegistry:
         reg.fire(Event("pointer_down"))
         reg.fire(Event("pointer_up"))
         assert calls == ["pointer_down", "pointer_up"]
+
+
+class TestPauseHold:
+    def test_pause_drops_events(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_move", lambda e: calls.append(1))
+        with reg.pause_events("pointer_move"):
+            reg.fire(Event("pointer_move"))
+        assert calls == []
+
+    def test_pause_handlers_intact_after_exit(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_move", lambda e: calls.append(1))
+        with reg.pause_events("pointer_move"):
+            reg.fire(Event("pointer_move"))
+        reg.fire(Event("pointer_move"))
+        assert calls == [1]
+
+    def test_pause_all_types_when_no_args(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_down", lambda e: calls.append("down"))
+        reg.connect("key_down",     lambda e: calls.append("key"))
+        with reg.pause_events():
+            reg.fire(Event("pointer_down"))
+            reg.fire(Event("key_down"))
+        assert calls == []
+
+    def test_pause_only_specified_type(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_move", lambda e: calls.append("move"))
+        reg.connect("pointer_down", lambda e: calls.append("down"))
+        with reg.pause_events("pointer_move"):
+            reg.fire(Event("pointer_move"))
+            reg.fire(Event("pointer_down"))
+        assert calls == ["down"]
+
+    def test_pause_nested_same_type(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_move", lambda e: calls.append(1))
+        with reg.pause_events("pointer_move"):
+            with reg.pause_events("pointer_move"):
+                reg.fire(Event("pointer_move"))
+            reg.fire(Event("pointer_move"))  # still paused — outer not exited
+        reg.fire(Event("pointer_move"))      # now fires
+        assert calls == [1]
+
+    def test_hold_buffers_and_flushes_on_exit(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_settled", lambda e: calls.append(1))
+        with reg.hold_events("pointer_settled"):
+            reg.fire(Event("pointer_settled"))
+            reg.fire(Event("pointer_settled"))
+            assert calls == []       # buffered, not fired yet
+        assert calls == [1, 1]       # flushed on exit
+
+    def test_hold_fires_non_held_types_immediately(self):
+        reg = CallbackRegistry()
+        move_calls = []
+        settled_calls = []
+        reg.connect("pointer_move",    lambda e: move_calls.append(1))
+        reg.connect("pointer_settled", lambda e: settled_calls.append(1))
+        with reg.hold_events("pointer_settled"):
+            reg.fire(Event("pointer_move"))       # not held → immediate
+            reg.fire(Event("pointer_settled"))    # held → buffered
+        assert move_calls == [1]
+        assert settled_calls == [1]   # flushed on exit
+
+    def test_hold_events_in_order(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_settled", lambda e: calls.append(e.x))
+        with reg.hold_events():
+            reg.fire(Event("pointer_settled", x=1))
+            reg.fire(Event("pointer_settled", x=2))
+            reg.fire(Event("pointer_settled", x=3))
+        assert calls == [1, 2, 3]
+
+    def test_pause_wins_over_hold(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_move", lambda e: calls.append(1))
+        with reg.hold_events("pointer_move"):
+            with reg.pause_events("pointer_move"):
+                reg.fire(Event("pointer_move"))
+        assert calls == []   # dropped, not buffered then flushed
