@@ -469,44 +469,43 @@ class TestPlotBarCallbacks:
     def test_on_click_decorator_returns_fn(self):
         p = _make_bar()
         fn = lambda e: None
-        assert p.on_click(fn) is fn
+        result = p.add_event_handler(fn, "pointer_down")
+        assert result is fn
 
-    def test_on_click_stamps_cid(self):
+    def test_on_click_stamps_event_types(self):
         p = _make_bar()
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb(event): pass
 
-        assert hasattr(cb, "_cid") and isinstance(cb._cid, int)
+        assert hasattr(cb, "_event_types") and "pointer_down" in cb._event_types
 
     def test_on_click_fires(self):
         p = _make_bar()
         fired = []
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb(event): fired.append(event)
 
-        p.callbacks.fire(Event("on_click", p, {"bar_index": 2, "value": 3.0,
-                                                "group_index": 0, "group_value": 3.0}))
+        p.callbacks.fire(Event("pointer_down", p, bar_index=2, value=3.0,
+                               group_index=0))
         assert len(fired) == 1
 
     def test_on_click_event_data_with_group(self):
         p = _make_bar([10, 20, 30])
         fired = []
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb(event): fired.append(event)
 
-        p.callbacks.fire(Event("on_click", p,
-                               {"bar_index": 1, "value": 20.0,
-                                "group_index": 0, "group_value": 20.0,
-                                "x_center": 1.0, "x_label": "B"}))
+        p.callbacks.fire(Event("pointer_down", p,
+                               bar_index=1, value=20.0,
+                               group_index=0,
+                               x_label="B"))
         ev = fired[0]
         assert ev.bar_index == 1
         assert ev.value == pytest.approx(20.0)
         assert ev.group_index == 0
-        assert ev.group_value == pytest.approx(20.0)
-        assert ev.x_center == pytest.approx(1.0)
         assert ev.x_label == "B"
 
     def test_on_click_grouped_event(self):
@@ -514,58 +513,58 @@ class TestPlotBarCallbacks:
         p = ax.bar(["A", "B"], [[1, 10], [2, 20]])
         fired = []
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb(event): fired.append(event)
 
-        p.callbacks.fire(Event("on_click", p,
-                               {"bar_index": 1, "group_index": 1,
-                                "value": 20.0, "group_value": 20.0,
-                                "x_center": 1.0, "x_label": "B"}))
+        p.callbacks.fire(Event("pointer_down", p,
+                               bar_index=1, group_index=1,
+                               value=20.0,
+                               x_label="B"))
         assert fired[0].group_index == 1
-        assert fired[0].group_value == pytest.approx(20.0)
+        assert fired[0].value == pytest.approx(20.0)
 
     def test_on_changed_fires(self):
         p = _make_bar()
         fired = []
 
-        @p.on_changed
+        @p.add_event_handler("pointer_move")
         def cb(event): fired.append(event)
 
-        p.callbacks.fire(Event("on_changed", p, {}))
+        p.callbacks.fire(Event("pointer_move", p))
         assert len(fired) == 1
 
     def test_on_click_not_fired_by_on_changed(self):
         p = _make_bar()
         fired = []
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb(event): fired.append(event)
 
-        p.callbacks.fire(Event("on_changed", p, {}))
+        p.callbacks.fire(Event("pointer_move", p))
         assert fired == []
 
     def test_disconnect(self):
         p = _make_bar()
         fired = []
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb(event): fired.append(event)
 
-        p.disconnect(cb._cid)
-        p.callbacks.fire(Event("on_click", p, {}))
+        p.remove_handler(cb)
+        p.callbacks.fire(Event("pointer_down", p))
         assert fired == []
 
     def test_multiple_on_click_handlers(self):
         p = _make_bar()
         log = []
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb1(event): log.append("a")
 
-        @p.on_click
+        @p.add_event_handler("pointer_down")
         def cb2(event): log.append("b")
 
-        p.callbacks.fire(Event("on_click", p, {}))
+        p.callbacks.fire(Event("pointer_down", p))
         assert sorted(log) == ["a", "b"]
 
 
