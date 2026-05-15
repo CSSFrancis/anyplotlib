@@ -7,10 +7,10 @@ Base Widget class shared by all interactive overlay widgets.
 from __future__ import annotations
 import uuid as _uuid
 from typing import Any, Callable
-from anyplotlib.callbacks import CallbackRegistry, Event
+from anyplotlib.callbacks import CallbackRegistry, Event, _EventMixin
 
 
-class Widget:
+class Widget(_EventMixin):
     """Base class for all overlay widgets.
 
     Provides attribute-based state access, callbacks for interaction events,
@@ -28,10 +28,15 @@ class Widget:
     Attributes
     ----------
     callbacks : CallbackRegistry
-        Event callback registry. Register handlers via:
-        - ``@widget.on_changed`` — fires on every drag frame
-        - ``@widget.on_release`` — fires once when drag settles
-        - ``@widget.on_click`` — fires on click event
+        Event callback registry. Register handlers via
+        ``widget.add_event_handler(fn, "pointer_move")`` or as a decorator:
+        ``@widget.add_event_handler("pointer_move")``.
+
+        Common event types:
+
+        - ``"pointer_move"`` — fires on every drag frame
+        - ``"pointer_up"`` — fires once when drag settles
+        - ``"pointer_down"`` — fires on click/press event
     """
 
     def __init__(self, wtype: str, push_fn: Callable, **kwargs):
@@ -123,76 +128,6 @@ class Widget:
         """
         return dict(self._data)
 
-    # ── callback decorator methods ────────────────────────────────────
-
-    def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: register fn to fire on every drag frame.
-
-        Use this for high-frequency updates (keep handler fast).
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
-        cid = self.callbacks.connect("on_changed", fn)
-        fn._cid = cid
-        return fn
-
-    def on_release(self, fn: Callable) -> Callable:
-        """Decorator: register fn to fire once when drag settles.
-
-        Use this for expensive operations triggered after user stops dragging.
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
-        cid = self.callbacks.connect("on_release", fn)
-        fn._cid = cid
-        return fn
-
-    def on_click(self,   fn: Callable) -> Callable:
-        """Decorator: register fn to fire on widget click.
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
-        cid = self.callbacks.connect("on_click", fn)
-        fn._cid = cid
-        return fn
-
-    def disconnect(self, cid) -> None:
-        """Remove the callback registered under *cid*.
-
-        Parameters
-        ----------
-        cid : int or Callable
-            Either the integer CID returned by ``callbacks.connect()``,
-            or the decorated function itself (carries a ``._cid`` attribute).
-        """
-        if callable(cid) and hasattr(cid, "_cid"):
-            cid = cid._cid
-        self.callbacks.disconnect(cid)
-
     # ── visibility ────────────────────────────────────────────────────────
 
     @property
@@ -205,7 +140,7 @@ class Widget:
         self.show() if value else self.hide()
 
     def show(self) -> None:
-        """Show the widget.  Does not fire ``on_changed`` callbacks."""
+        """Show the widget.  Does not fire ``pointer_move`` callbacks."""
         self._data["visible"] = True
         self._push_fn()
 
@@ -213,7 +148,7 @@ class Widget:
         """Hide the widget without removing it or its callbacks.
 
         Call :meth:`show` to make it visible again.
-        Does not fire ``on_changed`` callbacks.
+        Does not fire ``pointer_move`` callbacks.
         """
         self._data["visible"] = False
         self._push_fn()
@@ -242,7 +177,6 @@ class Widget:
         _envelope = {
             "source", "panel_id", "event_type", "widget_id",
             "time_stamp", "modifiers", "button", "buttons",
-            "x", "y", "xdata", "ydata",
         }
         changed = False
         for k, v in msg.items():
