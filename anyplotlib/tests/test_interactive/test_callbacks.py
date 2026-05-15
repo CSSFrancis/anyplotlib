@@ -89,3 +89,114 @@ class TestEvent:
     def test_stop_propagation_not_in_repr(self):
         e = Event(event_type="pointer_down", stop_propagation=True)
         assert "stop_propagation" not in repr(e)
+
+
+class TestCallbackRegistry:
+    def test_connect_returns_int_cid(self):
+        reg = CallbackRegistry()
+        cid = reg.connect("pointer_down", lambda e: None)
+        assert isinstance(cid, int)
+
+    def test_fire_calls_handler(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_down", lambda e: calls.append(e.event_type))
+        reg.fire(Event("pointer_down"))
+        assert calls == ["pointer_down"]
+
+    def test_fire_only_matching_type(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("pointer_down", lambda e: calls.append("down"))
+        reg.connect("pointer_up",   lambda e: calls.append("up"))
+        reg.fire(Event("pointer_down"))
+        assert calls == ["down"]
+
+    def test_disconnect_by_cid(self):
+        reg = CallbackRegistry()
+        calls = []
+        cid = reg.connect("pointer_down", lambda e: calls.append(1))
+        reg.disconnect(cid)
+        reg.fire(Event("pointer_down"))
+        assert calls == []
+
+    def test_disconnect_silent_if_not_found(self):
+        reg = CallbackRegistry()
+        reg.disconnect(999)  # should not raise
+
+    def test_wildcard_receives_all_types(self):
+        reg = CallbackRegistry()
+        calls = []
+        reg.connect("*", lambda e: calls.append(e.event_type))
+        reg.fire(Event("pointer_down"))
+        reg.fire(Event("key_down"))
+        reg.fire(Event("wheel"))
+        assert calls == ["pointer_down", "key_down", "wheel"]
+
+    def test_priority_order(self):
+        reg = CallbackRegistry()
+        order = []
+        reg.connect("pointer_down", lambda e: order.append("second"), order=1)
+        reg.connect("pointer_down", lambda e: order.append("first"),  order=0)
+        reg.fire(Event("pointer_down"))
+        assert order == ["first", "second"]
+
+    def test_same_priority_fires_in_registration_order(self):
+        reg = CallbackRegistry()
+        order = []
+        reg.connect("pointer_down", lambda e: order.append("a"), order=0)
+        reg.connect("pointer_down", lambda e: order.append("b"), order=0)
+        reg.fire(Event("pointer_down"))
+        assert order == ["a", "b"]
+
+    def test_stop_propagation(self):
+        reg = CallbackRegistry()
+        calls = []
+        def handler_a(e):
+            calls.append("a")
+            e.stop_propagation = True
+        reg.connect("pointer_down", handler_a, order=0)
+        reg.connect("pointer_down", lambda e: calls.append("b"), order=1)
+        reg.fire(Event("pointer_down"))
+        assert calls == ["a"]
+
+    def test_disconnect_fn_by_reference(self):
+        reg = CallbackRegistry()
+        calls = []
+        fn = lambda e: calls.append(1)
+        reg.connect("pointer_down", fn)
+        reg.disconnect_fn(fn)
+        reg.fire(Event("pointer_down"))
+        assert calls == []
+
+    def test_disconnect_fn_specific_type(self):
+        reg = CallbackRegistry()
+        calls = []
+        fn = lambda e: calls.append(e.event_type)
+        reg.connect("pointer_down", fn)
+        reg.connect("pointer_up", fn)
+        reg.disconnect_fn(fn, "pointer_down")
+        reg.fire(Event("pointer_down"))
+        reg.fire(Event("pointer_up"))
+        assert calls == ["pointer_up"]
+
+    def test_bool_true_when_handlers_present(self):
+        reg = CallbackRegistry()
+        assert not bool(reg)
+        reg.connect("pointer_down", lambda e: None)
+        assert bool(reg)
+
+    def test_invalid_event_type_raises(self):
+        reg = CallbackRegistry()
+        with pytest.raises(ValueError, match="Invalid event_type"):
+            reg.connect("on_click", lambda e: None)
+
+    def test_connect_same_fn_multiple_types(self):
+        reg = CallbackRegistry()
+        calls = []
+        fn = lambda e: calls.append(e.event_type)
+        reg.connect("pointer_down", fn)
+        reg.connect("pointer_up",   fn)
+        reg.fire(Event("pointer_down"))
+        reg.fire(Event("pointer_up"))
+        assert calls == ["pointer_down", "pointer_up"]
