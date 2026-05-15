@@ -94,7 +94,7 @@ class Widget:
         self._data.update(kwargs)
         if _push:
             self._push_fn()
-        self.callbacks.fire(Event("on_changed", source=self, data=dict(self._data)))
+        self.callbacks.fire(Event("pointer_move", source=self))
 
     def get(self, key: str, default=None):
         """Get a widget property by name.
@@ -220,36 +220,52 @@ class Widget:
 
     # ── JS → Python sync ──────────────────────────────────────────────
 
-    def _update_from_js(self, new_data: dict, event_type: str = "on_changed") -> bool:
+    def _update_from_js(self, msg: dict, event_type: str = "pointer_move") -> bool:
         """Apply incoming JS state without pushing back (avoids echo).
+
+        Updates widget ``_data`` with widget-specific state fields from msg,
+        then fires widget callbacks with a flat Event.
 
         Parameters
         ----------
-        new_data : dict
-            Updated widget properties from JavaScript.
-        event_type : str, optional
-            Type of event that triggered the update.
+        msg : dict
+            Full raw event message from JS.
+        event_type : str
+            One of the pointer event types (``pointer_move``, ``pointer_up``,
+            ``pointer_down``).
 
         Returns
         -------
         bool
-            True if any state changed.
-
-        Notes
-        -----
-        Always fires on_release / on_click callbacks even if nothing changed.
-        Only fires on_changed if state actually changed.
+            True if any widget state changed.
         """
+        _envelope = {
+            "source", "panel_id", "event_type", "widget_id",
+            "time_stamp", "modifiers", "button", "buttons",
+            "x", "y", "xdata", "ydata",
+        }
         changed = False
-        for k, v in new_data.items():
-            if k in ("id", "type"):
+        for k, v in msg.items():
+            if k in ("id", "type") or k in _envelope:
                 continue
             if self._data.get(k) != v:
                 self._data[k] = v
                 changed = True
-        # Always fire for settle / click; only fire on_changed when something moved
-        if changed or event_type in ("on_release", "on_click"):
-            self.callbacks.fire(Event(event_type, source=self, data=dict(self._data)))
+
+        if changed or event_type in ("pointer_up", "pointer_down"):
+            event = Event(
+                event_type=event_type,
+                source=self,
+                time_stamp=msg.get("time_stamp", 0.0),
+                modifiers=msg.get("modifiers", []),
+                x=msg.get("x"),
+                y=msg.get("y"),
+                button=msg.get("button"),
+                buttons=msg.get("buttons", 0),
+                xdata=msg.get("xdata"),
+                ydata=msg.get("ydata"),
+            )
+            self.callbacks.fire(event)
         return changed
 
     # ── repr ──────────────────────────────────────────────────────────
