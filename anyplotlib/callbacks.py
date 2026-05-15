@@ -24,10 +24,7 @@ from typing import Any, Callable
 VALID_EVENT_TYPES = frozenset({
     "pointer_down", "pointer_up", "pointer_move", "pointer_settled",
     "pointer_enter", "pointer_leave", "double_click", "wheel",
-    "key_down", "key_up",
-    # Plot1D line-specific events (forwarded verbatim from JS)
-    "on_line_click", "on_line_hover",
-    "*",
+    "key_down", "key_up", "*",
 })
 
 

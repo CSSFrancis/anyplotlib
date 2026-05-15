@@ -438,26 +438,26 @@ class TestEventJsonDispatch:
         assert results[0] == pytest.approx(16.0)
 
     def test_on_click_line1d_overlay_fires(self):
-        """Line1D.add_event_handler fires when JS sends on_line_click with the matching line_id."""
+        """Line1D.add_event_handler fires when JS sends pointer_down with the matching line_id."""
         fig, ax = apl.subplots(1, 1)
         v = ax.plot(np.zeros(64))
         line = v.add_line(np.ones(64), color="#ff0000")
         results = []
-        line.add_event_handler(lambda event: results.append(event.line_id), "on_line_click")
+        line.add_event_handler(lambda event: results.append(event.line_id), "pointer_down")
 
-        _simulate_js_event(fig, v, "on_line_click", line_id=line.id)
+        _simulate_js_event(fig, v, "pointer_down", line_id=line.id)
         assert len(results) == 1
         assert results[0] == line.id
 
     def test_on_click_line1d_primary_fires(self):
-        """Line1D.add_event_handler on the primary line fires when JS sends on_line_click with no line_id."""
+        """Line1D.add_event_handler on the primary line fires when JS sends pointer_down with no line_id."""
         fig, ax = apl.subplots(1, 1)
         v = ax.plot(np.zeros(64))
         results = []
-        v.line.add_event_handler(lambda event: results.append(1), "on_line_click")
+        v.line.add_event_handler(lambda event: results.append(1), "pointer_down")
 
         # No line_id in payload → event.line_id is None → matches primary
-        _simulate_js_event(fig, v, "on_line_click")
+        _simulate_js_event(fig, v, "pointer_down")
         assert len(results) == 1
 
     def test_on_click_line1d_wrong_id_no_fire(self):
@@ -466,9 +466,9 @@ class TestEventJsonDispatch:
         v = ax.plot(np.zeros(64))
         line = v.add_line(np.ones(64), color="#00ff00")
         results = []
-        line.add_event_handler(lambda event: results.append(1), "on_line_click")
+        line.add_event_handler(lambda event: results.append(1), "pointer_down")
 
-        _simulate_js_event(fig, v, "on_line_click", line_id="completely-wrong-id")
+        _simulate_js_event(fig, v, "pointer_down", line_id="completely-wrong-id")
         assert results == []
 
     def test_circle_drag(self):
@@ -1201,15 +1201,15 @@ class TestInteractiveFitting:
         ctrl = ctrls[0]
 
         # Wire up the line click handler (same as the example)
-        @ctrl.line.add_event_handler("on_line_click")
+        @ctrl.line.add_event_handler("pointer_down")
         def _clicked(event, c=ctrl):
             c.toggle()
 
-        # Simulate JS sending an on_line_click event for comp_lines[0]
+        # Simulate JS sending a pointer_down event for comp_lines[0]
         fig._on_event({"new": __import__("json").dumps({
             "source": "js",
             "panel_id": plot._id,
-            "event_type": "on_line_click",
+            "event_type": "pointer_down",
             "line_id": ctrl.line.id,
         })})
 
@@ -1221,7 +1221,7 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
         ctrl = ctrls[0]
 
-        @ctrl.line.add_event_handler("on_line_click")
+        @ctrl.line.add_event_handler("pointer_down")
         def _clicked(event, c=ctrl):
             c.toggle()
 
@@ -1231,7 +1231,7 @@ class TestInteractiveFitting:
             fig._on_event({"new": _json.dumps({
                 "source": "js",
                 "panel_id": plot._id,
-                "event_type": "on_line_click",
+                "event_type": "pointer_down",
                 "line_id": ctrl.line.id,
             })})
 
@@ -1246,7 +1246,7 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
         ctrl = ctrls[0]
 
-        @ctrl.line.add_event_handler("on_line_click")
+        @ctrl.line.add_event_handler("pointer_down")
         def _clicked(event, c=ctrl):
             c.toggle()
 
@@ -1254,7 +1254,7 @@ class TestInteractiveFitting:
         fig._on_event({"new": _json.dumps({
             "source": "js",
             "panel_id": plot._id,
-            "event_type": "on_line_click",
+            "event_type": "pointer_down",
             "line_id": "completely-wrong-id",
         })})
 
@@ -1268,7 +1268,7 @@ class TestInteractiveFitting:
         result = self._build()
         _, _, controllers, *_ = result
         for ctrl in controllers:
-            @ctrl.line.add_event_handler("on_line_click")
+            @ctrl.line.add_event_handler("pointer_down")
             def _clicked(event, c=ctrl):
                 c.toggle()
         return result
@@ -1280,7 +1280,7 @@ class TestInteractiveFitting:
             self._build_with_click_handlers()
 
         # Click component 0
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[0].line.id)
         assert ctrls[0]._active is True
         assert ctrls[0]._pt is not None
         assert ctrls[0]._rng_w is not None
@@ -1289,7 +1289,7 @@ class TestInteractiveFitting:
         assert ctrls[1]._active is False  # other controller untouched
 
         # Click component 1
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[1].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[1].line.id)
         assert ctrls[1]._active is True
         assert ctrls[1]._pt.visible is True
         assert ctrls[1]._rng_w.visible is True
@@ -1301,10 +1301,10 @@ class TestInteractiveFitting:
 
         assert len(plot.list_widgets()) == 0
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[0].line.id)
         assert len(plot.list_widgets()) == 2   # PointWidget + RangeWidget
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[1].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[1].line.id)
         assert len(plot.list_widgets()) == 4   # +2 for ctrl[1]
 
     def test_example_second_click_hides_widgets(self):
@@ -1313,7 +1313,7 @@ class TestInteractiveFitting:
             self._build_with_click_handlers()
 
         def _click(ctrl):
-            _simulate_js_event(fig, plot, "on_line_click",
+            _simulate_js_event(fig, plot, "pointer_down",
                                 line_id=ctrl.line.id)
 
         _click(ctrls[0])   # show
@@ -1331,7 +1331,7 @@ class TestInteractiveFitting:
             self._build_with_click_handlers()
 
         def _click(ctrl):
-            _simulate_js_event(fig, plot, "on_line_click",
+            _simulate_js_event(fig, plot, "pointer_down",
                                 line_id=ctrl.line.id)
 
         _click(ctrls[0])
@@ -1353,7 +1353,7 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = \
             self._build_with_click_handlers()
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[0].line.id)
         assert ctrls[0]._active is True
 
         lid = fit_line.id
@@ -1375,6 +1375,6 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = \
             self._build_with_click_handlers()
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id="no-such-line")
+        _simulate_js_event(fig, plot, "pointer_down", line_id="no-such-line")
         assert ctrls[0]._active is False
         assert ctrls[1]._active is False
