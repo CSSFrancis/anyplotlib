@@ -2705,14 +2705,6 @@ function render({ model, el }) {
       overlayCanvas.focus();
       _emitEvent(p.id,'pointer_enter',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
     });
-    overlayCanvas.addEventListener('mouseleave',(e)=>{
-      _emitEvent(p.id,'pointer_leave',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
-    });
-    overlayCanvas.addEventListener('dblclick',(e)=>{
-      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
-      const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
-      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),x:mx,y:my});
-    });
   }
 
   function _attachEvents1d(p) {
