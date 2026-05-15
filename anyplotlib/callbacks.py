@@ -97,13 +97,33 @@ class Event:
 
 
 class CallbackRegistry:
-    """Minimal placeholder — full implementation in Task 2."""
+    """Per-object handler store.
+
+    Supports:
+    - Priority ordering (``order`` kwarg — lower fires first)
+    - Wildcard ``"*"`` type receives every dispatched event
+    - ``stop_propagation`` on the event halts remaining handlers
+    - ``disconnect_fn(fn, *types)`` removes by callback reference
+    - ``pause_events`` / ``hold_events`` context managers (added in Task 3)
+    """
 
     def __init__(self) -> None:
+        # {event_type: [(order, cid, fn), ...]} — sorted by order
+        self._handlers: dict[str, list[tuple[float, int, Callable]]] = defaultdict(list)
         self._next_cid: int = 1
-        self._entries: dict[int, tuple[str, Callable]] = {}
+        # {cid: set[str]} — which types this cid is registered under
+        self._cid_map: dict[int, set[str]] = {}
+        # {id(fn): set[int]} — which cids this fn owns
+        self._fn_map: dict[int, set[int]] = defaultdict(set)
+        # pause/hold state (populated in Task 3)
+        self._pause_counts: dict[str, int] = {}
+        self._hold_counts: dict[str, int] = {}
+        self._held: deque[Event] = deque()
 
-    def connect(self, event_type: str, fn: Callable) -> int:
+    # ── registration ─────────────────────────────────────────────────────
+
+    def connect(self, event_type: str, fn: Callable, *, order: float = 0) -> int:
+        """Register fn for event_type. Returns integer CID."""
         if event_type not in VALID_EVENT_TYPES:
             raise ValueError(
                 f"Invalid event_type {event_type!r}. "
@@ -111,16 +131,54 @@ class CallbackRegistry:
             )
         cid = self._next_cid
         self._next_cid += 1
-        self._entries[cid] = (event_type, fn)
+        self._handlers[event_type].append((order, cid, fn))
+        self._handlers[event_type].sort(key=lambda t: t[0])
+        self._cid_map.setdefault(cid, set()).add(event_type)
+        self._fn_map[id(fn)].add(cid)
         return cid
 
     def disconnect(self, cid: int) -> None:
-        self._entries.pop(cid, None)
+        """Remove handler by CID. Silent if not found."""
+        types = self._cid_map.pop(cid, set())
+        for et in types:
+            self._handlers[et] = [
+                (o, c, f) for o, c, f in self._handlers[et] if c != cid
+            ]
+        for fn_cids in self._fn_map.values():
+            fn_cids.discard(cid)
+
+    def disconnect_fn(self, fn: Callable, *types: str) -> None:
+        """Remove fn from the given types (all types if none given)."""
+        for cid in list(self._fn_map.get(id(fn), set())):
+            cid_types = self._cid_map.get(cid, set())
+            if not types or cid_types & set(types):
+                self.disconnect(cid)
+
+    # ── dispatch ─────────────────────────────────────────────────────────
 
     def fire(self, event: Event) -> None:
-        for _cid, (et, fn) in list(self._entries.items()):
-            if et == event.event_type:
-                fn(event)
+        """Dispatch event to matching handlers (respects pause/hold)."""
+        et = event.event_type
+        if self._pause_counts.get(et, 0) > 0 or self._pause_counts.get("*", 0) > 0:
+            return
+        if self._hold_counts.get(et, 0) > 0 or self._hold_counts.get("*", 0) > 0:
+            self._held.append(event)
+            return
+        self._dispatch(event)
+
+    def _dispatch(self, event: Event) -> None:
+        et = event.event_type
+        specific = list(self._handlers.get(et, []))
+        wildcard = list(self._handlers.get("*", []))
+        merged = sorted(specific + wildcard, key=lambda t: t[0])
+        for _order, _cid, fn in merged:
+            if event.stop_propagation:
+                break
+            fn(event)
+
+    def _flush(self) -> None:
+        while self._held:
+            self._dispatch(self._held.popleft())
 
     def __bool__(self) -> bool:
-        return bool(self._entries)
+        return any(bool(v) for v in self._handlers.values())
