@@ -10,7 +10,7 @@ from typing import Callable
 
 import numpy as np
 
-from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.callbacks import CallbackRegistry, _EventMixin
 from anyplotlib._utils import _arr_to_b64, _build_colormap_lut
 
 
@@ -25,7 +25,7 @@ def _triangulate_grid(rows: int, cols: int) -> list:
     return faces
 
 
-class Plot3D:
+class Plot3D(_EventMixin):
     """3-D plot panel.
 
     Supports three geometry types matching matplotlib's 3-D Axes API:
@@ -125,9 +125,15 @@ class Plot3D:
             "elevation":     float(elevation),
             "zoom":          float(zoom),
             "data_bounds":   data_bounds,
-            "registered_keys": [],
+            "pointer_settled_ms":    0,
+            "pointer_settled_delta": 4,
         }
         self.callbacks = CallbackRegistry()
+
+    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+        self._state["pointer_settled_ms"]    = ms
+        self._state["pointer_settled_delta"] = delta
+        self._push()
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
@@ -137,74 +143,6 @@ class Plot3D:
 
     def to_state_dict(self) -> dict:
         return dict(self._state)
-
-    # ------------------------------------------------------------------
-    # Callback API  (Plot3D)
-    # ------------------------------------------------------------------
-    def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: fires on every rotation/zoom frame."""
-        cid = self.callbacks.connect("on_changed", fn)
-        fn._cid = cid
-        return fn
-
-    def on_release(self, fn: Callable) -> Callable:
-        """Decorator: fires once when rotation/zoom settles."""
-        cid = self.callbacks.connect("on_release", fn)
-        fn._cid = cid
-        return fn
-
-    def on_click(self, fn: Callable) -> Callable:
-        """Decorator: fires on click on this panel."""
-        cid = self.callbacks.connect("on_click", fn)
-        fn._cid = cid
-        return fn
-
-    def on_key(self, key_or_fn=None) -> Callable:
-        """Register a key-press handler for this panel.
-
-        Two call forms are supported::
-
-            @plot.on_key('q')          # fires only when 'q' is pressed
-            def handler(event): ...
-
-            @plot.on_key               # fires for every registered key
-            def handler(event): ...
-
-        The event carries: ``key``, ``mouse_x``, ``mouse_y``, and
-        ``last_widget_id``.
-
-        .. note::
-            Registered keys take priority over the built-in **r** (reset view)
-            shortcut.
-        """
-        if callable(key_or_fn):
-            return self._connect_on_key(None, key_or_fn)
-        key = key_or_fn
-        def _decorator(fn):
-            return self._connect_on_key(key, fn)
-        return _decorator
-
-    def _connect_on_key(self, key, fn) -> Callable:
-        if key is None:
-            if '*' not in self._state['registered_keys']:
-                self._state['registered_keys'].append('*')
-                self._push()
-            cid = self.callbacks.connect("on_key", fn)
-        else:
-            if key not in self._state['registered_keys']:
-                self._state['registered_keys'].append(key)
-                self._push()
-            def _wrapped(event):
-                if event.data.get('key') == key:
-                    fn(event)
-            cid = self.callbacks.connect("on_key", _wrapped)
-            _wrapped._cid = cid
-        fn._cid = cid
-        return fn
-
-    def disconnect(self, cid: int) -> None:
-        """Remove the callback registered under integer *cid*."""
-        self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
     # Display settings
