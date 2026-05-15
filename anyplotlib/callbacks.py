@@ -215,3 +215,111 @@ class CallbackRegistry:
 
     def __bool__(self) -> bool:
         return any(bool(v) for v in self._handlers.values())
+
+
+class _EventMixin:
+    """Mixin for plot classes and widgets.
+
+    Provides ``add_event_handler`` / ``remove_handler`` / ``pause_events`` /
+    ``hold_events``.  The host class must set ``self.callbacks = CallbackRegistry()``
+    in its ``__init__``.
+    """
+
+    callbacks: CallbackRegistry
+
+    def add_event_handler(
+        self,
+        fn_or_type,
+        *args,
+        order: float = 0,
+        ms: int = 300,
+        delta: float = 4,
+    ):
+        """Register an event handler. Works as a direct call or decorator.
+
+        Direct call::
+
+            plot.add_event_handler(fn, "pointer_down")
+            plot.add_event_handler(fn, "pointer_down", "pointer_up")
+
+        Decorator::
+
+            @plot.add_event_handler("pointer_down")
+            def handler(event): ...
+
+            @plot.add_event_handler("pointer_settled", ms=400, delta=5)
+            def on_settle(event): ...
+
+        Parameters
+        ----------
+        fn_or_type : callable or str
+            Handler function (direct call) or first event type string (decorator).
+        *args : str
+            Remaining event type strings.
+        order : float
+            Priority. Lower fires first. Default 0.
+        ms : int
+            ``pointer_settled`` dwell threshold in milliseconds. Default 300.
+            Raises ``ValueError`` if provided without ``"pointer_settled"`` in types.
+        delta : float
+            ``pointer_settled`` pixel radius. Default 4.
+            Raises ``ValueError`` if provided without ``"pointer_settled"`` in types.
+        """
+        if callable(fn_or_type):
+            return self._register(fn_or_type, args, order=order, ms=ms, delta=delta)
+        else:
+            all_types = (fn_or_type,) + args
+            def _decorator(fn: Callable) -> Callable:
+                self._register(fn, all_types, order=order, ms=ms, delta=delta)
+                return fn
+            return _decorator
+
+    def _register(
+        self, fn: Callable, types: tuple, *, order: float, ms: int, delta: float
+    ) -> Callable:
+        has_settled = "pointer_settled" in types
+        _ms_changed = ms != 300
+        _delta_changed = delta != 4
+        if (_ms_changed or _delta_changed) and not has_settled:
+            raise ValueError(
+                "ms/delta kwargs are only valid when 'pointer_settled' is in the event types"
+            )
+        for event_type in types:
+            self.callbacks.connect(event_type, fn, order=order)
+        if has_settled:
+            self._configure_pointer_settled(ms, delta)
+        fn._event_types = getattr(fn, "_event_types", set()) | set(types)
+        return fn
+
+    def remove_handler(self, cid_or_fn, *types: str) -> None:
+        """Remove a registered handler.
+
+        Parameters
+        ----------
+        cid_or_fn : int or callable
+            CID returned by ``callbacks.connect()`` or the handler function.
+        *types : str
+            If given, only remove from these types. If omitted, remove from all.
+        """
+        if isinstance(cid_or_fn, int):
+            self.callbacks.disconnect(cid_or_fn)
+        else:
+            self.callbacks.disconnect_fn(cid_or_fn, *types)
+        if not self.callbacks._handlers.get("pointer_settled"):
+            self._configure_pointer_settled(0, 0)
+
+    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+        """Override in plot subclasses to push thresholds to JS."""
+        pass
+
+    @contextmanager
+    def pause_events(self, *types: str):
+        """Suppress events of the given types (all types if none given)."""
+        with self.callbacks.pause_events(*types):
+            yield
+
+    @contextmanager
+    def hold_events(self, *types: str):
+        """Buffer events of the given types; flush when context exits."""
+        with self.callbacks.hold_events(*types):
+            yield

@@ -2,7 +2,7 @@
 from __future__ import annotations
 import time
 import pytest
-from anyplotlib.callbacks import Event, CallbackRegistry, VALID_EVENT_TYPES
+from anyplotlib.callbacks import Event, CallbackRegistry, VALID_EVENT_TYPES, _EventMixin
 
 
 # ── Event dataclass ───────────────────────────────────────────────────────────
@@ -291,3 +291,122 @@ class TestPauseHold:
             with reg.pause_events("pointer_move"):
                 reg.fire(Event("pointer_move"))
         assert calls == []   # dropped, not buffered then flushed
+
+
+class _FakePlot(_EventMixin):
+    """Minimal plot stub for testing _EventMixin."""
+    def __init__(self):
+        self.callbacks = CallbackRegistry()
+        self._settled_config = (0, 0)
+
+    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+        self._settled_config = (ms, delta)
+
+
+class TestEventMixin:
+    def test_functional_form_single_type(self):
+        plot = _FakePlot()
+        calls = []
+        fn = lambda e: calls.append(e.event_type)
+        plot.add_event_handler(fn, "pointer_down")
+        plot.callbacks.fire(Event("pointer_down"))
+        assert calls == ["pointer_down"]
+
+    def test_functional_form_multi_type(self):
+        plot = _FakePlot()
+        calls = []
+        fn = lambda e: calls.append(e.event_type)
+        plot.add_event_handler(fn, "pointer_down", "pointer_up")
+        plot.callbacks.fire(Event("pointer_down"))
+        plot.callbacks.fire(Event("pointer_up"))
+        assert calls == ["pointer_down", "pointer_up"]
+
+    def test_decorator_form_single_type(self):
+        plot = _FakePlot()
+        calls = []
+        @plot.add_event_handler("pointer_move")
+        def handler(e):
+            calls.append(e.event_type)
+        plot.callbacks.fire(Event("pointer_move"))
+        assert calls == ["pointer_move"]
+
+    def test_decorator_form_multi_type(self):
+        plot = _FakePlot()
+        calls = []
+        @plot.add_event_handler("pointer_down", "key_down")
+        def handler(e):
+            calls.append(e.event_type)
+        plot.callbacks.fire(Event("pointer_down"))
+        plot.callbacks.fire(Event("key_down"))
+        assert calls == ["pointer_down", "key_down"]
+
+    def test_wildcard_decorator(self):
+        plot = _FakePlot()
+        calls = []
+        @plot.add_event_handler("*")
+        def handler(e):
+            calls.append(e.event_type)
+        plot.callbacks.fire(Event("pointer_down"))
+        plot.callbacks.fire(Event("wheel"))
+        assert calls == ["pointer_down", "wheel"]
+
+    def test_remove_handler_by_fn(self):
+        plot = _FakePlot()
+        calls = []
+        fn = lambda e: calls.append(1)
+        plot.add_event_handler(fn, "pointer_down")
+        plot.remove_handler(fn)
+        plot.callbacks.fire(Event("pointer_down"))
+        assert calls == []
+
+    def test_remove_handler_by_fn_specific_type(self):
+        plot = _FakePlot()
+        calls = []
+        fn = lambda e: calls.append(e.event_type)
+        plot.add_event_handler(fn, "pointer_down", "pointer_up")
+        plot.remove_handler(fn, "pointer_down")
+        plot.callbacks.fire(Event("pointer_down"))
+        plot.callbacks.fire(Event("pointer_up"))
+        assert calls == ["pointer_up"]
+
+    def test_remove_handler_by_cid(self):
+        plot = _FakePlot()
+        calls = []
+        cid = plot.callbacks.connect("pointer_down", lambda e: calls.append(1))
+        plot.remove_handler(cid)
+        plot.callbacks.fire(Event("pointer_down"))
+        assert calls == []
+
+    def test_pointer_settled_configures_on_connect(self):
+        plot = _FakePlot()
+        plot.add_event_handler(lambda e: None, "pointer_settled", ms=400, delta=5)
+        assert plot._settled_config == (400, 5)
+
+    def test_pointer_settled_clears_on_last_disconnect(self):
+        plot = _FakePlot()
+        fn = lambda e: None
+        plot.add_event_handler(fn, "pointer_settled", ms=400, delta=5)
+        plot.remove_handler(fn)
+        assert plot._settled_config == (0, 0)
+
+    def test_ms_delta_without_settled_raises(self):
+        plot = _FakePlot()
+        with pytest.raises(ValueError, match="ms/delta"):
+            plot.add_event_handler(lambda e: None, "pointer_down", ms=400)
+
+    def test_pause_events_delegates_to_registry(self):
+        plot = _FakePlot()
+        calls = []
+        plot.add_event_handler(lambda e: calls.append(1), "pointer_move")
+        with plot.pause_events("pointer_move"):
+            plot.callbacks.fire(Event("pointer_move"))
+        assert calls == []
+
+    def test_hold_events_delegates_to_registry(self):
+        plot = _FakePlot()
+        calls = []
+        plot.add_event_handler(lambda e: calls.append(1), "pointer_settled")
+        with plot.hold_events("pointer_settled"):
+            plot.callbacks.fire(Event("pointer_settled"))
+            assert calls == []
+        assert calls == [1]
