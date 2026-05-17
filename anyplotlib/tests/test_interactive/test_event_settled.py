@@ -13,51 +13,19 @@ dwell period and suppresses when the pointer keeps moving.
 """
 from __future__ import annotations
 
-import json
 import time
 
 import numpy as np
 import pytest
 
 import anyplotlib as apl
+from anyplotlib.tests.test_interactive._event_test_utils import (
+    _collect_events,
+    _get_events,
+    _plot_center_page,
+)
 
-# ── coordinate constants ──────────────────────────────────────────────────────
-PAD_L, PAD_R, PAD_T, PAD_B = 58, 12, 12, 42
-GRID_PAD = 8
 FIG_W, FIG_H = 400, 300
-
-
-def _plot_center_page() -> tuple[int, int]:
-    cx = PAD_L + (FIG_W - PAD_L - PAD_R) // 2
-    cy = PAD_T + (FIG_H - PAD_T - PAD_B) // 2
-    return cx + GRID_PAD, cy + GRID_PAD
-
-
-def _collect_events(page) -> None:
-    page.evaluate("""() => {
-        window._aplAllEvents = [];
-        const orig = window._aplModel.set.bind(window._aplModel);
-        window._aplModel.set = (k, v) => {
-            if (k === 'event_json') {
-                try { window._aplAllEvents.push(JSON.parse(v)); } catch(_) {}
-            }
-            return orig(k, v);
-        };
-    }""")
-
-
-def _get_events(page, event_type: str | None = None) -> list:
-    events = page.evaluate("() => window._aplAllEvents")
-    if event_type:
-        return [e for e in events if e.get("event_type") == event_type]
-    return events
-
-
-def _panel_state(page, plot) -> dict:
-    raw = page.evaluate(
-        f"() => window._aplModel.get('panel_{plot._id}_json')"
-    )
-    return json.loads(raw)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

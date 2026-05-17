@@ -16,40 +16,14 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-
-# ── layout constants ──────────────────────────────────────────────────────────
-PAD_L, PAD_R, PAD_T, PAD_B = 58, 12, 12, 42
-GRID_PAD = 8
+from anyplotlib.tests.test_interactive._event_test_utils import (
+    _collect_events,
+    _get_events,
+    _plot_center_page,
+    GRID_PAD,
+)
 
 FIG_W, FIG_H = 400, 300
-
-
-def _plot_center_page() -> tuple[int, int]:
-    """Page-space centre of the plot area for a 400×300 figure."""
-    cx = PAD_L + (FIG_W - PAD_L - PAD_R) // 2
-    cy = PAD_T + (FIG_H - PAD_T - PAD_B) // 2
-    return cx + GRID_PAD, cy + GRID_PAD
-
-
-def _collect_events(page) -> None:
-    """Monkey-patch model.set to accumulate every event_json payload."""
-    page.evaluate("""() => {
-        window._aplAllEvents = [];
-        const orig = window._aplModel.set.bind(window._aplModel);
-        window._aplModel.set = (k, v) => {
-            if (k === 'event_json') {
-                try { window._aplAllEvents.push(JSON.parse(v)); } catch(_) {}
-            }
-            return orig(k, v);
-        };
-    }""")
-
-
-def _get_events(page, event_type: str | None = None) -> list:
-    events = page.evaluate("() => window._aplAllEvents")
-    if event_type:
-        return [e for e in events if e.get("event_type") == event_type]
-    return events
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
@@ -292,9 +266,9 @@ class TestKeyEvents:
 
 class TestPlot3DEvents:
     def test_3d_pointer_down_no_xdata(self, interact_page):
-        """3D pointer_down events (if any) should not have xdata/ydata fields."""
+        """3D panels do not emit pointer_down events (no click detection in 3D)."""
         page, plot = _make_3d_page(interact_page)
-        # 3D canvas covers the full panel; use centre
+        _collect_events(page)
         cx = FIG_W // 2 + GRID_PAD
         cy = FIG_H // 2 + GRID_PAD
 
@@ -303,10 +277,7 @@ class TestPlot3DEvents:
         page.wait_for_timeout(300)
 
         events = _get_events(page, "pointer_down")
-        for e in events:
-            assert e.get("xdata") is None, "3D pointer_down should not have xdata"
-            assert e.get("ydata") is None, "3D pointer_down should not have ydata"
-        # Test passes even if no pointer_down events — 3D may not emit them
+        assert len(events) == 0, "3D panels should not emit pointer_down events"
 
     def test_3d_wheel_fires(self, interact_page):
         """Plot3D emits a wheel event on scroll."""
