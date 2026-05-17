@@ -2,6 +2,8 @@
 from __future__ import annotations
 import time
 import pytest
+import numpy as np
+import anyplotlib as apl
 from anyplotlib.callbacks import Event, CallbackRegistry, VALID_EVENT_TYPES, _EventMixin
 
 
@@ -410,3 +412,63 @@ class TestEventMixin:
             plot.callbacks.fire(Event("pointer_settled"))
             assert calls == []
         assert calls == [1]
+
+
+# ── regression: old API is gone ──────────────────────────────────────────────
+
+
+class TestRegressionOldAPIGone:
+    """Confirm old decorator methods no longer exist on plots and widgets."""
+
+    def test_plot1d_no_on_click(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        assert not hasattr(plot, "on_click")
+
+    def test_plot1d_no_on_changed(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        assert not hasattr(plot, "on_changed")
+
+    def test_plot1d_no_on_release(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        assert not hasattr(plot, "on_release")
+
+    def test_plot1d_no_on_key(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        assert not hasattr(plot, "on_key")
+
+    def test_plot1d_no_disconnect(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        assert not hasattr(plot, "disconnect")
+
+    def test_plot2d_no_on_click(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.imshow(np.zeros((32, 32)))
+        assert not hasattr(plot, "on_click")
+
+    def test_widget_no_on_changed(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        w = plot.add_vline_widget(5.0)
+        assert not hasattr(w, "on_changed")
+
+    def test_widget_no_on_release(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        w = plot.add_vline_widget(5.0)
+        assert not hasattr(w, "on_release")
+
+    def test_event_no_phys_x(self):
+        from anyplotlib.callbacks import Event
+        e = Event(event_type="pointer_down", xdata=3.14)
+        assert not hasattr(e, "phys_x")
+        assert e.xdata == 3.14
+
+    def test_event_no_data_dict(self):
+        from anyplotlib.callbacks import Event
+        e = Event(event_type="pointer_move")
+        assert not hasattr(e, "data")

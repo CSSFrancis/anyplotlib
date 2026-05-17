@@ -2,8 +2,8 @@
 Key-Press Widget Placement
 ==========================
 
-Demonstrates the ``on_key`` callback API: press a key while the plot is
-focused to add an overlay widget centred on the current cursor position,
+Demonstrates the ``key_down`` event handler API: press a key while the plot
+is focused to add an overlay widget centred on the current cursor position,
 or press **Backspace / Delete** to remove the last widget you clicked.
 
 **Key bindings**
@@ -61,9 +61,11 @@ plot = ax.imshow(data)
 
 # ── Key handlers ─────────────────────────────────────────────────────────────
 
-@plot.on_key('q')
+@plot.add_event_handler("key_down")
 def add_rectangle(event):
     """Press 'q' — add a rectangle centred on the cursor."""
+    if event.key != 'q':
+        return
     cx, cy = event.img_x, event.img_y
     half_w, half_h = N * 0.08, N * 0.08
     plot.add_widget(
@@ -74,9 +76,11 @@ def add_rectangle(event):
     )
 
 
-@plot.on_key('w')
+@plot.add_event_handler("key_down")
 def add_circle(event):
     """Press 'w' — add a circle centred on the cursor."""
+    if event.key != 'w':
+        return
     plot.add_widget(
         "circle",
         cx=event.img_x, cy=event.img_y,
@@ -85,9 +89,11 @@ def add_circle(event):
     )
 
 
-@plot.on_key('e')
+@plot.add_event_handler("key_down")
 def add_annulus(event):
     """Press 'e' — add an annulus centred on the cursor."""
+    if event.key != 'e':
+        return
     plot.add_widget(
         "annular",
         cx=event.img_x, cy=event.img_y,
@@ -99,10 +105,11 @@ def add_annulus(event):
 
 # macOS sends 'Backspace' for the ⌫ key; Windows/Linux send 'Delete'.
 # Register both so the example works cross-platform.
-@plot.on_key('Backspace')
-@plot.on_key('Delete')
+@plot.add_event_handler("key_down")
 def delete_last(event):
     """Press Backspace/Delete — remove the last widget that was clicked."""
+    if event.key not in ('Backspace', 'Delete'):
+        return
     wid = event.last_widget_id
     if wid and wid in {w.id for w in plot.list_widgets()}:
         plot.remove_widget(wid)
@@ -110,12 +117,12 @@ def delete_last(event):
 
 # ── Catch-all handler (optional) — log every registered key press ─────────────
 
-@plot.on_key
+@plot.add_event_handler("key_down")
 def log_key(event):
     img_x = getattr(event, 'img_x', None)
     img_y = getattr(event, 'img_y', None)
     pos = f"({img_x:.1f}, {img_y:.1f})" if img_x is not None else "n/a"
-    print(f"[on_key] key={event.key!r}  img={pos}"
+    print(f"[key_down] key={event.key!r}  img={pos}"
           f"  last_widget={event.last_widget_id!r}")
 
 fig  # Interactive

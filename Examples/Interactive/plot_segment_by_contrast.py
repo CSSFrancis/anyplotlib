@@ -160,7 +160,7 @@ def _refresh():
 
 # ── Click handler ─────────────────────────────────────────────────────────────
 
-@plot.on_click
+@plot.add_event_handler("pointer_down")
 def _on_click(event):
     """Left-click → positive seed; Shift+Left-click → negative seed."""
     # img_x = column, img_y = row (image-pixel coordinates)
@@ -180,38 +180,44 @@ def _on_click(event):
 
 # ── Key bindings ──────────────────────────────────────────────────────────────
 
-@plot.on_key('+')
-@plot.on_key('=')   # '+' on most keyboards requires Shift; '=' is the unshifted key
+@plot.add_event_handler("key_down")
 def _tol_up(event):
     """Increase tolerance → flood-fill grows to wider intensity range."""
+    if event.key not in ('+', '='):   # '+' on most keyboards requires Shift; '=' is the unshifted key
+        return
     global tolerance
     tolerance = min(TOL_MAX, round(tolerance + TOL_STEP, 4))
     _refresh()
     print(f"  tolerance = {tolerance:.3f}", end="\r")
 
 
-@plot.on_key('-')
+@plot.add_event_handler("key_down")
 def _tol_down(event):
     """Decrease tolerance → flood-fill shrinks to narrower range."""
+    if event.key != '-':
+        return
     global tolerance
     tolerance = max(TOL_MIN, round(tolerance - TOL_STEP, 4))
     _refresh()
     print(f"  tolerance = {tolerance:.3f}", end="\r")
 
 
-@plot.on_key('c')
+@plot.add_event_handler("key_down")
 def _clear(event):
     """Clear all seeds and reset the mask."""
+    if event.key != 'c':
+        return
     pos_seeds.clear()
     neg_seeds.clear()
     _refresh()
     print("  seeds cleared", end="\r")
 
 
-@plot.on_key('Delete')
-@plot.on_key('Backspace')
+@plot.add_event_handler("key_down")
 def _delete_nearest(event):
     """Remove the seed (positive or negative) nearest to the cursor."""
+    if event.key not in ('Delete', 'Backspace'):
+        return
     cx = float(event.img_x)
     cy = float(event.img_y)   # img_y = row
 
