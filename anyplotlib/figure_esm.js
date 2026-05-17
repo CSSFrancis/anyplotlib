@@ -1708,7 +1708,7 @@ function render({ model, el }) {
     return {
       time_stamp: performance.now() / 1000,
       modifiers:  _modifiers(e),
-      button:     e.button != null ? e.button : null,
+      button:     e.buttons !== 0 ? e.button : null,
       buttons:    e.buttons ?? 0,
     };
   }
@@ -1791,7 +1791,7 @@ function render({ model, el }) {
         modifiers: _modifiers(e),
         key: e.key,
         last_widget_id: p.lastWidgetId || null,
-        x: p.mouseX, y: p.mouseY,
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
       });
       if (e.key.toLowerCase() === 'r') {
         p.state.azimuth = -60; p.state.elevation = 30; p.state.zoom = 1;
@@ -2561,7 +2561,7 @@ function render({ model, el }) {
         const _dist2=_dx*_dx+_dy*_dy;
         const _dt=Date.now()-_cc.t;
         if(_dist2<=25&&_dt<=350){
-          // Genuine click — skip pan-settle, emit on_click with image coords.
+          // Genuine click — skip pan-settle, emit pointer_down with image coords.
           const [imgX,imgY]=_canvasToImg2d(_cc.mx,_cc.my,st,imgW,imgH);
           const xArr=st.x_axis||[], yArr=st.y_axis||[];
           const _iw=st.image_width||1, _ih=st.image_height||1;
@@ -2655,7 +2655,6 @@ function render({ model, el }) {
     // Keyboard shortcuts
     // Built-ins: r=reset zoom, c=colorbar toggle, l=log scale, s=symlog scale.
     // All keys are forwarded to Python unconditionally.
-    // to Python via on_key and suppresses the matching built-in.
     overlayCanvas.addEventListener('keydown',(e)=>{
       const st=p.state; if(!st) return;
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
@@ -2669,7 +2668,7 @@ function render({ model, el }) {
         modifiers:_modifiers(e),
         key:e.key,
         last_widget_id:p.lastWidgetId||null,
-        x:p.mouseX, y:p.mouseY,
+        x:p.mouseX ?? 0, y:p.mouseY ?? 0,
         img_x:imgX, img_y:imgY,
         xdata:physX, ydata:physY,
       });
@@ -2812,7 +2811,7 @@ function render({ model, el }) {
         modifiers:_modifiers(e),
         key:e.key,
         last_widget_id:p.lastWidgetId||null,
-        x:p.mouseX, y:p.mouseY,
+        x:p.mouseX ?? 0, y:p.mouseY ?? 0,
         xdata:physX,
       });
       if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.stopPropagation();e.preventDefault();}
@@ -3931,7 +3930,7 @@ function render({ model, el }) {
         modifiers: _modifiers(e),
         key: e.key,
         last_widget_id: p.lastWidgetId || null,
-        x: p.mouseX, y: p.mouseY,
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
       });
     });
     overlayCanvas.addEventListener('keyup', (e) => {
