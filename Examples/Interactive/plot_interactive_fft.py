@@ -160,10 +160,10 @@ def _roi_dragging(event):
 @wid.add_event_handler("pointer_up")
 def _roi_released(event):
     """Fires once on mouse-up — recompute and push the full FFT."""
-    x0 = event.data.get("x", roi_x0)
-    y0 = event.data.get("y", roi_y0)
-    w  = event.data.get("w", ROI_W)
-    h  = event.data.get("h", ROI_H)
+    x0 = event.source.x
+    y0 = event.source.y
+    w  = event.source.w
+    h  = event.source.h
 
     # Restore widget colour to yellow
     for widget in v_real._state["overlay_widgets"]:
