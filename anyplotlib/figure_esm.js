@@ -1791,17 +1791,19 @@ function render({ model, el }) {
         _settledStartX = mx;
         _settledStartY = my;
         _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
         _settledTimer = setTimeout(() => {
           const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
           if (dist <= _settledDelta) {
+            const _now = performance.now();
             _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: performance.now() / 1000,
-              modifiers:  [],
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
               button:     null,
               buttons:    0,
               x:          Math.round(p.mouseX),
               y:          Math.round(p.mouseY),
-              dwell_ms:   performance.now() - _settledStartTs,
+              dwell_ms:   _now - _settledStartTs,
             });
           }
         }, _settledMs);
@@ -2657,7 +2659,7 @@ function render({ model, el }) {
           p._hoverSi=newSi; p._hoverI=mhit?mhit.i:-1;
           drawMarkers2d(p, mhit?{si:newSi}:null);
         }
-        if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);return;}
+        if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);clearTimeout(_settledTimer); _settledTimer = null;return;}
         tooltip.style.display='none';
       } else { p.statusBar.style.display='none'; tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
@@ -2670,17 +2672,19 @@ function render({ model, el }) {
         _settledStartX = mx;
         _settledStartY = my;
         _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
         _settledTimer = setTimeout(() => {
           const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
           if (dist <= _settledDelta) {
+            const _now = performance.now();
             _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: performance.now() / 1000,
-              modifiers:  [],
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
               button:     null,
               buttons:    0,
               x:          Math.round(p.mouseX),
               y:          Math.round(p.mouseY),
-              dwell_ms:   performance.now() - _settledStartTs,
+              dwell_ms:   _now - _settledStartTs,
             });
           }
         }, _settledMs);
@@ -2894,6 +2898,7 @@ function render({ model, el }) {
       if(mx<r.x||mx>r.x+r.w||my<r.y||my>r.y+r.h){
         p.statusBar.style.display='none';tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
+        clearTimeout(_settledTimer); _settledTimer = null;
         return;
       }
       const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
@@ -2934,17 +2939,19 @@ function render({ model, el }) {
         _settledStartX = mx;
         _settledStartY = my;
         _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
         _settledTimer = setTimeout(() => {
           const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
           if (dist <= _settledDelta) {
+            const _now = performance.now();
             _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: performance.now() / 1000,
-              modifiers:  [],
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
               button:     null,
               buttons:    0,
               x:          Math.round(p.mouseX),
               y:          Math.round(p.mouseY),
-              dwell_ms:   performance.now() - _settledStartTs,
+              dwell_ms:   _now - _settledStartTs,
             });
           }
         }, _settledMs);
@@ -3984,17 +3991,19 @@ function render({ model, el }) {
         _settledStartX = mx;
         _settledStartY = my;
         _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
         _settledTimer = setTimeout(() => {
           const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
           if (dist <= _settledDelta) {
+            const _now = performance.now();
             _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: performance.now() / 1000,
-              modifiers:  [],
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
               button:     null,
               buttons:    0,
               x:          Math.round(p.mouseX),
               y:          Math.round(p.mouseY),
-              dwell_ms:   performance.now() - _settledStartTs,
+              dwell_ms:   _now - _settledStartTs,
             });
           }
         }, _settledMs);
