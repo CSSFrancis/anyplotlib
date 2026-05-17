@@ -121,8 +121,8 @@ def _snap_rect(x_raw, y_raw):
 
 
 def _wire_crosshair(w):
-    """Register on_changed: update spectrum on every drag frame."""
-    @w.on_changed
+    """Register pointer_move handler: update spectrum on every drag frame."""
+    @w.add_event_handler("pointer_move")
     def _ch_moved(event):
         cx = int(np.clip(round(event.data.get("cx", CX0)), 0, NX - 1))
         cy = int(np.clip(round(event.data.get("cy", CY0)), 0, NY - 1))
@@ -130,8 +130,8 @@ def _wire_crosshair(w):
 
 
 def _wire_rectangle(w):
-    """Register on_changed: snap widget to grid, integrate 8×8 region live."""
-    @w.on_changed
+    """Register pointer_move handler: snap widget to grid, integrate 8×8 region live."""
+    @w.add_event_handler("pointer_move")
     def _rect_moved(event):
         if _syncing[0]:
             return
@@ -160,8 +160,10 @@ _wire_crosshair(wid[0])
 
 
 # ── "i" — toggle crosshair ↔ 8×8 rectangle ─────────────────────────────────
-@v_img.on_key('i')
+@v_img.add_event_handler("key_down")
 def _toggle_roi(event):
+    if event.key != 'i':
+        return
     cur = wid[0]
     v_img.remove_widget(cur)          # remove old widget (Python ref still valid)
 
@@ -197,8 +199,10 @@ def _toggle_roi(event):
 
 
 # ── "s" (spectrum panel) — add / remove energy-span filter ──────────────────
-@v_spec.on_key('s')
+@v_spec.add_event_handler("key_down")
 def _toggle_span(event):
+    if event.key != 's':
+        return
     if span_wid[0] is None:
         # Place span at 35 %–65 % of the energy range by default
         e0 = float(energy[int(NE * 0.35)])
@@ -206,7 +210,7 @@ def _toggle_span(event):
         sw = v_spec.add_range_widget(x0=e0, x1=e1, color="#ff7043")
         span_wid[0] = sw
 
-        @sw.on_release
+        @sw.add_event_handler("pointer_up")
         def _span_released(ev):
             x0_e = ev.data.get("x0", float(energy[0]))
             x1_e = ev.data.get("x1", float(energy[-1]))

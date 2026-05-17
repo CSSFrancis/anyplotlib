@@ -11,10 +11,10 @@ cyan control point that the user can drag freely inside the plot area.
 
 * **Drag the point** anywhere inside the plot — the widget reports its
   data-space ``(x, y)`` position on every frame via the
-  :meth:`~anyplotlib.widgets.Widget.on_changed` callback.
-* **Release** — the :meth:`~anyplotlib.widgets.Widget.on_release` callback
-  snaps the point's y-coordinate to the curve value at the dragged x
-  and draws the **tangent line** through that point.
+  ``pointer_move`` event handler.
+* **Release** — the ``pointer_up`` event handler snaps the point's
+  y-coordinate to the curve value at the dragged x and draws the
+  **tangent line** through that point.
 
 **What is computed on release**
 
@@ -92,13 +92,13 @@ _draw_tangent(x0_init)
 
 # ── Callbacks ──────────────────────────────────────────────────────────────
 
-@pt.on_changed
+@pt.add_event_handler("pointer_move")
 def _live(event):
     """Every drag frame — print the current widget position."""
     print(f"  dragging  x={event.x:.4f}  y={event.y:.4f}", end="\r")
 
 
-@pt.on_release
+@pt.add_event_handler("pointer_up")
 def _settled(event):
     """On mouse-up — snap y to the curve and refresh the tangent line."""
     print(f"  released  x={event.x:.4f}                    ")
