@@ -1699,6 +1699,8 @@ function render({ model, el }) {
     const { overlayCanvas } = p;
     let dragStart = null;
     let commitPending = false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit() {
       if (commitPending) return; commitPending = true;
       requestAnimationFrame(() => {
@@ -1730,6 +1732,7 @@ function render({ model, el }) {
       e.preventDefault();
     });
     document.addEventListener('mouseup', () => {
+      clearTimeout(_settledTimer); _settledTimer = null;
       if (!dragStart) return;
       dragStart = null;
       overlayCanvas.style.cursor = 'grab';
@@ -1753,6 +1756,29 @@ function render({ model, el }) {
       const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       p.mouseX = mx;
       p.mouseY = my;
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: performance.now() / 1000,
+              modifiers:  [],
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              dwell_ms:   performance.now() - _settledStartTs,
+            });
+          }
+        }, _settledMs);
+      }
     });
 
     // Keyboard shortcuts
@@ -2418,6 +2444,8 @@ function render({ model, el }) {
   function _attachEvents2d(p) {
     const { overlayCanvas } = p;
     let localOnly=false, commitPending=false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit(){
       if(commitPending) return; commitPending=true;
       requestAnimationFrame(()=>{commitPending=false;localOnly=true;model.save_changes();setTimeout(()=>{localOnly=false;},200);});
@@ -2493,6 +2521,7 @@ function render({ model, el }) {
       _scheduleCommit(); e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
       if(p.ovDrag2d){
         const _idx=p.ovDrag2d.idx;
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
@@ -2589,8 +2618,33 @@ function render({ model, el }) {
       } else { p.statusBar.style.display='none'; tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
       }
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: performance.now() / 1000,
+              modifiers:  [],
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              dwell_ms:   performance.now() - _settledStartTs,
+            });
+          }
+        }, _settledMs);
+      }
     });
-    overlayCanvas.addEventListener('mouseleave',()=>{p.statusBar.style.display='none';tooltip.style.display='none';
+    overlayCanvas.addEventListener('mouseleave',()=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
+      p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
     });
 
@@ -2643,6 +2697,8 @@ function render({ model, el }) {
   function _attachEvents1d(p) {
     const { overlayCanvas } = p;
     let localOnly=false, commitPending=false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit(){
       if(commitPending) return; commitPending=true;
       requestAnimationFrame(()=>{commitPending=false;localOnly=true;model.save_changes();setTimeout(()=>{localOnly=false;},200);});
@@ -2702,6 +2758,7 @@ function render({ model, el }) {
       model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
       const wasWidgetDragging=!!p.ovDrag;   // capture BEFORE clearing
       const wasDragging=wasWidgetDragging||!!p.isPanning;
       if(p.ovDrag){
@@ -2795,8 +2852,33 @@ function render({ model, el }) {
         }
         if(lhit) _emitEvent(p.id,'on_line_hover',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y});
       }
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: performance.now() / 1000,
+              modifiers:  [],
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              dwell_ms:   performance.now() - _settledStartTs,
+            });
+          }
+        }, _settledMs);
+      }
     });
-    overlayCanvas.addEventListener('mouseleave',()=>{p.statusBar.style.display='none';tooltip.style.display='none';
+    overlayCanvas.addEventListener('mouseleave',()=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
+      p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
       if(p._lineHoverId!=='__none__'){p._lineHoverId='__none__';draw1d(p);drawOverlay1d(p);overlayCanvas.style.cursor='crosshair';}
     });
@@ -3730,6 +3812,8 @@ function render({ model, el }) {
 
     // Widget drag support
     let commitPending = false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit() {
       if (commitPending) return; commitPending = true;
       requestAnimationFrame(() => { commitPending = false; model.save_changes(); });
@@ -3755,6 +3839,7 @@ function render({ model, el }) {
     });
 
     document.addEventListener('mouseup', (e) => {
+      clearTimeout(_settledTimer); _settledTimer = null;
       if (!p.ovDrag) return;
       const _idx = p.ovDrag.idx;
       const _dw  = (p.state.overlay_widgets || [])[_idx] || {};
@@ -3804,9 +3889,33 @@ function render({ model, el }) {
         tooltip.style.display = 'none';
         overlayCanvas.style.cursor = 'default';
       }
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: performance.now() / 1000,
+              modifiers:  [],
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              dwell_ms:   performance.now() - _settledStartTs,
+            });
+          }
+        }, _settledMs);
+      }
     });
 
     overlayCanvas.addEventListener('mouseleave', () => {
+      clearTimeout(_settledTimer); _settledTimer = null;
       if (p._hovBar !== null) { p._hovBar = null; drawBar(p); }
       tooltip.style.display = 'none';
     });
