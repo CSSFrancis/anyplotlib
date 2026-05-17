@@ -124,8 +124,8 @@ def _wire_crosshair(w):
     """Register pointer_move handler: update spectrum on every drag frame."""
     @w.add_event_handler("pointer_move")
     def _ch_moved(event):
-        cx = int(np.clip(round(event.data.get("cx", CX0)), 0, NX - 1))
-        cy = int(np.clip(round(event.data.get("cy", CY0)), 0, NY - 1))
+        cx = int(np.clip(round(event.source.cx), 0, NX - 1))
+        cy = int(np.clip(round(event.source.cy), 0, NY - 1))
         v_spec.set_data(data[cy, cx, :].astype(float), x_axis=energy)
 
 
@@ -138,8 +138,8 @@ def _wire_rectangle(w):
         _syncing[0] = True
         try:
             x0, y0 = _snap_rect(
-                event.data.get("x", CX0 - ROI_PX // 2),
-                event.data.get("y", CY0 - ROI_PX // 2),
+                event.source.x,
+                event.source.y,
             )
             # Push snapped, fixed-size position back so the widget visually
             # snaps to the pixel grid and stays exactly 8×8.
@@ -212,8 +212,8 @@ def _toggle_span(event):
 
         @sw.add_event_handler("pointer_up")
         def _span_released(ev):
-            x0_e = ev.data.get("x0", float(energy[0]))
-            x1_e = ev.data.get("x1", float(energy[-1]))
+            x0_e = ev.source.x0
+            x1_e = ev.source.x1
             if x0_e > x1_e:
                 x0_e, x1_e = x1_e, x0_e
             mask = (energy >= x0_e) & (energy <= x1_e)
