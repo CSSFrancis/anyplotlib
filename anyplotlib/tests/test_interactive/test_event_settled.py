@@ -88,6 +88,7 @@ class TestSettledConfig:
         plot.add_event_handler(fn, "pointer_settled", ms=400, delta=5)
         plot.remove_handler(fn)
         assert plot._state["pointer_settled_ms"] == 0
+        assert plot._state["pointer_settled_delta"] == 0
 
     def test_multiple_handlers_use_last_configured_ms(self):
         """Adding a second handler overrides ms/delta with the new values."""

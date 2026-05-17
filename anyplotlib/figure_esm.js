@@ -1850,7 +1850,7 @@ function render({ model, el }) {
     });
     overlayCanvas.addEventListener('dblclick', (e) => {
       const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
-      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), x: mx, y: my});
+      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), button: e.button, x: mx, y: my});
     });
   }
 
@@ -2699,7 +2699,7 @@ function render({ model, el }) {
     overlayCanvas.addEventListener('dblclick',(e)=>{
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
-      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),x:mx,y:my});
+      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my});
     });
     overlayCanvas.addEventListener('wheel',(e)=>{
       _emitEvent(p.id,'wheel',null,{
@@ -2966,7 +2966,7 @@ function render({ model, el }) {
     });
     overlayCanvas.addEventListener('dblclick',(e)=>{
       const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
-      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),x:mx,y:my});
+      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my});
     });
     overlayCanvas.addEventListener('wheel',(e)=>{
       _emitEvent(p.id,'wheel',null,{
@@ -4066,7 +4066,7 @@ function render({ model, el }) {
     });
     overlayCanvas.addEventListener('dblclick', (e) => {
       const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
-      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), x: mx, y: my});
+      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), button: e.button, x: mx, y: my});
     });
     overlayCanvas.addEventListener('wheel', (e) => {
       _emitEvent(p.id, 'wheel', null, {
