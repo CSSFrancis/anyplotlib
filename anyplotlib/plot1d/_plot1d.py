@@ -31,8 +31,7 @@ class Line1D:
     """Handle to a single line on a :class:`Plot1D` panel.
 
     Returned by :meth:`Plot1D.add_line`.  Use it to update the line data,
-    register hover/click callbacks scoped to just that line, or to remove
-    it later.
+    register event handlers scoped to just that line, or to remove it later.
 
     Attributes
     ----------
@@ -66,17 +65,6 @@ class Line1D:
         return hash(self._lid)
 
     # ------------------------------------------------------------------
-    def on_hover(self, fn: Callable) -> Callable:
-        """Decorator: fires when the cursor moves over *this* line only."""
-        target_lid = self._lid
-        def _filtered(event):
-            if event.data.get("line_id") == target_lid:
-                fn(event)
-        cid = self._plot.callbacks.connect("on_line_hover", _filtered)
-        _filtered._cid = cid
-        fn._cid        = cid
-        return fn
-
     def add_event_handler(self, fn_or_type, *args, **kwargs):
         """Register a handler scoped to this line only.
 
