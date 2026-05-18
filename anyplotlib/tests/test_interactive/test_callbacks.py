@@ -468,7 +468,15 @@ class TestRegressionOldAPIGone:
         assert not hasattr(e, "phys_x")
         assert e.xdata == 3.14
 
-    def test_event_no_data_dict(self):
-        from anyplotlib.callbacks import Event
-        e = Event(event_type="pointer_move")
-        assert not hasattr(e, "data")
+    def test_plot3d_no_on_click(self):
+        import numpy as np
+        x = np.linspace(-2, 2, 10)
+        XX, YY = np.meshgrid(x, x)
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot_surface(XX, YY, np.zeros_like(XX))
+        assert not hasattr(plot, "on_click")
+
+    def test_plotbar_no_on_click(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.bar(["A", "B"], [1.0, 2.0])
+        assert not hasattr(plot, "on_click")
