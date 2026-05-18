@@ -480,3 +480,15 @@ class TestRegressionOldAPIGone:
         fig, ax = apl.subplots(1, 1)
         plot = ax.bar(["A", "B"], [1.0, 2.0])
         assert not hasattr(plot, "on_click")
+
+    def test_line1d_no_on_hover(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        line = plot.add_line(np.zeros(10))
+        assert not hasattr(line, "on_hover")
+
+    def test_line1d_no_on_click(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        line = plot.add_line(np.zeros(10))
+        assert not hasattr(line, "on_click")
