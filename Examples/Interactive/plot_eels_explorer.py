@@ -145,6 +145,8 @@ for i, handle in enumerate(overlay_lines, start=1):
 
 
 def _on_settled(event) -> None:
+    if event.xdata is None:
+        return
     ev = event.xdata
     intensity = float(np.interp(ev, ENERGY, spectra_y[active_idx]))
     label = f"eV: {ev:.1f}  I: {intensity:.3f}"
