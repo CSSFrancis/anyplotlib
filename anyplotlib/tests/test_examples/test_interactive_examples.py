@@ -16,7 +16,8 @@ SCRIPTS = [
 
 def _exec_script(name: str) -> None:
     path = EXAMPLES_DIR / name
-    spec = importlib.util.spec_from_file_location("_smoke_ex", path)
+    mod_name = f"_smoke_ex_{path.stem}"
+    spec = importlib.util.spec_from_file_location(mod_name, path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
 

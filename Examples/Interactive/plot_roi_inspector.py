@@ -116,6 +116,8 @@ def _on_leave(event) -> None:
 
 
 def _on_move(event) -> None:
+    if event.xdata is None or event.ydata is None:
+        return
     x = int(np.clip(round(event.xdata), 0, 511))
     y = int(np.clip(round(event.ydata), 0, 511))
     intensity = float(image[y, x])
@@ -123,11 +125,11 @@ def _on_move(event) -> None:
 
 
 def _on_settled(event) -> None:
-    if _roi_dragging:
+    if _roi_dragging or event.xdata is None or event.ydata is None:
         return
     roi_name = _roi_at(event.xdata, event.ydata)
     if roi_name is None:
-        print("No ROI at cursor")
+        status_label.set(text="No ROI at cursor position")
         return
     with img_plot.hold_events("pointer_settled"):
         _update_spectrum(roi_name)
@@ -140,7 +142,7 @@ img_plot.add_event_handler(_on_settled, "pointer_settled", ms=350)
 
 # ROI widget drag handlers
 for roi_name, widget in _roi_widgets.items():
-    def _make_drag_handler(name):
+    def _make_drag_handler():
         def _on_drag(event) -> None:
             global _roi_dragging
             _roi_dragging = True
@@ -155,7 +157,7 @@ for roi_name, widget in _roi_widgets.items():
             _update_spectrum(name)
         return _on_release
 
-    widget.add_event_handler(_make_drag_handler(roi_name), "pointer_move")
+    widget.add_event_handler(_make_drag_handler(), "pointer_move")
     widget.add_event_handler(_make_release_handler(roi_name, widget), "pointer_up")
 
 fig.set_help(

@@ -106,6 +106,8 @@ def _on_bar_click(event) -> None:
 
 
 def _on_settled(event) -> None:
+    if event.xdata is None or event.ydata is None:
+        return
     x = int(np.clip(round(event.xdata), 0, 511))
     y = int(np.clip(round(event.ydata), 0, 511))
     intensity = float(image[y, x])

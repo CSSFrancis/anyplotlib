@@ -141,6 +141,8 @@ def _inspect(cx_f: float, cy_f: float) -> tuple[float, float, float, float]:
 # ── event handlers ─────────────────────────────────────────────────────────────
 
 def _on_settled(event) -> None:
+    if event.xdata is None or event.ydata is None:
+        return
     hit = _nearest_candidate(event.xdata, event.ydata)
     if hit is None:
         info_label.set(text="")
@@ -155,6 +157,8 @@ def _on_settled(event) -> None:
 
 
 def _on_double_click(event) -> None:
+    if event.xdata is None or event.ydata is None:
+        return
     hit = _nearest_candidate(event.xdata, event.ydata)
     if hit is None:
         return
