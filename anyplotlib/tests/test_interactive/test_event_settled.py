@@ -163,18 +163,21 @@ class TestSettledPlaywright:
         page, plot, received = self._make_page(interact_page, ms=200)
         px, py = _plot_center_page()
 
-        # First dwell
+        def _settled_count():
+            return "() => window._aplAllEvents.filter(e => e.event_type === 'pointer_settled').length"
+
+        # First dwell — wait for the event rather than sleeping a fixed amount
         page.mouse.move(px, py)
-        page.wait_for_timeout(300)
+        page.wait_for_function(f"{_settled_count()} >= 1", timeout=2000)
+        assert len(_get_events(page, "pointer_settled")) >= 1, (
+            "First pointer_settled should have fired"
+        )
 
-        first_count = len(_get_events(page, "pointer_settled"))
-        assert first_count >= 1, "First pointer_settled should have fired"
-
-        # Move away to reset the timer, then hold again
+        # Move away to reset the timer, then hold for a second dwell period
         page.mouse.move(px + 30, py + 30)
-        page.wait_for_timeout(50)
+        page.wait_for_timeout(50)  # ensure the move is processed before re-entering
         page.mouse.move(px, py)
-        page.wait_for_timeout(300)
+        page.wait_for_function(f"{_settled_count()} >= 2", timeout=2000)
 
         second_count = len(_get_events(page, "pointer_settled"))
         assert second_count >= 2, (
