@@ -16,7 +16,7 @@ import traitlets
 from anyplotlib.axes import Axes, InsetAxes
 from anyplotlib.axes._inset_axes import _plot_kind
 from anyplotlib.figure._gridspec import SubplotSpec
-from anyplotlib.callbacks import CallbackRegistry, Event
+from anyplotlib.callbacks import Event
 from anyplotlib._repr_utils import repr_html_iframe
 
 _HERE = pathlib.Path(__file__).parent.parent
@@ -412,6 +412,7 @@ class Figure(anywidget.AnyWidget):
                 dx=msg.get("dx"),
                 dy=msg.get("dy"),
                 key=msg.get("key"),
+                last_widget_id=msg.get("last_widget_id"),
             )
             plot.callbacks.fire(event)
 
