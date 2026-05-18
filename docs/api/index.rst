@@ -71,9 +71,9 @@ directly to a class or function.
       :octicon:`bell;2em;sd-text-info` Callbacks
       ^^^
 
-      The :class:`~anyplotlib.CallbackRegistry` two-tier event system
-      (``on_change`` for live frames, ``on_release`` for settled state)
-      and the :class:`~anyplotlib.Event` dataclass.
+      The :class:`~anyplotlib.CallbackRegistry` event engine and the
+      flat :class:`~anyplotlib.Event` dataclass.
+      See :doc:`../events` for the full event-system guide.
 
 
 Figure
