@@ -35,9 +35,9 @@ or press **Backspace / Delete** to remove the last widget you clicked.
 | ``s`` | Toggle symlog scale       |
 +-------+---------------------------+
 
-The cursor coordinates reported in the event (``event.img_x``,
-``event.img_y``) are in image-pixel space, so widgets are centred exactly
-where the cursor was when the key was pressed.
+The cursor coordinates are available as ``event.xdata`` and ``event.ydata``
+in image-pixel space (column, row), so widgets are centred exactly where
+the cursor was when the key was pressed.
 
 .. note::
    Move the mouse over the image first so the plot panel receives focus,
@@ -66,7 +66,7 @@ def add_rectangle(event):
     """Press 'q' — add a rectangle centred on the cursor."""
     if event.key != 'q':
         return
-    cx, cy = event.img_x, event.img_y
+    cx, cy = event.xdata, event.ydata
     half_w, half_h = N * 0.08, N * 0.08
     plot.add_widget(
         "rectangle",
@@ -83,7 +83,7 @@ def add_circle(event):
         return
     plot.add_widget(
         "circle",
-        cx=event.img_x, cy=event.img_y,
+        cx=event.xdata, cy=event.ydata,
         r=N * 0.07,
         color="#80cbc4",
     )
@@ -96,7 +96,7 @@ def add_annulus(event):
         return
     plot.add_widget(
         "annular",
-        cx=event.img_x, cy=event.img_y,
+        cx=event.xdata, cy=event.ydata,
         r_outer=N * 0.12,
         r_inner=N * 0.06,
         color="#ce93d8",
@@ -119,10 +119,10 @@ def delete_last(event):
 
 @plot.add_event_handler("key_down")
 def log_key(event):
-    img_x = getattr(event, 'img_x', None)
-    img_y = getattr(event, 'img_y', None)
-    pos = f"({img_x:.1f}, {img_y:.1f})" if img_x is not None else "n/a"
+    xdata = event.xdata
+    ydata = event.ydata
+    pos = f"({xdata:.1f}, {ydata:.1f})" if xdata is not None else "n/a"
     print(f"[key_down] key={event.key!r}  img={pos}"
-          f"  last_widget={event.last_widget_id!r}")
+          f"  last_widget={getattr(event, 'last_widget_id', None)!r}")
 
 fig  # Interactive

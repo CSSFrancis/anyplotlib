@@ -29,6 +29,8 @@ semi-transparent overlay on the original image.
 +-----------------------------------+-----------------------------------------+
 
 The current boolean mask numpy array is always accessible as ``mask``.
+The cursor position is exposed as ``event.xdata`` (column) and
+``event.ydata`` (row) in image-pixel coordinates.
 
 .. note::
    Move the cursor over the plot so it receives keyboard focus before
@@ -163,9 +165,9 @@ def _refresh():
 @plot.add_event_handler("pointer_down")
 def _on_click(event):
     """Left-click → positive seed; Shift+Left-click → negative seed."""
-    # img_x = column, img_y = row (image-pixel coordinates)
-    col = int(round(float(event.img_x)))
-    row = int(round(float(event.img_y)))
+    # xdata = column, ydata = row (image-pixel coordinates)
+    col = int(round(float(event.xdata)))
+    row = int(round(float(event.ydata)))
     # Clamp to image bounds
     col = max(0, min(N - 1, col))
     row = max(0, min(N - 1, row))
@@ -218,8 +220,8 @@ def _delete_nearest(event):
     """Remove the seed (positive or negative) nearest to the cursor."""
     if event.key not in ('Delete', 'Backspace'):
         return
-    cx = float(event.img_x)
-    cy = float(event.img_y)   # img_y = row
+    cx = float(event.xdata)
+    cy = float(event.ydata)   # ydata = row
 
     best_dist = float("inf")
     best_list = None
