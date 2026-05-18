@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import time
 
 import anywidget
 import traitlets
@@ -361,21 +362,18 @@ class Figure(anywidget.AnyWidget):
         except Exception:
             return
 
-        # Echo guard — Python-originated pushes must not loop back
         if msg.get("source") == "python":
             return
 
         panel_id   = msg.get("panel_id", "")
-        event_type = msg.get("event_type", "on_changed")
+        event_type = msg.get("event_type", "pointer_move")
         widget_id  = msg.get("widget_id")
-        data = {k: v for k, v in msg.items()
-                if k not in ("source", "panel_id", "event_type", "widget_id")}
 
-        # Inset state changes are handled before regular plot dispatch
-        if event_type == "on_inset_state_change":
+        # Inset state changes handled before regular plot dispatch
+        if event_type == "inset_state_change":
             inset_ax = self._insets_map.get(panel_id)
             if inset_ax is not None:
-                new_state = data.get("new_state", "normal")
+                new_state = msg.get("new_state", "normal")
                 if new_state in ("normal", "minimized", "maximized"):
                     inset_ax._inset_state = new_state
                     self._push_layout()
@@ -389,11 +387,33 @@ class Figure(anywidget.AnyWidget):
         if widget_id and hasattr(plot, "_widgets"):
             widget = plot._widgets.get(widget_id)
             if widget is not None:
-                widget._update_from_js(data, event_type)
+                widget._update_from_js(msg, event_type)
                 source = widget
 
         if hasattr(plot, "callbacks"):
-            event = Event(event_type=event_type, source=source, data=data)
+            event = Event(
+                event_type=event_type,
+                source=source,
+                time_stamp=msg.get("time_stamp", time.perf_counter()),
+                modifiers=msg.get("modifiers", []),
+                x=msg.get("x"),
+                y=msg.get("y"),
+                button=msg.get("button"),
+                buttons=msg.get("buttons", 0),
+                xdata=msg.get("xdata"),
+                ydata=msg.get("ydata"),
+                ray=msg.get("ray"),
+                line_id=msg.get("line_id"),
+                dwell_ms=msg.get("dwell_ms"),
+                bar_index=msg.get("bar_index"),
+                value=msg.get("value"),
+                x_label=msg.get("x_label"),
+                group_index=msg.get("group_index"),
+                dx=msg.get("dx"),
+                dy=msg.get("dy"),
+                key=msg.get("key"),
+                last_widget_id=msg.get("last_widget_id"),
+            )
             plot.callbacks.fire(event)
 
     def _push_widget(self, panel_id: str, widget_id: str, fields: dict) -> None:

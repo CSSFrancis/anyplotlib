@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Callable
 
-from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.callbacks import CallbackRegistry, _EventMixin
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
@@ -75,7 +75,7 @@ def _bar_range(flat: np.ndarray, bottom: float, log_scale: bool):
     return dmin, dmax
 
 
-class PlotBar:
+class PlotBar(_EventMixin):
     """Bar-chart plot panel.
 
     Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
@@ -198,10 +198,16 @@ class PlotBar:
             "view_x0":       0.0,
             "view_x1":       1.0,
             "overlay_widgets": [],
-            "registered_keys": [],
+            "pointer_settled_ms":    0,
+            "pointer_settled_delta": 4,
         }
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
+
+    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+        self._state["pointer_settled_ms"]    = ms
+        self._state["pointer_settled_delta"] = delta
+        self._push()
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
@@ -390,73 +396,6 @@ class PlotBar:
     def clear_widgets(self) -> None:
         self._widgets.clear()
         self._push()
-
-    # ------------------------------------------------------------------
-    # Callbacks
-    # ------------------------------------------------------------------
-    def on_click(self, fn: Callable) -> Callable:
-        """Decorator: fires when the user clicks a bar.
-
-        The :class:`~anyplotlib.callbacks.Event` has ``bar_index``,
-        ``value``, ``x_center``, and ``x_label``.
-        """
-        cid = self.callbacks.connect("on_click", fn)
-        fn._cid = cid
-        return fn
-
-    def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: fires on every drag frame (widget drag or hover)."""
-        cid = self.callbacks.connect("on_changed", fn)
-        fn._cid = cid
-        return fn
-
-    def on_release(self, fn: Callable) -> Callable:
-        """Decorator: fires once when a widget drag settles."""
-        cid = self.callbacks.connect("on_release", fn)
-        fn._cid = cid
-        return fn
-
-    def on_key(self, key_or_fn=None) -> Callable:
-        """Register a key-press handler for this panel.
-
-        Two call forms are supported::
-
-            @plot.on_key('q')          # fires only when 'q' is pressed
-            def handler(event): ...
-
-            @plot.on_key               # fires for every registered key
-            def handler(event): ...
-
-        The event carries: ``key``, ``mouse_x``, ``mouse_y``, and
-        ``last_widget_id``.
-        """
-        if callable(key_or_fn):
-            return self._connect_on_key(None, key_or_fn)
-        key = key_or_fn
-        def _decorator(fn):
-            return self._connect_on_key(key, fn)
-        return _decorator
-
-    def _connect_on_key(self, key, fn) -> Callable:
-        if key is None:
-            if '*' not in self._state['registered_keys']:
-                self._state['registered_keys'].append('*')
-                self._push()
-            cid = self.callbacks.connect("on_key", fn)
-        else:
-            if key not in self._state['registered_keys']:
-                self._state['registered_keys'].append(key)
-                self._push()
-            def _wrapped(event):
-                if event.data.get('key') == key:
-                    fn(event)
-            cid = self.callbacks.connect("on_key", _wrapped)
-            _wrapped._cid = cid
-        fn._cid = cid
-        return fn
-
-    def disconnect(self, cid: int) -> None:
-        self.callbacks.disconnect(cid)
 
     def __repr__(self) -> str:
         n = len(self._state.get("values", []))

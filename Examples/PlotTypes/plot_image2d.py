@@ -88,16 +88,16 @@ wlo = h.add_vline_widget(vmin_init, color="#ff6e40")   # low-threshold handle
 whi = h.add_vline_widget(vmax_init, color="#ffffff")   # high-threshold handle
 
 
-@wlo.on_release
+@wlo.add_event_handler("pointer_up")
 def _apply_low(event):
     """Update image display_min when the low handle is released."""
-    v.set_clim(vmin=event.x)
+    v.set_clim(vmin=event.source.x)
 
 
-@whi.on_release
+@whi.add_event_handler("pointer_up")
 def _apply_high(event):
     """Update image display_max when the high handle is released."""
-    v.set_clim(vmax=event.x)
+    v.set_clim(vmax=event.source.x)
 
 
 fig # Interactive

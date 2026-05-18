@@ -125,14 +125,14 @@ class GaussianComponent:
             self._active = True
 
     def _wire(self):
-        @self._pt.on_changed
+        @self._pt.add_event_handler("pointer_move")
         def _peak_moved(event):
             if self._syncing:
                 return
             self._syncing = True
             try:
-                self.amp = event.data["y"]
-                self.mu  = event.data["x"]
+                self.amp = event.source.y
+                self.mu  = event.source.x
                 self._rng_w.set(x0=self.mu - self.sigma * _FWHM_K,
                                 x1=self.mu + self.sigma * _FWHM_K,
                                 y=self.amp / 2.0)
@@ -142,13 +142,13 @@ class GaussianComponent:
             finally:
                 self._syncing = False
 
-        @self._rng_w.on_changed
+        @self._rng_w.add_event_handler("pointer_move")
         def _range_moved(event):
             if self._syncing:
                 return
             self._syncing = True
             try:
-                x0, x1    = event.data["x0"], event.data["x1"]
+                x0, x1    = event.source.x0, event.source.x1
                 self.mu    = (x0 + x1) / 2.0
                 self.sigma = abs(x1 - x0) / (2.0 * _FWHM_K)
                 self._pt.set(x=self.mu)
@@ -281,14 +281,16 @@ for comp in components:
 
 # ── Key binding — press 'f' to fit ─────────────────────────────────────────
 
-@plot.on_key('f')
+@plot.add_event_handler("key_down")
 def _on_fit(event):
+    if event.key != 'f':
+        return
     model.fit()
 
 # ── Click handlers — toggle widgets per component ─────────────────────────
 
 for comp, line in zip(components, comp_lines):
-    @line.on_click
+    @line.add_event_handler("pointer_down")
     def _clicked(event, c=comp):
         c.toggle()
 
