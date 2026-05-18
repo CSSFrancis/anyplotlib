@@ -95,14 +95,14 @@ _draw_tangent(x0_init)
 @pt.add_event_handler("pointer_move")
 def _live(event):
     """Every drag frame — print the current widget position."""
-    print(f"  dragging  x={event.x:.4f}  y={event.y:.4f}", end="\r")
+    print(f"  dragging  x={event.source.x:.4f}  y={event.source.y:.4f}", end="\r")
 
 
 @pt.add_event_handler("pointer_up")
 def _settled(event):
     """On mouse-up — snap y to the curve and refresh the tangent line."""
-    print(f"  released  x={event.x:.4f}                    ")
-    _draw_tangent(event.x)
+    print(f"  released  x={event.source.x:.4f}                    ")
+    _draw_tangent(event.source.x)
 
 
 fig  # Interactive
