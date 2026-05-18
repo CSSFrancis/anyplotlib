@@ -4018,12 +4018,22 @@ function render({ model, el }) {
       tooltip.style.display = 'none';
     });
 
-    overlayCanvas.addEventListener('click', (e) => {
+    overlayCanvas.addEventListener('mousedown', (e) => {
       if (p.ovDrag) return;
       const st = p.state; if (!st) return;
       const {mx:_cmx, my:_cmy} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       const hit = _barHit(_cmx, _cmy);
-      if (hit === null) return;
+      const _baseFields = {..._pointerFields(e), button: e.button, x: _cmx, y: _cmy};
+      if (hit === null) {
+        _emitEvent(p.id, 'pointer_down', null, {
+          bar_index:   null,
+          group_index: null,
+          value:       null,
+          x_label:     null,
+          ..._baseFields,
+        });
+        return;
+      }
       const { slot: idx, group: gi } = hit;
       const gm  = _barGeom(st, _plotRect1d(p.pw, p.ph));
       const val = gm.getVal(idx, gi);
@@ -4035,8 +4045,7 @@ function render({ model, el }) {
         x_center:    (st.x_centers||[])[idx] ?? idx,
         x_label:     (st.x_labels||[])[idx] !== undefined
                        ? String(st.x_labels[idx]) : null,
-        ..._pointerFields(e),
-        x: _cmx, y: _cmy,
+        ..._baseFields,
       });
     });
 
