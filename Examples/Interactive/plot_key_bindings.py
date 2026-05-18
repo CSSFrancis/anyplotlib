@@ -123,6 +123,6 @@ def log_key(event):
     ydata = event.ydata
     pos = f"({xdata:.1f}, {ydata:.1f})" if xdata is not None else "n/a"
     print(f"[key_down] key={event.key!r}  img={pos}"
-          f"  last_widget={getattr(event, 'last_widget_id', None)!r}")
+          f"  last_widget={event.last_widget_id!r}")
 
 fig  # Interactive

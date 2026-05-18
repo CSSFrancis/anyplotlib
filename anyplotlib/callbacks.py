@@ -36,7 +36,7 @@ class Event:
         event_type, source, time_stamp, modifiers
 
     Pointer fields (pointer_* and double_click events):
-        x, y           — pixel coordinates within the panel
+        x, y           — canvas coordinates within the panel (float pixels)
         button         — 0=left 1=middle 2=right; None on move/enter/leave/settled
         buttons        — bitmask of currently held buttons
         xdata, ydata   — data-space coordinates (None for Plot3D)
@@ -52,6 +52,7 @@ class Event:
 
     Key fields:
         key            — key name e.g. "q", "Enter", "ArrowLeft"
+        last_widget_id — id of the last widget the user clicked, or None
 
     Propagation:
         stop_propagation — set True inside a handler to halt remaining handlers
@@ -61,8 +62,8 @@ class Event:
     time_stamp: float = field(default_factory=time.perf_counter)
     modifiers: list[str] = field(default_factory=list)
     # Pointer
-    x: int | None = None
-    y: int | None = None
+    x: float | None = None
+    y: float | None = None
     button: int | None = None
     buttons: int = 0
     xdata: float | None = None
@@ -80,6 +81,7 @@ class Event:
     dy: float | None = None
     # Key
     key: str | None = None
+    last_widget_id: str | None = None
     # Propagation (not repr'd)
     stop_propagation: bool = field(default=False, repr=False)
 
@@ -301,11 +303,12 @@ class _EventMixin:
         *types : str
             If given, only remove from these types. If omitted, remove from all.
         """
+        had_settled = bool(self.callbacks._handlers.get("pointer_settled"))
         if isinstance(cid_or_fn, int):
             self.callbacks.disconnect(cid_or_fn)
         else:
             self.callbacks.disconnect_fn(cid_or_fn, *types)
-        if not self.callbacks._handlers.get("pointer_settled"):
+        if had_settled and not self.callbacks._handlers.get("pointer_settled"):
             self._configure_pointer_settled(0, 0)
 
     def _configure_pointer_settled(self, ms: int, delta: float) -> None:
