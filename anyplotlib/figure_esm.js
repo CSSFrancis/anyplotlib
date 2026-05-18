@@ -1708,7 +1708,7 @@ function render({ model, el }) {
     return {
       time_stamp: performance.now() / 1000,
       modifiers:  _modifiers(e),
-      button:     e.buttons !== 0 ? e.button : null,
+      button:     null,
       buttons:    e.buttons ?? 0,
     };
   }
@@ -1758,7 +1758,7 @@ function render({ model, el }) {
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
       _emitEvent(p.id, 'pointer_up', null,
         { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
-          ..._pointerFields(e) });
+          ..._pointerFields(e), button: e.button });
       _scheduleCommit();
     });
 
@@ -2574,7 +2574,7 @@ function render({ model, el }) {
         const _did=_dw.id||null;
         p.ovDrag2d=null; overlayCanvas.style.cursor='default';
         model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-        _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e)});
+        _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
         return;
       }
       if(!p.isPanning) return;
@@ -2604,6 +2604,7 @@ function render({ model, el }) {
             xdata:physX, ydata:physY,
             x:_cc.mx, y:_cc.my,
             ..._pointerFields(e),
+            button:e.button,
           });
           // _emitEvent already calls model.save_changes() — no duplicate needed.
           return;
@@ -2613,7 +2614,7 @@ function render({ model, el }) {
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/st.zoom));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/st.zoom));
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id,'pointer_up',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom,..._pointerFields(e)});
+      _emitEvent(p.id,'pointer_up',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom,..._pointerFields(e),button:e.button});
       model.save_changes();
     });
 
@@ -2837,12 +2838,12 @@ function render({ model, el }) {
         const _did=_dw.id||null;
         p.ovDrag=null; overlayCanvas.style.cursor='crosshair';
         model.set(`panel_${p.id}_json`,JSON.stringify(p.state));
-        _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e)});
+        _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
       }
       if(p.isPanning){
         p.isPanning=false; overlayCanvas.style.cursor='crosshair';
         const st=p.state;
-        if(st) _emitEvent(p.id,'pointer_up',null,{view_x0:st.view_x0,view_x1:st.view_x1,..._pointerFields(e)});
+        if(st) _emitEvent(p.id,'pointer_up',null,{view_x0:st.view_x0,view_x1:st.view_x1,..._pointerFields(e),button:e.button});
       }
       // Line click: fire when no widget was being dragged and mouse barely moved.
       // NOTE: p.isPanning is always set true on mousedown (pan start), so we
@@ -2853,7 +2854,7 @@ function render({ model, el }) {
         if(Math.hypot(mdx,mdy)<5){
           const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
           const lhit=_lineHitTest1d(mx,my,p);
-          if(lhit) _emitEvent(p.id,'pointer_down',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y,..._pointerFields(e)});
+          if(lhit) _emitEvent(p.id,'pointer_down',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y,..._pointerFields(e),button:e.button});
         }
       }
       p._mousedownX=null;
@@ -3941,7 +3942,7 @@ function render({ model, el }) {
       p.ovDrag = null;
       overlayCanvas.style.cursor = 'default';
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'pointer_up', _did, {..._dw, ..._pointerFields(e)});
+      _emitEvent(p.id, 'pointer_up', _did, {..._dw, ..._pointerFields(e), button: e.button});
       _scheduleCommit();
     });
 
