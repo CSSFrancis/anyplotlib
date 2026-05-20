@@ -10,7 +10,7 @@ SCRIPTS = [
     "plot_particle_picker.py",
     "plot_eels_explorer.py",
     "plot_threshold_explorer.py",
-    "plot_roi_inspector.py",
+    "plot_spectra_roi_inspector.py",
 ]
 
 
