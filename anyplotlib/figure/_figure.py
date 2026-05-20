@@ -180,7 +180,21 @@ class Figure(anywidget.AnyWidget):
         >>> ax2 = fig.add_subplot((0, 1))  # top-right (via tuple)
         """
         if isinstance(spec, SubplotSpec):
-            pass  # use as-is
+            # Auto-sync Figure grid to the parent GridSpec when the GridSpec is
+            # larger than the Figure's current dimensions.  This allows the
+            # common workflow:
+            #   gs = GridSpec(2, 2, height_ratios=[3, 1])
+            #   fig = Figure(figsize=(...))   # defaults to nrows=1, ncols=1
+            #   fig.add_subplot(gs[0, :])     # Figure adopts 2×2 from GridSpec
+            # without requiring the user to repeat nrows/ncols/ratios on Figure.
+            gs = spec._gs
+            if gs is not None:
+                if gs.nrows > self._nrows:
+                    self._nrows = gs.nrows
+                    self._height_ratios = list(gs.height_ratios)
+                if gs.ncols > self._ncols:
+                    self._ncols = gs.ncols
+                    self._width_ratios = list(gs.width_ratios)
         elif isinstance(spec, int):
             row, col = divmod(spec, self._ncols)
             spec = SubplotSpec(None, row, row + 1, col, col + 1)
