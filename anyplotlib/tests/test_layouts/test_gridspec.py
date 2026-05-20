@@ -838,7 +838,240 @@ class TestPanelAlignment:
             assert h > 0, f"Panel {pid}: plot area height must be positive, got {h}"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Part 9 – Figure + GridSpec workflow (bare Figure auto-syncs to GridSpec)
+# ─────────────────────────────────────────────────────────────────────────────
 
+class TestFigureGridSpecWorkflow:
+    """Tests for the Figure + GridSpec workflow where Figure is created without
+    explicit nrows/ncols and auto-syncs its grid from the parent GridSpec.
 
+    The typical pattern under test::
+
+        gs = GridSpec(2, 2, height_ratios=[3, 1])
+        fig = Figure(figsize=(800, 600))   # defaults to nrows=1, ncols=1
+        ax = fig.add_subplot(gs[0, :])     # Figure adopts 2×2 grid from gs
+
+    Without the auto-sync, panels at row_start≥1 would get ph=0 (floored to 64)
+    because the Figure only knows about 1 row track.
+    """
+
+    def test_auto_sync_nrows_from_gridspec(self):
+        """Figure auto-updates _nrows when GridSpec has more rows."""
+        gs = GridSpec(2, 1)
+        fig = Figure(figsize=(400, 400))
+        fig.add_subplot(gs[0, 0])
+        fig.add_subplot(gs[1, 0])
+        assert fig._nrows == 2, f"nrows should auto-sync to 2, got {fig._nrows}"
+        assert fig._ncols == 1
+
+    def test_auto_sync_ncols_from_gridspec(self):
+        """Figure auto-updates _ncols when GridSpec has more columns."""
+        gs = GridSpec(1, 3)
+        fig = Figure(figsize=(600, 200))
+        fig.add_subplot(gs[0, 0])
+        fig.add_subplot(gs[0, 1])
+        fig.add_subplot(gs[0, 2])
+        assert fig._ncols == 3, f"ncols should auto-sync to 3, got {fig._ncols}"
+        assert fig._nrows == 1
+
+    def test_auto_sync_height_ratios_from_gridspec(self):
+        """height_ratios from the GridSpec are adopted into the Figure."""
+        gs = GridSpec(2, 1, height_ratios=[3, 1])
+        fig = Figure(figsize=(400, 800))
+        fig.add_subplot(gs[0, 0])
+        assert fig._height_ratios == [3, 1], (
+            f"height_ratios should be [3, 1], got {fig._height_ratios}"
+        )
+
+    def test_auto_sync_width_ratios_from_gridspec(self):
+        """width_ratios from the GridSpec are adopted into the Figure."""
+        gs = GridSpec(1, 2, width_ratios=[2, 1])
+        fig = Figure(figsize=(600, 200))
+        fig.add_subplot(gs[0, 0])
+        assert fig._width_ratios == [2, 1], (
+            f"width_ratios should be [2, 1], got {fig._width_ratios}"
+        )
+
+    def test_gridspec_height_ratios_applied_to_sizes(self):
+        """Panels at correct heights according to GridSpec height_ratios."""
+        gs = GridSpec(2, 1, height_ratios=[3, 1])
+        fig = Figure(figsize=(400, 800))
+        v0 = fig.add_subplot(gs[0, 0]).plot(np.zeros(10))
+        v1 = fig.add_subplot(gs[1, 0]).plot(np.zeros(10))
+        s = _sizes(fig)
+        ph0 = s[v0._id][1]
+        ph1 = s[v1._id][1]
+        assert approx(ph0, 600, tol=2), (
+            f"top panel should be 600px (3/4 of 800), got {ph0}"
+        )
+        assert approx(ph1, 200, tol=2), (
+            f"bottom panel should be 200px (1/4 of 800), got {ph1}"
+        )
+        assert approx(ph0, 3 * ph1, tol=3), (
+            f"3:1 height ratio not met: {ph0} vs {ph1}"
+        )
+
+    def test_gridspec_width_ratios_applied_to_sizes(self):
+        """Panels at correct widths according to GridSpec width_ratios."""
+        gs = GridSpec(1, 2, width_ratios=[2, 1])
+        fig = Figure(figsize=(600, 200))
+        v0 = fig.add_subplot(gs[0, 0]).plot(np.zeros(10))
+        v1 = fig.add_subplot(gs[0, 1]).plot(np.zeros(10))
+        s = _sizes(fig)
+        pw0 = s[v0._id][0]
+        pw1 = s[v1._id][0]
+        assert approx(pw0, 400, tol=2), (
+            f"left panel should be 400px (2/3 of 600), got {pw0}"
+        )
+        assert approx(pw1, 200, tol=2), (
+            f"right panel should be 200px (1/3 of 600), got {pw1}"
+        )
+
+    def test_two_spectra_side_by_side_not_squished(self):
+        """Two 1D spectra side by side must each get half the figure width."""
+        gs = GridSpec(1, 2)
+        fig = Figure(figsize=(800, 300))
+        v0 = fig.add_subplot(gs[0, 0]).plot(np.zeros(100))
+        v1 = fig.add_subplot(gs[0, 1]).plot(np.zeros(100))
+        s = _sizes(fig)
+        pw0, ph0 = s[v0._id]
+        pw1, ph1 = s[v1._id]
+        assert approx(pw0, 400, tol=2), (
+            f"left spectrum should be 400px wide, got {pw0}"
+        )
+        assert approx(pw1, 400, tol=2), (
+            f"right spectrum should be 400px wide, got {pw1}"
+        )
+        assert ph0 == ph1 == 300, (
+            f"both spectra should be 300px tall: {ph0}, {ph1}"
+        )
+        # Inner plot area must be substantial (not 64px-floor squished)
+        inner_w = pw0 - PAD_L - PAD_R
+        assert inner_w > 200, (
+            f"inner plot width should be >200px, got {inner_w} "
+            f"(panel was squished if ≤64)"
+        )
+
+    def test_image_and_two_spectra_correct_ratios(self):
+        """Image spanning top row (3×), two spectra below (1×) side by side.
+
+        This is the canonical use-case the bug report describes: when using
+        GridSpec with a bare Figure, the second-row spectra used to get floored
+        to 64px because Figure._height_ratios had only 1 track.
+        """
+        gs = GridSpec(2, 2, height_ratios=[3, 1])
+        fig = Figure(figsize=(800, 800))
+        v_img = fig.add_subplot(gs[0, :]).imshow(np.zeros((64, 64)))
+        v_sp1 = fig.add_subplot(gs[1, 0]).plot(np.zeros(100))
+        v_sp2 = fig.add_subplot(gs[1, 1]).plot(np.zeros(100))
+        s = _sizes(fig)
+
+        pw_img, ph_img = s[v_img._id]
+        pw_sp1, ph_sp1 = s[v_sp1._id]
+        pw_sp2, ph_sp2 = s[v_sp2._id]
+
+        # Image spans full width
+        assert pw_img == 800, f"image should span full width 800, got {pw_img}"
+        # Image gets 3/4 of height = 600px
+        assert approx(ph_img, 600, tol=2), (
+            f"image should be 600px tall (3/4 of 800), got {ph_img}"
+        )
+        # Each spectrum gets half width
+        assert approx(pw_sp1, 400, tol=2), (
+            f"left spectrum width should be 400, got {pw_sp1}"
+        )
+        assert approx(pw_sp2, 400, tol=2), (
+            f"right spectrum width should be 400, got {pw_sp2}"
+        )
+        # Spectra get 1/4 of height = 200px (not 64px floor!)
+        assert approx(ph_sp1, 200, tol=2), (
+            f"spectrum height should be 200px (1/4 of 800), not 64 floor, got {ph_sp1}"
+        )
+        assert ph_sp1 == ph_sp2, (
+            f"both spectra must have the same height: {ph_sp1} vs {ph_sp2}"
+        )
+
+    def test_explicit_figure_dims_beat_smaller_gridspec(self):
+        """When Figure has explicit nrows/ncols >= GridSpec, Figure values win."""
+        gs = GridSpec(2, 1, height_ratios=[1, 1])  # equal ratios
+        fig = Figure(2, 1, figsize=(400, 800), height_ratios=[3, 1])  # explicit 3:1
+        v0 = fig.add_subplot(gs[0, 0]).plot(np.zeros(10))
+        v1 = fig.add_subplot(gs[1, 0]).plot(np.zeros(10))
+        s = _sizes(fig)
+        ph0 = s[v0._id][1]
+        ph1 = s[v1._id][1]
+        # Figure's [3:1] must win over GridSpec's [1:1]
+        assert approx(ph0, 600, tol=2), (
+            f"Figure's 3:1 ratio must be preserved: top={ph0}, expected 600"
+        )
+        assert approx(ph1, 200, tol=2), (
+            f"Figure's 3:1 ratio must be preserved: bottom={ph1}, expected 200"
+        )
+
+    def test_layout_json_nrows_ncols_after_auto_sync(self):
+        """layout_json must reflect the auto-synced nrows/ncols."""
+        gs = GridSpec(3, 2)
+        fig = Figure(figsize=(600, 600))
+        fig.add_subplot(gs[0, 0]).plot(np.zeros(5))
+        fig.add_subplot(gs[1, 0]).plot(np.zeros(5))
+        fig.add_subplot(gs[2, 0]).plot(np.zeros(5))
+        layout = _layout(fig)
+        assert layout["nrows"] == 3, (
+            f"layout_json nrows should be 3, got {layout['nrows']}"
+        )
+        assert layout["ncols"] == 2, (
+            f"layout_json ncols should be 2, got {layout['ncols']}"
+        )
+
+    def test_second_row_panel_not_floored_to_64(self):
+        """Regression: panel at row_start=1 with a 1-row Figure used to be floored to 64px."""
+        gs = GridSpec(2, 1)
+        fig = Figure(figsize=(400, 400))
+        _ = fig.add_subplot(gs[0, 0]).plot(np.zeros(5))
+        v1 = fig.add_subplot(gs[1, 0]).plot(np.zeros(5))
+        s = _sizes(fig)
+        ph1 = s[v1._id][1]
+        assert ph1 > 64, (
+            f"Row-1 panel must NOT be floored to 64px; got ph={ph1}. "
+            "This indicates the Figure failed to auto-sync its nrows from the GridSpec."
+        )
+        assert approx(ph1, 200, tol=2), (
+            f"Row-1 panel should be 200px (half of 400), got {ph1}"
+        )
+
+    def test_three_row_gridspec_all_panels_correct_height(self):
+        """All three panels in a 3-row GridSpec (equal ratios) get 1/3 of height."""
+        gs = GridSpec(3, 1)
+        fig = Figure(figsize=(400, 600))
+        plots = [fig.add_subplot(gs[r, 0]).plot(np.zeros(5)) for r in range(3)]
+        s = _sizes(fig)
+        for i, v in enumerate(plots):
+            ph = s[v._id][1]
+            assert approx(ph, 200, tol=2), (
+                f"Panel {i} should be 200px (1/3 of 600), got {ph}"
+            )
+
+    def test_spanning_subplot_correct_size(self):
+        """gs[0, :] spanning all columns must get the full figure width."""
+        gs = GridSpec(2, 3, height_ratios=[2, 1])
+        fig = Figure(figsize=(900, 600))
+        v_top = fig.add_subplot(gs[0, :]).plot(np.zeros(10))   # spans 3 cols
+        v_bl  = fig.add_subplot(gs[1, 0]).plot(np.zeros(10))
+        v_bm  = fig.add_subplot(gs[1, 1]).plot(np.zeros(10))
+        v_br  = fig.add_subplot(gs[1, 2]).plot(np.zeros(10))
+        s = _sizes(fig)
+
+        pw_top, ph_top = s[v_top._id]
+        assert pw_top == 900, f"spanning subplot should be full width 900, got {pw_top}"
+        assert approx(ph_top, 400, tol=2), (
+            f"spanning subplot should be 400px (2/3 of 600), got {ph_top}"
+        )
+
+        # Bottom row: each panel = 300px wide, 200px tall
+        for label, v in [("bottom-left", v_bl), ("bottom-mid", v_bm), ("bottom-right", v_br)]:
+            pw, ph = s[v._id]
+            assert approx(pw, 300, tol=2), f"{label} width should be 300, got {pw}"
+            assert approx(ph, 200, tol=2), f"{label} height should be 200, got {ph}"
 
 

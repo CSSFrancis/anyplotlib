@@ -10,7 +10,7 @@ import numpy as np
 from typing import Callable
 
 from anyplotlib.markers import MarkerRegistry
-from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.callbacks import CallbackRegistry, _EventMixin
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
@@ -19,7 +19,7 @@ from anyplotlib.widgets import (
 from anyplotlib._utils import _normalize_image, _build_colormap_lut
 
 
-class Plot2D:
+class Plot2D(_EventMixin):
     """2-D image plot panel.
 
     Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
@@ -117,7 +117,8 @@ class Plot2D:
             "center_y":          0.5,
             "overlay_widgets":   [],
             "markers":           [],
-            "registered_keys":   [],
+            "pointer_settled_ms":    0,
+            "pointer_settled_delta": 4,
             # Transparent mask overlay (set via set_overlay_mask)
             "overlay_mask_b64":   "",
             "overlay_mask_color": "#ff4444",
@@ -131,6 +132,11 @@ class Plot2D:
                                       allowed=MarkerRegistry._KNOWN_2D)
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
+
+    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+        self._state["pointer_settled_ms"]    = ms
+        self._state["pointer_settled_delta"] = delta
+        self._push()
 
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
@@ -380,74 +386,6 @@ class Plot2D:
     def clear_widgets(self) -> None:
         self._widgets.clear()
         self._push()
-
-    # ------------------------------------------------------------------
-    # Callback API  (Plot2D)
-    # ------------------------------------------------------------------
-    def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: fires on every pan/zoom/drag frame on this panel."""
-        cid = self.callbacks.connect("on_changed", fn)
-        fn._cid = cid
-        return fn
-
-    def on_release(self, fn: Callable) -> Callable:
-        """Decorator: fires once when pan/zoom/drag settles on this panel."""
-        cid = self.callbacks.connect("on_release", fn)
-        fn._cid = cid
-        return fn
-
-    def on_click(self, fn: Callable) -> Callable:
-        """Decorator: fires on click on this panel."""
-        cid = self.callbacks.connect("on_click", fn)
-        fn._cid = cid
-        return fn
-
-    def on_key(self, key_or_fn=None) -> Callable:
-        """Register a key-press handler for this panel.
-
-        Two call forms are supported::
-
-            @plot.on_key('q')          # fires only when 'q' is pressed
-            def handler(event): ...
-
-            @plot.on_key               # fires for every registered key
-            def handler(event): ...
-
-        The event carries: ``key``, ``mouse_x``, ``mouse_y``, ``phys_x``,
-        and ``last_widget_id``.
-
-        .. note::
-            Registered keys take priority over the built-in **r** (reset view)
-            shortcut.
-        """
-        if callable(key_or_fn):
-            return self._connect_on_key(None, key_or_fn)
-        key = key_or_fn
-        def _decorator(fn):
-            return self._connect_on_key(key, fn)
-        return _decorator
-
-    def _connect_on_key(self, key, fn) -> Callable:
-        if key is None:
-            if '*' not in self._state['registered_keys']:
-                self._state['registered_keys'].append('*')
-                self._push()
-            cid = self.callbacks.connect("on_key", fn)
-        else:
-            if key not in self._state['registered_keys']:
-                self._state['registered_keys'].append(key)
-                self._push()
-            def _wrapped(event):
-                if event.data.get('key') == key:
-                    fn(event)
-            cid = self.callbacks.connect("on_key", _wrapped)
-            _wrapped._cid = cid
-        fn._cid = cid
-        return fn
-
-    def disconnect(self, cid: int) -> None:
-        """Remove the callback registered under integer *cid*."""
-        self.callbacks.disconnect(cid)
 
     # ------------------------------------------------------------------
     # View control

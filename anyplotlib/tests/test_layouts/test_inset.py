@@ -210,7 +210,7 @@ def test_on_event_inset_state_change():
     fig.event_json = json.dumps({
         "source":     "js",
         "panel_id":   plot._id,
-        "event_type": "on_inset_state_change",
+        "event_type": "inset_state_change",
         "new_state":  "minimized",
     })
 
@@ -227,7 +227,7 @@ def test_on_event_inset_state_restore_via_event():
     fig.event_json = json.dumps({
         "source":     "js",
         "panel_id":   plot._id,
-        "event_type": "on_inset_state_change",
+        "event_type": "inset_state_change",
         "new_state":  "normal",
     })
     assert inset.inset_state == "normal"

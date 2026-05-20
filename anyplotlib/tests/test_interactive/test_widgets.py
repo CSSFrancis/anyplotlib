@@ -6,8 +6,8 @@ Tests for the Widget class system and the event_json dispatch pipeline.
 
 Covers:
   * Widget creation, attribute access, set(), to_dict(), __setattr__
-  * on_changed / on_release / on_click decorator + disconnect
-  * _update_from_js — always fires for on_release/on_click
+  * add_event_handler / remove_handler (new _EventMixin API)
+  * _update_from_js — always fires for pointer_up/pointer_down
   * Widget visibility — hide() / show()
   * Plot2D / Plot1D widget integration (add / remove / list / clear)
   * Figure event_json dispatch (JS→Python path via _simulate_js_event)
@@ -139,60 +139,62 @@ class TestWidgetCallbacks:
     def test_on_changed_fires(self):
         w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
         results = []
-        w.on_changed(lambda event: results.append(event.x))
+        w.add_event_handler(lambda event: results.append(w.x), "pointer_move")
         w.set(x=42)
         assert results == [42.0]
 
     def test_on_changed_event_source_is_widget(self):
         w = CircleWidget(lambda: None, cx=0, cy=0, r=5)
         received = []
-        w.on_changed(lambda event: received.append(event.source))
+        w.add_event_handler(lambda event: received.append(event.source), "pointer_move")
         w.set(cx=10)
         assert received[0] is w
 
     def test_multiple_callbacks(self):
         w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
         a, b = [], []
-        w.on_changed(lambda event: a.append(1))
-        w.on_changed(lambda event: b.append(1))
+        w.add_event_handler(lambda event: a.append(1), "pointer_move")
+        w.add_event_handler(lambda event: b.append(1), "pointer_move")
         w.set(x=1)
         assert len(a) == 1 and len(b) == 1
 
     def test_disconnect_by_fn(self):
-        """Disconnecting using the function object (which has ._cid) should work."""
+        """Disconnecting using the function object should work."""
         w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
         results = []
-        fn = w.on_changed(lambda event: results.append(1))
+        fn = lambda event: results.append(1)
+        w.add_event_handler(fn, "pointer_move")
         w.set(x=1);  assert len(results) == 1
-        w.disconnect(fn)   # fn._cid is used
+        w.remove_handler(fn)
         w.set(x=2);  assert len(results) == 1
 
     def test_disconnect_by_cid(self):
-        """Disconnecting using the integer CID should also work."""
+        """Disconnecting using remove_handler with a callable should work."""
         w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
         results = []
-        fn = w.on_changed(lambda event: results.append(1))
-        w.disconnect(fn._cid)
+        fn = lambda event: results.append(1)
+        w.add_event_handler(fn, "pointer_move")
+        w.remove_handler(fn)
         w.set(x=2)
         assert results == []
 
     def test_disconnect_nonexistent_silent(self):
         w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
-        w.disconnect(9999)
+        w.remove_handler(9999)
 
     def test_on_release_decorator(self):
         w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
         results = []
-        w.on_release(lambda event: results.append(event.event_type))
-        w.callbacks.fire(Event("on_release", w, {"x": 5.0}))
-        assert results == ["on_release"]
+        w.add_event_handler(lambda event: results.append(event.event_type), "pointer_up")
+        w.callbacks.fire(Event("pointer_up", w))
+        assert results == ["pointer_up"]
 
     def test_on_click_decorator(self):
         w = CircleWidget(lambda: None, cx=0, cy=0, r=5)
         results = []
-        w.on_click(lambda event: results.append(event.event_type))
-        w.callbacks.fire(Event("on_click", w, {}))
-        assert results == ["on_click"]
+        w.add_event_handler(lambda event: results.append(event.event_type), "pointer_down")
+        w.callbacks.fire(Event("pointer_down", w))
+        assert results == ["pointer_down"]
 
 
 class TestWidgetUpdateFromJs:
@@ -209,32 +211,32 @@ class TestWidgetUpdateFromJs:
     def test_update_fires_on_changed_when_changed(self):
         w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
         results = []
-        w.on_changed(lambda event: results.append(event.x))
+        w.add_event_handler(lambda event: results.append(event.x), "pointer_move")
         w._update_from_js({"x": 99.0})
         assert results == [99.0]
 
     def test_update_does_not_fire_on_changed_if_unchanged(self):
         w = RectangleWidget(lambda: None, x=5, y=5, w=10, h=10, color="#abc")
         results = []
-        w.on_changed(lambda event: results.append(1))
+        w.add_event_handler(lambda event: results.append(1), "pointer_move")
         w._update_from_js({"x": 5.0, "y": 5.0, "w": 10.0, "h": 10.0, "color": "#abc"})
         assert results == []
 
     def test_update_always_fires_on_release(self):
-        """on_release fires even when nothing changed (drag ended in place)."""
+        """pointer_up fires even when nothing changed (drag ended in place)."""
         w = RectangleWidget(lambda: None, x=5, y=5, w=10, h=10)
         results = []
-        w.on_release(lambda event: results.append(1))
+        w.add_event_handler(lambda event: results.append(1), "pointer_up")
         w._update_from_js({"x": 5.0, "y": 5.0, "w": 10.0, "h": 10.0},
-                          event_type="on_release")
+                          event_type="pointer_up")
         assert results == [1]
 
     def test_update_always_fires_on_click(self):
-        """on_click fires even when nothing changed."""
+        """pointer_down fires even when nothing changed."""
         w = CrosshairWidget(lambda: None, cx=16.0, cy=16.0)
         results = []
-        w.on_click(lambda event: results.append(1))
-        w._update_from_js({"cx": 16.0, "cy": 16.0}, event_type="on_click")
+        w.add_event_handler(lambda event: results.append(1), "pointer_down")
+        w._update_from_js({"cx": 16.0, "cy": 16.0}, event_type="pointer_down")
         assert results == [1]
 
     def test_id_and_type_ignored(self):
@@ -392,35 +394,35 @@ class TestEventJsonDispatch:
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("rectangle", x=10, y=10, w=20, h=20)
         results = []
-        w.on_changed(lambda event: results.append((event.x, event.y)))
+        w.add_event_handler(lambda event: results.append((event.x, event.y)), "pointer_move")
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w, x=50.0, y=60.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w, x=50.0, y=60.0)
 
         assert len(results) == 1
         assert results[0] == (50.0, 60.0)
         assert w.x == 50.0 and w.y == 60.0
 
     def test_no_change_no_on_changed_callback(self):
-        """on_changed must NOT fire when nothing actually changed."""
+        """pointer_move must NOT fire when nothing actually changed."""
         fig, ax = apl.subplots(1, 1)
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("rectangle", x=10, y=10, w=20, h=20)
         results = []
-        w.on_changed(lambda event: results.append(1))
+        w.add_event_handler(lambda event: results.append(1), "pointer_move")
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w,
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w,
                            x=10.0, y=10.0, w=20.0, h=20.0)
         assert results == []
 
     def test_on_release_always_fires(self):
-        """on_release fires even when position didn't change."""
+        """pointer_up fires even when position didn't change."""
         fig, ax = apl.subplots(1, 1)
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("rectangle", x=10, y=10, w=20, h=20)
         results = []
-        w.on_release(lambda event: results.append(1))
+        w.add_event_handler(lambda event: results.append(1), "pointer_up")
 
-        _simulate_js_event(fig, v, "on_release", widget_id=w,
+        _simulate_js_event(fig, v, "pointer_up", widget_id=w,
                            x=10.0, y=10.0, w=20.0, h=20.0)
         assert len(results) == 1
 
@@ -429,44 +431,44 @@ class TestEventJsonDispatch:
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("crosshair", cx=16.0, cy=16.0)
         results = []
-        w.on_click(lambda event: results.append(event.cx))
+        w.add_event_handler(lambda event: results.append(w.cx), "pointer_down")
 
-        _simulate_js_event(fig, v, "on_click", widget_id=w, cx=16.0, cy=16.0)
+        _simulate_js_event(fig, v, "pointer_down", widget_id=w, cx=16.0, cy=16.0)
         assert len(results) == 1
         assert results[0] == pytest.approx(16.0)
 
     def test_on_click_line1d_overlay_fires(self):
-        """Line1D.on_click fires when JS sends on_line_click with the matching line_id."""
+        """Line1D.add_event_handler fires when JS sends pointer_down with the matching line_id."""
         fig, ax = apl.subplots(1, 1)
         v = ax.plot(np.zeros(64))
         line = v.add_line(np.ones(64), color="#ff0000")
         results = []
-        line.on_click(lambda event: results.append(event.line_id))
+        line.add_event_handler(lambda event: results.append(event.line_id), "pointer_down")
 
-        _simulate_js_event(fig, v, "on_line_click", line_id=line.id)
+        _simulate_js_event(fig, v, "pointer_down", line_id=line.id)
         assert len(results) == 1
         assert results[0] == line.id
 
     def test_on_click_line1d_primary_fires(self):
-        """Line1D.on_click on the primary line fires when JS sends on_line_click with no line_id."""
+        """Line1D.add_event_handler on the primary line fires when JS sends pointer_down with no line_id."""
         fig, ax = apl.subplots(1, 1)
         v = ax.plot(np.zeros(64))
         results = []
-        v.line.on_click(lambda event: results.append(1))
+        v.line.add_event_handler(lambda event: results.append(1), "pointer_down")
 
-        # No line_id in payload → event.data.get("line_id") is None → matches primary
-        _simulate_js_event(fig, v, "on_line_click")
+        # No line_id in payload → event.line_id is None → matches primary
+        _simulate_js_event(fig, v, "pointer_down")
         assert len(results) == 1
 
     def test_on_click_line1d_wrong_id_no_fire(self):
-        """Line1D.on_click does NOT fire when the JS event carries a different line_id."""
+        """Line1D.add_event_handler does NOT fire when the JS event carries a different line_id."""
         fig, ax = apl.subplots(1, 1)
         v = ax.plot(np.zeros(64))
         line = v.add_line(np.ones(64), color="#00ff00")
         results = []
-        line.on_click(lambda event: results.append(1))
+        line.add_event_handler(lambda event: results.append(1), "pointer_down")
 
-        _simulate_js_event(fig, v, "on_line_click", line_id="completely-wrong-id")
+        _simulate_js_event(fig, v, "pointer_down", line_id="completely-wrong-id")
         assert results == []
 
     def test_circle_drag(self):
@@ -474,19 +476,19 @@ class TestEventJsonDispatch:
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("circle", cx=16, cy=16, r=5)
         results = []
-        w.on_changed(lambda event: results.append(event.cx))
+        w.add_event_handler(lambda event: results.append(w.cx), "pointer_move")
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w, cx=25.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w, cx=25.0)
         assert results == [25.0]
 
     def test_python_set_does_not_echo(self):
-        """Python widget.set() triggers on_changed once (from set itself),
+        """Python widget.set() triggers pointer_move once (from set itself),
         but the subsequent event_json push must NOT re-fire callbacks."""
         fig, ax = apl.subplots(1, 1)
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("rectangle", x=10, y=10, w=20, h=20)
         results = []
-        w.on_changed(lambda event: results.append("cb"))
+        w.add_event_handler(lambda event: results.append("cb"), "pointer_move")
 
         w.set(x=99)
         assert results == ["cb"]   # one fire from set()
@@ -501,10 +503,10 @@ class TestEventJsonDispatch:
         w1 = v.add_widget("circle", cx=10, cy=10, r=5)
         w2 = v.add_widget("rectangle", x=0, y=0, w=10, h=10)
         r1, r2 = [], []
-        w1.on_changed(lambda e: r1.append(1))
-        w2.on_changed(lambda e: r2.append(1))
+        w1.add_event_handler(lambda e: r1.append(1), "pointer_move")
+        w2.add_event_handler(lambda e: r2.append(1), "pointer_move")
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w2, x=50.0, y=50.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w2, x=50.0, y=50.0)
         assert r1 == []
         assert len(r2) == 1
 
@@ -515,10 +517,10 @@ class TestEventJsonDispatch:
         w1 = v1.add_widget("circle", cx=8, cy=8, r=3)
         w2 = v2.add_widget("circle", cx=8, cy=8, r=3)
         r1, r2 = [], []
-        w1.on_changed(lambda e: r1.append(1))
-        w2.on_changed(lambda e: r2.append(1))
+        w1.add_event_handler(lambda e: r1.append(1), "pointer_move")
+        w2.add_event_handler(lambda e: r2.append(1), "pointer_move")
 
-        _simulate_js_event(fig, v1, "on_changed", widget_id=w1, cx=12.0)
+        _simulate_js_event(fig, v1, "pointer_move", widget_id=w1, cx=12.0)
         assert len(r1) == 1 and r2 == []
 
     def test_1d_vline_drag(self):
@@ -526,9 +528,9 @@ class TestEventJsonDispatch:
         v = ax.plot(np.zeros(64))
         w = v.add_vline_widget(x=10.0)
         results = []
-        w.on_changed(lambda event: results.append(event.x))
+        w.add_event_handler(lambda event: results.append(w.x), "pointer_move")
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w, x=30.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w, x=30.0)
         assert results == [30.0]
 
     def test_1d_range_drag(self):
@@ -536,9 +538,9 @@ class TestEventJsonDispatch:
         v = ax.plot(np.zeros(64))
         w = v.add_range_widget(x0=10, x1=20)
         results = []
-        w.on_changed(lambda event: results.append((event.x0, event.x1)))
+        w.add_event_handler(lambda event: results.append((w.x0, w.x1)), "pointer_move")
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w, x0=15.0, x1=25.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w, x0=15.0, x1=25.0)
         assert results == [(15.0, 25.0)]
 
     def test_disconnect_prevents_callback(self):
@@ -546,10 +548,11 @@ class TestEventJsonDispatch:
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("rectangle", x=0, y=0, w=10, h=10)
         results = []
-        fn = w.on_changed(lambda event: results.append(1))
-        w.disconnect(fn)
+        fn = lambda event: results.append(1)
+        w.add_event_handler(fn, "pointer_move")
+        w.remove_handler(fn)
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w, x=50.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w, x=50.0)
         assert results == []
 
     def test_widget_state_synced_after_js_event(self):
@@ -557,7 +560,7 @@ class TestEventJsonDispatch:
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("rectangle", x=0, y=0, w=10, h=10)
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=w,
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w,
                            x=77.0, y=88.0, w=33.0, h=44.0)
         assert w.x == 77.0 and w.y == 88.0 and w.w == 33.0 and w.h == 44.0
 
@@ -567,7 +570,7 @@ class TestEventJsonDispatch:
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("circle", cx=0.0, cy=0.0, r=5.0)
 
-        _simulate_js_event(fig, v, "on_release", widget_id=w, cx=20.0, cy=30.0)
+        _simulate_js_event(fig, v, "pointer_up", widget_id=w, cx=20.0, cy=30.0)
         assert w.cx == pytest.approx(20.0)
         assert w.cy == pytest.approx(30.0)
 
@@ -621,15 +624,15 @@ class TestInteractiveFft:
         initial_b64 = v_fft._state["image_b64"]
         updates = []
 
-        @rect.on_changed
+        @rect.add_event_handler("pointer_move")
         def on_rect_changed(event):
             log_mag, freq_x, freq_y = self._compute_fft(
-                img, event.x, event.y, event.w, event.h)
+                img, rect.x, rect.y, rect.w, rect.h)
             v_fft.set_data(log_mag, x_axis=freq_x, y_axis=freq_y, units="1/Å")
-            updates.append({"x": event.x, "y": event.y,
-                            "w": event.w, "h": event.h})
+            updates.append({"x": rect.x, "y": rect.y,
+                            "w": rect.w, "h": rect.h})
 
-        _simulate_js_event(fig, v_real, "on_changed", widget_id=rect,
+        _simulate_js_event(fig, v_real, "pointer_move", widget_id=rect,
                            x=0.0, y=0.0, w=48.0, h=48.0)
 
         assert len(updates) == 1
@@ -643,10 +646,10 @@ class TestInteractiveFft:
         v = ax.imshow(img)
         rect = v.add_widget("rectangle", x=0, y=0, w=16, h=16)
         count = [0]
-        rect.on_changed(lambda e: count.__setitem__(0, count[0] + 1))
+        rect.add_event_handler(lambda e: count.__setitem__(0, count[0] + 1), "pointer_move")
 
         for i in range(5):
-            _simulate_js_event(fig, v, "on_changed", widget_id=rect, x=float(i))
+            _simulate_js_event(fig, v, "pointer_move", widget_id=rect, x=float(i))
 
         # Only fires when something actually changed — first fire is from x=0
         # (which equals the initial value, no change), then 1,2,3,4 = 4 fires
@@ -657,13 +660,14 @@ class TestInteractiveFft:
         v = ax.imshow(np.zeros((32, 32)))
         rect = v.add_widget("rectangle", x=0, y=0, w=10, h=10)
         results = []
-        fn = rect.on_changed(lambda e: results.append(1))
+        fn = lambda e: results.append(1)
+        rect.add_event_handler(fn, "pointer_move")
 
-        _simulate_js_event(fig, v, "on_changed", widget_id=rect, x=5.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=rect, x=5.0)
         assert len(results) == 1
 
-        rect.disconnect(fn)
-        _simulate_js_event(fig, v, "on_changed", widget_id=rect, x=10.0)
+        rect.remove_handler(fn)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=rect, x=10.0)
         assert len(results) == 1
 
     def test_on_release_after_drags(self):
@@ -674,12 +678,12 @@ class TestInteractiveFft:
         rect = v.add_widget("rectangle", x=0, y=0, w=16, h=16)
         drag_count = [0];  release_count = [0]
 
-        rect.on_changed(lambda e: drag_count.__setitem__(0, drag_count[0] + 1))
-        rect.on_release(lambda e: release_count.__setitem__(0, release_count[0] + 1))
+        rect.add_event_handler(lambda e: drag_count.__setitem__(0, drag_count[0] + 1), "pointer_move")
+        rect.add_event_handler(lambda e: release_count.__setitem__(0, release_count[0] + 1), "pointer_up")
 
         for i in range(1, 6):
-            _simulate_js_event(fig, v, "on_changed", widget_id=rect, x=float(i))
-        _simulate_js_event(fig, v, "on_release", widget_id=rect, x=5.0)
+            _simulate_js_event(fig, v, "pointer_move", widget_id=rect, x=float(i))
+        _simulate_js_event(fig, v, "pointer_up", widget_id=rect, x=5.0)
 
         assert drag_count[0] == 5
         assert release_count[0] == 1
@@ -727,18 +731,18 @@ class TestWidgetVisibility:
         assert len(pushed) == 1
 
     def test_hide_does_not_fire_on_changed(self):
-        """hide() must NOT fire on_changed callbacks."""
+        """hide() must NOT fire pointer_move callbacks."""
         w = CircleWidget(lambda: None, cx=0, cy=0, r=5)
         fired = []
-        w.on_changed(lambda e: fired.append(1))
+        w.add_event_handler(lambda e: fired.append(1), "pointer_move")
         w.hide()
         assert fired == []
 
     def test_show_does_not_fire_on_changed(self):
-        """show() must NOT fire on_changed callbacks."""
+        """show() must NOT fire pointer_move callbacks."""
         w = CircleWidget(lambda: None, cx=0, cy=0, r=5)
         fired = []
-        w.on_changed(lambda e: fired.append(1))
+        w.add_event_handler(lambda e: fired.append(1), "pointer_move")
         w.hide()
         w.show()
         assert fired == []
@@ -783,10 +787,10 @@ class TestWidgetVisibility:
         v = ax.imshow(np.zeros((32, 32)))
         w = v.add_widget("circle", cx=10, cy=10, r=5)
         fired = []
-        w.on_changed(lambda e: fired.append(e.cx))
+        w.add_event_handler(lambda e: fired.append(w.cx), "pointer_move")
         w.hide()
         w.show()
-        _simulate_js_event(fig, v, "on_changed", widget_id=w, cx=20.0)
+        _simulate_js_event(fig, v, "pointer_move", widget_id=w, cx=20.0)
         assert fired == [20.0]
 
     def test_hide_show_1d_range_widget(self):
@@ -875,14 +879,14 @@ class _GaussianController:
             self._active = True
 
     def _wire(self):
-        @self._pt.on_changed
+        @self._pt.add_event_handler("pointer_move")
         def _peak_moved(event):
             if self._syncing:
                 return
             self._syncing = True
             try:
-                self.amp = event.data["y"]
-                self.mu  = event.data["x"]
+                self.amp = self._pt.y
+                self.mu  = self._pt.x
                 self._rng_w.set(x0=self.mu - self.sigma,
                                 x1=self.mu + self.sigma)
                 self.line.set_data(self.component_y())
@@ -890,13 +894,13 @@ class _GaussianController:
             finally:
                 self._syncing = False
 
-        @self._rng_w.on_changed
+        @self._rng_w.add_event_handler("pointer_move")
         def _range_moved(event):
             if self._syncing:
                 return
             self._syncing = True
             try:
-                x0, x1    = event.data["x0"], event.data["x1"]
+                x0, x1    = self._rng_w.x0, self._rng_w.x1
                 self.mu    = (x0 + x1) / 2.0
                 self.sigma = abs(x1 - x0) / 2.0
                 self._pt.set(x=self.mu)
@@ -1042,7 +1046,7 @@ class TestInteractiveFitting:
         ctrl = ctrls[0]
         ctrl.toggle()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._pt, x=3.5, y=0.9)
 
         assert ctrl.mu  == pytest.approx(3.5)
@@ -1055,7 +1059,7 @@ class TestInteractiveFitting:
         ctrl.toggle()
         original_sigma = ctrl.sigma
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._pt, x=4.0, y=1.0)
 
         expected_x0 = 4.0 - original_sigma
@@ -1070,7 +1074,7 @@ class TestInteractiveFitting:
         ctrl.toggle()
 
         old_data = _gaussian(x, ctrl.amp, ctrl.mu, ctrl.sigma).copy()
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._pt, x=4.0, y=0.8)
 
         # Find the extra_line entry for comp_lines[0]
@@ -1086,7 +1090,7 @@ class TestInteractiveFitting:
         ctrl = ctrls[0]
         ctrl.toggle()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._pt, x=3.5, y=0.9)
 
         assert refit_calls[0] >= 1
@@ -1101,7 +1105,7 @@ class TestInteractiveFitting:
         entry_before = next(e for e in plot._state["extra_lines"] if e["id"] == lid)
         old_fit = entry_before["data"].copy()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._pt, x=4.5, y=0.5)
 
         entry_after = next(e for e in plot._state["extra_lines"] if e["id"] == lid)
@@ -1115,7 +1119,7 @@ class TestInteractiveFitting:
         ctrl = ctrls[0]
         ctrl.toggle()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._rng_w, x0=2.5, x1=4.5)
 
         assert ctrl.mu    == pytest.approx(3.5)
@@ -1127,7 +1131,7 @@ class TestInteractiveFitting:
         ctrl = ctrls[0]
         ctrl.toggle()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._rng_w, x0=2.0, x1=5.0)
 
         assert ctrl._pt.x == pytest.approx(3.5)
@@ -1138,7 +1142,7 @@ class TestInteractiveFitting:
         ctrl = ctrls[0]
         ctrl.toggle()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._rng_w, x0=2.5, x1=4.5)
 
         lid = ctrl.line.id
@@ -1152,7 +1156,7 @@ class TestInteractiveFitting:
         ctrl = ctrls[0]
         ctrl.toggle()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrl._rng_w, x0=2.5, x1=4.5)
 
         assert refit_calls[0] >= 1
@@ -1167,7 +1171,7 @@ class TestInteractiveFitting:
 
         old_mu1 = ctrls[1].mu
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrls[0]._pt, x=3.8, y=1.1)
 
         assert ctrls[1].mu == pytest.approx(old_mu1)
@@ -1196,16 +1200,16 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
         ctrl = ctrls[0]
 
-        # Wire up the line.on_click handler (same as the example)
-        @ctrl.line.on_click
+        # Wire up the line click handler (same as the example)
+        @ctrl.line.add_event_handler("pointer_down")
         def _clicked(event, c=ctrl):
             c.toggle()
 
-        # Simulate JS sending an on_line_click event for comp_lines[0]
+        # Simulate JS sending a pointer_down event for comp_lines[0]
         fig._on_event({"new": __import__("json").dumps({
             "source": "js",
             "panel_id": plot._id,
-            "event_type": "on_line_click",
+            "event_type": "pointer_down",
             "line_id": ctrl.line.id,
         })})
 
@@ -1217,7 +1221,7 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
         ctrl = ctrls[0]
 
-        @ctrl.line.on_click
+        @ctrl.line.add_event_handler("pointer_down")
         def _clicked(event, c=ctrl):
             c.toggle()
 
@@ -1227,7 +1231,7 @@ class TestInteractiveFitting:
             fig._on_event({"new": _json.dumps({
                 "source": "js",
                 "panel_id": plot._id,
-                "event_type": "on_line_click",
+                "event_type": "pointer_down",
                 "line_id": ctrl.line.id,
             })})
 
@@ -1242,7 +1246,7 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = self._build()
         ctrl = ctrls[0]
 
-        @ctrl.line.on_click
+        @ctrl.line.add_event_handler("pointer_down")
         def _clicked(event, c=ctrl):
             c.toggle()
 
@@ -1250,7 +1254,7 @@ class TestInteractiveFitting:
         fig._on_event({"new": _json.dumps({
             "source": "js",
             "panel_id": plot._id,
-            "event_type": "on_line_click",
+            "event_type": "pointer_down",
             "line_id": "completely-wrong-id",
         })})
 
@@ -1259,12 +1263,12 @@ class TestInteractiveFitting:
     # ── example-mirroring tests ───────────────────────────────────────────────
 
     def _build_with_click_handlers(self):
-        """Same as _build() but wires line.on_click → ctrl.toggle() for both
+        """Same as _build() but wires line click → ctrl.toggle() for both
         components, exactly as the for-loop in plot_interactive_fitting.py."""
         result = self._build()
         _, _, controllers, *_ = result
         for ctrl in controllers:
-            @ctrl.line.on_click
+            @ctrl.line.add_event_handler("pointer_down")
             def _clicked(event, c=ctrl):
                 c.toggle()
         return result
@@ -1276,7 +1280,7 @@ class TestInteractiveFitting:
             self._build_with_click_handlers()
 
         # Click component 0
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[0].line.id)
         assert ctrls[0]._active is True
         assert ctrls[0]._pt is not None
         assert ctrls[0]._rng_w is not None
@@ -1285,7 +1289,7 @@ class TestInteractiveFitting:
         assert ctrls[1]._active is False  # other controller untouched
 
         # Click component 1
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[1].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[1].line.id)
         assert ctrls[1]._active is True
         assert ctrls[1]._pt.visible is True
         assert ctrls[1]._rng_w.visible is True
@@ -1297,10 +1301,10 @@ class TestInteractiveFitting:
 
         assert len(plot.list_widgets()) == 0
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[0].line.id)
         assert len(plot.list_widgets()) == 2   # PointWidget + RangeWidget
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[1].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[1].line.id)
         assert len(plot.list_widgets()) == 4   # +2 for ctrl[1]
 
     def test_example_second_click_hides_widgets(self):
@@ -1309,7 +1313,7 @@ class TestInteractiveFitting:
             self._build_with_click_handlers()
 
         def _click(ctrl):
-            _simulate_js_event(fig, plot, "on_line_click",
+            _simulate_js_event(fig, plot, "pointer_down",
                                 line_id=ctrl.line.id)
 
         _click(ctrls[0])   # show
@@ -1327,7 +1331,7 @@ class TestInteractiveFitting:
             self._build_with_click_handlers()
 
         def _click(ctrl):
-            _simulate_js_event(fig, plot, "on_line_click",
+            _simulate_js_event(fig, plot, "pointer_down",
                                 line_id=ctrl.line.id)
 
         _click(ctrls[0])
@@ -1349,7 +1353,7 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = \
             self._build_with_click_handlers()
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id=ctrls[0].line.id)
+        _simulate_js_event(fig, plot, "pointer_down", line_id=ctrls[0].line.id)
         assert ctrls[0]._active is True
 
         lid = fit_line.id
@@ -1357,7 +1361,7 @@ class TestInteractiveFitting:
             e for e in plot._state["extra_lines"] if e["id"] == lid
         )["data"].copy()
 
-        _simulate_js_event(fig, plot, "on_changed",
+        _simulate_js_event(fig, plot, "pointer_move",
                            widget_id=ctrls[0]._pt, x=4.0, y=0.8)
 
         fit_after = next(
@@ -1371,9 +1375,6 @@ class TestInteractiveFitting:
         fig, plot, ctrls, fit_line, x, signal, refit_calls = \
             self._build_with_click_handlers()
 
-        _simulate_js_event(fig, plot, "on_line_click", line_id="no-such-line")
+        _simulate_js_event(fig, plot, "pointer_down", line_id="no-such-line")
         assert ctrls[0]._active is False
         assert ctrls[1]._active is False
-
-
-

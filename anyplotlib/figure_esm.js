@@ -702,7 +702,7 @@ function render({ model, el }) {
         _applyAllInsetStates(layout);
       }
     } catch(_) {}
-    _emitEvent(p.id, 'on_inset_state_change', null, { new_state: newState });
+    _emitEvent(p.id, 'inset_state_change', null, { new_state: newState });
   }
 
   // ── _applyAllInsetStates ──────────────────────────────────────────────────
@@ -936,17 +936,17 @@ function render({ model, el }) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
     const iw = st.image_width, ih = st.image_height;
+    // +0.5: image coordinate i is the centre of pixel i, which renders at
+    // (i + 0.5) * scale in the canvas — not the leading edge (i * scale).
     if (zoom < 1.0) {
-      // Zoom-out path: full image drawn centred inside a scaled-down fit-rect
-      // (mirrors the zoom<1 branch in _blit2d exactly).
       const dstW = w * zoom, dstH = h * zoom;
       const dstX = x + (w - dstW) / 2, dstY = y + (h - dstH) / 2;
-      return [dstX + (ix / iw) * dstW, dstY + (iy / ih) * dstH];
+      return [dstX + (ix + 0.5) / iw * dstW, dstY + (iy + 0.5) / ih * dstH];
     }
     const visW = iw / zoom, visH = ih / zoom;
     const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
     const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
-    return [x + (ix - srcX) / visW * w, y + (iy - srcY) / visH * h];
+    return [x + (ix + 0.5 - srcX) / visW * w, y + (iy + 0.5 - srcY) / visH * h];
   }
 
   // Returns canvas-px per image-px at the current zoom (uniform in x and y).
@@ -994,26 +994,25 @@ function render({ model, el }) {
 
     if(!b64||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
 
-    let bytes;
-    try {
-      const bin=atob(b64);
-      bytes=new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    } catch(_){return;}
-
     const lk=_lutKey(st);
-    const needRebuild = bytes!==blitCache.bytesKey || lk!==blitCache.lutKey
+    const needRebuild = b64!==blitCache.bytesKey || lk!==blitCache.lutKey
                      || !blitCache.bitmap || blitCache.w!==iw || blitCache.h!==ih;
     if(!needRebuild && blitCache.bitmap){
       _blit2d(blitCache.bitmap, st, imgW, imgH, ctx);
     } else {
+      let bytes;
+      try {
+        const bin=atob(b64);
+        bytes=new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      } catch(_){return;}
       const lut=_buildLut32(st);
       const imgData=new ImageData(iw,ih);
       const out32=new Uint32Array(imgData.data.buffer);
       for(let i=0;i<iw*ih;i++) out32[i]=lut[bytes[i]];
       const oc=new OffscreenCanvas(iw,ih);
       oc.getContext('2d').putImageData(imgData,0,0);
-      blitCache.bitmap=oc; blitCache.bytesKey=bytes; blitCache.lutKey=lk;
+      blitCache.bitmap=oc; blitCache.bytesKey=b64; blitCache.lutKey=lk;
       blitCache.w=iw; blitCache.h=ih;
       _blit2d(oc, st, imgW, imgH, ctx);
     }
@@ -1684,7 +1683,7 @@ function render({ model, el }) {
   }
 
   // ── event emission helper (module-scope: accessible to all attach fns) ──
-  // eventType: 'on_changed' | 'on_release' | 'on_click'
+  // eventType: any pointer_* or key_* event type string
   function _emitEvent(panelId, eventType, widgetId, extraData) {
     const payload = Object.assign(
       { source: 'js', panel_id: panelId, event_type: eventType,
@@ -1695,10 +1694,30 @@ function render({ model, el }) {
     model.save_changes();
   }
 
+  function _modifiers(e) {
+    const mods = [];
+    if (e.ctrlKey)  mods.push("ctrl");
+    if (e.shiftKey) mods.push("shift");
+    if (e.altKey)   mods.push("alt");
+    if (e.metaKey)  mods.push("meta");
+    return mods;
+  }
+
+  function _pointerFields(e) {
+    return {
+      time_stamp: performance.now() / 1000,
+      modifiers:  _modifiers(e),
+      button:     null,
+      buttons:    e.buttons ?? 0,
+    };
+  }
+
   function _attachEvents3d(p) {
     const { overlayCanvas } = p;
     let dragStart = null;
     let commitPending = false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit() {
       if (commitPending) return; commitPending = true;
       requestAnimationFrame(() => {
@@ -1714,7 +1733,7 @@ function render({ model, el }) {
       dragStart = { mx: _d3mx, my: _d3my,
                     az: p.state.azimuth, el: p.state.elevation };
       overlayCanvas.style.cursor = 'grabbing';
-      e.preventDefault();
+      // Do NOT call e.preventDefault() — suppresses click → dblclick cascade.
     });
     document.addEventListener('mousemove', (e) => {
       if (!dragStart) return;
@@ -1725,17 +1744,20 @@ function render({ model, el }) {
       p.state.elevation = Math.max(-89, Math.min(89, dragStart.el - dy * 0.5));
       draw3d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'on_changed', null,
-        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
+      _emitEvent(p.id, 'pointer_move', null,
+        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
+          ..._pointerFields(e) });
       e.preventDefault();
     });
-    document.addEventListener('mouseup', () => {
+    document.addEventListener('mouseup', (e) => {
+      clearTimeout(_settledTimer); _settledTimer = null;
       if (!dragStart) return;
       dragStart = null;
       overlayCanvas.style.cursor = 'grab';
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'on_release', null,
-        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
+      _emitEvent(p.id, 'pointer_up', null,
+        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
+          ..._pointerFields(e), button: e.button });
       _scheduleCommit();
     });
 
@@ -1744,8 +1766,15 @@ function render({ model, el }) {
       p.state.zoom = Math.max(0.1, Math.min(10, p.state.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
       draw3d(p);
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'on_changed', null,
-        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom });
+      _emitEvent(p.id, 'wheel', null, {
+        time_stamp: performance.now() / 1000,
+        modifiers: _modifiers(e),
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
+        dx: e.deltaX, dy: e.deltaY,
+      });
+      _emitEvent(p.id, 'pointer_move', null,
+        { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
+          ..._pointerFields(e) });
       _scheduleCommit();
     }, { passive: false });
 
@@ -1753,21 +1782,44 @@ function render({ model, el }) {
       const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       p.mouseX = mx;
       p.mouseY = my;
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            const _now = performance.now();
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              dwell_ms:   _now - _settledStartTs,
+            });
+          }
+        }, _settledMs);
+      }
     });
 
     // Keyboard shortcuts
-    // Built-in: r=reset view. Registered keys are forwarded to Python first.
+    // Built-in: r=reset view. All keys are forwarded to Python unconditionally.
     overlayCanvas.addEventListener('keydown', (e) => {
       const st = p.state; if (!st) return;
-      const regKeys = st.registered_keys || [];
-      if (regKeys.includes(e.key) || regKeys.includes('*')) {
-        _emitEvent(p.id, 'on_key', null, {
-          key: e.key,
-          last_widget_id: p.lastWidgetId || null,
-          mouse_x: p.mouseX, mouse_y: p.mouseY,
-        });
-        e.stopPropagation(); e.preventDefault(); return;
-      }
+      _emitEvent(p.id, 'key_down', null, {
+        time_stamp: performance.now() / 1000,
+        modifiers: _modifiers(e),
+        key: e.key,
+        last_widget_id: p.lastWidgetId || null,
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
+      });
       if (e.key.toLowerCase() === 'r') {
         p.state.azimuth = -60; p.state.elevation = 30; p.state.zoom = 1;
         draw3d(p);
@@ -1779,7 +1831,26 @@ function render({ model, el }) {
     overlayCanvas.tabIndex = 0;
     overlayCanvas.style.outline = 'none';
     overlayCanvas.style.cursor  = 'grab';
-    overlayCanvas.addEventListener('mouseenter', () => overlayCanvas.focus());
+    overlayCanvas.addEventListener('mouseenter', (e) => {
+      overlayCanvas.focus();
+      _emitEvent(p.id, 'pointer_enter', null, {..._pointerFields(e), x: e.offsetX, y: e.offsetY});
+    });
+    overlayCanvas.addEventListener('mouseleave', (e) => {
+      clearTimeout(_settledTimer); _settledTimer = null;
+      _emitEvent(p.id, 'pointer_leave', null, {..._pointerFields(e), x: e.offsetX, y: e.offsetY});
+    });
+    overlayCanvas.addEventListener('keyup', (e) => {
+      _emitEvent(p.id, 'key_up', null, {
+        time_stamp: performance.now() / 1000,
+        modifiers: _modifiers(e),
+        key: e.key,
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
+      });
+    });
+    overlayCanvas.addEventListener('dblclick', (e) => {
+      const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), button: e.button, x: mx, y: my});
+    });
   }
 
   // ── 1D drawing ───────────────────────────────────────────────────────────
@@ -2418,6 +2489,8 @@ function render({ model, el }) {
   function _attachEvents2d(p) {
     const { overlayCanvas } = p;
     let localOnly=false, commitPending=false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit(){
       if(commitPending) return; commitPending=true;
       requestAnimationFrame(()=>{commitPending=false;localOnly=true;model.save_changes();setTimeout(()=>{localOnly=false;},200);});
@@ -2467,13 +2540,16 @@ function render({ model, el }) {
       panStart={mx,my,cx:st.center_x,cy:st.center_y};
       // Track potential click: distance + time guards distinguish click from pan.
       p.clickCandidate={mx,my,t:Date.now(),shiftKey:e.shiftKey};
-      p.isPanning=true; overlayCanvas.style.cursor='grabbing'; e.preventDefault();
+      p.isPanning=true; overlayCanvas.style.cursor='grabbing';
+      // Do NOT call e.preventDefault() here: Chrome suppresses the click event
+      // when mousedown is cancelled, which in turn prevents dblclick from firing.
+      // Panning's preventDefault lives in the mousemove handler (prevents scroll).
     });
     document.addEventListener('mousemove',(e)=>{
       if(p.ovDrag2d){
         _doDrag2d(e,p);
         const _dw=(p.state.overlay_widgets||[])[p.ovDrag2d.idx]||{};
-        _emitEvent(p.id,'on_changed',_dw.id||null,_dw);
+        _emitEvent(p.id,'pointer_move',_dw.id||null,{..._dw,..._pointerFields(e)});
         return;
       }
       if(!p.isPanning) return;
@@ -2493,13 +2569,14 @@ function render({ model, el }) {
       _scheduleCommit(); e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
       if(p.ovDrag2d){
         const _idx=p.ovDrag2d.idx;
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
         const _did=_dw.id||null;
         p.ovDrag2d=null; overlayCanvas.style.cursor='default';
         model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-        _emitEvent(p.id,'on_release',_did,_dw);
+        _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
         return;
       }
       if(!p.isPanning) return;
@@ -2518,17 +2595,18 @@ function render({ model, el }) {
         const _dist2=_dx*_dx+_dy*_dy;
         const _dt=Date.now()-_cc.t;
         if(_dist2<=25&&_dt<=350){
-          // Genuine click — skip pan-settle, emit on_click with image coords.
+          // Genuine click — skip pan-settle, emit pointer_down with image coords.
           const [imgX,imgY]=_canvasToImg2d(_cc.mx,_cc.my,st,imgW,imgH);
           const xArr=st.x_axis||[], yArr=st.y_axis||[];
           const _iw=st.image_width||1, _ih=st.image_height||1;
           const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/_iw):imgX;
           const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/_ih):imgY;
-          _emitEvent(p.id,'on_click',null,{
+          _emitEvent(p.id,'pointer_down',null,{
             img_x:imgX, img_y:imgY,
-            phys_x:physX, phys_y:physY,
-            shift_key:_cc.shiftKey,
-            mouse_x:_cc.mx, mouse_y:_cc.my,
+            xdata:physX, ydata:physY,
+            x:_cc.mx, y:_cc.my,
+            ..._pointerFields(e),
+            button:e.button,
           });
           // _emitEvent already calls model.save_changes() — no duplicate needed.
           return;
@@ -2538,7 +2616,7 @@ function render({ model, el }) {
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/st.zoom));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/st.zoom));
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id,'on_release',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom});
+      _emitEvent(p.id,'pointer_up',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom,..._pointerFields(e),button:e.button});
       model.save_changes();
     });
 
@@ -2584,39 +2662,95 @@ function render({ model, el }) {
           p._hoverSi=newSi; p._hoverI=mhit?mhit.i:-1;
           drawMarkers2d(p, mhit?{si:newSi}:null);
         }
-        if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);return;}
+        if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);clearTimeout(_settledTimer); _settledTimer = null;return;}
         tooltip.style.display='none';
       } else { p.statusBar.style.display='none'; tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
       }
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            const _now = performance.now();
+            const st2 = p.state; if (!st2) return;
+            const imgW2 = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
+            const imgH2 = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
+            const [sImgX, sImgY] = _canvasToImg2d(p.mouseX, p.mouseY, st2, imgW2, imgH2);
+            const sXArr = st2.x_axis || [], sYArr = st2.y_axis || [];
+            const _siw = st2.image_width || 1, _sih = st2.image_height || 1;
+            const sPhysX = sXArr.length >= 2 ? _axisFracToVal(sXArr, sImgX / _siw) : sImgX;
+            const sPhysY = sYArr.length >= 2 ? _axisFracToVal(sYArr, sImgY / _sih) : sImgY;
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              img_x:      sImgX,
+              img_y:      sImgY,
+              xdata:      sPhysX,
+              ydata:      sPhysY,
+              dwell_ms:   _now - _settledStartTs,
+            });
+          }
+        }, _settledMs);
+      }
     });
-    overlayCanvas.addEventListener('mouseleave',()=>{p.statusBar.style.display='none';tooltip.style.display='none';
+    overlayCanvas.addEventListener('mouseleave',(e)=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
+      _emitEvent(p.id,'pointer_leave',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
+      p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
     });
+    overlayCanvas.addEventListener('dblclick',(e)=>{
+      const st=p.state; if(!st) return;
+      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
+      const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
+      const [imgX,imgY]=_canvasToImg2d(mx,my,st,imgW,imgH);
+      const xArr=st.x_axis||[], yArr=st.y_axis||[];
+      const _iw=st.image_width||1, _ih=st.image_height||1;
+      const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/_iw):imgX;
+      const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/_ih):imgY;
+      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,img_x:imgX,img_y:imgY,xdata:physX,ydata:physY});
+    });
+    overlayCanvas.addEventListener('wheel',(e)=>{
+      _emitEvent(p.id,'wheel',null,{
+        time_stamp:performance.now()/1000,
+        modifiers:_modifiers(e),
+        x:p.mouseX??0, y:p.mouseY??0,
+        dx:e.deltaX, dy:e.deltaY,
+      });
+    },{passive:true});
 
     // Keyboard shortcuts
     // Built-ins: r=reset zoom, c=colorbar toggle, l=log scale, s=symlog scale.
-    // Any key listed in st.registered_keys (or '*' for all keys) is forwarded
-    // to Python via on_key and suppresses the matching built-in.
+    // All keys are forwarded to Python unconditionally.
     overlayCanvas.addEventListener('keydown',(e)=>{
       const st=p.state; if(!st) return;
-      const regKeys=st.registered_keys||[];
-      if(regKeys.includes(e.key)||regKeys.includes('*')){
-        const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
-        const [imgX,imgY]=_canvasToImg2d(p.mouseX,p.mouseY,st,imgW,imgH);
-        const xArr=st.x_axis||[], yArr=st.y_axis||[];
-        const iw=st.image_width||1, ih=st.image_height||1;
-        const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/iw):imgX;
-        const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/ih):imgY;
-        _emitEvent(p.id,'on_key',null,{
-          key:e.key,
-          last_widget_id:p.lastWidgetId||null,
-          mouse_x:p.mouseX, mouse_y:p.mouseY,
-          img_x:imgX, img_y:imgY,
-          phys_x:physX, phys_y:physY,
-        });
-        e.stopPropagation(); e.preventDefault(); return;
-      }
+      const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
+      const [imgX,imgY]=_canvasToImg2d(p.mouseX,p.mouseY,st,imgW,imgH);
+      const xArr=st.x_axis||[], yArr=st.y_axis||[];
+      const iw=st.image_width||1, ih=st.image_height||1;
+      const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/iw):imgX;
+      const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/ih):imgY;
+      _emitEvent(p.id,'key_down',null,{
+        time_stamp:performance.now()/1000,
+        modifiers:_modifiers(e),
+        key:e.key,
+        last_widget_id:p.lastWidgetId||null,
+        x:p.mouseX ?? 0, y:p.mouseY ?? 0,
+        img_x:imgX, img_y:imgY,
+        xdata:physX, ydata:physY,
+      });
       const key=e.key.toLowerCase();
       if(key==='r'){
         st.zoom=1; st.center_x=0.5; st.center_y=0.5;
@@ -2637,12 +2771,25 @@ function render({ model, el }) {
         e.stopPropagation(); e.preventDefault();
       }
     });
-    overlayCanvas.addEventListener('mouseenter',()=>overlayCanvas.focus());
+    overlayCanvas.addEventListener('keyup',(e)=>{
+      _emitEvent(p.id,'key_up',null,{
+        time_stamp:performance.now()/1000,
+        modifiers:_modifiers(e),
+        key:e.key,
+        x:p.mouseX??0, y:p.mouseY??0,
+      });
+    });
+    overlayCanvas.addEventListener('mouseenter',(e)=>{
+      overlayCanvas.focus();
+      _emitEvent(p.id,'pointer_enter',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
+    });
   }
 
   function _attachEvents1d(p) {
     const { overlayCanvas } = p;
     let localOnly=false, commitPending=false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit(){
       if(commitPending) return; commitPending=true;
       requestAnimationFrame(()=>{commitPending=false;localOnly=true;model.save_changes();setTimeout(()=>{localOnly=false;},200);});
@@ -2680,13 +2827,14 @@ function render({ model, el }) {
       if(hit){p.ovDrag=hit;p.lastWidgetId=(p.state.overlay_widgets||[])[hit.idx]?.id||null;overlayCanvas.style.cursor=(hit.mode==='edge0'||hit.mode==='edge1')?'ew-resize':'move';e.preventDefault();return;}
       // Store pan start in canvas-px so pan delta in mousemove is canvas-px.
       panStart={mx:_emx,x0:st.view_x0,x1:st.view_x1};
-      p.isPanning=true;overlayCanvas.style.cursor='grabbing';e.preventDefault();
+      p.isPanning=true;overlayCanvas.style.cursor='grabbing';
+      // Do NOT call e.preventDefault() — see 2D note: suppresses click → dblclick.
     });
     document.addEventListener('mousemove',(e)=>{
       if(p.ovDrag){
         _doDrag1d(e,p);
         const _dw=(p.state.overlay_widgets||[])[p.ovDrag.idx]||{};
-        _emitEvent(p.id,'on_changed',_dw.id||null,_dw);
+        _emitEvent(p.id,'pointer_move',_dw.id||null,{..._dw,..._pointerFields(e)});
         return;
       }
       if(!p.isPanning) return;
@@ -2702,6 +2850,7 @@ function render({ model, el }) {
       model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
       const wasWidgetDragging=!!p.ovDrag;   // capture BEFORE clearing
       const wasDragging=wasWidgetDragging||!!p.isPanning;
       if(p.ovDrag){
@@ -2710,12 +2859,12 @@ function render({ model, el }) {
         const _did=_dw.id||null;
         p.ovDrag=null; overlayCanvas.style.cursor='crosshair';
         model.set(`panel_${p.id}_json`,JSON.stringify(p.state));
-        _emitEvent(p.id,'on_release',_did,_dw);
+        _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
       }
       if(p.isPanning){
         p.isPanning=false; overlayCanvas.style.cursor='crosshair';
         const st=p.state;
-        if(st) _emitEvent(p.id,'on_release',null,{view_x0:st.view_x0,view_x1:st.view_x1});
+        if(st) _emitEvent(p.id,'pointer_up',null,{view_x0:st.view_x0,view_x1:st.view_x1,..._pointerFields(e),button:e.button});
       }
       // Line click: fire when no widget was being dragged and mouse barely moved.
       // NOTE: p.isPanning is always set true on mousedown (pan start), so we
@@ -2726,35 +2875,43 @@ function render({ model, el }) {
         if(Math.hypot(mdx,mdy)<5){
           const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
           const lhit=_lineHitTest1d(mx,my,p);
-          if(lhit) _emitEvent(p.id,'on_line_click',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y});
+          if(lhit) _emitEvent(p.id,'pointer_down',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y,..._pointerFields(e),button:e.button});
         }
       }
       p._mousedownX=null;
     });
 
     // Keyboard shortcuts
-    // Built-in: r=reset view. Any key in st.registered_keys (or '*') is
-    // forwarded to Python via on_key and suppresses the matching built-in.
+    // Built-in: r=reset view. All keys are forwarded to Python unconditionally.
     overlayCanvas.addEventListener('keydown',(e)=>{
       const st=p.state; if(!st) return;
-      const regKeys=st.registered_keys||[];
-      if(regKeys.includes(e.key)||regKeys.includes('*')){
-        const r=_plotRect1d(p.pw,p.ph);
-        const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
-        const frac=_canvasXToFrac1d(p.mouseX,st.view_x0,st.view_x1,r);
-        const physX=xArr.length>=2?_fracToX1d(xArr,frac):frac;
-        _emitEvent(p.id,'on_key',null,{
-          key:e.key,
-          last_widget_id:p.lastWidgetId||null,
-          mouse_x:p.mouseX, mouse_y:p.mouseY,
-          phys_x:physX,
-        });
-        e.stopPropagation(); e.preventDefault(); return;
-      }
+      const r=_plotRect1d(p.pw,p.ph);
+      const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+      const frac=_canvasXToFrac1d(p.mouseX,st.view_x0,st.view_x1,r);
+      const physX=xArr.length>=2?_fracToX1d(xArr,frac):frac;
+      _emitEvent(p.id,'key_down',null,{
+        time_stamp:performance.now()/1000,
+        modifiers:_modifiers(e),
+        key:e.key,
+        last_widget_id:p.lastWidgetId||null,
+        x:p.mouseX ?? 0, y:p.mouseY ?? 0,
+        xdata:physX,
+      });
       if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.stopPropagation();e.preventDefault();}
     });
+    overlayCanvas.addEventListener('keyup',(e)=>{
+      _emitEvent(p.id,'key_up',null,{
+        time_stamp:performance.now()/1000,
+        modifiers:_modifiers(e),
+        key:e.key,
+        x:p.mouseX??0, y:p.mouseY??0,
+      });
+    });
     overlayCanvas.tabIndex=0;overlayCanvas.style.outline='none';
-    overlayCanvas.addEventListener('mouseenter',()=>overlayCanvas.focus());
+    overlayCanvas.addEventListener('mouseenter',(e)=>{
+      overlayCanvas.focus();
+      _emitEvent(p.id,'pointer_enter',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
+    });
     overlayCanvas.addEventListener('mousemove',(e)=>{
       const st=p.state;if(!st)return;
       const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
@@ -2763,6 +2920,7 @@ function render({ model, el }) {
       if(mx<r.x||mx>r.x+r.w||my<r.y||my>r.y+r.h){
         p.statusBar.style.display='none';tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
+        clearTimeout(_settledTimer); _settledTimer = null;
         return;
       }
       const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
@@ -2793,13 +2951,61 @@ function render({ model, el }) {
             p.ovCtx.fill();p.ovCtx.stroke();p.ovCtx.restore();
           }
         }
-        if(lhit) _emitEvent(p.id,'on_line_hover',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y});
+        if(lhit) _emitEvent(p.id,'pointer_move',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y,..._pointerFields(e)});
+      }
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            const _now = performance.now();
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              dwell_ms:   _now - _settledStartTs,
+            });
+          }
+        }, _settledMs);
       }
     });
-    overlayCanvas.addEventListener('mouseleave',()=>{p.statusBar.style.display='none';tooltip.style.display='none';
+    overlayCanvas.addEventListener('mouseleave',(e)=>{
+      clearTimeout(_settledTimer); _settledTimer = null;
+      _emitEvent(p.id,'pointer_leave',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
+      p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
       if(p._lineHoverId!=='__none__'){p._lineHoverId='__none__';draw1d(p);drawOverlay1d(p);overlayCanvas.style.cursor='crosshair';}
     });
+    overlayCanvas.addEventListener('dblclick',(e)=>{
+      const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
+      const st=p.state;
+      let xdata=null;
+      if(st){
+        const r=_plotRect1d(p.pw,p.ph);
+        const xArr=p._1dXArr||(st.x_axis_b64?_decodeF64(st.x_axis_b64):(st.x_axis||[]));
+        const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
+        xdata=xArr.length>=2?_fracToX1d(xArr,frac):frac;
+      }
+      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,xdata});
+    });
+    overlayCanvas.addEventListener('wheel',(e)=>{
+      _emitEvent(p.id,'wheel',null,{
+        time_stamp:performance.now()/1000,
+        modifiers:_modifiers(e),
+        x:p.mouseX??0, y:p.mouseY??0,
+        dx:e.deltaX, dy:e.deltaY,
+      });
+    },{passive:true});
   }
 
   // ── 2D overlay widget hit-test & drag ────────────────────────────────────
@@ -3730,6 +3936,8 @@ function render({ model, el }) {
 
     // Widget drag support
     let commitPending = false;
+    let _settledTimer = null;
+    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
     function _scheduleCommit() {
       if (commitPending) return; commitPending = true;
       requestAnimationFrame(() => { commitPending = false; model.save_changes(); });
@@ -3751,10 +3959,11 @@ function render({ model, el }) {
       if (!p.ovDrag) return;
       _doDrag1d(e, p);
       const _dw = (p.state.overlay_widgets || [])[p.ovDrag.idx] || {};
-      _emitEvent(p.id, 'on_changed', _dw.id || null, _dw);
+      _emitEvent(p.id, 'pointer_move', _dw.id || null, {..._dw, ..._pointerFields(e)});
     });
 
     document.addEventListener('mouseup', (e) => {
+      clearTimeout(_settledTimer); _settledTimer = null;
       if (!p.ovDrag) return;
       const _idx = p.ovDrag.idx;
       const _dw  = (p.state.overlay_widgets || [])[_idx] || {};
@@ -3762,7 +3971,7 @@ function render({ model, el }) {
       p.ovDrag = null;
       overlayCanvas.style.cursor = 'default';
       model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
-      _emitEvent(p.id, 'on_release', _did, _dw);
+      _emitEvent(p.id, 'pointer_up', _did, {..._dw, ..._pointerFields(e), button: e.button});
       _scheduleCommit();
     });
 
@@ -3804,23 +4013,60 @@ function render({ model, el }) {
         tooltip.style.display = 'none';
         overlayCanvas.style.cursor = 'default';
       }
+      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
+      const _settledMs = (p.state.pointer_settled_ms ?? 0);
+      if (_settledMs > 0) {
+        const _settledDelta = p.state.pointer_settled_delta ?? 4;
+        clearTimeout(_settledTimer);
+        _settledStartX = mx;
+        _settledStartY = my;
+        _settledStartTs = performance.now();
+        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
+        _settledTimer = setTimeout(() => {
+          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
+          if (dist <= _settledDelta) {
+            const _now = performance.now();
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: _now / 1000,
+              modifiers:  _settledMods,
+              button:     null,
+              buttons:    0,
+              x:          Math.round(p.mouseX),
+              y:          Math.round(p.mouseY),
+              dwell_ms:   _now - _settledStartTs,
+            });
+          }
+        }, _settledMs);
+      }
     });
 
-    overlayCanvas.addEventListener('mouseleave', () => {
+    overlayCanvas.addEventListener('mouseleave', (e) => {
+      clearTimeout(_settledTimer); _settledTimer = null;
+      _emitEvent(p.id, 'pointer_leave', null, {..._pointerFields(e), x: e.offsetX, y: e.offsetY});
       if (p._hovBar !== null) { p._hovBar = null; drawBar(p); }
       tooltip.style.display = 'none';
     });
 
-    overlayCanvas.addEventListener('click', (e) => {
+    overlayCanvas.addEventListener('mousedown', (e) => {
       if (p.ovDrag) return;
       const st = p.state; if (!st) return;
       const {mx:_cmx, my:_cmy} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       const hit = _barHit(_cmx, _cmy);
-      if (hit === null) return;
+      const _baseFields = {..._pointerFields(e), button: e.button, x: _cmx, y: _cmy};
+      if (hit === null) {
+        _emitEvent(p.id, 'pointer_down', null, {
+          bar_index:   null,
+          group_index: null,
+          value:       null,
+          x_label:     null,
+          ..._baseFields,
+        });
+        return;
+      }
       const { slot: idx, group: gi } = hit;
       const gm  = _barGeom(st, _plotRect1d(p.pw, p.ph));
       const val = gm.getVal(idx, gi);
-      _emitEvent(p.id, 'on_click', null, {
+      _emitEvent(p.id, 'pointer_down', null, {
         bar_index:   idx,
         group_index: gi,
         value:       val,
@@ -3828,25 +4074,47 @@ function render({ model, el }) {
         x_center:    (st.x_centers||[])[idx] ?? idx,
         x_label:     (st.x_labels||[])[idx] !== undefined
                        ? String(st.x_labels[idx]) : null,
+        ..._baseFields,
       });
     });
 
-    // Keyboard: registered_keys forwarded to Python; no built-in bar shortcuts.
+    // Keyboard: all keys forwarded to Python unconditionally; no built-in bar shortcuts.
     overlayCanvas.addEventListener('keydown', (e) => {
       const st = p.state; if (!st) return;
-      const regKeys = st.registered_keys || [];
-      if (regKeys.includes(e.key) || regKeys.includes('*')) {
-        _emitEvent(p.id, 'on_key', null, {
-          key: e.key,
-          last_widget_id: p.lastWidgetId || null,
-          mouse_x: p.mouseX, mouse_y: p.mouseY,
-        });
-        e.stopPropagation(); e.preventDefault();
-      }
+      _emitEvent(p.id, 'key_down', null, {
+        time_stamp: performance.now() / 1000,
+        modifiers: _modifiers(e),
+        key: e.key,
+        last_widget_id: p.lastWidgetId || null,
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
+      });
+    });
+    overlayCanvas.addEventListener('keyup', (e) => {
+      _emitEvent(p.id, 'key_up', null, {
+        time_stamp: performance.now() / 1000,
+        modifiers: _modifiers(e),
+        key: e.key,
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
+      });
     });
     overlayCanvas.tabIndex = 0;
     overlayCanvas.style.outline = 'none';
-    overlayCanvas.addEventListener('mouseenter', () => overlayCanvas.focus());
+    overlayCanvas.addEventListener('mouseenter', (e) => {
+      overlayCanvas.focus();
+      _emitEvent(p.id, 'pointer_enter', null, {..._pointerFields(e), x: e.offsetX, y: e.offsetY});
+    });
+    overlayCanvas.addEventListener('dblclick', (e) => {
+      const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), button: e.button, x: mx, y: my, xdata: null});
+    });
+    overlayCanvas.addEventListener('wheel', (e) => {
+      _emitEvent(p.id, 'wheel', null, {
+        time_stamp: performance.now() / 1000,
+        modifiers: _modifiers(e),
+        x: p.mouseX ?? 0, y: p.mouseY ?? 0,
+        dx: e.deltaX, dy: e.deltaY,
+      });
+    }, { passive: true });
   }
 
   // ── generic redraw ────────────────────────────────────────────────────────

@@ -10,14 +10,13 @@ of the selected region, displayed in a side-by-side panel.
 * The left panel shows a synthetic real-space image (a periodic lattice with
   noise, similar to an atomic-resolution STEM image).
 * A yellow rectangle widget marks the region-of-interest (ROI).
-* Whenever the ROI is moved or resized the :meth:`~anyplotlib.plot2d.Plot2D.on_release`
-  callback re-computes ``numpy.fft.fft2`` on the cropped pixels, applies a
-  Hann window to reduce edge ringing, takes the log-magnitude, and pushes the
-  result into the right panel with
-  :meth:`~anyplotlib.plot2d.Plot2D.update`.
-* A second :meth:`~anyplotlib.plot2d.Plot2D.on_change` callback updates
-  a lightweight text readout (ROI size in pixels) on every drag frame without
-  re-running the FFT.
+* Whenever the ROI is moved or resized the ``pointer_up`` event handler
+  re-computes ``numpy.fft.fft2`` on the cropped pixels, applies a Hann
+  window to reduce edge ringing, takes the log-magnitude, and pushes the
+  result into the right panel with :meth:`~anyplotlib.plot2d.Plot2D.update`.
+* A second ``pointer_move`` event handler updates a lightweight text
+  readout (ROI size in pixels) on every drag frame without re-running
+  the FFT.
 
 **Interaction**
 
@@ -26,8 +25,8 @@ of the selected region, displayed in a side-by-side panel.
 * The FFT panel refreshes automatically on mouse-release.
 
 .. note::
-   The ``on_release`` / ``on_change`` callbacks are pure Python — no kernel
-   restart is needed after editing them.
+   The ``pointer_up`` / ``pointer_move`` event handlers are pure Python —
+   no kernel restart is needed after editing them.
 """
 
 import numpy as np
@@ -147,7 +146,7 @@ v_fft.set_colormap("inferno")
 
 # ── Callbacks ─────────────────────────────────────────────────────────────────
 
-@wid.on_changed
+@wid.add_event_handler("pointer_move")
 def _roi_dragging(event):
     """Fires on every drag frame — highlight rectangle while dragging."""
     # Cheaply pulse the widget colour to give live drag feedback.
@@ -158,13 +157,13 @@ def _roi_dragging(event):
     v_real._push()
 
 
-@wid.on_release
+@wid.add_event_handler("pointer_up")
 def _roi_released(event):
     """Fires once on mouse-up — recompute and push the full FFT."""
-    x0 = event.data.get("x", roi_x0)
-    y0 = event.data.get("y", roi_y0)
-    w  = event.data.get("w", ROI_W)
-    h  = event.data.get("h", ROI_H)
+    x0 = event.source.x
+    y0 = event.source.y
+    w  = event.source.w
+    h  = event.source.h
 
     # Restore widget colour to yellow
     for widget in v_real._state["overlay_widgets"]:

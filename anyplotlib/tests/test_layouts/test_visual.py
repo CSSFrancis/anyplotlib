@@ -38,7 +38,7 @@ import pytest
 import anyplotlib as apl
 from anyplotlib.tests._png_utils import decode_png, encode_png, compare_arrays
 
-BASELINES = pathlib.Path(__file__).parent / "baselines"
+BASELINES = pathlib.Path(__file__).parent.parent / "baselines"
 
 
 # ---------------------------------------------------------------------------
@@ -218,4 +218,83 @@ class TestVisual:
         axs[1].plot(np.sin(t))
         arr = take_screenshot(fig)
         _check("subplots_2x1", arr, update_baselines)
+
+    # ── GridSpec layouts ───────────────────────────────────────────────────
+
+    def test_gridspec_side_by_side_1d(self, take_screenshot, update_baselines):
+        """Two 1-D spectra side by side — exercises 1×2 GridSpec layout.
+
+        Verifies that side-by-side spectra are not squished and each occupies
+        exactly half the figure width with a reasonable inner plot area.
+        """
+        gs = apl.GridSpec(1, 2)
+        fig = apl.Figure(figsize=(640, 240))
+        t = np.linspace(0.0, 2.0 * np.pi, 256)
+        fig.add_subplot(gs[0, 0]).plot(np.sin(t), color="#4fc3f7")
+        fig.add_subplot(gs[0, 1]).plot(np.cos(t), color="#ff7043")
+        arr = take_screenshot(fig)
+        _check("gridspec_side_by_side_1d", arr, update_baselines)
+
+    def test_gridspec_image_two_spectra(self, take_screenshot, update_baselines):
+        """Image on top (3×height), two 1-D spectra below (1×height) side by side.
+
+        This is the canonical layout that exposed the squishing bug: bare
+        Figure + GridSpec with height_ratios caused row-1 panels to be floored
+        to 64px.  The image should occupy 3/4 of the height; each spectrum 1/4.
+        """
+        gs = apl.GridSpec(2, 2, height_ratios=[3, 1])
+        fig = apl.Figure(figsize=(480, 480))
+        data = np.linspace(0.0, 1.0, 32 * 32).reshape(32, 32).astype(np.float32)
+        fig.add_subplot(gs[0, :]).imshow(data)
+        t = np.linspace(0.0, 2.0 * np.pi, 128)
+        fig.add_subplot(gs[1, 0]).plot(np.sin(t), color="#4fc3f7")
+        fig.add_subplot(gs[1, 1]).plot(np.cos(t), color="#ff7043")
+        arr = take_screenshot(fig)
+        _check("gridspec_image_two_spectra", arr, update_baselines)
+
+    def test_gridspec_height_ratio_image_histogram(self, take_screenshot, update_baselines):
+        """Image (3×) + histogram (1×) with explicit height_ratios via GridSpec."""
+        gs = apl.GridSpec(2, 1, height_ratios=[3, 1])
+        fig = apl.Figure(figsize=(400, 400))
+        rng = np.random.default_rng(42)
+        data = rng.uniform(0.0, 1.0, (32, 32)).astype(np.float32)
+        fig.add_subplot(gs[0, 0]).imshow(data, cmap="viridis")
+        counts = np.histogram(data.ravel(), bins=32)[0].astype(float)
+        fig.add_subplot(gs[1, 0]).plot(counts, color="#aed581")
+        arr = take_screenshot(fig)
+        _check("gridspec_height_ratio_image_histogram", arr, update_baselines)
+
+    def test_gridspec_3col_equal_spectra(self, take_screenshot, update_baselines):
+        """Three equal-width 1-D spectra in a single row — 1×3 GridSpec."""
+        gs = apl.GridSpec(1, 3)
+        fig = apl.Figure(figsize=(720, 200))
+        rng = np.random.default_rng(7)
+        t = np.linspace(0.0, 2.0 * np.pi, 200)
+        colors = ["#4fc3f7", "#ff7043", "#aed581"]
+        for i, color in enumerate(colors):
+            noise = rng.normal(scale=0.1, size=len(t))
+            fig.add_subplot(gs[0, i]).plot(np.sin(t * (i + 1)) + noise, color=color)
+        arr = take_screenshot(fig)
+        _check("gridspec_3col_equal_spectra", arr, update_baselines)
+
+    def test_gridspec_asymmetric_width_ratios(self, take_screenshot, update_baselines):
+        """2:1 width ratio: wide spectrum left, narrow spectrum right."""
+        gs = apl.GridSpec(1, 2, width_ratios=[2, 1])
+        fig = apl.Figure(figsize=(480, 200))
+        t = np.linspace(0.0, 2.0 * np.pi, 256)
+        fig.add_subplot(gs[0, 0]).plot(np.sin(t), color="#4fc3f7")
+        fig.add_subplot(gs[0, 1]).plot(np.cos(t), color="#ff7043")
+        arr = take_screenshot(fig)
+        _check("gridspec_asymmetric_width_ratios", arr, update_baselines)
+
+    def test_gridspec_spanning_top_two_bottom(self, take_screenshot, update_baselines):
+        """Full-width spectrum on top (gs[0, :]), two spectra below (gs[1, 0:2])."""
+        gs = apl.GridSpec(2, 2, height_ratios=[2, 1])
+        fig = apl.Figure(figsize=(480, 360))
+        t = np.linspace(0.0, 4.0 * np.pi, 512)
+        fig.add_subplot(gs[0, :]).plot(np.sin(t), color="#4fc3f7")
+        fig.add_subplot(gs[1, 0]).plot(np.sin(2 * t), color="#ff7043")
+        fig.add_subplot(gs[1, 1]).plot(np.cos(2 * t), color="#aed581")
+        arr = take_screenshot(fig)
+        _check("gridspec_spanning_top_two_bottom", arr, update_baselines)
 
