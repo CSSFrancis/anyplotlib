@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
-<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+  <link href="../../../_static/styles/theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../_static/anywidget_overlay.css?v=a271c467" />
@@ -39,10 +39,10 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=0790524f97105ba85085"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
-<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085" />
 
     <script src="../../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
@@ -156,6 +156,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api/index.html">
     API Reference
   </a>
@@ -175,20 +182,30 @@
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../benchmarking.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../benchmarking.html">
     Benchmarking
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../dev/index.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../dev/index.html">
     Developer Documentation
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -219,8 +236,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -271,6 +287,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../getting_started.html">
     Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
   </a>
 </li>
 
@@ -330,8 +353,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -404,12 +426,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_uuid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span><span class="p">,</span> <span class="n">Event</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span><span class="p">,</span> <span class="n">Event</span><span class="p">,</span> <span class="n">_EventMixin</span>
 
 
 <div class="viewcode-block" id="Widget">
 <a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Widget</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Widget</span><span class="p">(</span><span class="n">_EventMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for all overlay widgets.</span>
 
 <span class="sd">    Provides attribute-based state access, callbacks for interaction events,</span>
@@ -427,10 +449,15 @@
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
 <span class="sd">    callbacks : CallbackRegistry</span>
-<span class="sd">        Event callback registry. Register handlers via:</span>
-<span class="sd">        - ``@widget.on_changed`` — fires on every drag frame</span>
-<span class="sd">        - ``@widget.on_release`` — fires once when drag settles</span>
-<span class="sd">        - ``@widget.on_click`` — fires on click event</span>
+<span class="sd">        Event callback registry. Register handlers via</span>
+<span class="sd">        ``widget.add_event_handler(fn, &quot;pointer_move&quot;)`` or as a decorator:</span>
+<span class="sd">        ``@widget.add_event_handler(&quot;pointer_move&quot;)``.</span>
+
+<span class="sd">        Common event types:</span>
+
+<span class="sd">        - ``&quot;pointer_move&quot;`` — fires on every drag frame</span>
+<span class="sd">        - ``&quot;pointer_up&quot;`` — fires once when drag settles</span>
+<span class="sd">        - ``&quot;pointer_down&quot;`` — fires on click/press event</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -495,7 +522,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">Event</span><span class="p">(</span><span class="s2">&quot;on_changed&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">Event</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Widget.get">
@@ -531,88 +558,6 @@
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span></div>
 
 
-    <span class="c1"># ── callback decorator methods ────────────────────────────────────</span>
-
-<div class="viewcode-block" id="Widget.on_changed">
-<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget.on_changed">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on every drag frame.</span>
-
-<span class="sd">        Use this for high-frequency updates (keep handler fast).</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        fn : Callable</span>
-<span class="sd">            Handler function receiving an Event.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        Callable</span>
-<span class="sd">            The decorated function.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_changed&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
-
-
-<div class="viewcode-block" id="Widget.on_release">
-<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget.on_release">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire once when drag settles.</span>
-
-<span class="sd">        Use this for expensive operations triggered after user stops dragging.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        fn : Callable</span>
-<span class="sd">            Handler function receiving an Event.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        Callable</span>
-<span class="sd">            The decorated function.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_release&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
-
-
-<div class="viewcode-block" id="Widget.on_click">
-<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget.on_click">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>   <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: register fn to fire on widget click.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        fn : Callable</span>
-<span class="sd">            Handler function receiving an Event.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        Callable</span>
-<span class="sd">            The decorated function.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_click&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
-
-
-<div class="viewcode-block" id="Widget.disconnect">
-<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget.disconnect">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove the callback registered under *cid*.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        cid : int or Callable</span>
-<span class="sd">            Either the integer CID returned by ``callbacks.connect()``,</span>
-<span class="sd">            or the decorated function itself (carries a ``._cid`` attribute).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="s2">&quot;_cid&quot;</span><span class="p">):</span>
-            <span class="n">cid</span> <span class="o">=</span> <span class="n">cid</span><span class="o">.</span><span class="n">_cid</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span></div>
-
-
     <span class="c1"># ── visibility ────────────────────────────────────────────────────────</span>
 
     <span class="nd">@property</span>
@@ -627,7 +572,7 @@
 <div class="viewcode-block" id="Widget.show">
 <a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget.show">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show the widget.  Does not fire ``on_changed`` callbacks.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show the widget.  Does not fire ``pointer_move`` callbacks.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span></div>
 
@@ -638,7 +583,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Hide the widget without removing it or its callbacks.</span>
 
 <span class="sd">        Call :meth:`show` to make it visible again.</span>
-<span class="sd">        Does not fire ``on_changed`` callbacks.</span>
+<span class="sd">        Does not fire ``pointer_move`` callbacks.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span></div>
@@ -646,36 +591,51 @@
 
     <span class="c1"># ── JS → Python sync ──────────────────────────────────────────────</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_update_from_js</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;on_changed&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update_from_js</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply incoming JS state without pushing back (avoids echo).</span>
+
+<span class="sd">        Updates widget ``_data`` with widget-specific state fields from msg,</span>
+<span class="sd">        then fires widget callbacks with a flat Event.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        new_data : dict</span>
-<span class="sd">            Updated widget properties from JavaScript.</span>
-<span class="sd">        event_type : str, optional</span>
-<span class="sd">            Type of event that triggered the update.</span>
+<span class="sd">        msg : dict</span>
+<span class="sd">            Full raw event message from JS.</span>
+<span class="sd">        event_type : str</span>
+<span class="sd">            One of the pointer event types (``pointer_move``, ``pointer_up``,</span>
+<span class="sd">            ``pointer_down``).</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        bool</span>
-<span class="sd">            True if any state changed.</span>
-
-<span class="sd">        Notes</span>
-<span class="sd">        -----</span>
-<span class="sd">        Always fires on_release / on_click callbacks even if nothing changed.</span>
-<span class="sd">        Only fires on_changed if state actually changed.</span>
+<span class="sd">            True if any widget state changed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_envelope</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="s2">&quot;panel_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_type&quot;</span><span class="p">,</span> <span class="s2">&quot;widget_id&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;time_stamp&quot;</span><span class="p">,</span> <span class="s2">&quot;modifiers&quot;</span><span class="p">,</span> <span class="s2">&quot;button&quot;</span><span class="p">,</span> <span class="s2">&quot;buttons&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
         <span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">new_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_envelope</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
                 <span class="n">changed</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="c1"># Always fire for settle / click; only fire on_changed when something moved</span>
-        <span class="k">if</span> <span class="n">changed</span> <span class="ow">or</span> <span class="n">event_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;on_release&quot;</span><span class="p">,</span> <span class="s2">&quot;on_click&quot;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">Event</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="n">changed</span> <span class="ow">or</span> <span class="n">event_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;pointer_up&quot;</span><span class="p">,</span> <span class="s2">&quot;pointer_down&quot;</span><span class="p">):</span>
+            <span class="n">event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">(</span>
+                <span class="n">event_type</span><span class="o">=</span><span class="n">event_type</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">time_stamp</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;time_stamp&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="n">modifiers</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modifiers&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">),</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">),</span>
+                <span class="n">button</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">),</span>
+                <span class="n">buttons</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;buttons&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">xdata</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;xdata&quot;</span><span class="p">),</span>
+                <span class="n">ydata</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ydata&quot;</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">changed</span>
 
     <span class="c1"># ── repr ──────────────────────────────────────────────────────────</span>
@@ -722,8 +682,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
-<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -757,7 +717,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.18.0.
 </p></div>
       
     </div>

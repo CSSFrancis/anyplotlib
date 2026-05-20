@@ -1,0 +1,833 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Custom Grid Layouts with GridSpec &#8212; anyplotlib 0.1.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=0790524f97105ba85085"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085" />
+
+    <script src="../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../_static/anywidget_config.js?v=cd5adc06"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../_static/anywidget_bridge.js?v=f1c29ea3"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/PlotTypes/plot_gridspec_custom';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/PlotTypes/plot_gridspec_custom.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Widgets" href="../Widgets/index.html" />
+    <link rel="prev" title="Bar Chart" href="plot_bar.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Benchmarks/index.html">Benchmarks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Benchmarks/plot_benchmark_comparison.html">Plot Update Comparison</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_threshold_explorer.html">Live intensity thresholding on a multi-phase STEM image.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_eels_explorer.html">EELS multi-spectrum explorer.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_3d_spectral_viewer.html">Interactive 3D Spectral Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_particle_picker.html">HAADF STEM nanoparticle picker.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_spectra_roi_inspector.html">ROI-to-spectrum inspector for a 3-D EDS hyperspectral dataset.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Markers/index.html">Markers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_horizontal_lines.html">Horizontal Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_vertical_lines.html">Vertical Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_points.html">Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_texts.html">Text Labels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_arrows.html">Arrows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_circles.html">Circles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_rectangles.html">Rectangles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_line_segments.html">Line Segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_ellipses.html">Ellipses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_squares.html">Squares</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_polygons.html">Polygons</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Plot Types</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_inset.html">Inset Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_image2d.html">2D Image with Histogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Custom Grid Layouts with GridSpec</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Widgets/index.html">Widgets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_hline.html">1D Horizontal Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_vline.html">1D Vertical Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_range.html">1D Range Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_crosshair.html">2D Crosshair Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_circle.html">2D Circle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_rectangle.html">2D Rectangle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_annular.html">2D Annular Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_label.html">2D Label Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_polygon.html">2D Polygon Widget</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Plot Types</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Custom Grid Layouts with GridSpec</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-plottypes-plot-gridspec-custom-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="custom-grid-layouts-with-gridspec">
+<span id="sphx-glr-auto-examples-plottypes-plot-gridspec-custom-py"></span><h1>Custom Grid Layouts with GridSpec<a class="headerlink" href="#custom-grid-layouts-with-gridspec" title="Link to this heading">#</a></h1>
+<p><a class="reference internal" href="../../api/generated/anyplotlib.GridSpec.html#anyplotlib.GridSpec" title="anyplotlib.GridSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridSpec</span></code></a> lets you build multi-panel figures where panels
+have different sizes and span multiple grid cells.  This gallery shows the most
+common patterns.</p>
+<p>All examples use the <strong>bare</strong> <code class="docutils literal notranslate"><span class="pre">Figure</span> <span class="pre">+</span> <span class="pre">GridSpec</span></code> workflow — the figure’s
+grid dimensions are inferred automatically from the GridSpec the first time
+<code class="docutils literal notranslate"><span class="pre">add_subplot</span></code> is called.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p><strong>Side-by-side spectra</strong> — two equal 1-D panels in one row (<code class="docutils literal notranslate"><span class="pre">1×2</span></code> grid).</p></li>
+<li><p><strong>Image + spectra</strong> — image spanning full width, two spectra below
+(<code class="docutils literal notranslate"><span class="pre">2×2</span></code> grid with <code class="docutils literal notranslate"><span class="pre">height_ratios=[3,</span> <span class="pre">1]</span></code>).</p></li>
+<li><p><strong>Image + histogram</strong> — classic EM layout: large image on top, thin
+histogram strip below (<code class="docutils literal notranslate"><span class="pre">2×1</span></code> grid with <code class="docutils literal notranslate"><span class="pre">height_ratios=[3,</span> <span class="pre">1]</span></code>).</p></li>
+<li><p><strong>Three-column</strong> — three equal columns in a single row (<code class="docutils literal notranslate"><span class="pre">1×3</span></code> grid).</p></li>
+<li><p><strong>Asymmetric widths</strong> — wide overview left, narrow detail right
+(<code class="docutils literal notranslate"><span class="pre">1×2</span></code> grid with <code class="docutils literal notranslate"><span class="pre">width_ratios=[2,</span> <span class="pre">1]</span></code>).</p></li>
+<li><p><strong>Complex</strong> — spanning top panel plus two bottom panels (<code class="docutils literal notranslate"><span class="pre">2×2</span></code> grid).</p></li>
+</ol>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+
+<a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="numpy.random.Generator" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng" title="numpy.random.default_rng" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span></a><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a>   <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">pi</span></a><span class="p">,</span> <span class="mi">512</span><span class="p">)</span>
+
+<span class="c1"># ── 1. Side-by-side spectra (1×2, equal widths) ───────────────────────────────</span>
+</pre></div>
+</div>
+</section>
+<section id="side-by-side-spectra">
+<h2>Side-by-side spectra<a class="headerlink" href="#side-by-side-spectra" title="Link to this heading">#</a></h2>
+<p>The simplest multi-panel case: two 1-D spectra in one row.  Each panel
+receives exactly half the figure width with a full-height inner plot area.
+Both panels share the same height so their axes baselines align visually.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">gs1</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">fig1</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">720</span><span class="p">,</span> <span class="mi">280</span><span class="p">))</span>
+
+<span class="n">sp_left</span>  <span class="o">=</span> <span class="n">fig1</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">)</span> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">)),</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;channel A&quot;</span><span class="p">)</span>
+
+<span class="n">sp_right</span> <span class="o">=</span> <span class="n">fig1</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">cos</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">)</span> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">)),</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;channel B&quot;</span><span class="p">)</span>
+
+<span class="n">fig1</span>  <span class="c1"># Interactive</span>
+
+<span class="c1"># ── 2. Image + two spectra (2×2, height_ratios=[3, 1]) ────────────────────────</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_gridspec_custom_001" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_gridspec_custom_001" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:275px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_gridspec_custom_001.html" data-awi-fig="sphx_glr_plot_gridspec_custom_001" frameborder="0" scrolling="no" style="width:736px;height:296px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.929348);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_gridspec_custom_001"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_gridspec_custom_001" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_gridspec_custom_001'),ifr=wrap.querySelector('iframe'),nw=736,nh=296;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_gridspec_custom_001" data-fig-index="0" data-src-file="plot_gridspec_custom" data-src="&quot;\&quot;\&quot;\&quot;\nCustom Grid Layouts with GridSpec\n==================================\n\n:class:`~anyplotlib.GridSpec` lets you build multi-panel figures where panels\nhave different sizes and span multiple grid cells.  This gallery shows the most\ncommon patterns.\n\nAll examples use the **bare** ``Figure + GridSpec`` workflow \u2014 the figure&#x27;s\ngrid dimensions are inferred automatically from the GridSpec the first time\n``add_subplot`` is called.\n\nOverview\n--------\n\n1. **Side-by-side spectra** \u2014 two equal 1-D panels in one row (``1\u00d72`` grid).\n2. **Image + spectra** \u2014 image spanning full width, two spectra below\n   (``2\u00d72`` grid with ``height_ratios=[3, 1]``).\n3. **Image + histogram** \u2014 classic EM layout: large image on top, thin\n   histogram strip below (``2\u00d71`` grid with ``height_ratios=[3, 1]``).\n4. **Three-column** \u2014 three equal columns in a single row (``1\u00d73`` grid).\n5. **Asymmetric widths** \u2014 wide overview left, narrow detail right\n   (``1\u00d72`` grid with ``width_ratios=[2, 1]``).\n6. **Complex** \u2014 spanning top panel plus two bottom panels (``2\u00d72`` grid).\n\&quot;\&quot;\&quot;\nimport numpy as np\nimport anyplotlib as apl\n\nrng = np.random.default_rng(42)\nt   = np.linspace(0.0, 2.0 * np.pi, 512)\n\n# \u2500\u2500 1. Side-by-side spectra (1\u00d72, equal widths) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Side-by-side spectra\n# --------------------\n# The simplest multi-panel case: two 1-D spectra in one row.  Each panel\n# receives exactly half the figure width with a full-height inner plot area.\n# Both panels share the same height so their axes baselines align visually.\n\ngs1 = apl.GridSpec(1, 2)\nfig1 = apl.Figure(figsize=(720, 280))\n\nsp_left  = fig1.add_subplot(gs1[0, 0]).plot(\n    np.sin(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;channel A\&quot;)\n\nsp_right = fig1.add_subplot(gs1[0, 1]).plot(\n    np.cos(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#ff7043\&quot;, label=\&quot;channel B\&quot;)\n\nfig1  # Interactive\n\n# \u2500\u2500 2. Image + two spectra (2\u00d72, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image on top, two spectra below\n# --------------------------------\n# A ``2\u00d72`` grid with ``height_ratios=[3, 1]`` puts a wide image in the upper\n# three-quarters and two comparison spectra side-by-side in the lower quarter.\n#\n# The spanning subplot ``gs2[0, :]`` covers all columns in row 0, so the image\n# gets the full figure width.\n\nN = 128\nx = np.linspace(-4, 4, N)\ny = np.linspace(-4, 4, N)\nXX, YY = np.meshgrid(x, y)\nimage = np.exp(-(XX**2 + YY**2) / 4) + 0.3 * np.exp(-((XX - 2)**2 + YY**2) / 1)\nimage += rng.normal(scale=0.03, size=image.shape)\n\ngs2  = apl.GridSpec(2, 2, height_ratios=[3, 1])\nfig2 = apl.Figure(figsize=(640, 560))\n\nfig2.add_subplot(gs2[0, :]).imshow(image.astype(np.float32), cmap=\&quot;inferno\&quot;)\n\nrow_profile = image[N // 2, :]\ncol_profile = image[:, N // 2]\n\nfig2.add_subplot(gs2[1, 0]).plot(\n    row_profile, axes=[x], units=\&quot;nm\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;row profile\&quot;)\n\nfig2.add_subplot(gs2[1, 1]).plot(\n    col_profile, axes=[y], units=\&quot;nm\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;col profile\&quot;)\n\nfig2  # Interactive\n\n# \u2500\u2500 3. Image + histogram (2\u00d71, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image + histogram strip\n# -----------------------\n# A ``2\u00d71`` grid with ``height_ratios=[3, 1]`` is the classic layout for\n# showing an image with its intensity histogram below.  The image occupies\n# three-quarters of the height; the histogram strip the remaining quarter.\n\ngs3  = apl.GridSpec(2, 1, height_ratios=[3, 1])\nfig3 = apl.Figure(figsize=(500, 600))\n\nfig3.add_subplot(gs3[0, 0]).imshow(image.astype(np.float32), cmap=\&quot;viridis\&quot;)\n\ncounts, edges = np.histogram(image.ravel(), bins=64)\nbin_centers   = 0.5 * (edges[:-1] + edges[1:])\nfig3.add_subplot(gs3[1, 0]).plot(\n    counts.astype(float), axes=[bin_centers],\n    color=\&quot;#aed581\&quot;, label=\&quot;histogram\&quot;)\n\nfig3  # Interactive\n\n# \u2500\u2500 4. Three equal columns (1\u00d73) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Three-column layout\n# -------------------\n# A ``1\u00d73`` grid gives three equal panels that are easy to compare visually.\n# Useful for showing the same quantity at three different conditions or times.\n\ngs4  = apl.GridSpec(1, 3)\nfig4 = apl.Figure(figsize=(900, 240))\n\nspectra = [\n    np.sin(t * (i + 1)) + rng.normal(scale=0.08, size=len(t))\n    for i in range(3)\n]\ncolors = [\&quot;#4fc3f7\&quot;, \&quot;#ff7043\&quot;, \&quot;#aed581\&quot;]\nlabels = [\&quot;f\u2081\&quot;, \&quot;f\u2082\&quot;, \&quot;f\u2083\&quot;]\n\nfor i, (data, color, label) in enumerate(zip(spectra, colors, labels)):\n    fig4.add_subplot(gs4[0, i]).plot(data, color=color, label=label)\n\nfig4  # Interactive\n\n# \u2500\u2500 5. Asymmetric widths (1\u00d72, width_ratios=[2, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Asymmetric column widths\n# ------------------------\n# ``width_ratios=[2, 1]`` makes the left panel twice as wide as the right.\n# A common use-case is a broad overview spectrum on the left and a zoomed\n# detail region on the right.\n\nenergy = np.linspace(280, 295, 1024)\npeak   = np.exp(-0.5 * ((energy - 284.8) / 0.3)**2)\npeak2  = 0.35 * np.exp(-0.5 * ((energy - 286.2) / 0.3)**2)\nspectrum = peak + peak2 + 0.1 * np.exp(-0.05 * (energy - 280)) \\\n           + rng.normal(scale=0.01, size=len(energy))\n\ngs5  = apl.GridSpec(1, 2, width_ratios=[2, 1])\nfig5 = apl.Figure(figsize=(720, 260))\n\nfig5.add_subplot(gs5[0, 0]).plot(\n    spectrum, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;survey\&quot;)\n\nmask  = (energy &gt;= 283.5) &amp; (energy &lt;= 286.5)\nfig5.add_subplot(gs5[0, 1]).plot(\n    spectrum[mask], axes=[energy[mask]], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;detail\&quot;)\n\nfig5  # Interactive\n\n# \u2500\u2500 6. Complex layout: spanning top + two bottom (2\u00d72, height_ratios=[2, 1]) \u2500\u2500\n# %%\n# Complex layout: spanning top panel\n# -----------------------------------\n# A ``2\u00d72`` grid where ``gs6[0, :]`` spans both columns creates a wide panel\n# on top (e.g. a summed spectrum) with two comparison panels below it.\n# ``height_ratios=[2, 1]`` gives the top panel twice the height of each bottom\n# panel.\n\nsummed = spectrum + rng.normal(scale=0.02, size=len(energy))\ndiff1  = rng.normal(scale=0.05, size=len(energy))\ndiff2  = rng.normal(scale=0.05, size=len(energy))\n\ngs6  = apl.GridSpec(2, 2, height_ratios=[2, 1])\nfig6 = apl.Figure(figsize=(720, 480))\n\nfig6.add_subplot(gs6[0, :]).plot(\n    summed, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;summed\&quot;)\n\nfig6.add_subplot(gs6[1, 0]).plot(\n    diff1, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;\u0394 channel 1\&quot;)\n\nfig6.add_subplot(gs6[1, 1]).plot(\n    diff2, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#aed581\&quot;, label=\&quot;\u0394 channel 2\&quot;)\n\nfig6  # Interactive\n&quot;"></script></section>
+<section id="image-on-top-two-spectra-below">
+<h2>Image on top, two spectra below<a class="headerlink" href="#image-on-top-two-spectra-below" title="Link to this heading">#</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">2×2</span></code> grid with <code class="docutils literal notranslate"><span class="pre">height_ratios=[3,</span> <span class="pre">1]</span></code> puts a wide image in the upper
+three-quarters and two comparison spectra side-by-side in the lower quarter.</p>
+<p>The spanning subplot <code class="docutils literal notranslate"><span class="pre">gs2[0,</span> <span class="pre">:]</span></code> covers all columns in row 0, so the image
+gets the full figure width.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">=</span> <span class="mi">128</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">XX</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">YY</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html#numpy.meshgrid" title="numpy.meshgrid" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">XX</span></a><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">YY</span></a><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.3</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="p">((</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">XX</span></a> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">YY</span></a><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a> <span class="o">+=</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span><span class="o">.</span><span class="n">shape</span></a><span class="p">)</span>
+
+<span class="n">gs2</span>  <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">fig2</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span> <span class="mi">560</span><span class="p">))</span>
+
+<span class="n">fig2</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs2</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="o">.</span><span class="n">astype</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">)</span>
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">row_profile</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">col_profile</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="p">[:,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+
+<span class="n">fig2</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs2</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">row_profile</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;nm&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;row profile&quot;</span><span class="p">)</span>
+
+<span class="n">fig2</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs2</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">col_profile</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;nm&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;col profile&quot;</span><span class="p">)</span>
+
+<span class="n">fig2</span>  <span class="c1"># Interactive</span>
+
+<span class="c1"># ── 3. Image + histogram (2×1, height_ratios=[3, 1]) ──────────────────────────</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_gridspec_custom_002" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_gridspec_custom_002" style="display:inline-block;overflow:hidden;position:relative;width:656px;height:576px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_gridspec_custom_002.html" data-awi-fig="sphx_glr_plot_gridspec_custom_002" frameborder="0" scrolling="no" style="width:656px;height:576px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_gridspec_custom_002"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_gridspec_custom_002" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_gridspec_custom_002'),ifr=wrap.querySelector('iframe'),nw=656,nh=576;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_gridspec_custom_002" data-fig-index="1" data-src-file="plot_gridspec_custom" data-src="&quot;\&quot;\&quot;\&quot;\nCustom Grid Layouts with GridSpec\n==================================\n\n:class:`~anyplotlib.GridSpec` lets you build multi-panel figures where panels\nhave different sizes and span multiple grid cells.  This gallery shows the most\ncommon patterns.\n\nAll examples use the **bare** ``Figure + GridSpec`` workflow \u2014 the figure&#x27;s\ngrid dimensions are inferred automatically from the GridSpec the first time\n``add_subplot`` is called.\n\nOverview\n--------\n\n1. **Side-by-side spectra** \u2014 two equal 1-D panels in one row (``1\u00d72`` grid).\n2. **Image + spectra** \u2014 image spanning full width, two spectra below\n   (``2\u00d72`` grid with ``height_ratios=[3, 1]``).\n3. **Image + histogram** \u2014 classic EM layout: large image on top, thin\n   histogram strip below (``2\u00d71`` grid with ``height_ratios=[3, 1]``).\n4. **Three-column** \u2014 three equal columns in a single row (``1\u00d73`` grid).\n5. **Asymmetric widths** \u2014 wide overview left, narrow detail right\n   (``1\u00d72`` grid with ``width_ratios=[2, 1]``).\n6. **Complex** \u2014 spanning top panel plus two bottom panels (``2\u00d72`` grid).\n\&quot;\&quot;\&quot;\nimport numpy as np\nimport anyplotlib as apl\n\nrng = np.random.default_rng(42)\nt   = np.linspace(0.0, 2.0 * np.pi, 512)\n\n# \u2500\u2500 1. Side-by-side spectra (1\u00d72, equal widths) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Side-by-side spectra\n# --------------------\n# The simplest multi-panel case: two 1-D spectra in one row.  Each panel\n# receives exactly half the figure width with a full-height inner plot area.\n# Both panels share the same height so their axes baselines align visually.\n\ngs1 = apl.GridSpec(1, 2)\nfig1 = apl.Figure(figsize=(720, 280))\n\nsp_left  = fig1.add_subplot(gs1[0, 0]).plot(\n    np.sin(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;channel A\&quot;)\n\nsp_right = fig1.add_subplot(gs1[0, 1]).plot(\n    np.cos(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#ff7043\&quot;, label=\&quot;channel B\&quot;)\n\nfig1  # Interactive\n\n# \u2500\u2500 2. Image + two spectra (2\u00d72, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image on top, two spectra below\n# --------------------------------\n# A ``2\u00d72`` grid with ``height_ratios=[3, 1]`` puts a wide image in the upper\n# three-quarters and two comparison spectra side-by-side in the lower quarter.\n#\n# The spanning subplot ``gs2[0, :]`` covers all columns in row 0, so the image\n# gets the full figure width.\n\nN = 128\nx = np.linspace(-4, 4, N)\ny = np.linspace(-4, 4, N)\nXX, YY = np.meshgrid(x, y)\nimage = np.exp(-(XX**2 + YY**2) / 4) + 0.3 * np.exp(-((XX - 2)**2 + YY**2) / 1)\nimage += rng.normal(scale=0.03, size=image.shape)\n\ngs2  = apl.GridSpec(2, 2, height_ratios=[3, 1])\nfig2 = apl.Figure(figsize=(640, 560))\n\nfig2.add_subplot(gs2[0, :]).imshow(image.astype(np.float32), cmap=\&quot;inferno\&quot;)\n\nrow_profile = image[N // 2, :]\ncol_profile = image[:, N // 2]\n\nfig2.add_subplot(gs2[1, 0]).plot(\n    row_profile, axes=[x], units=\&quot;nm\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;row profile\&quot;)\n\nfig2.add_subplot(gs2[1, 1]).plot(\n    col_profile, axes=[y], units=\&quot;nm\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;col profile\&quot;)\n\nfig2  # Interactive\n\n# \u2500\u2500 3. Image + histogram (2\u00d71, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image + histogram strip\n# -----------------------\n# A ``2\u00d71`` grid with ``height_ratios=[3, 1]`` is the classic layout for\n# showing an image with its intensity histogram below.  The image occupies\n# three-quarters of the height; the histogram strip the remaining quarter.\n\ngs3  = apl.GridSpec(2, 1, height_ratios=[3, 1])\nfig3 = apl.Figure(figsize=(500, 600))\n\nfig3.add_subplot(gs3[0, 0]).imshow(image.astype(np.float32), cmap=\&quot;viridis\&quot;)\n\ncounts, edges = np.histogram(image.ravel(), bins=64)\nbin_centers   = 0.5 * (edges[:-1] + edges[1:])\nfig3.add_subplot(gs3[1, 0]).plot(\n    counts.astype(float), axes=[bin_centers],\n    color=\&quot;#aed581\&quot;, label=\&quot;histogram\&quot;)\n\nfig3  # Interactive\n\n# \u2500\u2500 4. Three equal columns (1\u00d73) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Three-column layout\n# -------------------\n# A ``1\u00d73`` grid gives three equal panels that are easy to compare visually.\n# Useful for showing the same quantity at three different conditions or times.\n\ngs4  = apl.GridSpec(1, 3)\nfig4 = apl.Figure(figsize=(900, 240))\n\nspectra = [\n    np.sin(t * (i + 1)) + rng.normal(scale=0.08, size=len(t))\n    for i in range(3)\n]\ncolors = [\&quot;#4fc3f7\&quot;, \&quot;#ff7043\&quot;, \&quot;#aed581\&quot;]\nlabels = [\&quot;f\u2081\&quot;, \&quot;f\u2082\&quot;, \&quot;f\u2083\&quot;]\n\nfor i, (data, color, label) in enumerate(zip(spectra, colors, labels)):\n    fig4.add_subplot(gs4[0, i]).plot(data, color=color, label=label)\n\nfig4  # Interactive\n\n# \u2500\u2500 5. Asymmetric widths (1\u00d72, width_ratios=[2, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Asymmetric column widths\n# ------------------------\n# ``width_ratios=[2, 1]`` makes the left panel twice as wide as the right.\n# A common use-case is a broad overview spectrum on the left and a zoomed\n# detail region on the right.\n\nenergy = np.linspace(280, 295, 1024)\npeak   = np.exp(-0.5 * ((energy - 284.8) / 0.3)**2)\npeak2  = 0.35 * np.exp(-0.5 * ((energy - 286.2) / 0.3)**2)\nspectrum = peak + peak2 + 0.1 * np.exp(-0.05 * (energy - 280)) \\\n           + rng.normal(scale=0.01, size=len(energy))\n\ngs5  = apl.GridSpec(1, 2, width_ratios=[2, 1])\nfig5 = apl.Figure(figsize=(720, 260))\n\nfig5.add_subplot(gs5[0, 0]).plot(\n    spectrum, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;survey\&quot;)\n\nmask  = (energy &gt;= 283.5) &amp; (energy &lt;= 286.5)\nfig5.add_subplot(gs5[0, 1]).plot(\n    spectrum[mask], axes=[energy[mask]], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;detail\&quot;)\n\nfig5  # Interactive\n\n# \u2500\u2500 6. Complex layout: spanning top + two bottom (2\u00d72, height_ratios=[2, 1]) \u2500\u2500\n# %%\n# Complex layout: spanning top panel\n# -----------------------------------\n# A ``2\u00d72`` grid where ``gs6[0, :]`` spans both columns creates a wide panel\n# on top (e.g. a summed spectrum) with two comparison panels below it.\n# ``height_ratios=[2, 1]`` gives the top panel twice the height of each bottom\n# panel.\n\nsummed = spectrum + rng.normal(scale=0.02, size=len(energy))\ndiff1  = rng.normal(scale=0.05, size=len(energy))\ndiff2  = rng.normal(scale=0.05, size=len(energy))\n\ngs6  = apl.GridSpec(2, 2, height_ratios=[2, 1])\nfig6 = apl.Figure(figsize=(720, 480))\n\nfig6.add_subplot(gs6[0, :]).plot(\n    summed, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;summed\&quot;)\n\nfig6.add_subplot(gs6[1, 0]).plot(\n    diff1, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;\u0394 channel 1\&quot;)\n\nfig6.add_subplot(gs6[1, 1]).plot(\n    diff2, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#aed581\&quot;, label=\&quot;\u0394 channel 2\&quot;)\n\nfig6  # Interactive\n&quot;"></script></section>
+<section id="image-histogram-strip">
+<h2>Image + histogram strip<a class="headerlink" href="#image-histogram-strip" title="Link to this heading">#</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">2×1</span></code> grid with <code class="docutils literal notranslate"><span class="pre">height_ratios=[3,</span> <span class="pre">1]</span></code> is the classic layout for
+showing an image with its intensity histogram below.  The image occupies
+three-quarters of the height; the histogram strip the remaining quarter.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">gs3</span>  <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">fig3</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">600</span><span class="p">))</span>
+
+<span class="n">fig3</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="o">.</span><span class="n">astype</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">)</span>
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">counts</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">edges</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.histogram.html#numpy.histogram" title="numpy.histogram" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">histogram</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image</span></a><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">bins</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">bin_centers</span></a>   <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">edges</span></a><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">edges</span></a><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+<span class="n">fig3</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">counts</span></a><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">bin_centers</span></a><span class="p">],</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#aed581&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;histogram&quot;</span><span class="p">)</span>
+
+<span class="n">fig3</span>  <span class="c1"># Interactive</span>
+
+<span class="c1"># ── 4. Three equal columns (1×3) ──────────────────────────────────────────────</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_gridspec_custom_003" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_gridspec_custom_003" style="display:inline-block;overflow:hidden;position:relative;width:516px;height:616px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_gridspec_custom_003.html" data-awi-fig="sphx_glr_plot_gridspec_custom_003" frameborder="0" scrolling="no" style="width:516px;height:616px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_gridspec_custom_003"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_gridspec_custom_003" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_gridspec_custom_003'),ifr=wrap.querySelector('iframe'),nw=516,nh=616;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_gridspec_custom_003" data-fig-index="2" data-src-file="plot_gridspec_custom" data-src="&quot;\&quot;\&quot;\&quot;\nCustom Grid Layouts with GridSpec\n==================================\n\n:class:`~anyplotlib.GridSpec` lets you build multi-panel figures where panels\nhave different sizes and span multiple grid cells.  This gallery shows the most\ncommon patterns.\n\nAll examples use the **bare** ``Figure + GridSpec`` workflow \u2014 the figure&#x27;s\ngrid dimensions are inferred automatically from the GridSpec the first time\n``add_subplot`` is called.\n\nOverview\n--------\n\n1. **Side-by-side spectra** \u2014 two equal 1-D panels in one row (``1\u00d72`` grid).\n2. **Image + spectra** \u2014 image spanning full width, two spectra below\n   (``2\u00d72`` grid with ``height_ratios=[3, 1]``).\n3. **Image + histogram** \u2014 classic EM layout: large image on top, thin\n   histogram strip below (``2\u00d71`` grid with ``height_ratios=[3, 1]``).\n4. **Three-column** \u2014 three equal columns in a single row (``1\u00d73`` grid).\n5. **Asymmetric widths** \u2014 wide overview left, narrow detail right\n   (``1\u00d72`` grid with ``width_ratios=[2, 1]``).\n6. **Complex** \u2014 spanning top panel plus two bottom panels (``2\u00d72`` grid).\n\&quot;\&quot;\&quot;\nimport numpy as np\nimport anyplotlib as apl\n\nrng = np.random.default_rng(42)\nt   = np.linspace(0.0, 2.0 * np.pi, 512)\n\n# \u2500\u2500 1. Side-by-side spectra (1\u00d72, equal widths) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Side-by-side spectra\n# --------------------\n# The simplest multi-panel case: two 1-D spectra in one row.  Each panel\n# receives exactly half the figure width with a full-height inner plot area.\n# Both panels share the same height so their axes baselines align visually.\n\ngs1 = apl.GridSpec(1, 2)\nfig1 = apl.Figure(figsize=(720, 280))\n\nsp_left  = fig1.add_subplot(gs1[0, 0]).plot(\n    np.sin(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;channel A\&quot;)\n\nsp_right = fig1.add_subplot(gs1[0, 1]).plot(\n    np.cos(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#ff7043\&quot;, label=\&quot;channel B\&quot;)\n\nfig1  # Interactive\n\n# \u2500\u2500 2. Image + two spectra (2\u00d72, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image on top, two spectra below\n# --------------------------------\n# A ``2\u00d72`` grid with ``height_ratios=[3, 1]`` puts a wide image in the upper\n# three-quarters and two comparison spectra side-by-side in the lower quarter.\n#\n# The spanning subplot ``gs2[0, :]`` covers all columns in row 0, so the image\n# gets the full figure width.\n\nN = 128\nx = np.linspace(-4, 4, N)\ny = np.linspace(-4, 4, N)\nXX, YY = np.meshgrid(x, y)\nimage = np.exp(-(XX**2 + YY**2) / 4) + 0.3 * np.exp(-((XX - 2)**2 + YY**2) / 1)\nimage += rng.normal(scale=0.03, size=image.shape)\n\ngs2  = apl.GridSpec(2, 2, height_ratios=[3, 1])\nfig2 = apl.Figure(figsize=(640, 560))\n\nfig2.add_subplot(gs2[0, :]).imshow(image.astype(np.float32), cmap=\&quot;inferno\&quot;)\n\nrow_profile = image[N // 2, :]\ncol_profile = image[:, N // 2]\n\nfig2.add_subplot(gs2[1, 0]).plot(\n    row_profile, axes=[x], units=\&quot;nm\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;row profile\&quot;)\n\nfig2.add_subplot(gs2[1, 1]).plot(\n    col_profile, axes=[y], units=\&quot;nm\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;col profile\&quot;)\n\nfig2  # Interactive\n\n# \u2500\u2500 3. Image + histogram (2\u00d71, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image + histogram strip\n# -----------------------\n# A ``2\u00d71`` grid with ``height_ratios=[3, 1]`` is the classic layout for\n# showing an image with its intensity histogram below.  The image occupies\n# three-quarters of the height; the histogram strip the remaining quarter.\n\ngs3  = apl.GridSpec(2, 1, height_ratios=[3, 1])\nfig3 = apl.Figure(figsize=(500, 600))\n\nfig3.add_subplot(gs3[0, 0]).imshow(image.astype(np.float32), cmap=\&quot;viridis\&quot;)\n\ncounts, edges = np.histogram(image.ravel(), bins=64)\nbin_centers   = 0.5 * (edges[:-1] + edges[1:])\nfig3.add_subplot(gs3[1, 0]).plot(\n    counts.astype(float), axes=[bin_centers],\n    color=\&quot;#aed581\&quot;, label=\&quot;histogram\&quot;)\n\nfig3  # Interactive\n\n# \u2500\u2500 4. Three equal columns (1\u00d73) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Three-column layout\n# -------------------\n# A ``1\u00d73`` grid gives three equal panels that are easy to compare visually.\n# Useful for showing the same quantity at three different conditions or times.\n\ngs4  = apl.GridSpec(1, 3)\nfig4 = apl.Figure(figsize=(900, 240))\n\nspectra = [\n    np.sin(t * (i + 1)) + rng.normal(scale=0.08, size=len(t))\n    for i in range(3)\n]\ncolors = [\&quot;#4fc3f7\&quot;, \&quot;#ff7043\&quot;, \&quot;#aed581\&quot;]\nlabels = [\&quot;f\u2081\&quot;, \&quot;f\u2082\&quot;, \&quot;f\u2083\&quot;]\n\nfor i, (data, color, label) in enumerate(zip(spectra, colors, labels)):\n    fig4.add_subplot(gs4[0, i]).plot(data, color=color, label=label)\n\nfig4  # Interactive\n\n# \u2500\u2500 5. Asymmetric widths (1\u00d72, width_ratios=[2, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Asymmetric column widths\n# ------------------------\n# ``width_ratios=[2, 1]`` makes the left panel twice as wide as the right.\n# A common use-case is a broad overview spectrum on the left and a zoomed\n# detail region on the right.\n\nenergy = np.linspace(280, 295, 1024)\npeak   = np.exp(-0.5 * ((energy - 284.8) / 0.3)**2)\npeak2  = 0.35 * np.exp(-0.5 * ((energy - 286.2) / 0.3)**2)\nspectrum = peak + peak2 + 0.1 * np.exp(-0.05 * (energy - 280)) \\\n           + rng.normal(scale=0.01, size=len(energy))\n\ngs5  = apl.GridSpec(1, 2, width_ratios=[2, 1])\nfig5 = apl.Figure(figsize=(720, 260))\n\nfig5.add_subplot(gs5[0, 0]).plot(\n    spectrum, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;survey\&quot;)\n\nmask  = (energy &gt;= 283.5) &amp; (energy &lt;= 286.5)\nfig5.add_subplot(gs5[0, 1]).plot(\n    spectrum[mask], axes=[energy[mask]], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;detail\&quot;)\n\nfig5  # Interactive\n\n# \u2500\u2500 6. Complex layout: spanning top + two bottom (2\u00d72, height_ratios=[2, 1]) \u2500\u2500\n# %%\n# Complex layout: spanning top panel\n# -----------------------------------\n# A ``2\u00d72`` grid where ``gs6[0, :]`` spans both columns creates a wide panel\n# on top (e.g. a summed spectrum) with two comparison panels below it.\n# ``height_ratios=[2, 1]`` gives the top panel twice the height of each bottom\n# panel.\n\nsummed = spectrum + rng.normal(scale=0.02, size=len(energy))\ndiff1  = rng.normal(scale=0.05, size=len(energy))\ndiff2  = rng.normal(scale=0.05, size=len(energy))\n\ngs6  = apl.GridSpec(2, 2, height_ratios=[2, 1])\nfig6 = apl.Figure(figsize=(720, 480))\n\nfig6.add_subplot(gs6[0, :]).plot(\n    summed, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;summed\&quot;)\n\nfig6.add_subplot(gs6[1, 0]).plot(\n    diff1, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;\u0394 channel 1\&quot;)\n\nfig6.add_subplot(gs6[1, 1]).plot(\n    diff2, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#aed581\&quot;, label=\&quot;\u0394 channel 2\&quot;)\n\nfig6  # Interactive\n&quot;"></script></section>
+<section id="three-column-layout">
+<h2>Three-column layout<a class="headerlink" href="#three-column-layout" title="Link to this heading">#</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">1×3</span></code> grid gives three equal panels that are easy to compare visually.
+Useful for showing the same quantity at three different conditions or times.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">gs4</span>  <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">fig4</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">900</span><span class="p">,</span> <span class="mi">240</span><span class="p">))</span>
+
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectra</span></a> <span class="o">=</span> <span class="p">[</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a> <span class="o">*</span> <span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">))</span>
+    <span class="k">for</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="p">]</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">colors</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <span class="s2">&quot;#aed581&quot;</span><span class="p">]</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">labels</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;f₁&quot;</span><span class="p">,</span> <span class="s2">&quot;f₂&quot;</span><span class="p">,</span> <span class="s2">&quot;f₃&quot;</span><span class="p">]</span>
+
+<span class="k">for</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a><span class="p">,</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectra</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">colors</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">labels</span></a><span class="p">)):</span>
+    <span class="n">fig4</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs4</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="p">)</span>
+
+<span class="n">fig4</span>  <span class="c1"># Interactive</span>
+
+<span class="c1"># ── 5. Asymmetric widths (1×2, width_ratios=[2, 1]) ──────────────────────────</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_gridspec_custom_004" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_gridspec_custom_004" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:191px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_gridspec_custom_004.html" data-awi-fig="sphx_glr_plot_gridspec_custom_004" frameborder="0" scrolling="no" style="width:916px;height:256px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.746725);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_gridspec_custom_004"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_gridspec_custom_004" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_gridspec_custom_004'),ifr=wrap.querySelector('iframe'),nw=916,nh=256;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_gridspec_custom_004" data-fig-index="3" data-src-file="plot_gridspec_custom" data-src="&quot;\&quot;\&quot;\&quot;\nCustom Grid Layouts with GridSpec\n==================================\n\n:class:`~anyplotlib.GridSpec` lets you build multi-panel figures where panels\nhave different sizes and span multiple grid cells.  This gallery shows the most\ncommon patterns.\n\nAll examples use the **bare** ``Figure + GridSpec`` workflow \u2014 the figure&#x27;s\ngrid dimensions are inferred automatically from the GridSpec the first time\n``add_subplot`` is called.\n\nOverview\n--------\n\n1. **Side-by-side spectra** \u2014 two equal 1-D panels in one row (``1\u00d72`` grid).\n2. **Image + spectra** \u2014 image spanning full width, two spectra below\n   (``2\u00d72`` grid with ``height_ratios=[3, 1]``).\n3. **Image + histogram** \u2014 classic EM layout: large image on top, thin\n   histogram strip below (``2\u00d71`` grid with ``height_ratios=[3, 1]``).\n4. **Three-column** \u2014 three equal columns in a single row (``1\u00d73`` grid).\n5. **Asymmetric widths** \u2014 wide overview left, narrow detail right\n   (``1\u00d72`` grid with ``width_ratios=[2, 1]``).\n6. **Complex** \u2014 spanning top panel plus two bottom panels (``2\u00d72`` grid).\n\&quot;\&quot;\&quot;\nimport numpy as np\nimport anyplotlib as apl\n\nrng = np.random.default_rng(42)\nt   = np.linspace(0.0, 2.0 * np.pi, 512)\n\n# \u2500\u2500 1. Side-by-side spectra (1\u00d72, equal widths) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Side-by-side spectra\n# --------------------\n# The simplest multi-panel case: two 1-D spectra in one row.  Each panel\n# receives exactly half the figure width with a full-height inner plot area.\n# Both panels share the same height so their axes baselines align visually.\n\ngs1 = apl.GridSpec(1, 2)\nfig1 = apl.Figure(figsize=(720, 280))\n\nsp_left  = fig1.add_subplot(gs1[0, 0]).plot(\n    np.sin(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;channel A\&quot;)\n\nsp_right = fig1.add_subplot(gs1[0, 1]).plot(\n    np.cos(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#ff7043\&quot;, label=\&quot;channel B\&quot;)\n\nfig1  # Interactive\n\n# \u2500\u2500 2. Image + two spectra (2\u00d72, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image on top, two spectra below\n# --------------------------------\n# A ``2\u00d72`` grid with ``height_ratios=[3, 1]`` puts a wide image in the upper\n# three-quarters and two comparison spectra side-by-side in the lower quarter.\n#\n# The spanning subplot ``gs2[0, :]`` covers all columns in row 0, so the image\n# gets the full figure width.\n\nN = 128\nx = np.linspace(-4, 4, N)\ny = np.linspace(-4, 4, N)\nXX, YY = np.meshgrid(x, y)\nimage = np.exp(-(XX**2 + YY**2) / 4) + 0.3 * np.exp(-((XX - 2)**2 + YY**2) / 1)\nimage += rng.normal(scale=0.03, size=image.shape)\n\ngs2  = apl.GridSpec(2, 2, height_ratios=[3, 1])\nfig2 = apl.Figure(figsize=(640, 560))\n\nfig2.add_subplot(gs2[0, :]).imshow(image.astype(np.float32), cmap=\&quot;inferno\&quot;)\n\nrow_profile = image[N // 2, :]\ncol_profile = image[:, N // 2]\n\nfig2.add_subplot(gs2[1, 0]).plot(\n    row_profile, axes=[x], units=\&quot;nm\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;row profile\&quot;)\n\nfig2.add_subplot(gs2[1, 1]).plot(\n    col_profile, axes=[y], units=\&quot;nm\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;col profile\&quot;)\n\nfig2  # Interactive\n\n# \u2500\u2500 3. Image + histogram (2\u00d71, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image + histogram strip\n# -----------------------\n# A ``2\u00d71`` grid with ``height_ratios=[3, 1]`` is the classic layout for\n# showing an image with its intensity histogram below.  The image occupies\n# three-quarters of the height; the histogram strip the remaining quarter.\n\ngs3  = apl.GridSpec(2, 1, height_ratios=[3, 1])\nfig3 = apl.Figure(figsize=(500, 600))\n\nfig3.add_subplot(gs3[0, 0]).imshow(image.astype(np.float32), cmap=\&quot;viridis\&quot;)\n\ncounts, edges = np.histogram(image.ravel(), bins=64)\nbin_centers   = 0.5 * (edges[:-1] + edges[1:])\nfig3.add_subplot(gs3[1, 0]).plot(\n    counts.astype(float), axes=[bin_centers],\n    color=\&quot;#aed581\&quot;, label=\&quot;histogram\&quot;)\n\nfig3  # Interactive\n\n# \u2500\u2500 4. Three equal columns (1\u00d73) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Three-column layout\n# -------------------\n# A ``1\u00d73`` grid gives three equal panels that are easy to compare visually.\n# Useful for showing the same quantity at three different conditions or times.\n\ngs4  = apl.GridSpec(1, 3)\nfig4 = apl.Figure(figsize=(900, 240))\n\nspectra = [\n    np.sin(t * (i + 1)) + rng.normal(scale=0.08, size=len(t))\n    for i in range(3)\n]\ncolors = [\&quot;#4fc3f7\&quot;, \&quot;#ff7043\&quot;, \&quot;#aed581\&quot;]\nlabels = [\&quot;f\u2081\&quot;, \&quot;f\u2082\&quot;, \&quot;f\u2083\&quot;]\n\nfor i, (data, color, label) in enumerate(zip(spectra, colors, labels)):\n    fig4.add_subplot(gs4[0, i]).plot(data, color=color, label=label)\n\nfig4  # Interactive\n\n# \u2500\u2500 5. Asymmetric widths (1\u00d72, width_ratios=[2, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Asymmetric column widths\n# ------------------------\n# ``width_ratios=[2, 1]`` makes the left panel twice as wide as the right.\n# A common use-case is a broad overview spectrum on the left and a zoomed\n# detail region on the right.\n\nenergy = np.linspace(280, 295, 1024)\npeak   = np.exp(-0.5 * ((energy - 284.8) / 0.3)**2)\npeak2  = 0.35 * np.exp(-0.5 * ((energy - 286.2) / 0.3)**2)\nspectrum = peak + peak2 + 0.1 * np.exp(-0.05 * (energy - 280)) \\\n           + rng.normal(scale=0.01, size=len(energy))\n\ngs5  = apl.GridSpec(1, 2, width_ratios=[2, 1])\nfig5 = apl.Figure(figsize=(720, 260))\n\nfig5.add_subplot(gs5[0, 0]).plot(\n    spectrum, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;survey\&quot;)\n\nmask  = (energy &gt;= 283.5) &amp; (energy &lt;= 286.5)\nfig5.add_subplot(gs5[0, 1]).plot(\n    spectrum[mask], axes=[energy[mask]], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;detail\&quot;)\n\nfig5  # Interactive\n\n# \u2500\u2500 6. Complex layout: spanning top + two bottom (2\u00d72, height_ratios=[2, 1]) \u2500\u2500\n# %%\n# Complex layout: spanning top panel\n# -----------------------------------\n# A ``2\u00d72`` grid where ``gs6[0, :]`` spans both columns creates a wide panel\n# on top (e.g. a summed spectrum) with two comparison panels below it.\n# ``height_ratios=[2, 1]`` gives the top panel twice the height of each bottom\n# panel.\n\nsummed = spectrum + rng.normal(scale=0.02, size=len(energy))\ndiff1  = rng.normal(scale=0.05, size=len(energy))\ndiff2  = rng.normal(scale=0.05, size=len(energy))\n\ngs6  = apl.GridSpec(2, 2, height_ratios=[2, 1])\nfig6 = apl.Figure(figsize=(720, 480))\n\nfig6.add_subplot(gs6[0, :]).plot(\n    summed, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;summed\&quot;)\n\nfig6.add_subplot(gs6[1, 0]).plot(\n    diff1, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;\u0394 channel 1\&quot;)\n\nfig6.add_subplot(gs6[1, 1]).plot(\n    diff2, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#aed581\&quot;, label=\&quot;\u0394 channel 2\&quot;)\n\nfig6  # Interactive\n&quot;"></script></section>
+<section id="asymmetric-column-widths">
+<h2>Asymmetric column widths<a class="headerlink" href="#asymmetric-column-widths" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">width_ratios=[2,</span> <span class="pre">1]</span></code> makes the left panel twice as wide as the right.
+A common use-case is a broad overview spectrum on the left and a zoomed
+detail region on the right.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="mi">280</span><span class="p">,</span> <span class="mi">295</span><span class="p">,</span> <span class="mi">1024</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">peak</span></a>   <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">((</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">-</span> <span class="mf">284.8</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.3</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">peak2</span></a>  <span class="o">=</span> <span class="mf">0.35</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">((</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">-</span> <span class="mf">286.2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.3</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectrum</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">peak</span></a> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">peak2</span></a> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">exp</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.05</span> <span class="o">*</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">-</span> <span class="mi">280</span><span class="p">))</span> \
+           <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">))</span>
+
+<span class="n">gs5</span>  <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">fig5</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">720</span><span class="p">,</span> <span class="mi">260</span><span class="p">))</span>
+
+<span class="n">fig5</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs5</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectrum</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;eV&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;survey&quot;</span><span class="p">)</span>
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a>  <span class="o">=</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">&gt;=</span> <span class="mf">283.5</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a> <span class="o">&lt;=</span> <span class="mf">286.5</span><span class="p">)</span>
+<span class="n">fig5</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs5</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectrum</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="p">],</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="p">]],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;eV&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;detail&quot;</span><span class="p">)</span>
+
+<span class="n">fig5</span>  <span class="c1"># Interactive</span>
+
+<span class="c1"># ── 6. Complex layout: spanning top + two bottom (2×2, height_ratios=[2, 1]) ──</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_gridspec_custom_005" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_gridspec_custom_005" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:256px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_gridspec_custom_005.html" data-awi-fig="sphx_glr_plot_gridspec_custom_005" frameborder="0" scrolling="no" style="width:736px;height:276px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.929348);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_gridspec_custom_005"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_gridspec_custom_005" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_gridspec_custom_005'),ifr=wrap.querySelector('iframe'),nw=736,nh=276;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_gridspec_custom_005" data-fig-index="4" data-src-file="plot_gridspec_custom" data-src="&quot;\&quot;\&quot;\&quot;\nCustom Grid Layouts with GridSpec\n==================================\n\n:class:`~anyplotlib.GridSpec` lets you build multi-panel figures where panels\nhave different sizes and span multiple grid cells.  This gallery shows the most\ncommon patterns.\n\nAll examples use the **bare** ``Figure + GridSpec`` workflow \u2014 the figure&#x27;s\ngrid dimensions are inferred automatically from the GridSpec the first time\n``add_subplot`` is called.\n\nOverview\n--------\n\n1. **Side-by-side spectra** \u2014 two equal 1-D panels in one row (``1\u00d72`` grid).\n2. **Image + spectra** \u2014 image spanning full width, two spectra below\n   (``2\u00d72`` grid with ``height_ratios=[3, 1]``).\n3. **Image + histogram** \u2014 classic EM layout: large image on top, thin\n   histogram strip below (``2\u00d71`` grid with ``height_ratios=[3, 1]``).\n4. **Three-column** \u2014 three equal columns in a single row (``1\u00d73`` grid).\n5. **Asymmetric widths** \u2014 wide overview left, narrow detail right\n   (``1\u00d72`` grid with ``width_ratios=[2, 1]``).\n6. **Complex** \u2014 spanning top panel plus two bottom panels (``2\u00d72`` grid).\n\&quot;\&quot;\&quot;\nimport numpy as np\nimport anyplotlib as apl\n\nrng = np.random.default_rng(42)\nt   = np.linspace(0.0, 2.0 * np.pi, 512)\n\n# \u2500\u2500 1. Side-by-side spectra (1\u00d72, equal widths) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Side-by-side spectra\n# --------------------\n# The simplest multi-panel case: two 1-D spectra in one row.  Each panel\n# receives exactly half the figure width with a full-height inner plot area.\n# Both panels share the same height so their axes baselines align visually.\n\ngs1 = apl.GridSpec(1, 2)\nfig1 = apl.Figure(figsize=(720, 280))\n\nsp_left  = fig1.add_subplot(gs1[0, 0]).plot(\n    np.sin(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;channel A\&quot;)\n\nsp_right = fig1.add_subplot(gs1[0, 1]).plot(\n    np.cos(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#ff7043\&quot;, label=\&quot;channel B\&quot;)\n\nfig1  # Interactive\n\n# \u2500\u2500 2. Image + two spectra (2\u00d72, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image on top, two spectra below\n# --------------------------------\n# A ``2\u00d72`` grid with ``height_ratios=[3, 1]`` puts a wide image in the upper\n# three-quarters and two comparison spectra side-by-side in the lower quarter.\n#\n# The spanning subplot ``gs2[0, :]`` covers all columns in row 0, so the image\n# gets the full figure width.\n\nN = 128\nx = np.linspace(-4, 4, N)\ny = np.linspace(-4, 4, N)\nXX, YY = np.meshgrid(x, y)\nimage = np.exp(-(XX**2 + YY**2) / 4) + 0.3 * np.exp(-((XX - 2)**2 + YY**2) / 1)\nimage += rng.normal(scale=0.03, size=image.shape)\n\ngs2  = apl.GridSpec(2, 2, height_ratios=[3, 1])\nfig2 = apl.Figure(figsize=(640, 560))\n\nfig2.add_subplot(gs2[0, :]).imshow(image.astype(np.float32), cmap=\&quot;inferno\&quot;)\n\nrow_profile = image[N // 2, :]\ncol_profile = image[:, N // 2]\n\nfig2.add_subplot(gs2[1, 0]).plot(\n    row_profile, axes=[x], units=\&quot;nm\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;row profile\&quot;)\n\nfig2.add_subplot(gs2[1, 1]).plot(\n    col_profile, axes=[y], units=\&quot;nm\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;col profile\&quot;)\n\nfig2  # Interactive\n\n# \u2500\u2500 3. Image + histogram (2\u00d71, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image + histogram strip\n# -----------------------\n# A ``2\u00d71`` grid with ``height_ratios=[3, 1]`` is the classic layout for\n# showing an image with its intensity histogram below.  The image occupies\n# three-quarters of the height; the histogram strip the remaining quarter.\n\ngs3  = apl.GridSpec(2, 1, height_ratios=[3, 1])\nfig3 = apl.Figure(figsize=(500, 600))\n\nfig3.add_subplot(gs3[0, 0]).imshow(image.astype(np.float32), cmap=\&quot;viridis\&quot;)\n\ncounts, edges = np.histogram(image.ravel(), bins=64)\nbin_centers   = 0.5 * (edges[:-1] + edges[1:])\nfig3.add_subplot(gs3[1, 0]).plot(\n    counts.astype(float), axes=[bin_centers],\n    color=\&quot;#aed581\&quot;, label=\&quot;histogram\&quot;)\n\nfig3  # Interactive\n\n# \u2500\u2500 4. Three equal columns (1\u00d73) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Three-column layout\n# -------------------\n# A ``1\u00d73`` grid gives three equal panels that are easy to compare visually.\n# Useful for showing the same quantity at three different conditions or times.\n\ngs4  = apl.GridSpec(1, 3)\nfig4 = apl.Figure(figsize=(900, 240))\n\nspectra = [\n    np.sin(t * (i + 1)) + rng.normal(scale=0.08, size=len(t))\n    for i in range(3)\n]\ncolors = [\&quot;#4fc3f7\&quot;, \&quot;#ff7043\&quot;, \&quot;#aed581\&quot;]\nlabels = [\&quot;f\u2081\&quot;, \&quot;f\u2082\&quot;, \&quot;f\u2083\&quot;]\n\nfor i, (data, color, label) in enumerate(zip(spectra, colors, labels)):\n    fig4.add_subplot(gs4[0, i]).plot(data, color=color, label=label)\n\nfig4  # Interactive\n\n# \u2500\u2500 5. Asymmetric widths (1\u00d72, width_ratios=[2, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Asymmetric column widths\n# ------------------------\n# ``width_ratios=[2, 1]`` makes the left panel twice as wide as the right.\n# A common use-case is a broad overview spectrum on the left and a zoomed\n# detail region on the right.\n\nenergy = np.linspace(280, 295, 1024)\npeak   = np.exp(-0.5 * ((energy - 284.8) / 0.3)**2)\npeak2  = 0.35 * np.exp(-0.5 * ((energy - 286.2) / 0.3)**2)\nspectrum = peak + peak2 + 0.1 * np.exp(-0.05 * (energy - 280)) \\\n           + rng.normal(scale=0.01, size=len(energy))\n\ngs5  = apl.GridSpec(1, 2, width_ratios=[2, 1])\nfig5 = apl.Figure(figsize=(720, 260))\n\nfig5.add_subplot(gs5[0, 0]).plot(\n    spectrum, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;survey\&quot;)\n\nmask  = (energy &gt;= 283.5) &amp; (energy &lt;= 286.5)\nfig5.add_subplot(gs5[0, 1]).plot(\n    spectrum[mask], axes=[energy[mask]], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;detail\&quot;)\n\nfig5  # Interactive\n\n# \u2500\u2500 6. Complex layout: spanning top + two bottom (2\u00d72, height_ratios=[2, 1]) \u2500\u2500\n# %%\n# Complex layout: spanning top panel\n# -----------------------------------\n# A ``2\u00d72`` grid where ``gs6[0, :]`` spans both columns creates a wide panel\n# on top (e.g. a summed spectrum) with two comparison panels below it.\n# ``height_ratios=[2, 1]`` gives the top panel twice the height of each bottom\n# panel.\n\nsummed = spectrum + rng.normal(scale=0.02, size=len(energy))\ndiff1  = rng.normal(scale=0.05, size=len(energy))\ndiff2  = rng.normal(scale=0.05, size=len(energy))\n\ngs6  = apl.GridSpec(2, 2, height_ratios=[2, 1])\nfig6 = apl.Figure(figsize=(720, 480))\n\nfig6.add_subplot(gs6[0, :]).plot(\n    summed, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;summed\&quot;)\n\nfig6.add_subplot(gs6[1, 0]).plot(\n    diff1, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;\u0394 channel 1\&quot;)\n\nfig6.add_subplot(gs6[1, 1]).plot(\n    diff2, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#aed581\&quot;, label=\&quot;\u0394 channel 2\&quot;)\n\nfig6  # Interactive\n&quot;"></script></section>
+<section id="complex-layout-spanning-top-panel">
+<h2>Complex layout: spanning top panel<a class="headerlink" href="#complex-layout-spanning-top-panel" title="Link to this heading">#</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">2×2</span></code> grid where <code class="docutils literal notranslate"><span class="pre">gs6[0,</span> <span class="pre">:]</span></code> spans both columns creates a wide panel
+on top (e.g. a summed spectrum) with two comparison panels below it.
+<code class="docutils literal notranslate"><span class="pre">height_ratios=[2,</span> <span class="pre">1]</span></code> gives the top panel twice the height of each bottom
+panel.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">summed</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">spectrum</span></a> <span class="o">+</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">))</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">diff1</span></a>  <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">))</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">diff2</span></a>  <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal" title="numpy.random.Generator.normal" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">normal</span></a><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">))</span>
+
+<span class="n">gs6</span>  <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">fig6</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">720</span><span class="p">,</span> <span class="mi">480</span><span class="p">))</span>
+
+<span class="n">fig6</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs6</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">summed</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;eV&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;summed&quot;</span><span class="p">)</span>
+
+<span class="n">fig6</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs6</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">diff1</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;eV&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;Δ channel 1&quot;</span><span class="p">)</span>
+
+<span class="n">fig6</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs6</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">diff2</span></a><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">energy</span></a><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;eV&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;#aed581&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;Δ channel 2&quot;</span><span class="p">)</span>
+
+<span class="n">fig6</span>  <span class="c1"># Interactive</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_gridspec_custom_006" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_gridspec_custom_006" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:461px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_gridspec_custom_006.html" data-awi-fig="sphx_glr_plot_gridspec_custom_006" frameborder="0" scrolling="no" style="width:736px;height:496px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.929348);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_gridspec_custom_006"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_gridspec_custom_006" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_gridspec_custom_006'),ifr=wrap.querySelector('iframe'),nw=736,nh=496;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_gridspec_custom_006" data-fig-index="5" data-src-file="plot_gridspec_custom" data-src="&quot;\&quot;\&quot;\&quot;\nCustom Grid Layouts with GridSpec\n==================================\n\n:class:`~anyplotlib.GridSpec` lets you build multi-panel figures where panels\nhave different sizes and span multiple grid cells.  This gallery shows the most\ncommon patterns.\n\nAll examples use the **bare** ``Figure + GridSpec`` workflow \u2014 the figure&#x27;s\ngrid dimensions are inferred automatically from the GridSpec the first time\n``add_subplot`` is called.\n\nOverview\n--------\n\n1. **Side-by-side spectra** \u2014 two equal 1-D panels in one row (``1\u00d72`` grid).\n2. **Image + spectra** \u2014 image spanning full width, two spectra below\n   (``2\u00d72`` grid with ``height_ratios=[3, 1]``).\n3. **Image + histogram** \u2014 classic EM layout: large image on top, thin\n   histogram strip below (``2\u00d71`` grid with ``height_ratios=[3, 1]``).\n4. **Three-column** \u2014 three equal columns in a single row (``1\u00d73`` grid).\n5. **Asymmetric widths** \u2014 wide overview left, narrow detail right\n   (``1\u00d72`` grid with ``width_ratios=[2, 1]``).\n6. **Complex** \u2014 spanning top panel plus two bottom panels (``2\u00d72`` grid).\n\&quot;\&quot;\&quot;\nimport numpy as np\nimport anyplotlib as apl\n\nrng = np.random.default_rng(42)\nt   = np.linspace(0.0, 2.0 * np.pi, 512)\n\n# \u2500\u2500 1. Side-by-side spectra (1\u00d72, equal widths) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Side-by-side spectra\n# --------------------\n# The simplest multi-panel case: two 1-D spectra in one row.  Each panel\n# receives exactly half the figure width with a full-height inner plot area.\n# Both panels share the same height so their axes baselines align visually.\n\ngs1 = apl.GridSpec(1, 2)\nfig1 = apl.Figure(figsize=(720, 280))\n\nsp_left  = fig1.add_subplot(gs1[0, 0]).plot(\n    np.sin(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;channel A\&quot;)\n\nsp_right = fig1.add_subplot(gs1[0, 1]).plot(\n    np.cos(t) + rng.normal(scale=0.05, size=len(t)),\n    color=\&quot;#ff7043\&quot;, label=\&quot;channel B\&quot;)\n\nfig1  # Interactive\n\n# \u2500\u2500 2. Image + two spectra (2\u00d72, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image on top, two spectra below\n# --------------------------------\n# A ``2\u00d72`` grid with ``height_ratios=[3, 1]`` puts a wide image in the upper\n# three-quarters and two comparison spectra side-by-side in the lower quarter.\n#\n# The spanning subplot ``gs2[0, :]`` covers all columns in row 0, so the image\n# gets the full figure width.\n\nN = 128\nx = np.linspace(-4, 4, N)\ny = np.linspace(-4, 4, N)\nXX, YY = np.meshgrid(x, y)\nimage = np.exp(-(XX**2 + YY**2) / 4) + 0.3 * np.exp(-((XX - 2)**2 + YY**2) / 1)\nimage += rng.normal(scale=0.03, size=image.shape)\n\ngs2  = apl.GridSpec(2, 2, height_ratios=[3, 1])\nfig2 = apl.Figure(figsize=(640, 560))\n\nfig2.add_subplot(gs2[0, :]).imshow(image.astype(np.float32), cmap=\&quot;inferno\&quot;)\n\nrow_profile = image[N // 2, :]\ncol_profile = image[:, N // 2]\n\nfig2.add_subplot(gs2[1, 0]).plot(\n    row_profile, axes=[x], units=\&quot;nm\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;row profile\&quot;)\n\nfig2.add_subplot(gs2[1, 1]).plot(\n    col_profile, axes=[y], units=\&quot;nm\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;col profile\&quot;)\n\nfig2  # Interactive\n\n# \u2500\u2500 3. Image + histogram (2\u00d71, height_ratios=[3, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Image + histogram strip\n# -----------------------\n# A ``2\u00d71`` grid with ``height_ratios=[3, 1]`` is the classic layout for\n# showing an image with its intensity histogram below.  The image occupies\n# three-quarters of the height; the histogram strip the remaining quarter.\n\ngs3  = apl.GridSpec(2, 1, height_ratios=[3, 1])\nfig3 = apl.Figure(figsize=(500, 600))\n\nfig3.add_subplot(gs3[0, 0]).imshow(image.astype(np.float32), cmap=\&quot;viridis\&quot;)\n\ncounts, edges = np.histogram(image.ravel(), bins=64)\nbin_centers   = 0.5 * (edges[:-1] + edges[1:])\nfig3.add_subplot(gs3[1, 0]).plot(\n    counts.astype(float), axes=[bin_centers],\n    color=\&quot;#aed581\&quot;, label=\&quot;histogram\&quot;)\n\nfig3  # Interactive\n\n# \u2500\u2500 4. Three equal columns (1\u00d73) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Three-column layout\n# -------------------\n# A ``1\u00d73`` grid gives three equal panels that are easy to compare visually.\n# Useful for showing the same quantity at three different conditions or times.\n\ngs4  = apl.GridSpec(1, 3)\nfig4 = apl.Figure(figsize=(900, 240))\n\nspectra = [\n    np.sin(t * (i + 1)) + rng.normal(scale=0.08, size=len(t))\n    for i in range(3)\n]\ncolors = [\&quot;#4fc3f7\&quot;, \&quot;#ff7043\&quot;, \&quot;#aed581\&quot;]\nlabels = [\&quot;f\u2081\&quot;, \&quot;f\u2082\&quot;, \&quot;f\u2083\&quot;]\n\nfor i, (data, color, label) in enumerate(zip(spectra, colors, labels)):\n    fig4.add_subplot(gs4[0, i]).plot(data, color=color, label=label)\n\nfig4  # Interactive\n\n# \u2500\u2500 5. Asymmetric widths (1\u00d72, width_ratios=[2, 1]) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# %%\n# Asymmetric column widths\n# ------------------------\n# ``width_ratios=[2, 1]`` makes the left panel twice as wide as the right.\n# A common use-case is a broad overview spectrum on the left and a zoomed\n# detail region on the right.\n\nenergy = np.linspace(280, 295, 1024)\npeak   = np.exp(-0.5 * ((energy - 284.8) / 0.3)**2)\npeak2  = 0.35 * np.exp(-0.5 * ((energy - 286.2) / 0.3)**2)\nspectrum = peak + peak2 + 0.1 * np.exp(-0.05 * (energy - 280)) \\\n           + rng.normal(scale=0.01, size=len(energy))\n\ngs5  = apl.GridSpec(1, 2, width_ratios=[2, 1])\nfig5 = apl.Figure(figsize=(720, 260))\n\nfig5.add_subplot(gs5[0, 0]).plot(\n    spectrum, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;survey\&quot;)\n\nmask  = (energy &gt;= 283.5) &amp; (energy &lt;= 286.5)\nfig5.add_subplot(gs5[0, 1]).plot(\n    spectrum[mask], axes=[energy[mask]], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;detail\&quot;)\n\nfig5  # Interactive\n\n# \u2500\u2500 6. Complex layout: spanning top + two bottom (2\u00d72, height_ratios=[2, 1]) \u2500\u2500\n# %%\n# Complex layout: spanning top panel\n# -----------------------------------\n# A ``2\u00d72`` grid where ``gs6[0, :]`` spans both columns creates a wide panel\n# on top (e.g. a summed spectrum) with two comparison panels below it.\n# ``height_ratios=[2, 1]`` gives the top panel twice the height of each bottom\n# panel.\n\nsummed = spectrum + rng.normal(scale=0.02, size=len(energy))\ndiff1  = rng.normal(scale=0.05, size=len(energy))\ndiff2  = rng.normal(scale=0.05, size=len(energy))\n\ngs6  = apl.GridSpec(2, 2, height_ratios=[2, 1])\nfig6 = apl.Figure(figsize=(720, 480))\n\nfig6.add_subplot(gs6[0, :]).plot(\n    summed, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#4fc3f7\&quot;, label=\&quot;summed\&quot;)\n\nfig6.add_subplot(gs6[1, 0]).plot(\n    diff1, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#ff7043\&quot;, label=\&quot;\u0394 channel 1\&quot;)\n\nfig6.add_subplot(gs6[1, 1]).plot(\n    diff2, axes=[energy], units=\&quot;eV\&quot;,\n    color=\&quot;#aed581\&quot;, label=\&quot;\u0394 channel 2\&quot;)\n\nfig6  # Interactive\n&quot;"></script><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 3.892 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plottypes-plot-gridspec-custom-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/bb2c88a72b8ea26ef8139bf13514d8bf/plot_gridspec_custom.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_gridspec_custom.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/d16752304f0dcae30fd92de9fea5afc6/plot_gridspec_custom.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_gridspec_custom.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/038b8cd3679937f8db48e38901837aa4/plot_gridspec_custom.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">plot_gridspec_custom.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="plot_bar.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Bar Chart</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../Widgets/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Widgets</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview">Overview</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#side-by-side-spectra">Side-by-side spectra</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#image-on-top-two-spectra-below">Image on top, two spectra below</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#image-histogram-strip">Image + histogram strip</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#three-column-layout">Three-column layout</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#asymmetric-column-widths">Asymmetric column widths</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#complex-layout-spanning-top-panel">Complex layout: spanning top panel</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/auto_examples/PlotTypes/plot_gridspec_custom.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.18.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

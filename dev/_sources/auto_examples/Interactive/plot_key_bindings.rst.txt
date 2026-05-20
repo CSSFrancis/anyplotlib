@@ -21,8 +21,8 @@
 Key-Press Widget Placement
 ==========================
 
-Demonstrates the ``on_key`` callback API: press a key while the plot is
-focused to add an overlay widget centred on the current cursor position,
+Demonstrates the ``key_down`` event handler API: press a key while the plot
+is focused to add an overlay widget centred on the current cursor position,
 or press **Backspace / Delete** to remove the last widget you clicked.
 
 **Key bindings**
@@ -54,16 +54,16 @@ or press **Backspace / Delete** to remove the last widget you clicked.
 | ``s`` | Toggle symlog scale       |
 +-------+---------------------------+
 
-The cursor coordinates reported in the event (``event.img_x``,
-``event.img_y``) are in image-pixel space, so widgets are centred exactly
-where the cursor was when the key was pressed.
+The cursor coordinates are available as ``event.xdata`` and ``event.ydata``
+in image-pixel space (column, row), so widgets are centred exactly where
+the cursor was when the key was pressed.
 
 .. note::
    Move the mouse over the image first so the plot panel receives focus,
    then press a key.  On macOS the backspace key (⌫) is used for deletion;
    on Windows / Linux use the **Delete** key.
 
-.. GENERATED FROM PYTHON SOURCE LINES 47-122
+.. GENERATED FROM PYTHON SOURCE LINES 47-129
 
 
 
@@ -76,7 +76,7 @@ where the cursor was when the key was pressed.
 
 .. raw:: html
 
-    <script type="text/x-python" data-fig-id="sphx_glr_plot_key_bindings_001" data-fig-index="0" data-src-file="plot_key_bindings" data-src="&quot;\&quot;\&quot;\&quot;\nKey-Press Widget Placement\n==========================\n\nDemonstrates the ``on_key`` callback API: press a key while the plot is\nfocused to add an overlay widget centred on the current cursor position,\nor press **Backspace / Delete** to remove the last widget you clicked.\n\n**Key bindings**\n\n+-------------------------------+---------------------------+\n| Key                           | Action                    |\n+===============================+===========================+\n| ``q``                         | Add a rectangle           |\n+-------------------------------+---------------------------+\n| ``w``                         | Add a circle              |\n+-------------------------------+---------------------------+\n| ``e``                         | Add an annulus            |\n+-------------------------------+---------------------------+\n| ``Backspace`` (macOS \u232b)       | Remove last-clicked       |\n| ``Delete`` (Windows / Linux)  |                           |\n+-------------------------------+---------------------------+\n\n**Built-in 2-D shortcuts** (not overridden in this example):\n\n+-------+---------------------------+\n| Key   | Action                    |\n+=======+===========================+\n| ``r`` | Reset zoom / pan          |\n+-------+---------------------------+\n| ``c`` | Toggle colorbar           |\n+-------+---------------------------+\n| ``l`` | Toggle log scale          |\n+-------+---------------------------+\n| ``s`` | Toggle symlog scale       |\n+-------+---------------------------+\n\nThe cursor coordinates reported in the event (``event.img_x``,\n``event.img_y``) are in image-pixel space, so widgets are centred exactly\nwhere the cursor was when the key was pressed.\n\n.. note::\n   Move the mouse over the image first so the plot panel receives focus,\n   then press a key.  On macOS the backspace key (\u232b) is used for deletion;\n   on Windows / Linux use the **Delete** key.\n\&quot;\&quot;\&quot;\n\nimport numpy as np\nimport anyplotlib as vw\n\n# \u2500\u2500 Synthetic test image \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nrng = np.random.default_rng(0)\nN = 256\nx = np.linspace(0, 4 * np.pi, N)\nXX, YY = np.meshgrid(x, x)\ndata = np.sin(XX) * np.cos(YY) + 0.15 * rng.standard_normal((N, N))\n\n# \u2500\u2500 Figure \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfig, ax = vw.subplots(figsize=(520, 520))\nplot = ax.imshow(data)\n\n# \u2500\u2500 Key handlers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n@plot.on_key(&#x27;q&#x27;)\ndef add_rectangle(event):\n    \&quot;\&quot;\&quot;Press &#x27;q&#x27; \u2014 add a rectangle centred on the cursor.\&quot;\&quot;\&quot;\n    cx, cy = event.img_x, event.img_y\n    half_w, half_h = N * 0.08, N * 0.08\n    plot.add_widget(\n        \&quot;rectangle\&quot;,\n        x=cx - half_w, y=cy - half_h,\n        w=half_w * 2,  h=half_h * 2,\n        color=\&quot;#ffd54f\&quot;,\n    )\n\n\n@plot.on_key(&#x27;w&#x27;)\ndef add_circle(event):\n    \&quot;\&quot;\&quot;Press &#x27;w&#x27; \u2014 add a circle centred on the cursor.\&quot;\&quot;\&quot;\n    plot.add_widget(\n        \&quot;circle\&quot;,\n        cx=event.img_x, cy=event.img_y,\n        r=N * 0.07,\n        color=\&quot;#80cbc4\&quot;,\n    )\n\n\n@plot.on_key(&#x27;e&#x27;)\ndef add_annulus(event):\n    \&quot;\&quot;\&quot;Press &#x27;e&#x27; \u2014 add an annulus centred on the cursor.\&quot;\&quot;\&quot;\n    plot.add_widget(\n        \&quot;annular\&quot;,\n        cx=event.img_x, cy=event.img_y,\n        r_outer=N * 0.12,\n        r_inner=N * 0.06,\n        color=\&quot;#ce93d8\&quot;,\n    )\n\n\n# macOS sends &#x27;Backspace&#x27; for the \u232b key; Windows/Linux send &#x27;Delete&#x27;.\n# Register both so the example works cross-platform.\n@plot.on_key(&#x27;Backspace&#x27;)\n@plot.on_key(&#x27;Delete&#x27;)\ndef delete_last(event):\n    \&quot;\&quot;\&quot;Press Backspace/Delete \u2014 remove the last widget that was clicked.\&quot;\&quot;\&quot;\n    wid = event.last_widget_id\n    if wid and wid in {w.id for w in plot.list_widgets()}:\n        plot.remove_widget(wid)\n\n\n# \u2500\u2500 Catch-all handler (optional) \u2014 log every registered key press \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n@plot.on_key\ndef log_key(event):\n    img_x = getattr(event, &#x27;img_x&#x27;, None)\n    img_y = getattr(event, &#x27;img_y&#x27;, None)\n    pos = f\&quot;({img_x:.1f}, {img_y:.1f})\&quot; if img_x is not None else \&quot;n/a\&quot;\n    print(f\&quot;[on_key] key={event.key!r}  img={pos}\&quot;\n          f\&quot;  last_widget={event.last_widget_id!r}\&quot;)\n\nfig  # Interactive\n&quot;"></script>
+    <script type="text/x-python" data-fig-id="sphx_glr_plot_key_bindings_001" data-fig-index="0" data-src-file="plot_key_bindings" data-src="&quot;\&quot;\&quot;\&quot;\nKey-Press Widget Placement\n==========================\n\nDemonstrates the ``key_down`` event handler API: press a key while the plot\nis focused to add an overlay widget centred on the current cursor position,\nor press **Backspace / Delete** to remove the last widget you clicked.\n\n**Key bindings**\n\n+-------------------------------+---------------------------+\n| Key                           | Action                    |\n+===============================+===========================+\n| ``q``                         | Add a rectangle           |\n+-------------------------------+---------------------------+\n| ``w``                         | Add a circle              |\n+-------------------------------+---------------------------+\n| ``e``                         | Add an annulus            |\n+-------------------------------+---------------------------+\n| ``Backspace`` (macOS \u232b)       | Remove last-clicked       |\n| ``Delete`` (Windows / Linux)  |                           |\n+-------------------------------+---------------------------+\n\n**Built-in 2-D shortcuts** (not overridden in this example):\n\n+-------+---------------------------+\n| Key   | Action                    |\n+=======+===========================+\n| ``r`` | Reset zoom / pan          |\n+-------+---------------------------+\n| ``c`` | Toggle colorbar           |\n+-------+---------------------------+\n| ``l`` | Toggle log scale          |\n+-------+---------------------------+\n| ``s`` | Toggle symlog scale       |\n+-------+---------------------------+\n\nThe cursor coordinates are available as ``event.xdata`` and ``event.ydata``\nin image-pixel space (column, row), so widgets are centred exactly where\nthe cursor was when the key was pressed.\n\n.. note::\n   Move the mouse over the image first so the plot panel receives focus,\n   then press a key.  On macOS the backspace key (\u232b) is used for deletion;\n   on Windows / Linux use the **Delete** key.\n\&quot;\&quot;\&quot;\n\nimport numpy as np\nimport anyplotlib as vw\n\n# \u2500\u2500 Synthetic test image \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nrng = np.random.default_rng(0)\nN = 256\nx = np.linspace(0, 4 * np.pi, N)\nXX, YY = np.meshgrid(x, x)\ndata = np.sin(XX) * np.cos(YY) + 0.15 * rng.standard_normal((N, N))\n\n# \u2500\u2500 Figure \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfig, ax = vw.subplots(figsize=(520, 520))\nplot = ax.imshow(data)\n\n# \u2500\u2500 Key handlers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n@plot.add_event_handler(\&quot;key_down\&quot;)\ndef add_rectangle(event):\n    \&quot;\&quot;\&quot;Press &#x27;q&#x27; \u2014 add a rectangle centred on the cursor.\&quot;\&quot;\&quot;\n    if event.key != &#x27;q&#x27;:\n        return\n    cx, cy = event.xdata, event.ydata\n    half_w, half_h = N * 0.08, N * 0.08\n    plot.add_widget(\n        \&quot;rectangle\&quot;,\n        x=cx - half_w, y=cy - half_h,\n        w=half_w * 2,  h=half_h * 2,\n        color=\&quot;#ffd54f\&quot;,\n    )\n\n\n@plot.add_event_handler(\&quot;key_down\&quot;)\ndef add_circle(event):\n    \&quot;\&quot;\&quot;Press &#x27;w&#x27; \u2014 add a circle centred on the cursor.\&quot;\&quot;\&quot;\n    if event.key != &#x27;w&#x27;:\n        return\n    plot.add_widget(\n        \&quot;circle\&quot;,\n        cx=event.xdata, cy=event.ydata,\n        r=N * 0.07,\n        color=\&quot;#80cbc4\&quot;,\n    )\n\n\n@plot.add_event_handler(\&quot;key_down\&quot;)\ndef add_annulus(event):\n    \&quot;\&quot;\&quot;Press &#x27;e&#x27; \u2014 add an annulus centred on the cursor.\&quot;\&quot;\&quot;\n    if event.key != &#x27;e&#x27;:\n        return\n    plot.add_widget(\n        \&quot;annular\&quot;,\n        cx=event.xdata, cy=event.ydata,\n        r_outer=N * 0.12,\n        r_inner=N * 0.06,\n        color=\&quot;#ce93d8\&quot;,\n    )\n\n\n# macOS sends &#x27;Backspace&#x27; for the \u232b key; Windows/Linux send &#x27;Delete&#x27;.\n# Register both so the example works cross-platform.\n@plot.add_event_handler(\&quot;key_down\&quot;)\ndef delete_last(event):\n    \&quot;\&quot;\&quot;Press Backspace/Delete \u2014 remove the last widget that was clicked.\&quot;\&quot;\&quot;\n    if event.key not in (&#x27;Backspace&#x27;, &#x27;Delete&#x27;):\n        return\n    wid = event.last_widget_id\n    if wid and wid in {w.id for w in plot.list_widgets()}:\n        plot.remove_widget(wid)\n\n\n# \u2500\u2500 Catch-all handler (optional) \u2014 log every registered key press \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n@plot.add_event_handler(\&quot;key_down\&quot;)\ndef log_key(event):\n    xdata = event.xdata\n    ydata = event.ydata\n    pos = f\&quot;({xdata:.1f}, {ydata:.1f})\&quot; if xdata is not None else \&quot;n/a\&quot;\n    print(f\&quot;[key_down] key={event.key!r}  img={pos}\&quot;\n          f\&quot;  last_widget={event.last_widget_id!r}\&quot;)\n\nfig  # Interactive\n&quot;"></script>
 
 
 
@@ -102,10 +102,12 @@ where the cursor was when the key was pressed.
 
     # ── Key handlers ─────────────────────────────────────────────────────────────
 
-    @plot.on_key('q')
+    @plot.add_event_handler("key_down")
     def add_rectangle(event):
         """Press 'q' — add a rectangle centred on the cursor."""
-        cx, cy = event.img_x, event.img_y
+        if event.key != 'q':
+            return
+        cx, cy = event.xdata, event.ydata
         half_w, half_h = N * 0.08, N * 0.08
         plot.add_widget(
             "rectangle",
@@ -115,23 +117,27 @@ where the cursor was when the key was pressed.
         )
 
 
-    @plot.on_key('w')
+    @plot.add_event_handler("key_down")
     def add_circle(event):
         """Press 'w' — add a circle centred on the cursor."""
+        if event.key != 'w':
+            return
         plot.add_widget(
             "circle",
-            cx=event.img_x, cy=event.img_y,
+            cx=event.xdata, cy=event.ydata,
             r=N * 0.07,
             color="#80cbc4",
         )
 
 
-    @plot.on_key('e')
+    @plot.add_event_handler("key_down")
     def add_annulus(event):
         """Press 'e' — add an annulus centred on the cursor."""
+        if event.key != 'e':
+            return
         plot.add_widget(
             "annular",
-            cx=event.img_x, cy=event.img_y,
+            cx=event.xdata, cy=event.ydata,
             r_outer=N * 0.12,
             r_inner=N * 0.06,
             color="#ce93d8",
@@ -140,10 +146,11 @@ where the cursor was when the key was pressed.
 
     # macOS sends 'Backspace' for the ⌫ key; Windows/Linux send 'Delete'.
     # Register both so the example works cross-platform.
-    @plot.on_key('Backspace')
-    @plot.on_key('Delete')
+    @plot.add_event_handler("key_down")
     def delete_last(event):
         """Press Backspace/Delete — remove the last widget that was clicked."""
+        if event.key not in ('Backspace', 'Delete'):
+            return
         wid = event.last_widget_id
         if wid and wid in {w.id for w in plot.list_widgets()}:
             plot.remove_widget(wid)
@@ -151,12 +158,12 @@ where the cursor was when the key was pressed.
 
     # ── Catch-all handler (optional) — log every registered key press ─────────────
 
-    @plot.on_key
+    @plot.add_event_handler("key_down")
     def log_key(event):
-        img_x = getattr(event, 'img_x', None)
-        img_y = getattr(event, 'img_y', None)
-        pos = f"({img_x:.1f}, {img_y:.1f})" if img_x is not None else "n/a"
-        print(f"[on_key] key={event.key!r}  img={pos}"
+        xdata = event.xdata
+        ydata = event.ydata
+        pos = f"({xdata:.1f}, {ydata:.1f})" if xdata is not None else "n/a"
+        print(f"[key_down] key={event.key!r}  img={pos}"
               f"  last_widget={event.last_widget_id!r}")
 
     fig  # Interactive
@@ -164,7 +171,7 @@ where the cursor was when the key was pressed.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.663 seconds)
+   **Total running time of the script:** (0 minutes 0.678 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Interactive_plot_key_bindings.py:

@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
@@ -39,10 +39,10 @@
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=0790524f97105ba85085"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
@@ -156,6 +156,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../api/index.html">
     API Reference
   </a>
@@ -175,20 +182,30 @@
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../benchmarking.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../benchmarking.html">
     Benchmarking
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../dev/index.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../dev/index.html">
     Developer Documentation
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -219,8 +236,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -271,6 +287,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../getting_started.html">
     Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
   </a>
 </li>
 
@@ -330,8 +353,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -399,92 +421,101 @@
 <span class="sd">callbacks.py</span>
 <span class="sd">============</span>
 
-<span class="sd">Lightweight two-class event system used by every plot object and widget.</span>
-
-<span class="sd">:class:`CallbackRegistry`</span>
-<span class="sd">    Per-object store of named callbacks.  Every plot object and widget</span>
-<span class="sd">    exposes ``on_changed``, ``on_release``, ``on_click``, ``on_key``,</span>
-<span class="sd">    ``on_line_hover``, and ``on_line_click`` decorator methods that</span>
-<span class="sd">    connect handlers through this registry.</span>
+<span class="sd">Event system used by all plot objects and widgets.</span>
 
 <span class="sd">:class:`Event`</span>
-<span class="sd">    Immutable data-carrier passed to every callback.  All keys in the</span>
-<span class="sd">    raw JS payload are accessible as attributes (``event.zoom``,</span>
-<span class="sd">    ``event.cx``, etc.) in addition to the typed ``event_type``,</span>
-<span class="sd">    ``source``, and ``data`` fields.</span>
+<span class="sd">    Flat dataclass carrying all event fields as typed top-level attributes.</span>
 
-<span class="sd">Example</span>
-<span class="sd">-------</span>
-<span class="sd">.. code-block:: python</span>
+<span class="sd">:class:`CallbackRegistry`</span>
+<span class="sd">    Per-object handler store. (Full implementation added in Tasks 2-3.)</span>
 
-<span class="sd">    fig, ax = apl.subplots(1, 1)</span>
-<span class="sd">    plot = ax.imshow(data)</span>
-
-<span class="sd">    @plot.on_release</span>
-<span class="sd">    def on_settle(event):</span>
-<span class="sd">        print(f&quot;zoom={event.zoom:.2f}  center=({event.center_x:.3f}, {event.center_y:.3f})&quot;)</span>
+<span class="sd">:class:`_EventMixin`</span>
+<span class="sd">    Mixin added to every plot class and widget. (Added in Task 4.)</span>
 <span class="sd">&quot;&quot;&quot;</span>
-
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">deque</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
 
-<span class="n">_VALID_EVENT_TYPES</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="s2">&quot;on_click&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;on_changed&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;on_release&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;on_key&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;on_line_hover&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;on_line_click&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="n">VALID_EVENT_TYPES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
+    <span class="s2">&quot;pointer_down&quot;</span><span class="p">,</span> <span class="s2">&quot;pointer_up&quot;</span><span class="p">,</span> <span class="s2">&quot;pointer_move&quot;</span><span class="p">,</span> <span class="s2">&quot;pointer_settled&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pointer_enter&quot;</span><span class="p">,</span> <span class="s2">&quot;pointer_leave&quot;</span><span class="p">,</span> <span class="s2">&quot;double_click&quot;</span><span class="p">,</span> <span class="s2">&quot;wheel&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;key_down&quot;</span><span class="p">,</span> <span class="s2">&quot;key_up&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+<span class="p">})</span>
 
 
 <div class="viewcode-block" id="Event">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.Event.html#anyplotlib.callbacks.Event">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Event</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single interactive event.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single interactive event with all payload fields as typed attributes.</span>
 
-<span class="sd">    :event_type: one of ``on_click`` / ``on_changed`` / ``on_release`` /</span>
-<span class="sd">        ``on_key`` / ``on_line_hover`` / ``on_line_click``</span>
-<span class="sd">    :source: the originating Python object (Widget, Plot, or None)</span>
-<span class="sd">    :data: full state dict; all keys also accessible as ``event.x``</span>
+<span class="sd">    Universal fields (every event):</span>
+<span class="sd">        event_type, source, time_stamp, modifiers</span>
 
+<span class="sd">    Pointer fields (pointer_* and double_click events):</span>
+<span class="sd">        x, y           — canvas coordinates within the panel (float pixels)</span>
+<span class="sd">        button         — 0=left 1=middle 2=right; None on move/enter/leave/settled</span>
+<span class="sd">        buttons        — bitmask of currently held buttons</span>
+<span class="sd">        xdata, ydata   — data-space coordinates (None for Plot3D)</span>
+<span class="sd">        ray            — Plot3D only: {&quot;origin&quot;: [...], &quot;direction&quot;: [...]}</span>
+<span class="sd">        line_id        — Plot1D only: set when pointer is over a line</span>
+<span class="sd">        dwell_ms       — pointer_settled only: actual dwell time</span>
 
-<span class="sd">    For ``on_line_hover`` and ``on_line_click`` events the data dict</span>
-<span class="sd">    contains:</span>
+<span class="sd">    PlotBar extra fields (pointer_down only):</span>
+<span class="sd">        bar_index, value, x_label, group_index</span>
 
-<span class="sd">    * ``line_id`` – ``None`` for the primary line, or the 8-char ID</span>
-<span class="sd">      string assigned by :meth:`Plot1D.add_line`.</span>
-<span class="sd">    * ``x`` – data-space x coordinate of the nearest point on the line.</span>
-<span class="sd">    * ``y`` – data-space y coordinate of the nearest point on the line.</span>
+<span class="sd">    Wheel fields:</span>
+<span class="sd">        dx, dy         — scroll deltas</span>
+
+<span class="sd">    Key fields:</span>
+<span class="sd">        key            — key name e.g. &quot;q&quot;, &quot;Enter&quot;, &quot;ArrowLeft&quot;</span>
+<span class="sd">        last_widget_id — id of the last widget the user clicked, or None</span>
+
+<span class="sd">    Propagation:</span>
+<span class="sd">        stop_propagation — set True inside a handler to halt remaining handlers</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">source</span><span class="p">:</span>     <span class="n">Any</span>
-    <span class="n">data</span><span class="p">:</span>       <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Event has no attribute </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">. &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Available data keys: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">time_stamp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">)</span>
+    <span class="n">modifiers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="c1"># Pointer</span>
+    <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">button</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">buttons</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">xdata</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ydata</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ray</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">line_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">dwell_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># PlotBar</span>
+    <span class="n">bar_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">x_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">group_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Wheel</span>
+    <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Key</span>
+    <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_widget_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Propagation (not repr&#39;d)</span>
+    <span class="n">stop_propagation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">src</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
         <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;event_type=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">event_type</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;source=</span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
-        <span class="n">_skip</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;colormap_data&quot;</span><span class="p">,</span>
-                 <span class="s2">&quot;image_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;histogram_data&quot;</span><span class="p">,</span> <span class="s2">&quot;colormap_name&quot;</span><span class="p">}</span>
-        <span class="n">shown</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_skip</span> <span class="ow">or</span> <span class="n">shown</span> <span class="o">&gt;=</span> <span class="mi">6</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">!r}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-            <span class="n">shown</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;xdata&quot;</span><span class="p">,</span> <span class="s2">&quot;ydata&quot;</span><span class="p">,</span> <span class="s2">&quot;button&quot;</span><span class="p">,</span> <span class="s2">&quot;key&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;line_id&quot;</span><span class="p">,</span> <span class="s2">&quot;bar_index&quot;</span><span class="p">,</span> <span class="s2">&quot;dwell_ms&quot;</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">modifiers</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;modifiers=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">modifiers</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="s2">&quot;Event(&quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span></div>
 
 
@@ -492,46 +523,252 @@
 <div class="viewcode-block" id="CallbackRegistry">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CallbackRegistry</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-object registry for on_click / on_changed / on_release / on_key /</span>
-<span class="sd">    on_line_hover / on_line_click callbacks.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-object handler store.</span>
+
+<span class="sd">    Supports:</span>
+<span class="sd">    - Priority ordering (``order`` kwarg — lower fires first)</span>
+<span class="sd">    - Wildcard ``&quot;*&quot;`` type receives every dispatched event</span>
+<span class="sd">    - ``stop_propagation`` on the event halts remaining handlers</span>
+<span class="sd">    - ``disconnect_fn(fn, *types)`` removes by callback reference</span>
+<span class="sd">    - ``pause_events`` / ``hold_events`` context managers (added in Task 3)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># {event_type: [(order, cid, fn), ...]} — sorted by order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_next_cid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># {cid: set[str]} — which types this cid is registered under</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cid_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># {id(fn): set[int]} — which cids this fn owns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="c1"># pause/hold state (populated in Task 3)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_held</span><span class="p">:</span> <span class="n">deque</span><span class="p">[</span><span class="n">Event</span><span class="p">]</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+
+    <span class="c1"># ── registration ─────────────────────────────────────────────────────</span>
 
 <div class="viewcode-block" id="CallbackRegistry.connect">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.connect">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register fn for event_type.  Returns integer CID.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">event_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_VALID_EVENT_TYPES</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register fn for event_type. Returns integer CID.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">event_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_EVENT_TYPES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;event_type must be one of </span><span class="si">{</span><span class="n">_VALID_EVENT_TYPES</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">event_type</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid event_type </span><span class="si">{</span><span class="n">event_type</span><span class="si">!r}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Valid types: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">VALID_EVENT_TYPES</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> or &#39;*&#39;&quot;</span>
             <span class="p">)</span>
         <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_cid</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_next_cid</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">[</span><span class="n">event_type</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">order</span><span class="p">,</span> <span class="n">cid</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">[</span><span class="n">event_type</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cid_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">event_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">fn</span><span class="p">)]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">cid</span></div>
 
 
 <div class="viewcode-block" id="CallbackRegistry.disconnect">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.disconnect">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove handler for cid.  Silent if not found.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove handler by CID. Silent if not found.&quot;&quot;&quot;</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cid_map</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">et</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">[</span><span class="n">et</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">[</span><span class="n">et</span><span class="p">]</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">cid</span>
+            <span class="p">]</span>
+        <span class="k">for</span> <span class="n">fn_cids</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">fn_cids</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="CallbackRegistry.disconnect_fn">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.disconnect_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">disconnect_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove fn from the given types (all types if none given).&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="nb">set</span><span class="p">())):</span>
+            <span class="n">cid_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cid_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">types</span> <span class="ow">or</span> <span class="n">cid_types</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ── dispatch ─────────────────────────────────────────────────────────</span>
 
 <div class="viewcode-block" id="CallbackRegistry.fire">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.fire">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch event to all handlers matching event.event_type.&quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">_cid</span><span class="p">,</span> <span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-            <span class="k">if</span> <span class="n">et</span> <span class="o">==</span> <span class="n">event</span><span class="o">.</span><span class="n">event_type</span><span class="p">:</span>
-                <span class="n">fn</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch event to matching handlers (respects pause/hold).&quot;&quot;&quot;</span>
+        <span class="n">et</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">event_type</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_held</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dispatch</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_dispatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">et</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">event_type</span>
+        <span class="n">specific</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="n">wildcard</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">specific</span> <span class="o">+</span> <span class="n">wildcard</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">_order</span><span class="p">,</span> <span class="n">_cid</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">merged</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">stop_propagation</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">fn</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_held</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dispatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_held</span><span class="o">.</span><span class="n">popleft</span><span class="p">())</span>
+
+<div class="viewcode-block" id="CallbackRegistry.pause_events">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.pause_events">[docs]</a>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pause_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Suppress events of the given types while inside this context.</span>
+<span class="sd">        All types are paused when called with no arguments.</span>
+<span class="sd">        Pause wins over hold for the same type.&quot;&quot;&quot;</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">types</span> <span class="k">if</span> <span class="n">types</span> <span class="k">else</span> <span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,)</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="CallbackRegistry.hold_events">
+<a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.hold_events">[docs]</a>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hold_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Buffer events of the given types; flush when the outermost hold exits.</span>
+<span class="sd">        All types are held when called with no arguments.&quot;&quot;&quot;</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">types</span> <span class="k">if</span> <span class="n">types</span> <span class="k">else</span> <span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,)</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_flush</span><span class="p">()</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div>
 
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_EventMixin</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mixin for plot classes and widgets.</span>
+
+<span class="sd">    Provides ``add_event_handler`` / ``remove_handler`` / ``pause_events`` /</span>
+<span class="sd">    ``hold_events``.  The host class must set ``self.callbacks = CallbackRegistry()``</span>
+<span class="sd">    in its ``__init__``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">callbacks</span><span class="p">:</span> <span class="n">CallbackRegistry</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_event_handler</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">fn_or_type</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register an event handler. Works as a direct call or decorator.</span>
+
+<span class="sd">        Direct call::</span>
+
+<span class="sd">            plot.add_event_handler(fn, &quot;pointer_down&quot;)</span>
+<span class="sd">            plot.add_event_handler(fn, &quot;pointer_down&quot;, &quot;pointer_up&quot;)</span>
+
+<span class="sd">        Decorator::</span>
+
+<span class="sd">            @plot.add_event_handler(&quot;pointer_down&quot;)</span>
+<span class="sd">            def handler(event): ...</span>
+
+<span class="sd">            @plot.add_event_handler(&quot;pointer_settled&quot;, ms=400, delta=5)</span>
+<span class="sd">            def on_settle(event): ...</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fn_or_type : callable or str</span>
+<span class="sd">            Handler function (direct call) or first event type string (decorator).</span>
+<span class="sd">        *args : str</span>
+<span class="sd">            Remaining event type strings.</span>
+<span class="sd">        order : float</span>
+<span class="sd">            Priority. Lower fires first. Default 0.</span>
+<span class="sd">        ms : int</span>
+<span class="sd">            ``pointer_settled`` dwell threshold in milliseconds. Default 300.</span>
+<span class="sd">            Raises ``ValueError`` if provided without ``&quot;pointer_settled&quot;`` in types.</span>
+<span class="sd">        delta : float</span>
+<span class="sd">            ``pointer_settled`` pixel radius. Default 4.</span>
+<span class="sd">            Raises ``ValueError`` if provided without ``&quot;pointer_settled&quot;`` in types.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fn_or_type</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register</span><span class="p">(</span><span class="n">fn_or_type</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">all_types</span> <span class="o">=</span> <span class="p">(</span><span class="n">fn_or_type</span><span class="p">,)</span> <span class="o">+</span> <span class="n">args</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">_decorator</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_register</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">all_types</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">fn</span>
+            <span class="k">return</span> <span class="n">_decorator</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">types</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+        <span class="n">has_settled</span> <span class="o">=</span> <span class="s2">&quot;pointer_settled&quot;</span> <span class="ow">in</span> <span class="n">types</span>
+        <span class="n">_ms_changed</span> <span class="o">=</span> <span class="n">ms</span> <span class="o">!=</span> <span class="mi">300</span>
+        <span class="n">_delta_changed</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">!=</span> <span class="mi">4</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">_ms_changed</span> <span class="ow">or</span> <span class="n">_delta_changed</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has_settled</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;ms/delta kwargs are only valid when &#39;pointer_settled&#39; is in the event types&quot;</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">event_type</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">has_settled</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_configure_pointer_settled</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">_event_types</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;_event_types&quot;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fn</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid_or_fn</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove a registered handler.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cid_or_fn : int or callable</span>
+<span class="sd">            CID returned by ``callbacks.connect()`` or the handler function.</span>
+<span class="sd">        *types : str</span>
+<span class="sd">            If given, only remove from these types. If omitted, remove from all.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">had_settled</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pointer_settled&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cid_or_fn</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">cid_or_fn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">disconnect_fn</span><span class="p">(</span><span class="n">cid_or_fn</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">had_settled</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pointer_settled&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_configure_pointer_settled</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_configure_pointer_settled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Override in plot subclasses to push thresholds to JS.&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pause_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Suppress events of the given types (all types if none given).&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">pause_events</span><span class="p">(</span><span class="o">*</span><span class="n">types</span><span class="p">):</span>
+            <span class="k">yield</span>
+
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hold_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Buffer events of the given types; flush when context exits.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">hold_events</span><span class="p">(</span><span class="o">*</span><span class="n">types</span><span class="p">):</span>
+            <span class="k">yield</span>
 </pre></div>
 
                 </article>
@@ -561,8 +798,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -596,7 +833,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.18.0.
 </p></div>
       
     </div>

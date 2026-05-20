@@ -27,8 +27,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
@@ -40,10 +40,10 @@
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=0790524f97105ba85085"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
@@ -158,6 +158,13 @@
 </li>
 
 
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../index.html">
     API Reference
@@ -178,20 +185,30 @@
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../benchmarking.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../benchmarking.html">
     Benchmarking
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../dev/index.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../dev/index.html">
     Developer Documentation
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -222,8 +239,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -276,6 +292,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../getting_started.html">
     Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
   </a>
 </li>
 
@@ -335,8 +358,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -467,19 +489,25 @@
 <dt class="sig sig-object py" id="anyplotlib.CallbackRegistry">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.</span></span><span class="sig-name descname"><span class="pre">CallbackRegistry</span></span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Per-object registry for on_click / on_changed / on_release / on_key /
-on_line_hover / on_line_click callbacks.</p>
+<p>Per-object handler store.</p>
+<p>Supports:
+- Priority ordering (<code class="docutils literal notranslate"><span class="pre">order</span></code> kwarg — lower fires first)
+- Wildcard <code class="docutils literal notranslate"><span class="pre">&quot;*&quot;</span></code> type receives every dispatched event
+- <code class="docutils literal notranslate"><span class="pre">stop_propagation</span></code> on the event halts remaining handlers
+- <code class="docutils literal notranslate"><span class="pre">disconnect_fn(fn,</span> <span class="pre">*types)</span></code> removes by callback reference
+- <code class="docutils literal notranslate"><span class="pre">pause_events</span></code> / <code class="docutils literal notranslate"><span class="pre">hold_events</span></code> context managers (added in Task 3)</p>
 <dl class="field-list simple">
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.CallbackRegistry.connect">
-<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry.connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry.connect" title="Link to this definition">#</a></dt>
-<dd><p>Register fn for event_type.  Returns integer CID.</p>
+<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry.connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry.connect" title="Link to this definition">#</a></dt>
+<dd><p>Register fn for event_type. Returns integer CID.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>event_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
 <li><p><strong>fn</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>)</p></li>
+<li><p><strong>order</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -491,7 +519,7 @@ on_line_hover / on_line_click callbacks.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.CallbackRegistry.disconnect">
 <span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry.disconnect" title="Link to this definition">#</a></dt>
-<dd><p>Remove handler for cid.  Silent if not found.</p>
+<dd><p>Remove handler by CID. Silent if not found.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>cid</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
@@ -503,12 +531,57 @@ on_line_hover / on_line_click callbacks.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.CallbackRegistry.disconnect_fn">
+<span class="sig-name descname"><span class="pre">disconnect_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">types</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry.disconnect_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry.disconnect_fn" title="Link to this definition">#</a></dt>
+<dd><p>Remove fn from the given types (all types if none given).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>)</p></li>
+<li><p><strong>types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.CallbackRegistry.fire">
 <span class="sig-name descname"><span class="pre">fire</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry.fire"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry.fire" title="Link to this definition">#</a></dt>
-<dd><p>Dispatch event to all handlers matching event.event_type.</p>
+<dd><p>Dispatch event to matching handlers (respects pause/hold).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>event</strong> (<a class="reference internal" href="anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.callbacks.Event"><em>Event</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.CallbackRegistry.pause_events">
+<span class="sig-name descname"><span class="pre">pause_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">types</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry.pause_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry.pause_events" title="Link to this definition">#</a></dt>
+<dd><p>Suppress events of the given types while inside this context.
+All types are paused when called with no arguments.
+Pause wins over hold for the same type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.CallbackRegistry.hold_events">
+<span class="sig-name descname"><span class="pre">hold_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">types</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/callbacks.html#CallbackRegistry.hold_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.CallbackRegistry.hold_events" title="Link to this definition">#</a></dt>
+<dd><p>Buffer events of the given types; flush when the outermost hold exits.
+All types are held when called with no arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -567,7 +640,10 @@ on_line_hover / on_line_click callbacks.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.CallbackRegistry"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.CallbackRegistry.connect"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.connect()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.CallbackRegistry.disconnect"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.disconnect()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.CallbackRegistry.disconnect_fn"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.disconnect_fn()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.CallbackRegistry.fire"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.fire()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.CallbackRegistry.pause_events"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.pause_events()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.CallbackRegistry.hold_events"><code class="docutils literal notranslate"><span class="pre">CallbackRegistry.hold_events()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -595,8 +671,8 @@ on_line_hover / on_line_click callbacks.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -630,7 +706,7 @@ on_line_hover / on_line_click callbacks.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.18.0.
 </p></div>
       
     </div>

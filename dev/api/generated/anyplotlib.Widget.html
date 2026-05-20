@@ -27,8 +27,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
@@ -40,10 +40,10 @@
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=0790524f97105ba85085"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085" />
 
     <script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
@@ -158,6 +158,13 @@
 </li>
 
 
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../index.html">
     API Reference
@@ -178,20 +185,30 @@
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../benchmarking.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../benchmarking.html">
     Benchmarking
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../dev/index.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../dev/index.html">
     Developer Documentation
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -222,8 +239,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -276,6 +292,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../getting_started.html">
     Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
   </a>
 </li>
 
@@ -335,8 +358,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -466,7 +488,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.Widget">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.</span></span><span class="sig-name descname"><span class="pre">Widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_EventMixin</span></code></p>
 <p>Base class for all overlay widgets.</p>
 <p>Provides attribute-based state access, callbacks for interaction events,
 and automatic synchronization with the JavaScript renderer.</p>
@@ -482,10 +504,15 @@ and automatic synchronization with the JavaScript renderer.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="anyplotlib.Widget.callbacks">
 <span class="sig-name descname"><span class="pre">callbacks</span></span><a class="headerlink" href="#anyplotlib.Widget.callbacks" title="Link to this definition">#</a></dt>
-<dd><p>Event callback registry. Register handlers via:
-- <code class="docutils literal notranslate"><span class="pre">&#64;widget.on_changed</span></code> — fires on every drag frame
-- <code class="docutils literal notranslate"><span class="pre">&#64;widget.on_release</span></code> — fires once when drag settles
-- <code class="docutils literal notranslate"><span class="pre">&#64;widget.on_click</span></code> — fires on click event</p>
+<dd><p>Event callback registry. Register handlers via
+<code class="docutils literal notranslate"><span class="pre">widget.add_event_handler(fn,</span> <span class="pre">&quot;pointer_move&quot;)</span></code> or as a decorator:
+<code class="docutils literal notranslate"><span class="pre">&#64;widget.add_event_handler(&quot;pointer_move&quot;)</span></code>.</p>
+<p>Common event types:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;pointer_move&quot;</span></code> — fires on every drag frame</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;pointer_up&quot;</span></code> — fires once when drag settles</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;pointer_down&quot;</span></code> — fires on click/press event</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="anyplotlib.CallbackRegistry.html#anyplotlib.CallbackRegistry" title="anyplotlib.CallbackRegistry">CallbackRegistry</a></p>
@@ -548,74 +575,6 @@ This is more efficient for frequent updates during dragging.</p>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Widget.on_changed">
-<span class="sig-name descname"><span class="pre">on_changed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.on_changed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_changed" title="Link to this definition">#</a></dt>
-<dd><p>Decorator: register fn to fire on every drag frame.</p>
-<p>Use this for high-frequency updates (keep handler fast).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fn</strong> (<em>Callable</em>) – Handler function receiving an Event.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The decorated function.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Callable</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Widget.on_release">
-<span class="sig-name descname"><span class="pre">on_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.on_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_release" title="Link to this definition">#</a></dt>
-<dd><p>Decorator: register fn to fire once when drag settles.</p>
-<p>Use this for expensive operations triggered after user stops dragging.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fn</strong> (<em>Callable</em>) – Handler function receiving an Event.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The decorated function.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Callable</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Widget.on_click">
-<span class="sig-name descname"><span class="pre">on_click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.on_click"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.on_click" title="Link to this definition">#</a></dt>
-<dd><p>Decorator: register fn to fire on widget click.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fn</strong> (<em>Callable</em>) – Handler function receiving an Event.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The decorated function.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Callable</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Widget.disconnect">
-<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.disconnect" title="Link to this definition">#</a></dt>
-<dd><p>Remove the callback registered under <em>cid</em>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>cid</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><em>Callable</em>) – Either the integer CID returned by <code class="docutils literal notranslate"><span class="pre">callbacks.connect()</span></code>,
-or the decorated function itself (carries a <code class="docutils literal notranslate"><span class="pre">._cid</span></code> attribute).</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="anyplotlib.Widget.visible">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">visible</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><a class="headerlink" href="#anyplotlib.Widget.visible" title="Link to this definition">#</a></dt>
@@ -625,7 +584,7 @@ or the decorated function itself (carries a <code class="docutils literal notran
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Widget.show">
 <span class="sig-name descname"><span class="pre">show</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.show"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.show" title="Link to this definition">#</a></dt>
-<dd><p>Show the widget.  Does not fire <code class="docutils literal notranslate"><span class="pre">on_changed</span></code> callbacks.</p>
+<dd><p>Show the widget.  Does not fire <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> callbacks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -638,7 +597,7 @@ or the decorated function itself (carries a <code class="docutils literal notran
 <span class="sig-name descname"><span class="pre">hide</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/widgets/_base.html#Widget.hide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Widget.hide" title="Link to this definition">#</a></dt>
 <dd><p>Hide the widget without removing it or its callbacks.</p>
 <p>Call <a class="reference internal" href="#anyplotlib.Widget.show" title="anyplotlib.Widget.show"><code class="xref py py-meth docutils literal notranslate"><span class="pre">show()</span></code></a> to make it visible again.
-Does not fire <code class="docutils literal notranslate"><span class="pre">on_changed</span></code> callbacks.</p>
+Does not fire <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> callbacks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -708,10 +667,6 @@ Does not fire <code class="docutils literal notranslate"><span class="pre">on_ch
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.set"><code class="docutils literal notranslate"><span class="pre">Widget.set()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.get"><code class="docutils literal notranslate"><span class="pre">Widget.get()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.to_dict"><code class="docutils literal notranslate"><span class="pre">Widget.to_dict()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.on_changed"><code class="docutils literal notranslate"><span class="pre">Widget.on_changed()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.on_release"><code class="docutils literal notranslate"><span class="pre">Widget.on_release()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.on_click"><code class="docutils literal notranslate"><span class="pre">Widget.on_click()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.disconnect"><code class="docutils literal notranslate"><span class="pre">Widget.disconnect()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.visible"><code class="docutils literal notranslate"><span class="pre">Widget.visible</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.show"><code class="docutils literal notranslate"><span class="pre">Widget.show()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Widget.hide"><code class="docutils literal notranslate"><span class="pre">Widget.hide()</span></code></a></li>
@@ -743,8 +698,8 @@ Does not fire <code class="docutils literal notranslate"><span class="pre">on_ch
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -778,7 +733,7 @@ Does not fire <code class="docutils literal notranslate"><span class="pre">on_ch
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.18.0.
 </p></div>
       
     </div>

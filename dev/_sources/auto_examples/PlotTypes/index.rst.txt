@@ -136,6 +136,23 @@ A collection of short examples showing different plot types.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="GridSpec lets you build multi-panel figures where panels have different sizes and span multiple grid cells.  This gallery shows the most common patterns.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_gridspec_custom_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_gridspec_custom`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Custom Grid Layouts with GridSpec</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -153,4 +170,5 @@ A collection of short examples showing different plot types.
    /auto_examples/PlotTypes/plot_image2d
    /auto_examples/PlotTypes/plot_line_styles
    /auto_examples/PlotTypes/plot_bar
+   /auto_examples/PlotTypes/plot_gridspec_custom
 

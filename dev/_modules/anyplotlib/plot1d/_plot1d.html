@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
-<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+  <link href="../../../_static/styles/theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=0790524f97105ba85085" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../_static/anywidget_overlay.css?v=a271c467" />
@@ -39,10 +39,10 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=6a9e09cd" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=0790524f97105ba85085"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
-<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085" />
 
     <script src="../../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
@@ -156,6 +156,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api/index.html">
     API Reference
   </a>
@@ -175,20 +182,30 @@
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../benchmarking.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../benchmarking.html">
     Benchmarking
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../dev/index.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../dev/index.html">
     Developer Documentation
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -219,8 +236,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -271,6 +287,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../getting_started.html">
     Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
   </a>
 </li>
 
@@ -330,8 +353,7 @@
           
           
           
-          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
-            <span class="sr-only">GitHub</span></a>
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -409,7 +431,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.markers</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarkerRegistry</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span><span class="p">,</span> <span class="n">_EventMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Widget</span><span class="p">,</span>
     <span class="n">VLineWidget</span> <span class="k">as</span> <span class="n">_VLineWidget</span><span class="p">,</span>
@@ -428,8 +450,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle to a single line on a :class:`Plot1D` panel.</span>
 
 <span class="sd">    Returned by :meth:`Plot1D.add_line`.  Use it to update the line data,</span>
-<span class="sd">    register hover/click callbacks scoped to just that line, or to remove</span>
-<span class="sd">    it later.</span>
+<span class="sd">    register event handlers scoped to just that line, or to remove it later.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -463,27 +484,37 @@
         <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lid</span><span class="p">)</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_hover</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the cursor moves over *this* line only.&quot;&quot;&quot;</span>
-        <span class="n">target_lid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">_filtered</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line_id&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">target_lid</span><span class="p">:</span>
-                <span class="n">fn</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_hover&quot;</span><span class="p">,</span> <span class="n">_filtered</span><span class="p">)</span>
-        <span class="n">_filtered</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span>        <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn_or_type</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a handler scoped to this line only.</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the user clicks on *this* line only.&quot;&quot;&quot;</span>
+<span class="sd">        Wraps the plot-level pointer_move / pointer_down handler</span>
+<span class="sd">        with a line_id filter. Only pointer_move and pointer_down</span>
+<span class="sd">        are meaningful on a line handle.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">target_lid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lid</span>
+
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fn_or_type</span><span class="p">):</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="n">fn_or_type</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="n">args</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_and_register</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">target_lid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">all_types</span> <span class="o">=</span> <span class="p">(</span><span class="n">fn_or_type</span><span class="p">,)</span> <span class="o">+</span> <span class="n">args</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">_decorator</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_and_register</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">all_types</span><span class="p">,</span> <span class="n">target_lid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_decorator</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wrap_and_register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">target_lid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">_filtered</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line_id&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">target_lid</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">line_id</span> <span class="o">==</span> <span class="n">target_lid</span><span class="p">:</span>
                 <span class="n">fn</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_click&quot;</span><span class="p">,</span> <span class="n">_filtered</span><span class="p">)</span>
-        <span class="n">_filtered</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span>        <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span>
+        <span class="n">_filtered</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="n">fn</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">_filtered</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid_or_fn</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove a handler registered via this line handle.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">remove_handler</span><span class="p">(</span><span class="n">cid_or_fn</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="s2">&quot;np.ndarray&quot;</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the y-data (and optionally x-axis) of this overlay line.</span>
@@ -537,7 +568,7 @@
 
 <div class="viewcode-block" id="Plot1D">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Plot1D</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Plot1D</span><span class="p">(</span><span class="n">_EventMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;1-D line plot panel returned by :meth:`Axes.plot`.</span>
 
 <span class="sd">    All display state is stored in a plain ``_state`` dict.  Every mutation</span>
@@ -675,13 +706,19 @@
             <span class="s2">&quot;spans&quot;</span><span class="p">:</span>            <span class="p">[],</span>
             <span class="s2">&quot;overlay_widgets&quot;</span><span class="p">:</span>  <span class="p">[],</span>
             <span class="s2">&quot;markers&quot;</span><span class="p">:</span>          <span class="p">[],</span>
-            <span class="s2">&quot;registered_keys&quot;</span><span class="p">:</span>  <span class="p">[],</span>
+            <span class="s2">&quot;pointer_settled_ms&quot;</span><span class="p">:</span>    <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;pointer_settled_delta&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
         <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span> <span class="o">=</span> <span class="n">MarkerRegistry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_push_markers</span><span class="p">,</span>
                                       <span class="n">allowed</span><span class="o">=</span><span class="n">MarkerRegistry</span><span class="o">.</span><span class="n">_KNOWN_1D</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Widget</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_configure_pointer_settled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;pointer_settled_ms&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">ms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;pointer_settled_delta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1175,116 +1212,6 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove all interactive overlay widgets from this panel.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
-
-
-    <span class="c1"># ------------------------------------------------------------------</span>
-    <span class="c1"># Callback API  (Plot1D)</span>
-    <span class="c1"># ------------------------------------------------------------------</span>
-<div class="viewcode-block" id="Plot1D.on_changed">
-<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.on_changed">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires on every drag/zoom frame on this panel.&quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_changed&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
-
-
-<div class="viewcode-block" id="Plot1D.on_release">
-<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.on_release">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires once when drag/zoom settles on this panel.&quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_release&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
-
-
-<div class="viewcode-block" id="Plot1D.on_click">
-<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.on_click">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires on click on this panel.&quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_click&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
-
-
-<div class="viewcode-block" id="Plot1D.on_key">
-<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.on_key">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_or_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a key-press handler for this panel.</span>
-
-<span class="sd">        Two call forms are supported::</span>
-
-<span class="sd">            @plot.on_key(&#39;q&#39;)          # fires only when &#39;q&#39; is pressed</span>
-<span class="sd">            def handler(event): ...</span>
-
-<span class="sd">            @plot.on_key               # fires for every registered key</span>
-<span class="sd">            def handler(event): ...</span>
-
-<span class="sd">        The event carries: ``key``, ``mouse_x``, ``mouse_y``, ``phys_x``,</span>
-<span class="sd">        and ``last_widget_id``.</span>
-
-<span class="sd">        .. note::</span>
-<span class="sd">            Registered keys take priority over the built-in **r** (reset view)</span>
-<span class="sd">            shortcut.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">key_or_fn</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connect_on_key</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">key_or_fn</span><span class="p">)</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">key_or_fn</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">_decorator</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connect_on_key</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_decorator</span></div>
-
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_connect_on_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s1">&#39;*&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s1">&#39;registered_keys&#39;</span><span class="p">]:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s1">&#39;registered_keys&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-            <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_key&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s1">&#39;registered_keys&#39;</span><span class="p">]:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s1">&#39;registered_keys&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-            <span class="k">def</span><span class="w"> </span><span class="nf">_wrapped</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
-                    <span class="n">fn</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-            <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_key&quot;</span><span class="p">,</span> <span class="n">_wrapped</span><span class="p">)</span>
-            <span class="n">_wrapped</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span>
-
-<div class="viewcode-block" id="Plot1D.disconnect">
-<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.disconnect">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove the callback registered under integer *cid*.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="Plot1D.on_line_hover">
-<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.on_line_hover">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_line_hover</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the cursor moves over *any* line on this panel.</span>
-
-<span class="sd">        The event carries ``event.line_id`` (``None`` = primary line,</span>
-<span class="sd">        str = overlay), ``event.x``, and ``event.y`` in data coordinates.</span>
-<span class="sd">        For per-line filtering use :meth:`Line1D.on_hover` instead.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_hover&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
-
-
-<div class="viewcode-block" id="Plot1D.on_line_click">
-<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.on_line_click">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">on_line_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator: fires when the user clicks *any* line on this panel.</span>
-
-<span class="sd">        The event carries the same fields as :meth:`on_line_hover`.</span>
-<span class="sd">        For per-line filtering use :meth:`Line1D.on_click` instead.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">cid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;on_line_click&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_cid</span> <span class="o">=</span> <span class="n">cid</span>
-        <span class="k">return</span> <span class="n">fn</span></div>
 
 
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -1942,8 +1869,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
-<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=0790524f97105ba85085"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=0790524f97105ba85085"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -1977,7 +1904,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.18.0.
 </p></div>
       
     </div>
