@@ -1,11 +1,20 @@
 """
 Live intensity thresholding on a multi-phase STEM image.
+=========================================================
 
-Scroll the mouse wheel over the image to adjust the threshold (2 counts per
-tick).  Click a histogram bar to jump the threshold to that bin's upper edge.
-Dwell (400 ms) over the image to inspect pixel intensity.  The threshold mask
-is shown as a red overlay; the histogram always has a vertical line at the
-current threshold.
+A side-by-side view: the left panel shows a synthetic 512×512 STEM
+image with a red overlay marking pixels above the threshold; the right
+panel shows a 32-bin intensity histogram with a yellow vertical line at
+the current threshold value.
+
+**Interaction**
+
+* **Shift+Scroll** over the image — adjusts the threshold by ±2 per
+  wheel tick (plain scroll pans/zooms the image as normal).
+* **Click** a histogram bar — jumps the threshold to that bin's upper
+  edge.
+* **Dwell 400 ms** over the image — shows pixel coordinates and
+  intensity in the bottom-left label.
 """
 import numpy as np
 import anyplotlib as apl
@@ -93,6 +102,8 @@ info_label = img_plot.add_widget("label", x=10, y=490, text="", color="#ffeb3b",
 # ── event handlers ─────────────────────────────────────────────────────────────
 
 def _on_wheel(event) -> None:
+    if "shift" not in event.modifiers:
+        return
     delta = -2.0 * np.sign(event.dy) if event.dy != 0 else 0.0
     _update_display(threshold + delta)
 
@@ -119,7 +130,9 @@ img_plot.add_event_handler(_on_settled, "pointer_settled", ms=400, delta=4)
 hist_plot.add_event_handler(_on_bar_click, "pointer_down")
 
 fig.set_help(
-    "Scroll over image: adjust threshold ±2\n"
+    "Shift+Scroll over image: adjust threshold ±2\n"
     "Click histogram bar: jump to bin upper edge\n"
     "Dwell 400 ms over image: inspect pixel intensity"
 )
+
+fig  # Interactive
