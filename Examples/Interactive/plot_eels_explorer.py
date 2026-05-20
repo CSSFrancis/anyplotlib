@@ -1,11 +1,22 @@
 """
 EELS multi-spectrum explorer.
+==============================
 
-Click a spectrum line to select it (full opacity; others dim).  Dwell (250 ms)
-to inspect the eV position and intensity; nearby known edges are annotated.
-Double-click to place a permanent edge marker.  Delete/Backspace removes the
-most recently placed marker on the active spectrum.  Tab / Shift+Tab cycles
-the selection forward / backward.
+Five synthetic EELS spectra (Carbon-rich, Nitride, Oxide, Silicide,
+Mixed) stacked vertically on a single axis, each with known
+characteristic edges and a power-law background.
+
+**Interaction**
+
+* **Click** a spectrum line — selects it (full opacity; others dim to
+  25 %).
+* **Dwell 250 ms** — shows eV position and intensity; nearby known
+  edges (C K, N K, O K, Ti L) are annotated.
+* **Double-click** — places a permanent vertical edge marker on the
+  active spectrum.
+* **Delete / Backspace** — removes the most recent marker on the
+  active spectrum.
+* **Tab / Shift+Tab** — cycles the selection forward / backward.
 """
 import numpy as np
 import anyplotlib as apl
@@ -196,3 +207,5 @@ fig.set_help(
     "Delete / Backspace: remove last marker\n"
     "Tab / Shift+Tab: cycle selection"
 )
+
+fig  # interactive

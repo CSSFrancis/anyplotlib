@@ -1,11 +1,20 @@
 """
 HAADF STEM nanoparticle picker.
+=================================
 
-Dwell over a candidate peak (300 ms) to inspect its sub-pixel centroid,
-peak intensity, and estimated FWHM.  Double-click to confirm a pick (green
-ring).  Shift+double-click marks it as uncertain (orange ring).
-Delete/Backspace removes the confirmed pick nearest the cursor.  ``c`` clears
-all picks.
+Synthetic HAADF-STEM image with 18 Gaussian nanoparticles on a Poisson
+noise background.  Candidate peaks are detected automatically using a
+7×7 local-maximum filter and marked with small grey circles.
+
+**Interaction**
+
+* **Dwell 300 ms** over a candidate — shows the sub-pixel centroid,
+  peak intensity, and estimated FWHM in a floating label.
+* **Double-click** — confirms the pick (green ring).
+* **Shift+double-click** — marks the pick as uncertain (orange ring).
+* **Delete / Backspace** — removes the confirmed pick nearest the
+  cursor.
+* **c** — clears all picks.
 """
 import numpy as np
 import anyplotlib as apl
@@ -196,3 +205,5 @@ fig.set_help(
     "Delete / Backspace: remove nearest pick\n"
     "c: clear all picks"
 )
+
+fig  # interactive
