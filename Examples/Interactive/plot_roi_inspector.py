@@ -166,3 +166,4 @@ fig.set_help(
     "Drag ROI rectangle: repositions ROI\n"
     "Release drag: recomputes spectrum"
 )
+fig

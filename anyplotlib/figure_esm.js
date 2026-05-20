@@ -936,17 +936,17 @@ function render({ model, el }) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
     const iw = st.image_width, ih = st.image_height;
+    // +0.5: image coordinate i is the centre of pixel i, which renders at
+    // (i + 0.5) * scale in the canvas — not the leading edge (i * scale).
     if (zoom < 1.0) {
-      // Zoom-out path: full image drawn centred inside a scaled-down fit-rect
-      // (mirrors the zoom<1 branch in _blit2d exactly).
       const dstW = w * zoom, dstH = h * zoom;
       const dstX = x + (w - dstW) / 2, dstY = y + (h - dstH) / 2;
-      return [dstX + (ix / iw) * dstW, dstY + (iy / ih) * dstH];
+      return [dstX + (ix + 0.5) / iw * dstW, dstY + (iy + 0.5) / ih * dstH];
     }
     const visW = iw / zoom, visH = ih / zoom;
     const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
     const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
-    return [x + (ix - srcX) / visW * w, y + (iy - srcY) / visH * h];
+    return [x + (ix + 0.5 - srcX) / visW * w, y + (iy + 0.5 - srcY) / visH * h];
   }
 
   // Returns canvas-px per image-px at the current zoom (uniform in x and y).
@@ -994,26 +994,25 @@ function render({ model, el }) {
 
     if(!b64||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
 
-    let bytes;
-    try {
-      const bin=atob(b64);
-      bytes=new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    } catch(_){return;}
-
     const lk=_lutKey(st);
-    const needRebuild = bytes!==blitCache.bytesKey || lk!==blitCache.lutKey
+    const needRebuild = b64!==blitCache.bytesKey || lk!==blitCache.lutKey
                      || !blitCache.bitmap || blitCache.w!==iw || blitCache.h!==ih;
     if(!needRebuild && blitCache.bitmap){
       _blit2d(blitCache.bitmap, st, imgW, imgH, ctx);
     } else {
+      let bytes;
+      try {
+        const bin=atob(b64);
+        bytes=new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      } catch(_){return;}
       const lut=_buildLut32(st);
       const imgData=new ImageData(iw,ih);
       const out32=new Uint32Array(imgData.data.buffer);
       for(let i=0;i<iw*ih;i++) out32[i]=lut[bytes[i]];
       const oc=new OffscreenCanvas(iw,ih);
       oc.getContext('2d').putImageData(imgData,0,0);
-      blitCache.bitmap=oc; blitCache.bytesKey=bytes; blitCache.lutKey=lk;
+      blitCache.bitmap=oc; blitCache.bytesKey=b64; blitCache.lutKey=lk;
       blitCache.w=iw; blitCache.h=ih;
       _blit2d(oc, st, imgW, imgH, ctx);
     }
@@ -1734,7 +1733,7 @@ function render({ model, el }) {
       dragStart = { mx: _d3mx, my: _d3my,
                     az: p.state.azimuth, el: p.state.elevation };
       overlayCanvas.style.cursor = 'grabbing';
-      e.preventDefault();
+      // Do NOT call e.preventDefault() — suppresses click → dblclick cascade.
     });
     document.addEventListener('mousemove', (e) => {
       if (!dragStart) return;
@@ -2541,7 +2540,10 @@ function render({ model, el }) {
       panStart={mx,my,cx:st.center_x,cy:st.center_y};
       // Track potential click: distance + time guards distinguish click from pan.
       p.clickCandidate={mx,my,t:Date.now(),shiftKey:e.shiftKey};
-      p.isPanning=true; overlayCanvas.style.cursor='grabbing'; e.preventDefault();
+      p.isPanning=true; overlayCanvas.style.cursor='grabbing';
+      // Do NOT call e.preventDefault() here: Chrome suppresses the click event
+      // when mousedown is cancelled, which in turn prevents dblclick from firing.
+      // Panning's preventDefault lives in the mousemove handler (prevents scroll).
     });
     document.addEventListener('mousemove',(e)=>{
       if(p.ovDrag2d){
@@ -2678,6 +2680,14 @@ function render({ model, el }) {
           const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
           if (dist <= _settledDelta) {
             const _now = performance.now();
+            const st2 = p.state; if (!st2) return;
+            const imgW2 = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
+            const imgH2 = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
+            const [sImgX, sImgY] = _canvasToImg2d(p.mouseX, p.mouseY, st2, imgW2, imgH2);
+            const sXArr = st2.x_axis || [], sYArr = st2.y_axis || [];
+            const _siw = st2.image_width || 1, _sih = st2.image_height || 1;
+            const sPhysX = sXArr.length >= 2 ? _axisFracToVal(sXArr, sImgX / _siw) : sImgX;
+            const sPhysY = sYArr.length >= 2 ? _axisFracToVal(sYArr, sImgY / _sih) : sImgY;
             _emitEvent(p.id, 'pointer_settled', null, {
               time_stamp: _now / 1000,
               modifiers:  _settledMods,
@@ -2685,6 +2695,10 @@ function render({ model, el }) {
               buttons:    0,
               x:          Math.round(p.mouseX),
               y:          Math.round(p.mouseY),
+              img_x:      sImgX,
+              img_y:      sImgY,
+              xdata:      sPhysX,
+              ydata:      sPhysY,
               dwell_ms:   _now - _settledStartTs,
             });
           }
@@ -2698,9 +2712,15 @@ function render({ model, el }) {
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
     });
     overlayCanvas.addEventListener('dblclick',(e)=>{
+      const st=p.state; if(!st) return;
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
-      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my});
+      const [imgX,imgY]=_canvasToImg2d(mx,my,st,imgW,imgH);
+      const xArr=st.x_axis||[], yArr=st.y_axis||[];
+      const _iw=st.image_width||1, _ih=st.image_height||1;
+      const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/_iw):imgX;
+      const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/_ih):imgY;
+      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,img_x:imgX,img_y:imgY,xdata:physX,ydata:physY});
     });
     overlayCanvas.addEventListener('wheel',(e)=>{
       _emitEvent(p.id,'wheel',null,{
@@ -2807,7 +2827,8 @@ function render({ model, el }) {
       if(hit){p.ovDrag=hit;p.lastWidgetId=(p.state.overlay_widgets||[])[hit.idx]?.id||null;overlayCanvas.style.cursor=(hit.mode==='edge0'||hit.mode==='edge1')?'ew-resize':'move';e.preventDefault();return;}
       // Store pan start in canvas-px so pan delta in mousemove is canvas-px.
       panStart={mx:_emx,x0:st.view_x0,x1:st.view_x1};
-      p.isPanning=true;overlayCanvas.style.cursor='grabbing';e.preventDefault();
+      p.isPanning=true;overlayCanvas.style.cursor='grabbing';
+      // Do NOT call e.preventDefault() — see 2D note: suppresses click → dblclick.
     });
     document.addEventListener('mousemove',(e)=>{
       if(p.ovDrag){
@@ -2967,7 +2988,15 @@ function render({ model, el }) {
     });
     overlayCanvas.addEventListener('dblclick',(e)=>{
       const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
-      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my});
+      const st=p.state;
+      let xdata=null;
+      if(st){
+        const r=_plotRect1d(p.pw,p.ph);
+        const xArr=p._1dXArr||(st.x_axis_b64?_decodeF64(st.x_axis_b64):(st.x_axis||[]));
+        const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
+        xdata=xArr.length>=2?_fracToX1d(xArr,frac):frac;
+      }
+      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,xdata});
     });
     overlayCanvas.addEventListener('wheel',(e)=>{
       _emitEvent(p.id,'wheel',null,{
@@ -4076,7 +4105,7 @@ function render({ model, el }) {
     });
     overlayCanvas.addEventListener('dblclick', (e) => {
       const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
-      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), button: e.button, x: mx, y: my});
+      _emitEvent(p.id, 'double_click', null, {..._pointerFields(e), button: e.button, x: mx, y: my, xdata: null});
     });
     overlayCanvas.addEventListener('wheel', (e) => {
       _emitEvent(p.id, 'wheel', null, {
