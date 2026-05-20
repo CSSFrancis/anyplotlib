@@ -59,6 +59,9 @@ def _offsets_2d(offsets) -> list:
     return arr.tolist()
 
 
+_VALID_TRANSFORMS = frozenset({"data", "axes", "display"})
+
+
 def _offsets_1d(offsets) -> list:
     """Accept (N,), (N,1) or (N,2) — return (N,1) or (N,2) list."""
     arr = np.asarray(offsets, dtype=float)
@@ -94,6 +97,11 @@ class MarkerGroup:
     def __init__(self, marker_type: str, name: str, kwargs: dict, push_fn):
         self._type = marker_type
         self._name = name
+        tfm = kwargs.get("transform", "data")
+        if tfm not in _VALID_TRANSFORMS:
+            raise ValueError(
+                f"transform must be one of {sorted(_VALID_TRANSFORMS)}, got {tfm!r}"
+            )
         self._data: dict = dict(kwargs)
         self._push_fn = push_fn
 
@@ -107,6 +115,11 @@ class MarkerGroup:
             Properties to update (e.g., offsets, radius, facecolors).
             Matplotlib-style names are translated to wire format.
         """
+        if "transform" in kwargs and kwargs["transform"] not in _VALID_TRANSFORMS:
+            raise ValueError(
+                f"transform must be one of {sorted(_VALID_TRANSFORMS)}, "
+                f"got {kwargs['transform']!r}"
+            )
         self._data.update(kwargs)
         self._push_fn()
 
@@ -321,6 +334,9 @@ class MarkerGroup:
 
         else:
             raise ValueError(f"Unknown marker type: {t!r}")
+
+        # ── coordinate transform (always emitted; defaults to "data") ──────
+        wire["transform"] = d.get("transform", "data")
 
         # ── common optional fields ──────────────────────────────────────────
         label = d.get("label")
