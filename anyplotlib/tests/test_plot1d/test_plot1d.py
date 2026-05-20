@@ -661,3 +661,99 @@ class TestPlot1DMarkerHelpers:
         p.clear_markers()
         assert p.markers.to_wire_list() == []
 
+
+# ===========================================================================
+# Phase 2 — Plot1D state methods
+# ===========================================================================
+
+class TestPlot1DProperties:
+
+    def test_color_property(self):
+        p = _plot(color="#ff0000")
+        assert p.color == "#ff0000"
+
+    def test_x_property_returns_ndarray(self):
+        p = _plot_lin(32)
+        x = p.x
+        assert isinstance(x, np.ndarray)
+        assert len(x) == 32
+
+    def test_y_property_returns_ndarray(self):
+        data = np.linspace(0.0, 1.0, 64)
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(data)
+        y = p.y
+        assert isinstance(y, np.ndarray)
+        assert len(y) == 64
+
+
+class TestPlot1DLabels:
+
+    def test_set_xlabel_updates_units(self):
+        p = _plot()
+        p.set_xlabel("Energy (eV)")
+        assert p._state["units"] == "Energy (eV)"
+
+    def test_set_ylabel_updates_y_units(self):
+        p = _plot()
+        p.set_ylabel("Counts")
+        assert p._state["y_units"] == "Counts"
+
+    def test_set_title(self):
+        p = _plot()
+        p.set_title("Spectrum")
+        assert p._state["title"] == "Spectrum"
+
+    def test_default_title_empty(self):
+        p = _plot()
+        assert p._state["title"] == ""
+
+
+class TestPlot1DAxisLimits:
+
+    def test_set_xlim_changes_view(self):
+        p = _plot_lin(64)
+        p.set_xlim(10, 50)
+        assert p._state["view_x0"] != 0.0 or p._state["view_x1"] != 1.0
+
+    def test_set_ylim_stores_y_range(self):
+        p = _plot()
+        p.set_ylim(-2.0, 2.0)
+        assert p._state["y_range"] == [-2.0, 2.0]
+
+    def test_get_ylim_returns_data_bounds(self):
+        data = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(data)
+        lo, hi = p.get_ylim()
+        assert lo < hi
+        assert lo <= 0.0
+        assert hi >= 4.0
+
+    def test_get_xbound_returns_x_range(self):
+        p = _plot_lin(32)
+        lo, hi = p.get_xbound()
+        assert lo == pytest.approx(0.0)
+        assert hi == pytest.approx(31.0)
+
+
+class TestPlot1DAxisVisibility:
+
+    def test_set_axis_off(self):
+        p = _plot()
+        assert p._state["axis_visible"] is True
+        p.set_axis_off()
+        assert p._state["axis_visible"] is False
+
+    def test_set_ticks_visible_false(self):
+        p = _plot()
+        p.set_ticks_visible(False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is False
+
+    def test_set_ticks_visible_per_axis(self):
+        p = _plot()
+        p.set_ticks_visible(False, x=True, y=False)
+        assert p._state["x_ticks_visible"] is True
+        assert p._state["y_ticks_visible"] is False
+

@@ -115,3 +115,140 @@ def test_no_debug_print_in_on_event(capsys):
     fig._on_event({"new": json.dumps(payload)})
     captured = capsys.readouterr()
     assert captured.out == "", f"Unexpected stdout: {captured.out!r}"
+
+
+# ===========================================================================
+# Phase 2 — Plot2D state methods
+# ===========================================================================
+
+class TestPlot2DLabels:
+
+    def test_set_xlabel(self):
+        p = _make_plot2d()
+        p.set_xlabel("x (nm)")
+        assert p._state["x_label"] == "x (nm)"
+
+    def test_set_ylabel(self):
+        p = _make_plot2d()
+        p.set_ylabel("y (nm)")
+        assert p._state["y_label"] == "y (nm)"
+
+    def test_set_title(self):
+        p = _make_plot2d()
+        p.set_title("My Image")
+        assert p._state["title"] == "My Image"
+
+    def test_set_colorbar_label(self):
+        p = _make_plot2d()
+        p.set_colorbar_label("Intensity")
+        assert p._state["colorbar_label"] == "Intensity"
+
+    def test_default_labels_empty(self):
+        p = _make_plot2d()
+        assert p._state["x_label"] == ""
+        assert p._state["y_label"] == ""
+        assert p._state["title"] == ""
+        assert p._state["colorbar_label"] == ""
+
+
+class TestPlot2DAxisLimits:
+
+    def test_set_xlim_delegates_to_set_view(self):
+        p = _make_plot2d((32, 32))
+        p.set_xlim(5, 20)
+        assert p._state["zoom"] != 1.0 or p._state["center_x"] != 0.5
+
+    def test_set_ylim_delegates_to_set_view(self):
+        p = _make_plot2d((32, 32))
+        p.set_ylim(5, 20)
+        assert p._state["zoom"] != 1.0 or p._state["center_y"] != 0.5
+
+    def test_get_ylim_returns_y_axis_bounds(self):
+        fig, ax = apl.subplots(1, 1)
+        y_axis = np.linspace(0.0, 5.0, 32)
+        p = ax.imshow(np.zeros((32, 32)), axes=[np.arange(32), y_axis])
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(0.0)
+        assert hi == pytest.approx(5.0)
+
+    def test_get_xbound_returns_x_axis_bounds(self):
+        fig, ax = apl.subplots(1, 1)
+        x_axis = np.linspace(-1.0, 3.0, 32)
+        p = ax.imshow(np.zeros((32, 32)), axes=[x_axis, np.arange(32)])
+        lo, hi = p.get_xbound()
+        assert lo == pytest.approx(-1.0)
+        assert hi == pytest.approx(3.0)
+
+
+class TestPlot2DExtent:
+
+    def test_set_extent_updates_axes(self):
+        p = _make_plot2d((32, 32))
+        x_new = np.linspace(0.0, 10.0, 32)
+        y_new = np.linspace(0.0, 20.0, 32)
+        p.set_extent(x_new, y_new)
+        assert p._state["x_axis"][0] == pytest.approx(0.0)
+        assert p._state["x_axis"][-1] == pytest.approx(10.0)
+        assert p._state["y_axis"][-1] == pytest.approx(20.0)
+
+    def test_set_extent_updates_scale(self):
+        p = _make_plot2d((32, 32))
+        x_new = np.linspace(0.0, 31.0, 32)
+        y_new = np.linspace(0.0, 62.0, 32)
+        p.set_extent(x_new, y_new)
+        assert p._state["scale_x"] == pytest.approx(1.0)
+        assert p._state["scale_y"] == pytest.approx(2.0)
+
+
+class TestPlot2DColorbar:
+
+    def test_set_colorbar_visible_true(self):
+        p = _make_plot2d()
+        p.set_colorbar_visible(True)
+        assert p._state["show_colorbar"] is True
+
+    def test_set_colorbar_visible_false(self):
+        p = _make_plot2d()
+        p.set_colorbar_visible(True)
+        p.set_colorbar_visible(False)
+        assert p._state["show_colorbar"] is False
+
+
+class TestPlot2DAspect:
+
+    def test_set_aspect_float(self):
+        p = _make_plot2d()
+        p.set_aspect(2.0)
+        assert p._state["aspect"] == pytest.approx(2.0)
+
+    def test_set_aspect_equal_string(self):
+        p = _make_plot2d()
+        p.set_aspect("equal")
+        assert p._state["aspect"] == pytest.approx(1.0)
+
+    def test_set_aspect_none(self):
+        p = _make_plot2d()
+        p.set_aspect("equal")
+        p.set_aspect(None)
+        assert p._state["aspect"] is None
+
+
+class TestPlot2DAxisVisibility:
+
+    def test_set_axis_off(self):
+        p = _make_plot2d()
+        assert p._state["axis_visible"] is True
+        p.set_axis_off()
+        assert p._state["axis_visible"] is False
+
+    def test_set_ticks_visible_false(self):
+        p = _make_plot2d()
+        p.set_ticks_visible(False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is False
+
+    def test_set_ticks_visible_per_axis(self):
+        p = _make_plot2d()
+        p.set_ticks_visible(False, x=False, y=True)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is True

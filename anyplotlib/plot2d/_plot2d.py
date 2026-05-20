@@ -126,6 +126,17 @@ class Plot2D(_EventMixin):
             # Set True when Python explicitly changes view; JS uses it to
             # decide whether to preserve the current frontend zoom/pan state.
             "_view_from_python":  False,
+            # Axis / annotation labels (rendered by JS in Phase 4)
+            "x_label":           "",
+            "y_label":           "",
+            "title":             "",
+            "colorbar_label":    "",
+            # Aspect ratio: None means free, float means width/height ratio
+            "aspect":            None,
+            # Visibility toggles
+            "axis_visible":      True,
+            "x_ticks_visible":   True,
+            "y_ticks_visible":   True,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -304,6 +315,75 @@ class Plot2D(_EventMixin):
     @colormap_name.setter
     def colormap_name(self, name: str) -> None:
         self.set_colormap(name)
+
+    def set_xlabel(self, label: str) -> None:
+        self._state["x_label"] = str(label)
+        self._push()
+
+    def set_ylabel(self, label: str) -> None:
+        self._state["y_label"] = str(label)
+        self._push()
+
+    def set_title(self, label: str) -> None:
+        self._state["title"] = str(label)
+        self._push()
+
+    def set_xlim(self, xmin: float, xmax: float) -> None:
+        self.set_view(x0=xmin, x1=xmax)
+
+    def set_ylim(self, ymin: float, ymax: float) -> None:
+        self.set_view(y0=ymin, y1=ymax)
+
+    def get_ylim(self) -> tuple:
+        yarr = np.asarray(self._state["y_axis"])
+        return (float(yarr.min()), float(yarr.max()))
+
+    def get_xbound(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        return (float(xarr.min()), float(xarr.max()))
+
+    def set_extent(self, x_axis, y_axis) -> None:
+        x_axis = np.asarray(x_axis, dtype=float)
+        y_axis = np.asarray(y_axis, dtype=float)
+        w = self._state["image_width"]
+        h = self._state["image_height"]
+        scale_x = float(abs(x_axis[-1] - x_axis[0]) / max(w - 1, 1)) if len(x_axis) >= 2 else 1.0
+        scale_y = float(abs(y_axis[-1] - y_axis[0]) / max(h - 1, 1)) if len(y_axis) >= 2 else 1.0
+        self._state["x_axis"]  = x_axis.tolist()
+        self._state["y_axis"]  = y_axis.tolist()
+        self._state["scale_x"] = scale_x
+        self._state["scale_y"] = scale_y
+        self._push()
+
+    def set_colorbar_label(self, label: str) -> None:
+        self._state["colorbar_label"] = str(label)
+        self._push()
+
+    def set_colorbar_visible(self, visible: bool) -> None:
+        self._state["show_colorbar"] = bool(visible)
+        self._push()
+
+    def set_aspect(self, ratio) -> None:
+        if ratio == "equal":
+            ratio = 1.0
+        self._state["aspect"] = float(ratio) if ratio is not None else None
+        self._push()
+
+    def set_axis_off(self) -> None:
+        self._state["axis_visible"] = False
+        self._push()
+
+    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
+                          y: bool | None = None) -> None:
+        if x is None and y is None:
+            self._state["x_ticks_visible"] = bool(visible)
+            self._state["y_ticks_visible"] = bool(visible)
+        else:
+            if x is not None:
+                self._state["x_ticks_visible"] = bool(x)
+            if y is not None:
+                self._state["y_ticks_visible"] = bool(y)
+        self._push()
 
     # ------------------------------------------------------------------
     # Overlay Widgets

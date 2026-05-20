@@ -287,6 +287,14 @@ class Plot1D(_EventMixin):
             "markers":          [],
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
+            # Annotation labels
+            "title":             "",
+            # Explicit y-range override: [ymin, ymax] or None (auto)
+            "y_range":           None,
+            # Visibility toggles
+            "axis_visible":      True,
+            "x_ticks_visible":   True,
+            "y_ticks_visible":   True,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -840,6 +848,60 @@ class Plot1D(_EventMixin):
         self._state["line_marker"] = marker if marker is not None else "none"
         if markersize is not None:
             self._state["line_markersize"] = float(markersize)
+        self._push()
+
+    @property
+    def color(self) -> str:
+        return self._state["line_color"]
+
+    @property
+    def x(self) -> np.ndarray:
+        return np.asarray(self._state["x_axis"])
+
+    @property
+    def y(self) -> np.ndarray:
+        return np.asarray(self._state["data"])
+
+    def set_xlabel(self, label: str) -> None:
+        self._state["units"] = str(label)
+        self._push()
+
+    def set_ylabel(self, label: str) -> None:
+        self._state["y_units"] = str(label)
+        self._push()
+
+    def set_title(self, label: str) -> None:
+        self._state["title"] = str(label)
+        self._push()
+
+    def set_xlim(self, xmin: float, xmax: float) -> None:
+        self.set_view(x0=xmin, x1=xmax)
+
+    def set_ylim(self, ymin: float, ymax: float) -> None:
+        self._state["y_range"] = [float(ymin), float(ymax)]
+        self._push()
+
+    def get_ylim(self) -> tuple:
+        return (float(self._state["data_min"]), float(self._state["data_max"]))
+
+    def get_xbound(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        return (float(xarr.min()), float(xarr.max()))
+
+    def set_axis_off(self) -> None:
+        self._state["axis_visible"] = False
+        self._push()
+
+    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
+                          y: bool | None = None) -> None:
+        if x is None and y is None:
+            self._state["x_ticks_visible"] = bool(visible)
+            self._state["y_ticks_visible"] = bool(visible)
+        else:
+            if x is not None:
+                self._state["x_ticks_visible"] = bool(x)
+            if y is not None:
+                self._state["y_ticks_visible"] = bool(y)
         self._push()
 
     # ------------------------------------------------------------------
