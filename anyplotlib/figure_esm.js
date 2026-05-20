@@ -1375,13 +1375,28 @@ function render({ model, el }) {
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
       const type = ms.type || 'circles';
+
+      // Coordinate transform dispatch: "data" (default), "axes", "display".
+      // For non-data transforms sizes are in pixels, not scaled by zoom.
+      const tfm = ms.transform || 'data';
+      let _tc;
+      if(tfm==='axes'){
+        const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
+        _tc=(fx,fy)=>[fr.x+fx*fr.w, fr.y+(1-fy)*fr.h];
+      } else if(tfm==='display'){
+        _tc=(ix,iy)=>[ix,iy];
+      } else {
+        _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,imgW,imgH);
+      }
+      const scl = tfm==='data' ? scale : 1;
+
       mkCtx.save();
       mkCtx.strokeStyle=ec; mkCtx.fillStyle=ec; mkCtx.lineWidth=dlw;
 
       if(type==='circles'){
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scale);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
           mkCtx.beginPath();mkCtx.arc(cx,cy,r,0,Math.PI*2);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
           mkCtx.stroke();
@@ -1389,8 +1404,8 @@ function render({ model, el }) {
       } else if(type==='arrows'){
         const HL=8;
         for(let i=0;i<ms.offsets.length;i++){
-          const [x1,y1]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const u=(ms.U[i]||0)*scale, v=(ms.V[i]||0)*scale;
+          const [x1,y1]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const u=(ms.U[i]||0)*scl, v=(ms.V[i]||0)*scl;
           const x2=x1+u,y2=y1+v,ang=Math.atan2(y2-y1,x2-x1);
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
           mkCtx.beginPath();mkCtx.moveTo(x2,y2);
@@ -1400,9 +1415,9 @@ function render({ model, el }) {
         }
       } else if(type==='ellipses'){
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*scale/2);
-          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*scale/2);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*scl/2);
+          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*scl/2);
           const ang=((ms.angles[i]||ms.angles[0]||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
@@ -1410,16 +1425,16 @@ function render({ model, el }) {
         }
       } else if(type==='lines'){
         for(const seg of (ms.segments||[])){
-          const [x1,y1]=_imgToCanvas2d(seg[0][0],seg[0][1],st,imgW,imgH);
-          const [x2,y2]=_imgToCanvas2d(seg[1][0],seg[1][1],st,imgW,imgH);
+          const [x1,y1]=_tc(seg[0][0],seg[0][1]);
+          const [x2,y2]=_tc(seg[1][0],seg[1][1]);
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
         }
       } else if(type==='rectangles'||type==='squares'){
         const heights=type==='squares'?ms.widths:ms.heights;
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const rw=(ms.widths[i]||ms.widths[0]||20)*scale;
-          const rh=((heights[i]||heights[0]||20))*scale;
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const rw=(ms.widths[i]||ms.widths[0]||20)*scl;
+          const rh=((heights[i]||heights[0]||20))*scl;
           const ang=((ms.angles&&(ms.angles[i]||ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
@@ -1430,9 +1445,9 @@ function render({ model, el }) {
         for(let i=0;i<(ms.vertices_list||[]).length;i++){
           const verts=ms.vertices_list[i];
           if(!verts||verts.length<2) continue;
-          const [px0,py0]=_imgToCanvas2d(verts[0][0],verts[0][1],st,imgW,imgH);
+          const [px0,py0]=_tc(verts[0][0],verts[0][1]);
           mkCtx.beginPath();mkCtx.moveTo(px0,py0);
-          for(let k=1;k<verts.length;k++){const[px,py]=_imgToCanvas2d(verts[k][0],verts[k][1],st,imgW,imgH);mkCtx.lineTo(px,py);}
+          for(let k=1;k<verts.length;k++){const[px,py]=_tc(verts[k][0],verts[k][1]);mkCtx.lineTo(px,py);}
           mkCtx.closePath();
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
           mkCtx.stroke();
@@ -1441,7 +1456,7 @@ function render({ model, el }) {
         const fs=ms.fontsize||12;
         mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           mkCtx.fillText(String(ms.texts[i]||''),cx,cy);
         }
       }
@@ -2254,11 +2269,24 @@ function render({ model, el }) {
       const ec  = isHov && ms.hover_color     ? ms.hover_color     : color;
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
+
+      // Coordinate transform: "axes" and "display" map 2-D offsets to panel
+      // space independently of data values; vlines/hlines stay in data coords.
+      const tfm = ms.transform || 'data';
+      let _tc2d;
+      if(tfm==='axes'){
+        _tc2d=(fx,fy)=>[r.x+fx*r.w, r.y+(1-fy)*r.h];
+      } else if(tfm==='display'){
+        _tc2d=(ix,iy)=>[ix,iy];
+      } else {
+        _tc2d=(off0,off1)=>_offToCanvas([off0,off1]);
+      }
+
       mkCtx.save();mkCtx.strokeStyle=ec;mkCtx.fillStyle=ec;mkCtx.lineWidth=dlw;
 
       if(type==='points'){
         for(let i=0;i<ms.offsets.length;i++){
-          const [px,py]=_offToCanvas(ms.offsets[i]);
+          const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
           const sz=Math.max(1,ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5);
           mkCtx.beginPath();mkCtx.arc(px,py,sz,0,Math.PI*2);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
@@ -2276,14 +2304,15 @@ function render({ model, el }) {
         }
       } else if(type==='lines'){
         for(const seg of (ms.segments||[])){
-          const [x1c,y1c]=_offToCanvas(seg[0]), [x2c,y2c]=_offToCanvas(seg[1]);
+          const [x1c,y1c]= tfm==='data' ? _offToCanvas(seg[0]) : _tc2d(seg[0][0],seg[0][1]);
+          const [x2c,y2c]= tfm==='data' ? _offToCanvas(seg[1]) : _tc2d(seg[1][0],seg[1][1]);
           mkCtx.beginPath();mkCtx.moveTo(x1c,y1c);mkCtx.lineTo(x2c,y2c);mkCtx.stroke();
         }
       } else if(type==='texts'){
         const fs=ms.fontsize||12;
         mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
         for(let i=0;i<ms.offsets.length;i++){
-          const [px,py]=_offToCanvas(ms.offsets[i]);
+          const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
           mkCtx.fillText(String((ms.texts&&ms.texts[i])||''),px,py);
         }
       }
