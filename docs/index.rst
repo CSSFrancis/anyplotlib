@@ -90,6 +90,17 @@ blitting instead of SVG.
       comparisons hardware-agnostic.
 
    .. grid-item-card::
+      :link: events
+      :link-type: doc
+
+      :octicon:`zap;2em;sd-text-info` Event System
+      ^^^
+
+      Interactive event handling — ``pointer_down``, ``pointer_settled``,
+      ``key_down``, and more. Includes a comparison with Matplotlib and
+      pygfx and an implementation-status table.
+
+   .. grid-item-card::
       :link: dev/index
       :link-type: doc
 
@@ -104,6 +115,7 @@ blitting instead of SVG.
    :maxdepth: 2
 
    getting_started
+   events
    api/index
    auto_examples/index
    Performance <auto_examples/Benchmarks/plot_benchmark_comparison>

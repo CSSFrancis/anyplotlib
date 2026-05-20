@@ -7,10 +7,10 @@ Base Widget class shared by all interactive overlay widgets.
 from __future__ import annotations
 import uuid as _uuid
 from typing import Any, Callable
-from anyplotlib.callbacks import CallbackRegistry, Event
+from anyplotlib.callbacks import CallbackRegistry, Event, _EventMixin
 
 
-class Widget:
+class Widget(_EventMixin):
     """Base class for all overlay widgets.
 
     Provides attribute-based state access, callbacks for interaction events,
@@ -28,10 +28,15 @@ class Widget:
     Attributes
     ----------
     callbacks : CallbackRegistry
-        Event callback registry. Register handlers via:
-        - ``@widget.on_changed`` — fires on every drag frame
-        - ``@widget.on_release`` — fires once when drag settles
-        - ``@widget.on_click`` — fires on click event
+        Event callback registry. Register handlers via
+        ``widget.add_event_handler(fn, "pointer_move")`` or as a decorator:
+        ``@widget.add_event_handler("pointer_move")``.
+
+        Common event types:
+
+        - ``"pointer_move"`` — fires on every drag frame
+        - ``"pointer_up"`` — fires once when drag settles
+        - ``"pointer_down"`` — fires on click/press event
     """
 
     def __init__(self, wtype: str, push_fn: Callable, **kwargs):
@@ -94,7 +99,7 @@ class Widget:
         self._data.update(kwargs)
         if _push:
             self._push_fn()
-        self.callbacks.fire(Event("on_changed", source=self, data=dict(self._data)))
+        self.callbacks.fire(Event("pointer_move", source=self))
 
     def get(self, key: str, default=None):
         """Get a widget property by name.
@@ -123,76 +128,6 @@ class Widget:
         """
         return dict(self._data)
 
-    # ── callback decorator methods ────────────────────────────────────
-
-    def on_changed(self, fn: Callable) -> Callable:
-        """Decorator: register fn to fire on every drag frame.
-
-        Use this for high-frequency updates (keep handler fast).
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
-        cid = self.callbacks.connect("on_changed", fn)
-        fn._cid = cid
-        return fn
-
-    def on_release(self, fn: Callable) -> Callable:
-        """Decorator: register fn to fire once when drag settles.
-
-        Use this for expensive operations triggered after user stops dragging.
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
-        cid = self.callbacks.connect("on_release", fn)
-        fn._cid = cid
-        return fn
-
-    def on_click(self,   fn: Callable) -> Callable:
-        """Decorator: register fn to fire on widget click.
-
-        Parameters
-        ----------
-        fn : Callable
-            Handler function receiving an Event.
-
-        Returns
-        -------
-        Callable
-            The decorated function.
-        """
-        cid = self.callbacks.connect("on_click", fn)
-        fn._cid = cid
-        return fn
-
-    def disconnect(self, cid) -> None:
-        """Remove the callback registered under *cid*.
-
-        Parameters
-        ----------
-        cid : int or Callable
-            Either the integer CID returned by ``callbacks.connect()``,
-            or the decorated function itself (carries a ``._cid`` attribute).
-        """
-        if callable(cid) and hasattr(cid, "_cid"):
-            cid = cid._cid
-        self.callbacks.disconnect(cid)
-
     # ── visibility ────────────────────────────────────────────────────────
 
     @property
@@ -205,7 +140,7 @@ class Widget:
         self.show() if value else self.hide()
 
     def show(self) -> None:
-        """Show the widget.  Does not fire ``on_changed`` callbacks."""
+        """Show the widget.  Does not fire ``pointer_move`` callbacks."""
         self._data["visible"] = True
         self._push_fn()
 
@@ -213,43 +148,58 @@ class Widget:
         """Hide the widget without removing it or its callbacks.
 
         Call :meth:`show` to make it visible again.
-        Does not fire ``on_changed`` callbacks.
+        Does not fire ``pointer_move`` callbacks.
         """
         self._data["visible"] = False
         self._push_fn()
 
     # ── JS → Python sync ──────────────────────────────────────────────
 
-    def _update_from_js(self, new_data: dict, event_type: str = "on_changed") -> bool:
+    def _update_from_js(self, msg: dict, event_type: str = "pointer_move") -> bool:
         """Apply incoming JS state without pushing back (avoids echo).
+
+        Updates widget ``_data`` with widget-specific state fields from msg,
+        then fires widget callbacks with a flat Event.
 
         Parameters
         ----------
-        new_data : dict
-            Updated widget properties from JavaScript.
-        event_type : str, optional
-            Type of event that triggered the update.
+        msg : dict
+            Full raw event message from JS.
+        event_type : str
+            One of the pointer event types (``pointer_move``, ``pointer_up``,
+            ``pointer_down``).
 
         Returns
         -------
         bool
-            True if any state changed.
-
-        Notes
-        -----
-        Always fires on_release / on_click callbacks even if nothing changed.
-        Only fires on_changed if state actually changed.
+            True if any widget state changed.
         """
+        _envelope = {
+            "source", "panel_id", "event_type", "widget_id",
+            "time_stamp", "modifiers", "button", "buttons",
+        }
         changed = False
-        for k, v in new_data.items():
-            if k in ("id", "type"):
+        for k, v in msg.items():
+            if k in ("id", "type") or k in _envelope:
                 continue
             if self._data.get(k) != v:
                 self._data[k] = v
                 changed = True
-        # Always fire for settle / click; only fire on_changed when something moved
-        if changed or event_type in ("on_release", "on_click"):
-            self.callbacks.fire(Event(event_type, source=self, data=dict(self._data)))
+
+        if changed or event_type in ("pointer_up", "pointer_down"):
+            event = Event(
+                event_type=event_type,
+                source=self,
+                time_stamp=msg.get("time_stamp", 0.0),
+                modifiers=msg.get("modifiers", []),
+                x=msg.get("x"),
+                y=msg.get("y"),
+                button=msg.get("button"),
+                buttons=msg.get("buttons", 0),
+                xdata=msg.get("xdata"),
+                ydata=msg.get("ydata"),
+            )
+            self.callbacks.fire(event)
         return changed
 
     # ── repr ──────────────────────────────────────────────────────────
