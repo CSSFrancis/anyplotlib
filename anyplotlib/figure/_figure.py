@@ -66,6 +66,8 @@ class Figure(anywidget.AnyWidget):
     # Figure-level help text shown in a '?' badge overlay in JS.
     # Empty string means no badge.  Gated by apl.show_help at the Python level.
     help_text      = traitlets.Unicode("").tag(sync=True)
+    # When True JS shows drag handles on all panels so they can be reordered.
+    drag_mode      = traitlets.Bool(False).tag(sync=True)
     _esm = _ESM_SOURCE
     # Static CSS injected by anywidget alongside _esm.
     # .apl-scale-wrap  — outer container; width:100% means it always fills
@@ -114,6 +116,8 @@ class Figure(anywidget.AnyWidget):
         self._axes_map: dict  = {}
         self._plots_map: dict = {}
         self._insets_map: dict = {}
+        self._hspace: float | None = None
+        self._wspace: float | None = None
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -148,6 +152,23 @@ class Figure(anywidget.AnyWidget):
         >>> fig.set_help("")   # hide the badge
         """
         self.help_text = self._resolve_help(text)
+
+    def subplots_adjust(self, hspace: float = 0.0, wspace: float = 0.0) -> None:
+        """Set the spacing between subplot panels.
+
+        Parameters
+        ----------
+        hspace : float, optional
+            Fraction of the average row height to use as vertical gap between
+            panels.  ``0.1`` adds a gap of 10 % of the mean row height.
+            Default ``0.0`` (no gap).
+        wspace : float, optional
+            Fraction of the average column width to use as horizontal gap.
+            Default ``0.0`` (no gap).
+        """
+        self._hspace = float(hspace)
+        self._wspace = float(wspace)
+        self._push_layout()
 
     # ── subplot creation ──────────────────────────────────────────────────────
     def add_subplot(self, spec) -> Axes:
@@ -303,6 +324,8 @@ class Figure(anywidget.AnyWidget):
             "panel_specs":    panel_specs,
             "share_groups":   share_groups,
             "inset_specs":    inset_specs,
+            "hspace":         self._hspace,
+            "wspace":         self._wspace,
         })
 
     # ── inset creation ────────────────────────────────────────────────────────

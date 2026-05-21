@@ -346,6 +346,11 @@ function render({ model, el }) {
     gridDiv.style.gridTemplateRows    = rowPx.map(px => px + 'px').join(' ');
     gridDiv.style.width  = '';
     gridDiv.style.height = '';
+    const meanColPx = colPx.length ? colPx.reduce((a,b)=>a+b,0)/colPx.length : 0;
+    const meanRowPx = rowPx.length ? rowPx.reduce((a,b)=>a+b,0)/rowPx.length : 0;
+    // Only override the default gap:4px when the Python caller explicitly set a value.
+    if (layout.wspace != null) gridDiv.style.columnGap = (meanColPx ? Math.round(layout.wspace*meanColPx) : 0)+'px';
+    if (layout.hspace != null) gridDiv.style.rowGap    = (meanRowPx ? Math.round(layout.hspace*meanRowPx) : 0)+'px';
 
     const seen = new Set();
     for (const spec of panel_specs) {
@@ -792,7 +797,12 @@ function render({ model, el }) {
       const imgX = hasPhysAxis ? PAD_L : 0;
       const imgY = hasPhysAxis ? PAD_T : 0;
       const imgW = hasPhysAxis ? Math.max(1, pw - PAD_L - PAD_R) : pw;
-      const imgH = hasPhysAxis ? Math.max(1, ph - PAD_T - PAD_B) : ph;
+      let   imgH = hasPhysAxis ? Math.max(1, ph - PAD_T - PAD_B) : ph;
+      // Enforce aspect ratio (st.aspect = number or "equal" → 1.0).
+      if (st && st.aspect != null) {
+        const asp = (st.aspect === 'equal') ? 1.0 : parseFloat(st.aspect);
+        if (Number.isFinite(asp) && asp > 0) imgH = Math.max(1, Math.round(imgW / asp));
+      }
       // Store on panel so event handlers and draw functions don't recompute.
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
 
@@ -4317,6 +4327,99 @@ function render({ model, el }) {
   // ── model listeners ───────────────────────────────────────────────────────
   model.on('change:layout_json', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
   model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
+
+  // ── Panel rearrangement (drag mode) ──────────────────────────────────────────
+  // When fig.drag_mode = True, each panel cell shows a drag handle overlay.
+  // Dragging one panel onto another swaps their grid positions.
+  const _editOverlays = new Map();
+
+  function _setEditMode(active) {
+    for (const [id, p] of panels) {
+      let ov = _editOverlays.get(id);
+      if (active && !ov) {
+        ov = document.createElement('div');
+        ov.style.cssText =
+          'position:absolute;inset:0;z-index:50;cursor:grab;' +
+          'border:2px dashed rgba(79,195,247,0.75);' +
+          'background:rgba(79,195,247,0.06);border-radius:4px;' +
+          'pointer-events:all;display:flex;align-items:center;' +
+          'justify-content:center;user-select:none;';
+        const badge = document.createElement('div');
+        badge.style.cssText =
+          'background:rgba(0,0,0,0.55);color:#4fc3f7;padding:3px 10px;' +
+          'border-radius:12px;font-size:11px;font-family:monospace;' +
+          'pointer-events:none;letter-spacing:0.04em;';
+        badge.textContent = '⋮ drag';
+        ov.appendChild(badge);
+        p.cell.appendChild(ov);
+        _editOverlays.set(id, ov);
+
+        let dragging = false, startX = 0, startY = 0, ghost = null;
+
+        ov.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0) return;
+          dragging = true;
+          startX = e.clientX; startY = e.clientY;
+          ov.style.cursor = 'grabbing';
+          const r = p.cell.getBoundingClientRect();
+          ghost = document.createElement('div');
+          ghost.style.cssText =
+            'position:fixed;pointer-events:none;z-index:9999;' +
+            'border:2px solid #4fc3f7;background:rgba(79,195,247,0.15);' +
+            'border-radius:4px;opacity:0.85;' +
+            `width:${r.width}px;height:${r.height}px;` +
+            `left:${r.left}px;top:${r.top}px;`;
+          document.body.appendChild(ghost);
+          ov.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        });
+
+        ov.addEventListener('pointermove', (e) => {
+          if (!dragging || !ghost) return;
+          const dx = e.clientX - startX, dy = e.clientY - startY;
+          const r = p.cell.getBoundingClientRect();
+          ghost.style.left = (r.left + dx) + 'px';
+          ghost.style.top  = (r.top  + dy) + 'px';
+          for (const [oid, op] of panels) {
+            if (oid === id) continue;
+            const tr = op.cell.getBoundingClientRect();
+            const over = e.clientX >= tr.left && e.clientX <= tr.right &&
+                         e.clientY >= tr.top  && e.clientY <= tr.bottom;
+            const ovEl = _editOverlays.get(oid);
+            if (ovEl) ovEl.style.borderColor = over ? '#ff7043' : 'rgba(79,195,247,0.75)';
+          }
+        });
+
+        ov.addEventListener('pointerup', (e) => {
+          if (!dragging) return;
+          dragging = false;
+          if (ghost) { ghost.remove(); ghost = null; }
+          ov.style.cursor = 'grab';
+          for (const [oid, op] of panels) {
+            const ovEl = _editOverlays.get(oid);
+            if (ovEl) ovEl.style.borderColor = 'rgba(79,195,247,0.75)';
+            if (oid === id) continue;
+            const tr = op.cell.getBoundingClientRect();
+            if (e.clientX >= tr.left && e.clientX <= tr.right &&
+                e.clientY >= tr.top  && e.clientY <= tr.bottom) {
+              const srcRow = p.cell.style.gridRow;
+              const srcCol = p.cell.style.gridColumn;
+              p.cell.style.gridRow    = op.cell.style.gridRow;
+              p.cell.style.gridColumn = op.cell.style.gridColumn;
+              op.cell.style.gridRow   = srcRow;
+              op.cell.style.gridColumn = srcCol;
+            }
+          }
+        });
+
+      } else if (!active && ov) {
+        ov.remove();
+        _editOverlays.delete(id);
+      }
+    }
+  }
+
+  model.on('change:drag_mode', () => { _setEditMode(model.get('drag_mode')); });
 
   // Toggle the per-panel stats overlay when display_stats changes.
   // Hiding is immediate; showing waits for the next natural redraw to

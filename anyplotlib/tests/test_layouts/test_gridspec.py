@@ -1075,3 +1075,41 @@ class TestFigureGridSpecWorkflow:
             assert approx(ph, 200, tol=2), f"{label} height should be 200, got {ph}"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# subplots_adjust
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestSubplotsAdjust:
+
+    def test_hspace_in_layout_json(self):
+        fig, _ = vw.subplots(2, 1, figsize=(400, 400))
+        fig.subplots_adjust(hspace=0.3)
+        layout = _layout(fig)
+        assert abs(layout['hspace'] - 0.3) < 1e-9
+
+    def test_wspace_in_layout_json(self):
+        fig, _ = vw.subplots(1, 2, figsize=(400, 200))
+        fig.subplots_adjust(wspace=0.2)
+        layout = _layout(fig)
+        assert abs(layout['wspace'] - 0.2) < 1e-9
+
+    def test_defaults_are_none(self):
+        fig, _ = vw.subplots(2, 2, figsize=(400, 400))
+        layout = _layout(fig)
+        assert layout['hspace'] is None
+        assert layout['wspace'] is None
+
+    def test_both_together(self):
+        fig, _ = vw.subplots(2, 2, figsize=(600, 600))
+        fig.subplots_adjust(hspace=0.15, wspace=0.25)
+        layout = _layout(fig)
+        assert abs(layout['hspace'] - 0.15) < 1e-9
+        assert abs(layout['wspace'] - 0.25) < 1e-9
+
+    def test_retriggers_layout_push(self):
+        fig, _ = vw.subplots(2, 1, figsize=(400, 400))
+        before = fig.layout_json
+        fig.subplots_adjust(hspace=0.1)
+        assert fig.layout_json != before
+
+
