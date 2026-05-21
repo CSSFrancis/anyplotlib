@@ -298,3 +298,46 @@ class TestVisual:
         arr = take_screenshot(fig)
         _check("gridspec_spanning_top_two_bottom", arr, update_baselines)
 
+    # ── Phase 4 — labels, title, colorbar label, axis visibility ───────────
+
+    def test_plot1d_title(self, take_screenshot, update_baselines):
+        """1-D plot with set_title — title text drawn in top PAD area."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 240))
+        p = ax.plot(np.sin(np.linspace(0, 2 * np.pi, 256)), color="#4fc3f7")
+        p.set_title("Sine Wave")
+        arr = take_screenshot(fig)
+        _check("plot1d_title", arr, update_baselines)
+
+    def test_plot1d_axis_off(self, take_screenshot, update_baselines):
+        """1-D plot with set_axis_off — tick labels hidden."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 240))
+        p = ax.plot(np.sin(np.linspace(0, 2 * np.pi, 256)), color="#4fc3f7")
+        p.set_axis_off()
+        arr = take_screenshot(fig)
+        _check("plot1d_axis_off", arr, update_baselines)
+
+    def test_imshow_labels(self, take_screenshot, update_baselines):
+        """2-D image with x_label, y_label, title, and colorbar_label."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 400))
+        x = np.linspace(0.0, 10.0, 64)
+        p = ax.imshow(
+            np.random.default_rng(0).uniform(size=(64, 64)),
+            axes=[x, x], units="nm",
+        )
+        p.set_xlabel("x (nm)")
+        p.set_ylabel("y (nm)")
+        p.set_title("Test Image")
+        p.set_colorbar_visible(True)
+        p.set_colorbar_label("Intensity")
+        arr = take_screenshot(fig)
+        _check("imshow_labels", arr, update_baselines)
+
+    def test_imshow_axis_off(self, take_screenshot, update_baselines):
+        """2-D image with set_axis_off — axis gutters hidden."""
+        fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+        x = np.linspace(0.0, 5.0, 32)
+        p = ax.imshow(np.zeros((32, 32)), axes=[x, x], units="nm")
+        p.set_axis_off()
+        arr = take_screenshot(fig)
+        _check("imshow_axis_off", arr, update_baselines)
+

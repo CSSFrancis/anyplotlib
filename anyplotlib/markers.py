@@ -94,7 +94,8 @@ class MarkerGroup:
         the parent figure trait.
     """
 
-    def __init__(self, marker_type: str, name: str, kwargs: dict, push_fn):
+    def __init__(self, marker_type: str, name: str, kwargs: dict, push_fn,
+                 parent: "MarkerTypeDict | None" = None):
         self._type = marker_type
         self._name = name
         tfm = kwargs.get("transform", "data")
@@ -104,6 +105,7 @@ class MarkerGroup:
             )
         self._data: dict = dict(kwargs)
         self._push_fn = push_fn
+        self._parent: "MarkerTypeDict | None" = parent
 
     # ------------------------------------------------------------------
     def set(self, **kwargs) -> None:
@@ -122,6 +124,12 @@ class MarkerGroup:
             )
         self._data.update(kwargs)
         self._push_fn()
+
+    def remove(self) -> None:
+        """Remove this group from its parent and trigger a re-render."""
+        if self._parent is None:
+            raise RuntimeError("MarkerGroup has no parent; cannot remove.")
+        del self._parent[self._name]
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"MarkerGroup(type={self._type!r}, name={self._name!r}, n={self._count()})"
@@ -499,7 +507,7 @@ class MarkerTypeDict:
     # ------------------------------------------------------------------
     def _add(self, name: str, kwargs: dict) -> "MarkerGroup":
         """Internal: create and register a MarkerGroup without double-pushing."""
-        g = MarkerGroup(self._type, name, kwargs, self._push_fn)
+        g = MarkerGroup(self._type, name, kwargs, self._push_fn, parent=self)
         self._groups[name] = g
         return g
 

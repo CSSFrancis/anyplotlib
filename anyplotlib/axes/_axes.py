@@ -192,7 +192,8 @@ class Axes:
              alpha: float = 1.0,
              marker: str = "none",
              markersize: float = 4.0,
-             label: str = "") -> "Plot1D":
+             label: str = "",
+             yscale: str = "linear") -> "Plot1D":
         """Attach a 1-D line to this axes cell.
 
         Parameters
@@ -265,9 +266,15 @@ class Axes:
                      color=color, linewidth=linewidth,
                      linestyle=ls if ls is not None else linestyle,
                      alpha=alpha, marker=marker, markersize=markersize,
-                     label=label)
+                     label=label, yscale=yscale)
         self._attach(plot)
         return plot
+
+    def semilogy(self, data: np.ndarray,
+                 axes: list | None = None, **kwargs) -> "Plot1D":
+        """Attach a 1-D line with a logarithmic y-axis."""
+        kwargs.setdefault("yscale", "log")
+        return self.plot(data, axes=axes, **kwargs)
 
     def bar(self, x, height=None, width: float = 0.8, bottom: float = 0.0, *,
             align: str = "center",

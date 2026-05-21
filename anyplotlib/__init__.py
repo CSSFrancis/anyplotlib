@@ -15,6 +15,18 @@ from anyplotlib.widgets import (
 # Default True: badges appear whenever a figure has help text set.
 show_help: bool = True
 
+_COLOR_CYCLE: list[str] = [
+    "#4fc3f7", "#ff7043", "#aed581", "#ffd54f",
+    "#ba68c8", "#4db6ac", "#f06292", "#90a4ae",
+    "#ffb74d", "#a5d6a7",
+]
+
+
+def get_color_cycle() -> list[str]:
+    """Return the default color cycle as a list of CSS hex strings."""
+    return list(_COLOR_CYCLE)
+
+
 __all__ = [
     "Figure", "GridSpec", "SubplotSpec", "subplots",
     "Axes", "InsetAxes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D", "PlotBar",
@@ -22,5 +34,5 @@ __all__ = [
     "Widget", "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget",
     "VLineWidget", "HLineWidget", "RangeWidget",
-    "show_help",
+    "show_help", "get_color_cycle",
 ]
