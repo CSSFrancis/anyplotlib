@@ -252,3 +252,27 @@ class TestPlot2DAxisVisibility:
         p.set_ticks_visible(False, x=False, y=True)
         assert p._state["x_ticks_visible"] is False
         assert p._state["y_ticks_visible"] is True
+
+
+class TestGetColorCycle:
+
+    def test_get_color_cycle_returns_list(self):
+        import anyplotlib as apl
+        result = apl.get_color_cycle()
+        assert isinstance(result, list)
+
+    def test_get_color_cycle_elements_are_strings(self):
+        import anyplotlib as apl
+        result = apl.get_color_cycle()
+        assert all(isinstance(c, str) for c in result)
+
+    def test_get_color_cycle_returns_copy(self):
+        import anyplotlib as apl
+        a = apl.get_color_cycle()
+        b = apl.get_color_cycle()
+        a.append("extra")
+        assert len(b) == len(apl.get_color_cycle())
+
+    def test_get_color_cycle_nonempty(self):
+        import anyplotlib as apl
+        assert len(apl.get_color_cycle()) > 0

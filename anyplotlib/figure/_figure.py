@@ -464,6 +464,25 @@ class Figure(anywidget.AnyWidget):
         """
         return repr_html_iframe(self)
 
+    def close(self) -> None:
+        """Close the figure.
+
+        Fires a ``"close"`` event on every panel's :attr:`callbacks`, then
+        hides the widget by setting its CSS ``display`` to ``"none"``.
+        Subsequent calls are no-ops.
+        """
+        if getattr(self, "_closed", False):
+            return
+        self._closed = True
+        close_event = Event(event_type="close")
+        for plot in self._plots_map.values():
+            if hasattr(plot, "callbacks"):
+                plot.callbacks.fire(close_event)
+        try:
+            self.layout = {"display": "none"}
+        except Exception:
+            pass
+
     def __repr__(self) -> str:
         return (f"Figure({self._nrows}x{self._ncols}, "
                 f"panels={len(self._plots_map)}, "

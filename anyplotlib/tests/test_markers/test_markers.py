@@ -553,3 +553,37 @@ class TestPlotMeshMarkerHelpers:
         with pytest.raises(ValueError, match="not allowed"):
             mesh.add_arrows([[0.0, 0.0]], [1.0], [1.0])
 
+
+# ---------------------------------------------------------------------------
+# MarkerGroup.remove()
+# ---------------------------------------------------------------------------
+
+class TestMarkerGroupRemove:
+
+    def test_remove_deletes_from_parent(self):
+        p = _make_plot2d()
+        g = p.add_circles([[10.0, 20.0]], name="dot", radius=3)
+        assert "dot" in p.markers["circles"]
+        g.remove()
+        assert "dot" not in p.markers["circles"]
+
+    def test_remove_triggers_push(self):
+        calls = []
+        td = MarkerTypeDict("circles", lambda: calls.append(1))
+        g = td._add("g", {"offsets": [[0.0, 0.0]], "radius": 2})
+        calls.clear()
+        g.remove()
+        assert len(calls) == 1
+
+    def test_remove_no_parent_raises(self):
+        g = MarkerGroup("circles", "g", {"offsets": [[0.0, 0.0]]}, _push_noop)
+        with pytest.raises(RuntimeError, match="no parent"):
+            g.remove()
+
+    def test_remove_1d_group(self):
+        p = _make_plot1d()
+        g = p.add_vlines([0.5, 1.5], name="marks")
+        assert "marks" in p.markers["vlines"]
+        g.remove()
+        assert "marks" not in p.markers["vlines"]
+

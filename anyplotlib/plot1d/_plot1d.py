@@ -245,7 +245,8 @@ class Plot1D(_EventMixin):
                  alpha: float = 1.0,
                  marker: str = "none",
                  markersize: float = 4.0,
-                 label: str = ""):
+                 label: str = "",
+                 yscale: str = "linear"):
         self._id:  str = ""
         self._fig: object = None
 
@@ -287,6 +288,7 @@ class Plot1D(_EventMixin):
             "markers":          [],
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
+            "yscale":            yscale,
             # Annotation labels
             "title":             "",
             # Explicit y-range override: [ymin, ymax] or None (auto)

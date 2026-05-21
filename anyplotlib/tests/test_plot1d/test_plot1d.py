@@ -757,3 +757,51 @@ class TestPlot1DAxisVisibility:
         assert p._state["x_ticks_visible"] is True
         assert p._state["y_ticks_visible"] is False
 
+
+# ===========================================================================
+# Phase 5 — step-mid linestyle + semilogy / yscale
+# ===========================================================================
+
+class TestNormLinestyleStepMid:
+
+    def test_step_mid_accepted(self):
+        from anyplotlib._utils import _norm_linestyle
+        assert _norm_linestyle("step-mid") == "step-mid"
+
+    def test_steps_mid_alias(self):
+        from anyplotlib._utils import _norm_linestyle
+        assert _norm_linestyle("steps-mid") == "step-mid"
+
+    def test_step_mid_stored_in_state(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(np.zeros(16), linestyle="step-mid")
+        assert p._state["line_linestyle"] == "step-mid"
+
+    def test_step_mid_via_set_linestyle(self):
+        p = _plot()
+        p.set_linestyle("step-mid")
+        assert p._state["line_linestyle"] == "step-mid"
+
+
+class TestSemilogy:
+
+    def test_semilogy_sets_yscale_log(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.semilogy(np.logspace(0, 3, 64))
+        assert p._state["yscale"] == "log"
+
+    def test_yscale_stored_in_state(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(np.zeros(16), yscale="log")
+        assert p._state["yscale"] == "log"
+
+    def test_yscale_default_is_linear(self):
+        p = _plot()
+        assert p._state["yscale"] == "linear"
+
+    def test_semilogy_passes_kwargs(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.semilogy(np.ones(16), color="#ff0000")
+        assert p._state["line_color"] == "#ff0000"
+        assert p._state["yscale"] == "log"
+
