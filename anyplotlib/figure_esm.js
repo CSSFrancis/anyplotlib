@@ -323,6 +323,9 @@ function render({ model, el }) {
   let _suppressLayoutUpdate = false;  // block re-entry during live resize
 
   // ── layout application ───────────────────────────────────────────────────
+  let _colPx = [];   // current column widths in CSS px
+  let _rowPx = [];   // current row heights in CSS px
+
   function applyLayout() {
     if (_suppressLayoutUpdate) return;
     let layout;
@@ -342,6 +345,9 @@ function render({ model, el }) {
       for (let r = spec.row_start; r < spec.row_stop; r++) rowPx[r] = Math.max(rowPx[r], perRow);
     }
 
+    _colPx = colPx.slice();
+    _rowPx = rowPx.slice();
+
     gridDiv.style.gridTemplateColumns = colPx.map(px => px + 'px').join(' ');
     gridDiv.style.gridTemplateRows    = rowPx.map(px => px + 'px').join(' ');
     gridDiv.style.width  = '';
@@ -358,6 +364,8 @@ function render({ model, el }) {
       if (!panels.has(spec.id)) {
         _createPanelDOM(spec.id, spec.kind, spec.panel_width, spec.panel_height, spec);
       } else {
+        const existingPanel = panels.get(spec.id);
+        if (existingPanel) existingPanel.spec = spec;
         _resizePanelDOM(spec.id, spec.panel_width, spec.panel_height);
       }
     }
@@ -384,6 +392,20 @@ function render({ model, el }) {
     if (insetSpecs.length) _applyAllInsetStates(layout);
   }
 
+  function _applyTrackSizes() {
+    gridDiv.style.gridTemplateColumns = _colPx.map(px => px + 'px').join(' ');
+    gridDiv.style.gridTemplateRows    = _rowPx.map(px => px + 'px').join(' ');
+    for (const [id, p] of panels) {
+      if (!p.spec) continue;
+      const { row_start, row_stop, col_start, col_stop } = p.spec;
+      const newPw = Math.max(40, Math.round(_colPx.slice(col_start, col_stop).reduce((a,b)=>a+b,0)));
+      const newPh = Math.max(40, Math.round(_rowPx.slice(row_start, row_stop).reduce((a,b)=>a+b,0)));
+      p.pw = newPw; p.ph = newPh;
+      _resizePanelDOM(id, newPw, newPh);
+      _redrawPanel(p);
+    }
+  }
+
   // ── _buildCanvasStack ─────────────────────────────────────────────────────
   // Creates the canvas/element stack for one panel kind and appends the
   // top-level wrapper to `outerContainer`.  Returns all canvas/element refs.
@@ -393,6 +415,7 @@ function render({ model, el }) {
     let plotCanvas, overlayCanvas, markersCanvas, statusBar;
     let xAxisCanvas=null, yAxisCanvas=null, scaleBar=null;
     let cbCanvas=null, cbCtx=null, plotWrap=null, wrapNode=null;
+    let titleCanvas=null;
 
     if (kind === '2d') {
       plotWrap = document.createElement('div');
@@ -426,6 +449,9 @@ function render({ model, el }) {
         'position:absolute;display:none;pointer-events:none;border-radius:0 2px 2px 0;';
       cbCtx = cbCanvas.getContext('2d');
 
+      titleCanvas = document.createElement('canvas');
+      titleCanvas.style.cssText = `position:absolute;pointer-events:none;z-index:8;background:transparent;display:none;`;
+
       plotWrap.appendChild(plotCanvas);
       plotWrap.appendChild(overlayCanvas);
       plotWrap.appendChild(markersCanvas);
@@ -434,6 +460,7 @@ function render({ model, el }) {
       plotWrap.appendChild(cbCanvas);
       plotWrap.appendChild(scaleBar);
       plotWrap.appendChild(statusBar);
+      plotWrap.appendChild(titleCanvas);
       outerContainer.appendChild(plotWrap);
       wrapNode = plotWrap;
 
@@ -488,7 +515,7 @@ function render({ model, el }) {
 
     return { plotCanvas, overlayCanvas, markersCanvas, statusBar,
              xAxisCanvas, yAxisCanvas, scaleBar,
-             cbCanvas, cbCtx, plotWrap, wrapNode };
+             cbCanvas, cbCtx, plotWrap, wrapNode, titleCanvas };
   }
 
   function _createPanelDOM(id, kind, pw, ph, spec) {
@@ -507,6 +534,7 @@ function render({ model, el }) {
     const mkCtx   = stack.markersCanvas.getContext('2d');
     const xCtx    = stack.xAxisCanvas ? stack.xAxisCanvas.getContext('2d') : null;
     const yCtx    = stack.yAxisCanvas ? stack.yAxisCanvas.getContext('2d') : null;
+    const titleCtx = stack.titleCanvas ? stack.titleCanvas.getContext('2d') : null;
 
     const blitCache = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
 
@@ -520,6 +548,7 @@ function render({ model, el }) {
 
     const p = {
       id, kind, cell, pw, ph,
+      spec,
       plotCanvas:    stack.plotCanvas,
       overlayCanvas: stack.overlayCanvas,
       markersCanvas: stack.markersCanvas,
@@ -527,6 +556,8 @@ function render({ model, el }) {
       xAxisCanvas:   stack.xAxisCanvas,
       yAxisCanvas:   stack.yAxisCanvas,
       xCtx, yCtx,
+      titleCanvas:   stack.titleCanvas || null,
+      titleCtx,
       scaleBar:      stack.scaleBar,
       statusBar:     stack.statusBar,
       statsDiv,
@@ -794,10 +825,12 @@ function render({ model, el }) {
       const hasPhysAxis = st && (st.is_mesh || st.has_axes)
                        && st.x_axis && st.x_axis.length >= 2
                        && st.y_axis && st.y_axis.length >= 2;
+      // Always reserve the PAD_T top strip for the title (mirrors 1D behaviour).
+      // Left/right/bottom gutters are only used when physical axes are present.
       const imgX = hasPhysAxis ? PAD_L : 0;
-      const imgY = hasPhysAxis ? PAD_T : 0;
+      const imgY = PAD_T;
       const imgW = hasPhysAxis ? Math.max(1, pw - PAD_L - PAD_R) : pw;
-      let   imgH = hasPhysAxis ? Math.max(1, ph - PAD_T - PAD_B) : ph;
+      let   imgH = Math.max(1, ph - PAD_T - (hasPhysAxis ? PAD_B : 0));
       // Enforce aspect ratio (st.aspect = number or "equal" → 1.0).
       if (st && st.aspect != null) {
         const asp = (st.aspect === 'equal') ? 1.0 : parseFloat(st.aspect);
@@ -805,6 +838,18 @@ function render({ model, el }) {
       }
       // Store on panel so event handlers and draw functions don't recompute.
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
+
+      // Title canvas: always sits in the PAD_T strip above the image area
+      if (p.titleCanvas && p.titleCtx) {
+        p.titleCanvas.style.left    = imgX + 'px';
+        p.titleCanvas.style.top     = '0px';
+        p.titleCanvas.style.display = 'block';
+        p.titleCanvas.style.width   = imgW + 'px';
+        p.titleCanvas.style.height  = PAD_T + 'px';
+        p.titleCanvas.width  = imgW * dpr;
+        p.titleCanvas.height = PAD_T * dpr;
+        p.titleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
 
       if (p.plotWrap) {
         p.plotWrap.style.width  = pw + 'px';
@@ -1338,17 +1383,17 @@ function render({ model, el }) {
         p.yCtx.restore();
       }
     }
-    const title2d=st.title||'';
-    if(title2d&&p.plotCtx){
-      const tw=p.imgW||imgW;
-      p.plotCtx.save();
-      p.plotCtx.fillStyle='rgba(0,0,0,0.45)';
-      p.plotCtx.fillRect(0,0,tw,18);
-      p.plotCtx.fillStyle='#ffffff';
-      p.plotCtx.font='bold 11px sans-serif';
-      p.plotCtx.textAlign='center'; p.plotCtx.textBaseline='middle';
-      p.plotCtx.fillText(title2d,tw/2,9);
-      p.plotCtx.restore();
+    const title2d = st.title || '';
+    if (p.titleCanvas && p.titleCtx) {
+      const tw = p.imgW || imgW;
+      p.titleCtx.clearRect(0, 0, tw, PAD_T);
+      if (title2d) {
+        p.titleCtx.fillStyle = theme.tickText;
+        p.titleCtx.font = 'bold 11px sans-serif';
+        p.titleCtx.textAlign = 'center';
+        p.titleCtx.textBaseline = 'middle';
+        p.titleCtx.fillText(title2d, tw / 2, PAD_T / 2);
+      }
     }
   }
 
@@ -4328,53 +4373,64 @@ function render({ model, el }) {
   model.on('change:layout_json', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
   model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
 
-  // ── Panel rearrangement (drag mode) ──────────────────────────────────────────
-  // When fig.drag_mode = True, each panel cell shows a drag handle overlay.
-  // Dragging one panel onto another swaps their grid positions.
+  // ── Panel drag / resize / gap-adjust (drag mode) ──────────────────────────
+  // When fig.drag_mode = True, each panel shows:
+  //   • A translucent drag handle (centre) → drag to swap panels
+  //   • Resize handles on the right edge and bottom edge → drag to resize
+  // Grid gaps (rowGap / columnGap) are also draggable via invisible bands.
   const _editOverlays = new Map();
 
   function _setEditMode(active) {
     for (const [id, p] of panels) {
       let ov = _editOverlays.get(id);
       if (active && !ov) {
+        // ── outer wrapper appended to p.cell ──────────────────────────────
         ov = document.createElement('div');
         ov.style.cssText =
-          'position:absolute;inset:0;z-index:50;cursor:grab;' +
+          'position:absolute;inset:0;z-index:50;pointer-events:none;';
+        p.cell.appendChild(ov);
+        _editOverlays.set(id, ov);
+
+        // ── drag handle (covers top ~60% of panel, pointer-events:all) ────
+        const dragHandle = document.createElement('div');
+        dragHandle.style.cssText =
+          'position:absolute;top:0;left:0;right:0;bottom:30%;' +
+          'cursor:grab;pointer-events:all;z-index:51;' +
           'border:2px dashed rgba(79,195,247,0.75);' +
           'background:rgba(79,195,247,0.06);border-radius:4px;' +
-          'pointer-events:all;display:flex;align-items:center;' +
-          'justify-content:center;user-select:none;';
+          'display:flex;align-items:center;justify-content:center;' +
+          'user-select:none;';
         const badge = document.createElement('div');
         badge.style.cssText =
           'background:rgba(0,0,0,0.55);color:#4fc3f7;padding:3px 10px;' +
           'border-radius:12px;font-size:11px;font-family:monospace;' +
           'pointer-events:none;letter-spacing:0.04em;';
         badge.textContent = '⋮ drag';
-        ov.appendChild(badge);
-        p.cell.appendChild(ov);
-        _editOverlays.set(id, ov);
+        dragHandle.appendChild(badge);
+        ov.appendChild(dragHandle);
 
+        // ── drag handle logic ──────────────────────────────────────────────
         let dragging = false, startX = 0, startY = 0, ghost = null;
 
-        ov.addEventListener('pointerdown', (e) => {
+        dragHandle.addEventListener('pointerdown', (e) => {
           if (e.button !== 0) return;
           dragging = true;
           startX = e.clientX; startY = e.clientY;
-          ov.style.cursor = 'grabbing';
+          dragHandle.style.cursor = 'grabbing';
           const r = p.cell.getBoundingClientRect();
           ghost = document.createElement('div');
           ghost.style.cssText =
             'position:fixed;pointer-events:none;z-index:9999;' +
-            'border:2px solid #4fc3f7;background:rgba(79,195,247,0.15);' +
+            'border:2px solid #4fc3f7;background:rgba(79,195,247,0.12);' +
             'border-radius:4px;opacity:0.85;' +
             `width:${r.width}px;height:${r.height}px;` +
             `left:${r.left}px;top:${r.top}px;`;
           document.body.appendChild(ghost);
-          ov.setPointerCapture(e.pointerId);
-          e.preventDefault();
+          dragHandle.setPointerCapture(e.pointerId);
+          e.stopPropagation(); e.preventDefault();
         });
 
-        ov.addEventListener('pointermove', (e) => {
+        dragHandle.addEventListener('pointermove', (e) => {
           if (!dragging || !ghost) return;
           const dx = e.clientX - startX, dy = e.clientY - startY;
           const r = p.cell.getBoundingClientRect();
@@ -4386,18 +4442,21 @@ function render({ model, el }) {
             const over = e.clientX >= tr.left && e.clientX <= tr.right &&
                          e.clientY >= tr.top  && e.clientY <= tr.bottom;
             const ovEl = _editOverlays.get(oid);
-            if (ovEl) ovEl.style.borderColor = over ? '#ff7043' : 'rgba(79,195,247,0.75)';
+            const dh = ovEl && ovEl.querySelector('[data-role=drag]');
+            if (dh) dh.style.borderColor = over ? '#ff7043' : 'rgba(79,195,247,0.75)';
           }
+          e.stopPropagation();
         });
 
-        ov.addEventListener('pointerup', (e) => {
+        dragHandle.addEventListener('pointerup', (e) => {
           if (!dragging) return;
           dragging = false;
           if (ghost) { ghost.remove(); ghost = null; }
-          ov.style.cursor = 'grab';
+          dragHandle.style.cursor = 'grab';
           for (const [oid, op] of panels) {
             const ovEl = _editOverlays.get(oid);
-            if (ovEl) ovEl.style.borderColor = 'rgba(79,195,247,0.75)';
+            const dh = ovEl && ovEl.querySelector('[data-role=drag]');
+            if (dh) dh.style.borderColor = 'rgba(79,195,247,0.75)';
             if (oid === id) continue;
             const tr = op.cell.getBoundingClientRect();
             if (e.clientX >= tr.left && e.clientX <= tr.right &&
@@ -4408,9 +4467,86 @@ function render({ model, el }) {
               p.cell.style.gridColumn = op.cell.style.gridColumn;
               op.cell.style.gridRow   = srcRow;
               op.cell.style.gridColumn = srcCol;
+              // Swap stored specs
+              const tmpSpec = p.spec;
+              p.spec = op.spec;
+              op.spec = tmpSpec;
             }
           }
+          e.stopPropagation();
         });
+
+        dragHandle.dataset.role = 'drag';
+
+        // ── right-edge resize handle ─────────────────────────────────────
+        const rHandle = document.createElement('div');
+        rHandle.style.cssText =
+          'position:absolute;top:10%;right:0;width:12px;bottom:30%;' +
+          'cursor:ew-resize;pointer-events:all;z-index:52;' +
+          'background:rgba(79,195,247,0.25);border-radius:0 4px 4px 0;' +
+          'display:flex;align-items:center;justify-content:center;';
+        rHandle.title = 'Drag to resize width';
+        ov.appendChild(rHandle);
+
+        let rDragging = false, rStartX = 0, rStartCols = [];
+
+        rHandle.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0 || !p.spec) return;
+          rDragging = true;
+          rStartX = e.clientX;
+          rStartCols = _colPx.slice();
+          rHandle.setPointerCapture(e.pointerId);
+          e.stopPropagation(); e.preventDefault();
+        });
+        rHandle.addEventListener('pointermove', (e) => {
+          if (!rDragging || !p.spec) return;
+          const dx = e.clientX - rStartX;
+          const c = p.spec.col_stop - 1;   // rightmost column of this panel
+          const nc = _colPx.length;
+          if (c >= nc - 1) return;          // can't resize last column
+          const newW = Math.max(80, rStartCols[c] + dx);
+          const delta = newW - rStartCols[c];
+          _colPx[c]   = newW;
+          _colPx[c+1] = Math.max(80, rStartCols[c+1] - delta);
+          _applyTrackSizes();
+          e.stopPropagation();
+        });
+        rHandle.addEventListener('pointerup', (e) => { rDragging = false; e.stopPropagation(); });
+
+        // ── bottom-edge resize handle ────────────────────────────────────
+        const bHandle = document.createElement('div');
+        bHandle.style.cssText =
+          'position:absolute;bottom:0;left:10%;right:0;height:12px;' +
+          'cursor:ns-resize;pointer-events:all;z-index:52;' +
+          'background:rgba(79,195,247,0.25);border-radius:0 0 4px 4px;' +
+          'display:flex;align-items:center;justify-content:center;';
+        bHandle.title = 'Drag to resize height / adjust spacing';
+        ov.appendChild(bHandle);
+
+        let bDragging = false, bStartY = 0, bStartRows = [];
+
+        bHandle.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0 || !p.spec) return;
+          bDragging = true;
+          bStartY = e.clientY;
+          bStartRows = _rowPx.slice();
+          bHandle.setPointerCapture(e.pointerId);
+          e.stopPropagation(); e.preventDefault();
+        });
+        bHandle.addEventListener('pointermove', (e) => {
+          if (!bDragging || !p.spec) return;
+          const dy = e.clientY - bStartY;
+          const r = p.spec.row_stop - 1;   // bottommost row of this panel
+          const nr = _rowPx.length;
+          if (r >= nr - 1) return;          // can't resize last row
+          const newH = Math.max(80, bStartRows[r] + dy);
+          const delta = newH - bStartRows[r];
+          _rowPx[r]   = newH;
+          _rowPx[r+1] = Math.max(80, bStartRows[r+1] - delta);
+          _applyTrackSizes();
+          e.stopPropagation();
+        });
+        bHandle.addEventListener('pointerup', (e) => { bDragging = false; e.stopPropagation(); });
 
       } else if (!active && ov) {
         ov.remove();
