@@ -276,3 +276,122 @@ class TestGetColorCycle:
     def test_get_color_cycle_nonempty(self):
         import anyplotlib as apl
         assert len(apl.get_color_cycle()) > 0
+
+
+# ===========================================================================
+# Figure resize — Plot2D correctness
+# ===========================================================================
+
+class TestFigureResizePlot2D:
+    """Figure resize correctly propagates to layout_json and Plot2D panel state.
+
+    The _on_resize observer calls _push_layout() (which recomputes panel pixel
+    dimensions from the new fig_width/fig_height) then re-pushes every panel's
+    JSON.  For Plot2D panels the panel JSON must still carry the full axis state
+    so the JS renderer can correctly position tick labels and scale the image.
+    """
+
+    def test_resize_updates_layout_fig_size(self):
+        """layout_json reflects the new fig_width and fig_height after resize."""
+        import json
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        ax.imshow(np.zeros((32, 32)))
+
+        fig.fig_width  = 800
+        fig.fig_height = 600
+
+        layout = json.loads(fig.layout_json)
+        assert layout["fig_width"]  == 800
+        assert layout["fig_height"] == 600
+
+    def test_resize_updates_single_panel_dimensions(self):
+        """Panel width/height in layout_json match the new figure size (1×1 grid)."""
+        import json
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        plot = ax.imshow(np.zeros((32, 32)))
+
+        fig.fig_width  = 800
+        fig.fig_height = 600
+
+        layout = json.loads(fig.layout_json)
+        spec = next(s for s in layout["panel_specs"] if s["id"] == plot._id)
+        assert spec["panel_width"]  == 800
+        assert spec["panel_height"] == 600
+
+    def test_resize_plot2d_with_axes_preserves_axis_state(self):
+        """Plot2D with physical axes keeps has_axes, x_axis, y_axis, and units after resize."""
+        import json
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        x_axis = np.linspace(0.0, 10.0, 32)
+        y_axis = np.linspace(0.0, 20.0, 32)
+        plot = ax.imshow(np.zeros((32, 32)), axes=[x_axis, y_axis], units="nm")
+
+        panel_before = json.loads(getattr(fig, f"panel_{plot._id}_json"))
+
+        fig.fig_width  = 800
+        fig.fig_height = 600
+
+        panel_after = json.loads(getattr(fig, f"panel_{plot._id}_json"))
+        assert panel_after["has_axes"] is True
+        assert panel_after["x_axis"]  == panel_before["x_axis"]
+        assert panel_after["y_axis"]  == panel_before["y_axis"]
+        assert panel_after["units"]   == "nm"
+
+    def test_resize_does_not_alter_data_scale(self):
+        """Resizing the figure must not change Plot2D scale_x/scale_y (data-space quantities)."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        x_axis = np.linspace(0.0, 10.0, 32)
+        y_axis = np.linspace(0.0, 20.0, 32)
+        plot = ax.imshow(np.zeros((32, 32)), axes=[x_axis, y_axis], units="nm")
+
+        scale_x_before = plot._state["scale_x"]
+        scale_y_before = plot._state["scale_y"]
+
+        fig.fig_width  = 800
+        fig.fig_height = 600
+
+        assert plot._state["scale_x"] == pytest.approx(scale_x_before)
+        assert plot._state["scale_y"] == pytest.approx(scale_y_before)
+
+    def test_resize_plot2d_with_axes_layout_kind(self):
+        """layout_json marks a Plot2D with axes as kind='2d' after resize."""
+        import json
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        plot = ax.imshow(np.zeros((32, 32)), axes=[np.arange(32), np.arange(32)])
+
+        fig.fig_width  = 640
+        fig.fig_height = 480
+
+        layout = json.loads(fig.layout_json)
+        spec = next(s for s in layout["panel_specs"] if s["id"] == plot._id)
+        assert spec["kind"] == "2d"
+
+    def test_resize_two_panel_splits_width_evenly(self):
+        """Both Plot2D panels in a 1×2 grid each get half the new figure width."""
+        import json
+        fig, axs = apl.subplots(1, 2, figsize=(400, 200))
+        plot_l = axs[0].imshow(np.zeros((16, 16)))
+        plot_r = axs[1].imshow(np.zeros((16, 16)))
+
+        fig.fig_width = 800
+
+        layout = json.loads(fig.layout_json)
+        specs = {s["id"]: s for s in layout["panel_specs"]}
+        assert specs[plot_l._id]["panel_width"] == pytest.approx(400, abs=1)
+        assert specs[plot_r._id]["panel_width"] == pytest.approx(400, abs=1)
+
+    def test_resize_with_height_ratios_scales_proportionally(self):
+        """GridSpec height_ratios [3, 1] scale correctly when fig_height changes."""
+        import json
+        gs  = apl.GridSpec(2, 1, height_ratios=[3, 1])
+        fig = apl.Figure(figsize=(400, 400))
+        plot_top = fig.add_subplot(gs[0, 0]).imshow(np.zeros((32, 32)))
+        plot_bot = fig.add_subplot(gs[1, 0]).imshow(np.zeros((16, 16)))
+
+        fig.fig_height = 800
+
+        layout = json.loads(fig.layout_json)
+        specs  = {s["id"]: s for s in layout["panel_specs"]}
+        # top: 3/4 × 800 = 600 px;  bottom: 1/4 × 800 = 200 px
+        assert specs[plot_top._id]["panel_height"] == pytest.approx(600, abs=1)
+        assert specs[plot_bot._id]["panel_height"] == pytest.approx(200, abs=1)
