@@ -66,8 +66,6 @@ class Figure(anywidget.AnyWidget):
     # Figure-level help text shown in a '?' badge overlay in JS.
     # Empty string means no badge.  Gated by apl.show_help at the Python level.
     help_text      = traitlets.Unicode("").tag(sync=True)
-    # When True JS shows drag handles on all panels so they can be reordered.
-    drag_mode      = traitlets.Bool(False).tag(sync=True)
     _esm = _ESM_SOURCE
     # Static CSS injected by anywidget alongside _esm.
     # .apl-scale-wrap  — outer container; width:100% means it always fills
@@ -161,10 +159,12 @@ class Figure(anywidget.AnyWidget):
         hspace : float, optional
             Fraction of the average row height to use as vertical gap between
             panels.  ``0.1`` adds a gap of 10 % of the mean row height.
-            Default ``0.0`` (no gap).
+            Default ``0.0`` (no gap).  Before ``subplots_adjust`` is called,
+            figures use a 4 px browser default gap.
         wspace : float, optional
             Fraction of the average column width to use as horizontal gap.
-            Default ``0.0`` (no gap).
+            Default ``0.0`` (no gap).  Before ``subplots_adjust`` is called,
+            figures use a 4 px browser default gap.
         """
         self._hspace = float(hspace)
         self._wspace = float(wspace)

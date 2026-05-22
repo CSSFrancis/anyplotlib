@@ -211,5 +211,5 @@ class Plot3D(_EventMixin):
 
     def __repr__(self) -> str:
         geom = self._state.get("geom_type", "?")
-        n = len(self._state.get("vertices", []))
+        n = self._state.get("vertices_count", 0)
         return f"Plot3D(geom={geom!r}, n_vertices={n})"

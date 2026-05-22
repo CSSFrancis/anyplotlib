@@ -297,6 +297,7 @@ class Plot1D(_EventMixin):
             "axis_visible":      True,
             "x_ticks_visible":   True,
             "y_ticks_visible":   True,
+            "_view_from_python": False,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -431,7 +432,7 @@ class Plot1D(_EventMixin):
     # Extra lines
     # ------------------------------------------------------------------
     def add_line(self, data: np.ndarray, x_axis=None,
-                 color: str = "#ffffff", linewidth: float = 1.5,
+                 color: str = "#4fc3f7", linewidth: float = 1.5,
                  linestyle: str = "solid", ls: str | None = None,
                  alpha: float = 1.0,
                  marker: str = "none", markersize: float = 4.0,
@@ -448,7 +449,7 @@ class Plot1D(_EventMixin):
         x_axis : array-like, shape (N,), optional
             X coordinates.  Defaults to the primary line's x-axis.
         color : str, optional
-            CSS colour string.  Default ``"#ffffff"``.
+            CSS colour string.  Default ``"#4fc3f7"``.
         linewidth : float, optional
             Stroke width in pixels.  Default ``1.5``.
         linestyle : str, optional
@@ -779,13 +780,17 @@ class Plot1D(_EventMixin):
         f1 = 1.0 if x1 is None else max(0.0, min(1.0, (float(x1)-xmin)/span))
         self._state["view_x0"] = f0
         self._state["view_x1"] = f1
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     def reset_view(self) -> None:
         """Reset the view to show the full x range of the primary line."""
         self._state["view_x0"] = 0.0
         self._state["view_x1"] = 1.0
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     # ------------------------------------------------------------------
     # Primary-line property setters
@@ -884,7 +889,20 @@ class Plot1D(_EventMixin):
         self._push()
 
     def get_ylim(self) -> tuple:
+        yr = self._state.get("y_range")
+        if yr is not None:
+            return (float(yr[0]), float(yr[1]))
         return (float(self._state["data_min"]), float(self._state["data_max"]))
+
+    def get_xlim(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        if len(xarr) < 2:
+            return (0.0, 1.0)
+        xmin, xmax = float(xarr[0]), float(xarr[-1])
+        span = xmax - xmin or 1.0
+        x0 = xmin + self._state["view_x0"] * span
+        x1 = xmin + self._state["view_x1"] * span
+        return (x0, x1)
 
     def get_xbound(self) -> tuple:
         xarr = np.asarray(self._state["x_axis"])

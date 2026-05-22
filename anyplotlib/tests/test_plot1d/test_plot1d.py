@@ -805,3 +805,135 @@ class TestSemilogy:
         assert p._state["line_color"] == "#ff0000"
         assert p._state["yscale"] == "log"
 
+
+# ===========================================================================
+# set_ylim / get_ylim
+# ===========================================================================
+
+class TestSetGetYlim:
+    def test_get_ylim_default_returns_data_bounds(self):
+        p = _plot()
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(p._state["data_min"])
+        assert hi == pytest.approx(p._state["data_max"])
+
+    def test_set_ylim_stored_in_state(self):
+        p = _plot()
+        p.set_ylim(-2.0, 5.0)
+        assert p._state["y_range"] == [-2.0, 5.0]
+
+    def test_get_ylim_after_set_ylim(self):
+        p = _plot()
+        p.set_ylim(-1.5, 3.0)
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(-1.5)
+        assert hi == pytest.approx(3.0)
+
+    def test_y_range_not_cleared_by_reset_view(self):
+        p = _plot()
+        p.set_ylim(-1.0, 1.0)
+        p.reset_view()
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(-1.0)
+        assert hi == pytest.approx(1.0)
+
+    def test_y_range_in_state_dict(self):
+        p = _plot()
+        p.set_ylim(0.0, 10.0)
+        assert p.to_state_dict()["y_range"] == [0.0, 10.0]
+
+    def test_y_range_none_by_default(self):
+        assert _plot()._state["y_range"] is None
+
+    def test_y_range_propagated_to_state_dict(self):
+        p = _plot()
+        p.set_ylim(-5.0, 5.0)
+        assert p.to_state_dict()["y_range"] == [-5.0, 5.0]
+
+    def test_markers_state_dict_contains_y_range(self):
+        p = _plot()
+        p.set_ylim(0.0, 10.0)
+        assert p.to_state_dict()["y_range"] == [0.0, 10.0]
+
+
+# ===========================================================================
+# get_xlim
+# ===========================================================================
+
+class TestGetXlim:
+    def test_get_xlim_full_view(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(0.0, 10.0, 64)
+        p = ax.plot(np.sin(x), axes=[x])
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(0.0, abs=0.01)
+        assert hi == pytest.approx(10.0, abs=0.01)
+
+    def test_get_xlim_after_set_xlim(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(0.0, 10.0, 64)
+        p = ax.plot(np.sin(x), axes=[x])
+        p.set_xlim(2.0, 8.0)
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(2.0, abs=0.1)
+        assert hi == pytest.approx(8.0, abs=0.1)
+
+    def test_get_xlim_default_x_axis(self):
+        p = _plot_lin(n=100)
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(0.0, abs=0.01)
+        assert hi == pytest.approx(99.0, abs=0.01)
+
+
+# ===========================================================================
+# _view_from_python flag
+# ===========================================================================
+
+class TestViewFromPython:
+    def test_initial_view_from_python_false(self):
+        assert _plot()._state["_view_from_python"] is False
+
+    def test_set_view_clears_flag_after_push(self):
+        p = _plot()
+        p.set_view(x0=0.2, x1=0.8)
+        assert p._state["_view_from_python"] is False
+
+    def test_reset_view_clears_flag_after_push(self):
+        p = _plot()
+        p.set_view(x0=0.2, x1=0.8)
+        p.reset_view()
+        assert p._state["_view_from_python"] is False
+
+    def test_set_xlim_clears_flag_after_push(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(0, 10, 64)
+        p = ax.plot(np.sin(x), axes=[x])
+        p.set_xlim(2.0, 8.0)
+        assert p._state["_view_from_python"] is False
+        assert p._state["view_x0"] != 0.0 or p._state["view_x1"] != 1.0
+
+    def test_view_from_python_present_in_state_dict(self):
+        p = _plot()
+        p.set_view(x0=0.1, x1=0.9)
+        sd = p.to_state_dict()
+        assert "_view_from_python" in sd
+        assert sd["_view_from_python"] is False
+
+
+# ===========================================================================
+# add_line default color
+# ===========================================================================
+
+class TestAddLineDefaultColor:
+    def test_default_color_is_not_white(self):
+        import inspect
+        p = _plot()
+        default = inspect.signature(p.add_line).parameters["color"].default
+        assert default != "#ffffff"
+        assert default == "#4fc3f7"
+
+    def test_add_line_uses_default_color_in_state(self):
+        p = _plot()
+        p.add_line(np.linspace(-1, 1, 128))
+        assert p._state["extra_lines"][-1]["color"] == "#4fc3f7"
+

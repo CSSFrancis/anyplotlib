@@ -323,9 +323,6 @@ function render({ model, el }) {
   let _suppressLayoutUpdate = false;  // block re-entry during live resize
 
   // ── layout application ───────────────────────────────────────────────────
-  let _colPx = [];   // current column widths in CSS px
-  let _rowPx = [];   // current row heights in CSS px
-
   function applyLayout() {
     if (_suppressLayoutUpdate) return;
     let layout;
@@ -345,9 +342,6 @@ function render({ model, el }) {
       for (let r = spec.row_start; r < spec.row_stop; r++) rowPx[r] = Math.max(rowPx[r], perRow);
     }
 
-    _colPx = colPx.slice();
-    _rowPx = rowPx.slice();
-
     gridDiv.style.gridTemplateColumns = colPx.map(px => px + 'px').join(' ');
     gridDiv.style.gridTemplateRows    = rowPx.map(px => px + 'px').join(' ');
     gridDiv.style.width  = '';
@@ -364,8 +358,6 @@ function render({ model, el }) {
       if (!panels.has(spec.id)) {
         _createPanelDOM(spec.id, spec.kind, spec.panel_width, spec.panel_height, spec);
       } else {
-        const existingPanel = panels.get(spec.id);
-        if (existingPanel) existingPanel.spec = spec;
         _resizePanelDOM(spec.id, spec.panel_width, spec.panel_height);
       }
     }
@@ -390,20 +382,6 @@ function render({ model, el }) {
     insetsContainer.style.width  = (layout.fig_width  || 640) + 'px';
     insetsContainer.style.height = (layout.fig_height || 480) + 'px';
     if (insetSpecs.length) _applyAllInsetStates(layout);
-  }
-
-  function _applyTrackSizes() {
-    gridDiv.style.gridTemplateColumns = _colPx.map(px => px + 'px').join(' ');
-    gridDiv.style.gridTemplateRows    = _rowPx.map(px => px + 'px').join(' ');
-    for (const [id, p] of panels) {
-      if (!p.spec) continue;
-      const { row_start, row_stop, col_start, col_stop } = p.spec;
-      const newPw = Math.max(40, Math.round(_colPx.slice(col_start, col_stop).reduce((a,b)=>a+b,0)));
-      const newPh = Math.max(40, Math.round(_rowPx.slice(row_start, row_stop).reduce((a,b)=>a+b,0)));
-      p.pw = newPw; p.ph = newPh;
-      _resizePanelDOM(id, newPw, newPh);
-      _redrawPanel(p);
-    }
   }
 
   // ── _buildCanvasStack ─────────────────────────────────────────────────────
@@ -548,7 +526,6 @@ function render({ model, el }) {
 
     const p = {
       id, kind, cell, pw, ph,
-      spec,
       plotCanvas:    stack.plotCanvas,
       overlayCanvas: stack.overlayCanvas,
       markersCanvas: stack.markersCanvas,
@@ -593,6 +570,9 @@ function render({ model, el }) {
           newState.zoom     = p2.state.zoom;
           newState.center_x = p2.state.center_x;
           newState.center_y = p2.state.center_y;
+        } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
+          newState.view_x0 = p2.state.view_x0;
+          newState.view_x1 = p2.state.view_x1;
         }
         p2.state = newState;
       }
@@ -715,6 +695,9 @@ function render({ model, el }) {
           newState.zoom     = p2.state.zoom;
           newState.center_x = p2.state.center_x;
           newState.center_y = p2.state.center_y;
+        } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
+          newState.view_x0 = p2.state.view_x0;
+          newState.view_x1 = p2.state.view_x1;
         }
         p2.state = newState;
       }
@@ -2011,7 +1994,8 @@ function render({ model, el }) {
     const yData = p._1dDArr;  // Float64Array (or plain array fallback)
 
     const x0=st.view_x0||0, x1=st.view_x1||1;
-    const dMin=st.data_min, dMax=st.data_max;
+    let dMin=st.data_min, dMax=st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     const units=st.units||'', yUnits=st.y_units||'';
 
     const isLog = st.yscale === 'log';
@@ -2400,7 +2384,8 @@ function render({ model, el }) {
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const yData = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
-    const dMin=st.data_min, dMax=st.data_max;
+    let dMin=st.data_min, dMax=st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     mkCtx.clearRect(0,0,pw,ph);
     const sets=st.markers||[];
     if(!sets.length) return;
@@ -2468,6 +2453,63 @@ function render({ model, el }) {
           const [x1c,y1c]= tfm==='data' ? _offToCanvas(seg[0]) : _tc2d(seg[0][0],seg[0][1]);
           const [x2c,y2c]= tfm==='data' ? _offToCanvas(seg[1]) : _tc2d(seg[1][0],seg[1][1]);
           mkCtx.beginPath();mkCtx.moveTo(x1c,y1c);mkCtx.lineTo(x2c,y2c);mkCtx.stroke();
+        }
+      } else if(type==='ellipses'){
+        for(let i=0;i<ms.offsets.length;i++){
+          const off=ms.offsets[i];
+          const [cx,cy]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
+          const wd=ms.widths[i]!=null?ms.widths[i]:(ms.widths[0]||10);
+          const hd=ms.heights[i]!=null?ms.heights[i]:(ms.heights[0]||10);
+          const rw=Math.max(1,Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2))/2);
+          const rh=Math.max(1,Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2))/2);
+          const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
+          mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
+          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          mkCtx.stroke();
+        }
+      } else if(type==='rectangles'||type==='squares'){
+        const heights=type==='squares'?ms.widths:ms.heights;
+        for(let i=0;i<ms.offsets.length;i++){
+          const off=ms.offsets[i];
+          const [cx,cy]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
+          const wd=ms.widths[i]!=null?ms.widths[i]:(ms.widths[0]||10);
+          const hd=heights[i]!=null?heights[i]:(heights[0]||10);
+          const rw=Math.max(1,Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2)));
+          const rh=Math.max(1,Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2)));
+          const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
+          mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
+          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          mkCtx.strokeRect(-rw/2,-rh/2,rw,rh);
+          mkCtx.restore();
+        }
+      } else if(type==='polygons'){
+        for(let i=0;i<(ms.vertices_list||[]).length;i++){
+          const verts=ms.vertices_list[i];
+          if(!verts||verts.length<2) continue;
+          const [px0,py0]= tfm==='data' ? _offToCanvas(verts[0]) : _tc2d(verts[0][0],verts[0][1]);
+          mkCtx.beginPath();mkCtx.moveTo(px0,py0);
+          for(let k=1;k<verts.length;k++){
+            const[px,py]= tfm==='data' ? _offToCanvas(verts[k]) : _tc2d(verts[k][0],verts[k][1]);
+            mkCtx.lineTo(px,py);
+          }
+          mkCtx.closePath();
+          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          mkCtx.stroke();
+        }
+      } else if(type==='arrows'){
+        const HL=8;
+        for(let i=0;i<ms.offsets.length;i++){
+          const off=ms.offsets[i];
+          const [x1a,y1a]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
+          const u=ms.U[i]||0, v=ms.V[i]||0;
+          const x2a= tfm==='data' ? _xPx(off[0]+u) : x1a+u;
+          const y2a= tfm==='data' ? _yPx((off[1]||0)+v) : y1a+v;
+          const ang=Math.atan2(y2a-y1a,x2a-x1a);
+          mkCtx.beginPath();mkCtx.moveTo(x1a,y1a);mkCtx.lineTo(x2a,y2a);mkCtx.stroke();
+          mkCtx.beginPath();mkCtx.moveTo(x2a,y2a);
+          mkCtx.lineTo(x2a-HL*Math.cos(ang-Math.PI/6),y2a-HL*Math.sin(ang-Math.PI/6));
+          mkCtx.lineTo(x2a-HL*Math.cos(ang+Math.PI/6),y2a-HL*Math.sin(ang+Math.PI/6));
+          mkCtx.closePath();mkCtx.fill();
         }
       } else if(type==='texts'){
         const fs=ms.fontsize||12;
@@ -3706,7 +3748,8 @@ function render({ model, el }) {
     const orient   = st.orient   || 'v';
     const bwFrac   = st.bar_width !== undefined ? st.bar_width : 0.8;
     const baseline = st.baseline !== undefined  ? st.baseline  : 0;
-    const dMin     = st.data_min, dMax = st.data_max;
+    let dMin = st.data_min, dMax = st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     const logScale = !!st.log_scale;
     const LC       = 1e-10; // log clamp
 
@@ -3779,8 +3822,12 @@ function render({ model, el }) {
     const groupColors = st.group_colors || [];
     const groupLabels = st.group_labels || [];
     const orient      = st.orient || 'v';
-    const dMin        = st.data_min, dMax = st.data_max;
+    let dMin = st.data_min, dMax = st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     const logScale    = !!st.log_scale;
+    const axisVis     = st.axis_visible !== false;
+    const xTicksVis   = st.x_ticks_visible !== false;
+    const yTicksVis   = st.y_ticks_visible !== false;
 
     if (!values.length) return;
 
@@ -3925,6 +3972,7 @@ function render({ model, el }) {
     }
 
     // ── axis borders ──────────────────────────────────────────────────────
+    if (axisVis) {
     ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(r.x, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(r.x, r.y);         ctx.lineTo(r.x, r.y + r.h);       ctx.stroke();
@@ -3942,120 +3990,131 @@ function render({ model, el }) {
           ctx.beginPath(); ctx.moveTo(r.x, g.basePx); ctx.lineTo(r.x + r.w, g.basePx); ctx.stroke();
         }
       }
-    }
+    } // end axisVis (baseline)
+    } // end axisVis (borders)
 
     // ── tick labels ───────────────────────────────────────────────────────
-    ctx.font = '10px monospace'; ctx.fillStyle = theme.tickText;
+    if (axisVis) {
+      ctx.font = '10px monospace'; ctx.fillStyle = theme.tickText;
 
-    if (orient === 'h') {
-      // Value axis → X ticks at bottom
-      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      if (logScale) {
-        const lMin = Math.log10(Math.max(LC, dMin));
-        const lMax = Math.log10(Math.max(LC, dMax));
-        for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
-          const v = Math.pow(10, exp);
-          if (v < dMin || v > dMax) continue;
-          const px = g.xToPx(v);
-          if (px < r.x || px > r.x + r.w) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(_fmtLogTick(v), px, r.y + r.h + 7);
+      if (orient === 'h') {
+        // Value axis → X ticks at bottom
+        if (xTicksVis) {
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          if (logScale) {
+            const lMin = Math.log10(Math.max(LC, dMin));
+            const lMax = Math.log10(Math.max(LC, dMax));
+            for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
+              const v = Math.pow(10, exp);
+              if (v < dMin || v > dMax) continue;
+              const px = g.xToPx(v);
+              if (px < r.x || px > r.x + r.w) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(_fmtLogTick(v), px, r.y + r.h + 7);
+            }
+          } else {
+            const valRange = (dMax - dMin) || 1;
+            const valStep  = findNice(valRange / Math.max(2, Math.floor(r.w / 40)));
+            for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+              const px = g.xToPx(v);
+              if (px < r.x || px > r.x + r.w) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(fmtVal(v), px, r.y + r.h + 7);
+            }
+          }
+          if (st.y_units) {
+            ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
+            ctx.fillStyle=theme.unitText;
+            ctx.fillText(st.y_units, r.x + r.w, r.y + r.h + 24);
+            ctx.font='10px monospace';
+          }
+        }
+        // Category axis → Y labels on left
+        if (yTicksVis) {
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+          const maxCatLabels = Math.max(1, Math.floor(r.h / 14));
+          const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
+          for (let i = 0; i < g.n; i += catStep) {
+            const cy    = g.yToPx(i);
+            const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
+            ctx.strokeStyle = theme.axisStroke;
+            ctx.beginPath(); ctx.moveTo(r.x, cy); ctx.lineTo(r.x - 4, cy); ctx.stroke();
+            ctx.fillStyle = theme.tickText;
+            ctx.fillText(label, r.x - 7, cy);
+          }
+          if (st.units) {
+            ctx.save();
+            ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+            ctx.fillText(st.units, 0, 0);
+            ctx.restore();
+          }
         }
       } else {
-        const valRange = (dMax - dMin) || 1;
-        const valStep  = findNice(valRange / Math.max(2, Math.floor(r.w / 40)));
-        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-          const px = g.xToPx(v);
-          if (px < r.x || px > r.x + r.w) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(fmtVal(v), px, r.y + r.h + 7);
+        // Category axis → X ticks at bottom
+        if (xTicksVis) {
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          const maxCatLabels = Math.max(1, Math.floor(r.w / 42));
+          const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
+          for (let i = 0; i < g.n; i += catStep) {
+            const cx    = g.xToPx(i);
+            const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
+            ctx.strokeStyle = theme.axisStroke;
+            ctx.beginPath(); ctx.moveTo(cx, r.y + r.h); ctx.lineTo(cx, r.y + r.h + 4); ctx.stroke();
+            ctx.fillStyle = theme.tickText;
+            ctx.fillText(label, cx, r.y + r.h + 7);
+          }
+          if (st.units && st.units !== 'px') {
+            ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
+            ctx.fillStyle=theme.unitText;
+            ctx.fillText(st.units, r.x + r.w, r.y + r.h + 24);
+            ctx.font='10px monospace';
+          }
+        }
+        // Value axis → Y ticks on left
+        if (yTicksVis) {
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+          if (logScale) {
+            const lMin = Math.log10(Math.max(LC, dMin));
+            const lMax = Math.log10(Math.max(LC, dMax));
+            for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
+              const v = Math.pow(10, exp);
+              if (v < dMin || v > dMax) continue;
+              const py = g.yToPx(v);
+              if (py < r.y || py > r.y + r.h) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(_fmtLogTick(v), r.x - 8, py);
+            }
+          } else {
+            const valRange = (dMax - dMin) || 1;
+            const valStep  = findNice(valRange / Math.max(2, Math.floor(r.h / 40)));
+            for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+              const py = g.yToPx(v);
+              if (py < r.y || py > r.y + r.h) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(fmtVal(v), r.x - 8, py);
+            }
+          }
+          if (st.y_units) {
+            ctx.save();
+            ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+            ctx.fillText(st.y_units, 0, 0);
+            ctx.restore();
+          }
         }
       }
-      // Category axis → Y labels on left
-      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-      const maxCatLabels = Math.max(1, Math.floor(r.h / 14));
-      const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
-      for (let i = 0; i < g.n; i += catStep) {
-        const cy    = g.yToPx(i);
-        const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
-        ctx.strokeStyle = theme.axisStroke;
-        ctx.beginPath(); ctx.moveTo(r.x, cy); ctx.lineTo(r.x - 4, cy); ctx.stroke();
-        ctx.fillStyle = theme.tickText;
-        ctx.fillText(label, r.x - 7, cy);
-      }
-      if (st.y_units) {
-        ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
-        ctx.fillStyle=theme.unitText;
-        ctx.fillText(st.y_units, r.x + r.w, r.y + r.h + 24);
-        ctx.font='10px monospace';
-      }
-      if (st.units) {
-        ctx.save();
-        ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
-        ctx.fillText(st.units, 0, 0);
-        ctx.restore();
-      }
-    } else {
-      // Category axis → X ticks at bottom
-      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      const maxCatLabels = Math.max(1, Math.floor(r.w / 42));
-      const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
-      for (let i = 0; i < g.n; i += catStep) {
-        const cx    = g.xToPx(i);
-        const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
-        ctx.strokeStyle = theme.axisStroke;
-        ctx.beginPath(); ctx.moveTo(cx, r.y + r.h); ctx.lineTo(cx, r.y + r.h + 4); ctx.stroke();
-        ctx.fillStyle = theme.tickText;
-        ctx.fillText(label, cx, r.y + r.h + 7);
-      }
-      if (st.units && st.units !== 'px') {
-        ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
-        ctx.fillStyle=theme.unitText;
-        ctx.fillText(st.units, r.x + r.w, r.y + r.h + 24);
-        ctx.font='10px monospace';
-      }
-      // Value axis → Y ticks on left
-      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-      if (logScale) {
-        const lMin = Math.log10(Math.max(LC, dMin));
-        const lMax = Math.log10(Math.max(LC, dMax));
-        for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
-          const v = Math.pow(10, exp);
-          if (v < dMin || v > dMax) continue;
-          const py = g.yToPx(v);
-          if (py < r.y || py > r.y + r.h) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(_fmtLogTick(v), r.x - 8, py);
-        }
-      } else {
-        const valRange = (dMax - dMin) || 1;
-        const valStep  = findNice(valRange / Math.max(2, Math.floor(r.h / 40)));
-        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-          const py = g.yToPx(v);
-          if (py < r.y || py > r.y + r.h) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(fmtVal(v), r.x - 8, py);
-        }
-      }
-      if (st.y_units) {
-        ctx.save();
-        ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
-        ctx.fillText(st.y_units, 0, 0);
-        ctx.restore();
-      }
-    }
+    } // end axisVis
 
     // ── group legend (only when group_labels are provided) ────────────────
     if (g.groups > 1 && groupLabels.length > 0) {
@@ -4083,6 +4142,32 @@ function render({ model, el }) {
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.fillText(label, lx + 3 + swatchW + pad, ey + rowH / 2);
       }
+    }
+
+    // ── title ─────────────────────────────────────────────────────────────
+    const titleBar = st.title || '';
+    if (titleBar) {
+      ctx.fillStyle = theme.tickText;
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(titleBar, r.x + r.w / 2, PAD_T / 2);
+    }
+
+    // ── axis labels ───────────────────────────────────────────────────────
+    const xLabelBar = st.x_label || '';
+    const yLabelBar = st.y_label || '';
+    if (xLabelBar) {
+      ctx.fillStyle = theme.tickText; ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(xLabelBar, r.x + r.w / 2, r.y + r.h + 26);
+    }
+    if (yLabelBar) {
+      ctx.save();
+      ctx.translate(Math.round(PAD_L * 0.1), r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = theme.tickText; ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(yLabelBar, 0, 0);
+      ctx.restore();
     }
 
     // Overlay widgets (vlines, hlines) drawn on overlay canvas
@@ -4372,190 +4457,6 @@ function render({ model, el }) {
   // ── model listeners ───────────────────────────────────────────────────────
   model.on('change:layout_json', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
   model.on('change:fig_width change:fig_height', () => { applyLayout(); redrawAll(); requestAnimationFrame(_applyScale); });
-
-  // ── Panel drag / resize / gap-adjust (drag mode) ──────────────────────────
-  // When fig.drag_mode = True, each panel shows:
-  //   • A translucent drag handle (centre) → drag to swap panels
-  //   • Resize handles on the right edge and bottom edge → drag to resize
-  // Grid gaps (rowGap / columnGap) are also draggable via invisible bands.
-  const _editOverlays = new Map();
-
-  function _setEditMode(active) {
-    for (const [id, p] of panels) {
-      let ov = _editOverlays.get(id);
-      if (active && !ov) {
-        // ── outer wrapper appended to p.cell ──────────────────────────────
-        ov = document.createElement('div');
-        ov.style.cssText =
-          'position:absolute;inset:0;z-index:50;pointer-events:none;';
-        p.cell.appendChild(ov);
-        _editOverlays.set(id, ov);
-
-        // ── drag handle (covers top ~60% of panel, pointer-events:all) ────
-        const dragHandle = document.createElement('div');
-        dragHandle.style.cssText =
-          'position:absolute;top:0;left:0;right:0;bottom:30%;' +
-          'cursor:grab;pointer-events:all;z-index:51;' +
-          'border:2px dashed rgba(79,195,247,0.75);' +
-          'background:rgba(79,195,247,0.06);border-radius:4px;' +
-          'display:flex;align-items:center;justify-content:center;' +
-          'user-select:none;';
-        const badge = document.createElement('div');
-        badge.style.cssText =
-          'background:rgba(0,0,0,0.55);color:#4fc3f7;padding:3px 10px;' +
-          'border-radius:12px;font-size:11px;font-family:monospace;' +
-          'pointer-events:none;letter-spacing:0.04em;';
-        badge.textContent = '⋮ drag';
-        dragHandle.appendChild(badge);
-        ov.appendChild(dragHandle);
-
-        // ── drag handle logic ──────────────────────────────────────────────
-        let dragging = false, startX = 0, startY = 0, ghost = null;
-
-        dragHandle.addEventListener('pointerdown', (e) => {
-          if (e.button !== 0) return;
-          dragging = true;
-          startX = e.clientX; startY = e.clientY;
-          dragHandle.style.cursor = 'grabbing';
-          const r = p.cell.getBoundingClientRect();
-          ghost = document.createElement('div');
-          ghost.style.cssText =
-            'position:fixed;pointer-events:none;z-index:9999;' +
-            'border:2px solid #4fc3f7;background:rgba(79,195,247,0.12);' +
-            'border-radius:4px;opacity:0.85;' +
-            `width:${r.width}px;height:${r.height}px;` +
-            `left:${r.left}px;top:${r.top}px;`;
-          document.body.appendChild(ghost);
-          dragHandle.setPointerCapture(e.pointerId);
-          e.stopPropagation(); e.preventDefault();
-        });
-
-        dragHandle.addEventListener('pointermove', (e) => {
-          if (!dragging || !ghost) return;
-          const dx = e.clientX - startX, dy = e.clientY - startY;
-          const r = p.cell.getBoundingClientRect();
-          ghost.style.left = (r.left + dx) + 'px';
-          ghost.style.top  = (r.top  + dy) + 'px';
-          for (const [oid, op] of panels) {
-            if (oid === id) continue;
-            const tr = op.cell.getBoundingClientRect();
-            const over = e.clientX >= tr.left && e.clientX <= tr.right &&
-                         e.clientY >= tr.top  && e.clientY <= tr.bottom;
-            const ovEl = _editOverlays.get(oid);
-            const dh = ovEl && ovEl.querySelector('[data-role=drag]');
-            if (dh) dh.style.borderColor = over ? '#ff7043' : 'rgba(79,195,247,0.75)';
-          }
-          e.stopPropagation();
-        });
-
-        dragHandle.addEventListener('pointerup', (e) => {
-          if (!dragging) return;
-          dragging = false;
-          if (ghost) { ghost.remove(); ghost = null; }
-          dragHandle.style.cursor = 'grab';
-          for (const [oid, op] of panels) {
-            const ovEl = _editOverlays.get(oid);
-            const dh = ovEl && ovEl.querySelector('[data-role=drag]');
-            if (dh) dh.style.borderColor = 'rgba(79,195,247,0.75)';
-            if (oid === id) continue;
-            const tr = op.cell.getBoundingClientRect();
-            if (e.clientX >= tr.left && e.clientX <= tr.right &&
-                e.clientY >= tr.top  && e.clientY <= tr.bottom) {
-              const srcRow = p.cell.style.gridRow;
-              const srcCol = p.cell.style.gridColumn;
-              p.cell.style.gridRow    = op.cell.style.gridRow;
-              p.cell.style.gridColumn = op.cell.style.gridColumn;
-              op.cell.style.gridRow   = srcRow;
-              op.cell.style.gridColumn = srcCol;
-              // Swap stored specs
-              const tmpSpec = p.spec;
-              p.spec = op.spec;
-              op.spec = tmpSpec;
-            }
-          }
-          e.stopPropagation();
-        });
-
-        dragHandle.dataset.role = 'drag';
-
-        // ── right-edge resize handle ─────────────────────────────────────
-        const rHandle = document.createElement('div');
-        rHandle.style.cssText =
-          'position:absolute;top:10%;right:0;width:12px;bottom:30%;' +
-          'cursor:ew-resize;pointer-events:all;z-index:52;' +
-          'background:rgba(79,195,247,0.25);border-radius:0 4px 4px 0;' +
-          'display:flex;align-items:center;justify-content:center;';
-        rHandle.title = 'Drag to resize width';
-        ov.appendChild(rHandle);
-
-        let rDragging = false, rStartX = 0, rStartCols = [];
-
-        rHandle.addEventListener('pointerdown', (e) => {
-          if (e.button !== 0 || !p.spec) return;
-          rDragging = true;
-          rStartX = e.clientX;
-          rStartCols = _colPx.slice();
-          rHandle.setPointerCapture(e.pointerId);
-          e.stopPropagation(); e.preventDefault();
-        });
-        rHandle.addEventListener('pointermove', (e) => {
-          if (!rDragging || !p.spec) return;
-          const dx = e.clientX - rStartX;
-          const c = p.spec.col_stop - 1;   // rightmost column of this panel
-          const nc = _colPx.length;
-          if (c >= nc - 1) return;          // can't resize last column
-          const newW = Math.max(80, rStartCols[c] + dx);
-          const delta = newW - rStartCols[c];
-          _colPx[c]   = newW;
-          _colPx[c+1] = Math.max(80, rStartCols[c+1] - delta);
-          _applyTrackSizes();
-          e.stopPropagation();
-        });
-        rHandle.addEventListener('pointerup', (e) => { rDragging = false; e.stopPropagation(); });
-
-        // ── bottom-edge resize handle ────────────────────────────────────
-        const bHandle = document.createElement('div');
-        bHandle.style.cssText =
-          'position:absolute;bottom:0;left:10%;right:0;height:12px;' +
-          'cursor:ns-resize;pointer-events:all;z-index:52;' +
-          'background:rgba(79,195,247,0.25);border-radius:0 0 4px 4px;' +
-          'display:flex;align-items:center;justify-content:center;';
-        bHandle.title = 'Drag to resize height / adjust spacing';
-        ov.appendChild(bHandle);
-
-        let bDragging = false, bStartY = 0, bStartRows = [];
-
-        bHandle.addEventListener('pointerdown', (e) => {
-          if (e.button !== 0 || !p.spec) return;
-          bDragging = true;
-          bStartY = e.clientY;
-          bStartRows = _rowPx.slice();
-          bHandle.setPointerCapture(e.pointerId);
-          e.stopPropagation(); e.preventDefault();
-        });
-        bHandle.addEventListener('pointermove', (e) => {
-          if (!bDragging || !p.spec) return;
-          const dy = e.clientY - bStartY;
-          const r = p.spec.row_stop - 1;   // bottommost row of this panel
-          const nr = _rowPx.length;
-          if (r >= nr - 1) return;          // can't resize last row
-          const newH = Math.max(80, bStartRows[r] + dy);
-          const delta = newH - bStartRows[r];
-          _rowPx[r]   = newH;
-          _rowPx[r+1] = Math.max(80, bStartRows[r+1] - delta);
-          _applyTrackSizes();
-          e.stopPropagation();
-        });
-        bHandle.addEventListener('pointerup', (e) => { bDragging = false; e.stopPropagation(); });
-
-      } else if (!active && ov) {
-        ov.remove();
-        _editOverlays.delete(id);
-      }
-    }
-  }
-
-  model.on('change:drag_mode', () => { _setEditMode(model.get('drag_mode')); });
 
   // Toggle the per-panel stats overlay when display_stats changes.
   // Hiding is immediate; showing waits for the next natural redraw to

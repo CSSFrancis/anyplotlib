@@ -196,3 +196,41 @@ class TestPlot3DMutations:
             surf.set_data(x, x, x)
 
 
+# ===========================================================================
+# repr() uses vertices_count, not len(vertices)
+# ===========================================================================
+
+class TestPlot3DRepr:
+    def test_repr_uses_vertices_count(self):
+        """repr() must read vertices_count, not len(state['vertices'])."""
+
+        class _FakePlot3D(Plot3D):
+            def __init__(self):
+                self._state = {"geom_type": "mesh", "vertices_count": 42}
+                self._id = ""
+                self._fig = None
+
+        assert "n_vertices=42" in repr(_FakePlot3D())
+
+    def test_repr_zero_when_count_zero(self):
+        class _FakePlot3D(Plot3D):
+            def __init__(self):
+                self._state = {"geom_type": "scatter", "vertices_count": 0}
+                self._id = ""
+                self._fig = None
+
+        assert "n_vertices=0" in repr(_FakePlot3D())
+
+    def test_repr_on_real_line(self):
+        _, x, y, z = _line()
+        # _line() creates a Plot3D via plot3d(); repr must not raise and must
+        # show the correct vertex count.
+        from anyplotlib.plot3d._plot3d import Plot3D as _P3D
+        # find the plot object returned by _line
+        ln, *_ = _line()
+        r = repr(ln)
+        assert "n_vertices=" in r
+        # vertex count must equal len(x), not 0
+        assert f"n_vertices={len(x)}" in r
+
+

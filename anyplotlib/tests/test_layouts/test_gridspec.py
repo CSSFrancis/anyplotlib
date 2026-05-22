@@ -1113,3 +1113,29 @@ class TestSubplotsAdjust:
         assert fig.layout_json != before
 
 
+# ===========================================================================
+# hspace / wspace initial-value contract
+# ===========================================================================
+
+class TestHspaceWspaceInitialState:
+    def test_initial_hspace_is_none(self):
+        """Before subplots_adjust the internal value is None (browser 4px default)."""
+        fig, _ = vw.subplots(2, 2)
+        assert fig._hspace is None
+        assert fig._wspace is None
+
+    def test_subplots_adjust_zero_stores_zero(self):
+        """subplots_adjust(hspace=0.0) must store 0.0, not None."""
+        fig, _ = vw.subplots(2, 1)
+        fig.subplots_adjust(hspace=0.0, wspace=0.0)
+        assert fig._hspace == 0.0
+        assert fig._wspace == 0.0
+
+    def test_subplots_adjust_zero_appears_in_layout(self):
+        fig, _ = vw.subplots(2, 2)
+        fig.subplots_adjust(hspace=0.0, wspace=0.0)
+        layout = json.loads(fig.layout_json)
+        assert layout["hspace"] == pytest.approx(0.0)
+        assert layout["wspace"] == pytest.approx(0.0)
+
+
