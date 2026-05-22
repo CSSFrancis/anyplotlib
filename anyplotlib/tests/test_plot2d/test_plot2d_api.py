@@ -395,3 +395,33 @@ class TestFigureResizePlot2D:
         # top: 3/4 × 800 = 600 px;  bottom: 1/4 × 800 = 200 px
         assert specs[plot_top._id]["panel_height"] == pytest.approx(600, abs=1)
         assert specs[plot_bot._id]["panel_height"] == pytest.approx(200, abs=1)
+
+
+# ===========================================================================
+# Plot2D.get_xlim
+# ===========================================================================
+
+class TestPlot2DGetXlim:
+    def test_get_xlim_exists(self):
+        p = _make_plot2d()
+        assert hasattr(p, "get_xlim")
+
+    def test_get_xlim_with_physical_axes(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(0.0, 10.0, 16)
+        p = ax.imshow(np.zeros((16, 16)), axes=[x, np.linspace(0, 5, 16)], units="nm")
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(0.0)
+        assert hi == pytest.approx(10.0)
+
+    def test_get_xlim_and_get_ylim_match_axes(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(1.0, 5.0, 16)
+        y = np.linspace(2.0, 8.0, 16)
+        p = ax.imshow(np.zeros((16, 16)), axes=[x, y], units="m")
+        xlo, xhi = p.get_xlim()
+        ylo, yhi = p.get_ylim()
+        assert xlo == pytest.approx(1.0)
+        assert xhi == pytest.approx(5.0)
+        assert ylo == pytest.approx(2.0)
+        assert yhi == pytest.approx(8.0)

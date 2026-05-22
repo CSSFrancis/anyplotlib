@@ -185,14 +185,22 @@ class PlotBar(_EventMixin):
             "group_labels":  list(group_labels) if group_labels is not None else [],
             "group_colors":  gc_list,
             "bar_width":     float(width),
+            "align":         align,
             "orient":        orient,
             "baseline":      float(bottom),
             "log_scale":     bool(log_scale),
             "show_values":   bool(show_values),
             "data_min":      dmin,
             "data_max":      dmax,
+            "y_range":       None,
             "units":         units,
             "y_units":       y_units,
+            "title":         "",
+            "x_label":       "",
+            "y_label":       "",
+            "axis_visible":  True,
+            "x_ticks_visible": True,
+            "y_ticks_visible": True,
             # overlay-widget coordinate system (mirrors Plot1D)
             "x_axis":        x_axis,
             "view_x0":       0.0,
@@ -200,6 +208,7 @@ class PlotBar(_EventMixin):
             "overlay_widgets": [],
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
+            "_view_from_python": False,
         }
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
@@ -305,6 +314,76 @@ class PlotBar(_EventMixin):
         self._state["data_min"] = dmin
         self._state["data_max"] = dmax
         self._push()
+
+    # ------------------------------------------------------------------
+    # Display control
+    # ------------------------------------------------------------------
+    def set_title(self, text: str) -> None:
+        """Set the panel title."""
+        self._state["title"] = str(text)
+        self._push()
+
+    def set_xlabel(self, text: str) -> None:
+        """Set the x-axis label."""
+        self._state["x_label"] = str(text)
+        self._push()
+
+    def set_ylabel(self, text: str) -> None:
+        """Set the y-axis / value-axis label."""
+        self._state["y_label"] = str(text)
+        self._push()
+
+    def set_axis_off(self) -> None:
+        """Hide axes, ticks, and labels."""
+        self._state["axis_visible"] = False
+        self._push()
+
+    def set_axis_on(self) -> None:
+        """Show axes, ticks, and labels."""
+        self._state["axis_visible"] = True
+        self._push()
+
+    def set_ticks_visible(self, x: bool = True, y: bool = True) -> None:
+        """Show or hide x/y tick marks independently."""
+        self._state["x_ticks_visible"] = bool(x)
+        self._state["y_ticks_visible"] = bool(y)
+        self._push()
+
+    # ------------------------------------------------------------------
+    # View (xlim / ylim)
+    # ------------------------------------------------------------------
+    def set_xlim(self, x_min: float, x_max: float) -> None:
+        """Pan/zoom the x-axis to [x_min, x_max] in data coordinates."""
+        x_axis = self._state["x_axis"]
+        span = x_axis[1] - x_axis[0]
+        if span == 0:
+            return
+        self._state["view_x0"] = (x_min - x_axis[0]) / span
+        self._state["view_x1"] = (x_max - x_axis[0]) / span
+        self._state["_view_from_python"] = True
+        self._push()
+        self._state["_view_from_python"] = False
+
+    def set_ylim(self, y_min: float, y_max: float) -> None:
+        """Fix the value-axis range to [y_min, y_max]."""
+        self._state["y_range"] = [float(y_min), float(y_max)]
+        self._push()
+
+    def get_ylim(self) -> tuple:
+        """Return the current value-axis range as ``(y_min, y_max)``."""
+        yr = self._state.get("y_range")
+        if yr is not None:
+            return (float(yr[0]), float(yr[1]))
+        return (float(self._state["data_min"]), float(self._state["data_max"]))
+
+    def reset_view(self) -> None:
+        """Reset pan/zoom to show all bars."""
+        self._state["view_x0"] = 0.0
+        self._state["view_x1"] = 1.0
+        self._state["y_range"] = None
+        self._state["_view_from_python"] = True
+        self._push()
+        self._state["_view_from_python"] = False
 
     # ------------------------------------------------------------------
     # Overlay Widgets

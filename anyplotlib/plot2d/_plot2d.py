@@ -334,6 +334,10 @@ class Plot2D(_EventMixin):
     def set_ylim(self, ymin: float, ymax: float) -> None:
         self.set_view(y0=ymin, y1=ymax)
 
+    def get_xlim(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        return (float(xarr.min()), float(xarr.max()))
+
     def get_ylim(self) -> tuple:
         yarr = np.asarray(self._state["y_axis"])
         return (float(yarr.min()), float(yarr.max()))

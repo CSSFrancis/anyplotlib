@@ -541,7 +541,7 @@ class MarkerRegistry:
     })
     _KNOWN_1D = frozenset({
         "points", "vlines", "hlines", "lines", "rectangles",
-        "ellipses", "polygons", "texts",
+        "ellipses", "polygons", "texts", "arrows", "squares",
     })
     # pcolormesh panels only support points (circles) and line segments
     _KNOWN_MESH = frozenset({"circles", "lines"})

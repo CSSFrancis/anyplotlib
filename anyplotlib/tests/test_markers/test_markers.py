@@ -587,3 +587,109 @@ class TestMarkerGroupRemove:
         g.remove()
         assert "marks" not in p.markers["vlines"]
 
+
+# ===========================================================================
+# _KNOWN_1D completeness — arrows and squares
+# ===========================================================================
+
+class TestKnown1dArrowsSquares:
+    def test_arrows_in_known_1d(self):
+        assert "arrows" in MarkerRegistry._KNOWN_1D
+
+    def test_squares_in_known_1d(self):
+        assert "squares" in MarkerRegistry._KNOWN_1D
+
+    def test_add_arrows_does_not_raise(self):
+        p = _make_plot1d()
+        offsets = np.column_stack([np.linspace(0, 1, 5), np.zeros(5)])
+        p.add_arrows(offsets, U=0.05, V=0.1)
+
+    def test_add_squares_does_not_raise(self):
+        p = _make_plot1d()
+        offsets = np.column_stack([np.linspace(0, 1, 3), np.zeros(3)])
+        p.add_squares(offsets, widths=0.05)
+
+    def test_add_arrows_wire_format(self):
+        p = _make_plot1d()
+        offsets = np.array([[0.1, 0.2], [0.5, 0.6]])
+        p.add_arrows(offsets, U=0.1, V=0.2, name="arr")
+        wires = [m for m in p._state["markers"] if m["type"] == "arrows"]
+        assert len(wires) == 1
+        w = wires[0]
+        assert "U" in w and "V" in w
+        assert len(w["U"]) == 2
+        assert len(w["offsets"]) == 2
+
+    def test_add_squares_wire_format(self):
+        p = _make_plot1d()
+        offsets = np.array([[0.1, 0.2], [0.5, 0.6]])
+        p.add_squares(offsets, widths=0.1, name="sq")
+        wires = [m for m in p._state["markers"] if m["type"] == "squares"]
+        assert len(wires) == 1
+        w = wires[0]
+        assert "widths" in w
+        assert len(w["widths"]) == 2
+
+
+# ===========================================================================
+# drawMarkers1d new types — wire format correctness
+# ===========================================================================
+
+class TestMarkers1dNewTypes:
+    """add_rectangles/ellipses/polygons/arrows/squares on Plot1D produce
+    correct wire-format dicts that the JS drawMarkers1d handler will receive."""
+
+    def _plot(self):
+        x = np.linspace(0, 2 * np.pi, 64)
+        fig, ax = apl.subplots(1, 1)
+        return ax.plot(np.sin(x), axes=[x])
+
+    def _wire(self, p, type_):
+        return [m for m in p._state["markers"] if m["type"] == type_]
+
+    def test_add_rectangles_wire(self):
+        p = self._plot()
+        offsets = np.array([[1.0, 0.5], [3.0, -0.5]])
+        p.add_rectangles(offsets, widths=0.2, heights=0.1, name="rects")
+        ws = self._wire(p, "rectangles")
+        assert len(ws) == 1
+        w = ws[0]
+        assert "widths" in w and "heights" in w
+        assert len(w["offsets"]) == 2
+
+    def test_add_squares_wire(self):
+        p = self._plot()
+        offsets = np.array([[1.0, 0.5], [3.0, -0.5]])
+        p.add_squares(offsets, widths=0.1, name="sq")
+        ws = self._wire(p, "squares")
+        assert len(ws) == 1
+        assert "widths" in ws[0]
+
+    def test_add_ellipses_wire(self):
+        p = self._plot()
+        offsets = np.array([[1.0, 0.5], [4.0, 0.0]])
+        p.add_ellipses(offsets, widths=0.3, heights=0.15, name="ellip")
+        ws = self._wire(p, "ellipses")
+        assert len(ws) == 1
+        w = ws[0]
+        assert "widths" in w and "heights" in w and "angles" in w
+
+    def test_add_polygons_wire(self):
+        p = self._plot()
+        tri = np.array([[0.5, 0.0], [1.0, 0.5], [1.5, 0.0]])
+        p.add_polygons([tri], name="poly")
+        ws = self._wire(p, "polygons")
+        assert len(ws) == 1
+        assert "vertices_list" in ws[0]
+        assert len(ws[0]["vertices_list"]) == 1
+
+    def test_add_arrows_wire(self):
+        p = self._plot()
+        offsets = np.array([[1.0, 0.0], [3.0, 0.5]])
+        p.add_arrows(offsets, U=0.2, V=0.1, name="arrows")
+        ws = self._wire(p, "arrows")
+        assert len(ws) == 1
+        w = ws[0]
+        assert "U" in w and "V" in w
+        assert len(w["U"]) == 2
+
