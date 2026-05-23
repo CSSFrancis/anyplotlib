@@ -718,3 +718,278 @@ class TestPlotBarRepr:
     def test_repr_contains_plotbar(self):
         assert "PlotBar" in repr(_bar([1, 2, 3], [10, 20, 30]))
 
+
+# ===========================================================================
+# New state keys added in audit fix
+# ===========================================================================
+
+class TestPlotBarNewStateKeys:
+    def test_title_default_empty(self):
+        assert _make_bar()._state["title"] == ""
+
+    def test_x_label_in_state(self):
+        assert "x_label" in _make_bar()._state
+
+    def test_y_label_in_state(self):
+        assert "y_label" in _make_bar()._state
+
+    def test_axis_visible_true_by_default(self):
+        assert _make_bar()._state["axis_visible"] is True
+
+    def test_x_ticks_visible_true_by_default(self):
+        assert _make_bar()._state["x_ticks_visible"] is True
+
+    def test_y_ticks_visible_true_by_default(self):
+        assert _make_bar()._state["y_ticks_visible"] is True
+
+    def test_align_stored(self):
+        assert _make_bar(align="edge")._state["align"] == "edge"
+
+    def test_align_center_by_default(self):
+        assert _make_bar()._state["align"] == "center"
+
+    def test_y_range_none_by_default(self):
+        p = _make_bar()
+        assert "y_range" in p._state
+        assert p._state["y_range"] is None
+
+    def test_view_from_python_false_by_default(self):
+        assert _make_bar()._state["_view_from_python"] is False
+
+
+# ===========================================================================
+# New display-control methods added in audit fix
+# ===========================================================================
+
+class TestPlotBarDisplayMethods:
+    def test_set_title(self):
+        p = _make_bar()
+        p.set_title("My Chart")
+        assert p._state["title"] == "My Chart"
+
+    def test_set_xlabel(self):
+        p = _make_bar()
+        p.set_xlabel("Category")
+        assert p._state["x_label"] == "Category"
+
+    def test_set_ylabel(self):
+        p = _make_bar()
+        p.set_ylabel("Value")
+        assert p._state["y_label"] == "Value"
+
+    def test_set_axis_off(self):
+        p = _make_bar()
+        p.set_axis_off()
+        assert p._state["axis_visible"] is False
+
+    def test_set_axis_on_restores(self):
+        p = _make_bar()
+        p.set_axis_off()
+        p.set_axis_on()
+        assert p._state["axis_visible"] is True
+
+    def test_set_ticks_visible_both_false(self):
+        p = _make_bar()
+        p.set_ticks_visible(False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is False
+
+    def test_set_ticks_visible_x_only(self):
+        p = _make_bar()
+        p.set_ticks_visible(True, x=True, y=False)
+        assert p._state["x_ticks_visible"] is True
+        assert p._state["y_ticks_visible"] is False
+
+    def test_set_ylim(self):
+        p = _make_bar()
+        p.set_ylim(0.0, 10.0)
+        assert p._state["y_range"] == [0.0, 10.0]
+
+    def test_get_ylim_default(self):
+        p = _make_bar()
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(p._state["data_min"])
+        assert hi == pytest.approx(p._state["data_max"])
+
+    def test_get_ylim_after_set_ylim(self):
+        p = _make_bar()
+        p.set_ylim(-1.0, 20.0)
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(-1.0)
+        assert hi == pytest.approx(20.0)
+
+    def test_set_xlim_changes_view(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.bar(np.arange(10), np.ones(10))
+        p.set_xlim(2.0, 7.0)
+        assert p._state["view_x0"] != 0.0 or p._state["view_x1"] != 1.0
+
+    def test_reset_view(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.bar(np.arange(10), np.ones(10))
+        p.set_xlim(2.0, 7.0)
+        p.set_ylim(0.0, 5.0)
+        p.reset_view()
+        assert p._state["view_x0"] == pytest.approx(0.0)
+        assert p._state["view_x1"] == pytest.approx(1.0)
+        assert p._state["y_range"] is None
+
+
+# ===========================================================================
+# _view_from_python flag on PlotBar
+# ===========================================================================
+
+class TestPlotBarViewFromPython:
+    def test_set_xlim_clears_flag(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.bar(np.arange(10), np.ones(10))
+        p.set_xlim(2.0, 7.0)
+        assert p._state["_view_from_python"] is False
+
+    def test_reset_view_clears_flag(self):
+        p = _make_bar()
+        p.reset_view()
+        assert p._state["_view_from_python"] is False
+
+
+
+# ===========================================================================
+# PlotBar: get_xlim and fixed set_ticks_visible signature
+# ===========================================================================
+
+class TestPlotBarGetXlim:
+    def test_get_xlim_default(self):
+        p = _make_bar()
+        x_axis = p._state["x_axis"]
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(x_axis[0])
+        assert hi == pytest.approx(x_axis[-1])
+
+    def test_get_xlim_after_set_xlim(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.bar(np.arange(10), np.ones(10))
+        p.set_xlim(2.0, 7.0)
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(2.0, abs=0.5)
+        assert hi == pytest.approx(7.0, abs=0.5)
+
+
+class TestPlotBarSetTicksVisibleSignature:
+    def test_positional_visible_both(self):
+        p = _make_bar()
+        p.set_ticks_visible(False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is False
+
+    def test_positional_visible_true(self):
+        p = _make_bar()
+        p.set_ticks_visible(False)
+        p.set_ticks_visible(True)
+        assert p._state["x_ticks_visible"] is True
+        assert p._state["y_ticks_visible"] is True
+
+    def test_keyword_x_only(self):
+        p = _make_bar()
+        p.set_ticks_visible(True, x=False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is True
+
+    def test_keyword_y_only(self):
+        p = _make_bar()
+        p.set_ticks_visible(True, y=False)
+        assert p._state["x_ticks_visible"] is True
+        assert p._state["y_ticks_visible"] is False
+
+
+# ===========================================================================
+# M3: PlotBar constructor-only setters
+# ===========================================================================
+
+class TestPlotBarNewSetters:
+    def test_set_bar_width(self):
+        p = _make_bar()
+        p.set_bar_width(0.5)
+        assert p._state["bar_width"] == pytest.approx(0.5)
+
+    def test_set_align_center(self):
+        p = _make_bar()
+        p.set_align("center")
+        assert p._state["align"] == "center"
+
+    def test_set_align_edge(self):
+        p = _make_bar()
+        p.set_align("edge")
+        assert p._state["align"] == "edge"
+
+    def test_set_align_invalid(self):
+        p = _make_bar()
+        with pytest.raises(ValueError):
+            p.set_align("left")
+
+    def test_set_orient_h(self):
+        p = _make_bar()
+        p.set_orient("h")
+        assert p._state["orient"] == "h"
+
+    def test_set_orient_v(self):
+        p = _make_bar()
+        p.set_orient("v")
+        assert p._state["orient"] == "v"
+
+    def test_set_orient_invalid(self):
+        p = _make_bar()
+        with pytest.raises(ValueError):
+            p.set_orient("diagonal")
+
+    def test_set_group_labels(self):
+        p = _make_bar()
+        p.set_group_labels(["a", "b", "c"])
+        assert p._state["group_labels"] == ["a", "b", "c"]
+
+
+# ===========================================================================
+# M1/M2: standardized parameter names
+# ===========================================================================
+
+class TestPlotBarParameterNames:
+    def test_set_title_uses_label_param(self):
+        import inspect
+        p = _make_bar()
+        sig = inspect.signature(p.set_title)
+        assert "label" in sig.parameters
+
+    def test_set_xlabel_uses_label_param(self):
+        import inspect
+        p = _make_bar()
+        sig = inspect.signature(p.set_xlabel)
+        assert "label" in sig.parameters
+
+    def test_set_xlim_uses_xmin_xmax(self):
+        import inspect
+        p = _make_bar()
+        sig = inspect.signature(p.set_xlim)
+        params = list(sig.parameters)
+        assert params[0] == "xmin"
+        assert params[1] == "xmax"
+
+    def test_set_title_works(self):
+        p = _make_bar()
+        p.set_title(label="My Bar Chart")
+        assert p._state["title"] == "My Bar Chart"
+
+
+# ===========================================================================
+# m2: configure_pointer_settled public on PlotBar
+# ===========================================================================
+
+class TestPlotBarConfigurePointerSettled:
+    def test_public_method_exists(self):
+        p = _make_bar()
+        assert hasattr(p, "configure_pointer_settled")
+        assert callable(p.configure_pointer_settled)
+
+    def test_sets_state(self):
+        p = _make_bar()
+        p.configure_pointer_settled(300, 6)
+        assert p._state["pointer_settled_ms"] == 300
+        assert p._state["pointer_settled_delta"] == 6

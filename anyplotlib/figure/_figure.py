@@ -114,6 +114,8 @@ class Figure(anywidget.AnyWidget):
         self._axes_map: dict  = {}
         self._plots_map: dict = {}
         self._insets_map: dict = {}
+        self._hspace: float | None = None
+        self._wspace: float | None = None
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -148,6 +150,29 @@ class Figure(anywidget.AnyWidget):
         >>> fig.set_help("")   # hide the badge
         """
         self.help_text = self._resolve_help(text)
+
+    def subplots_adjust(self, hspace: float | None = None,
+                        wspace: float | None = None) -> None:
+        """Set the spacing between subplot panels.
+
+        Only the arguments that are explicitly provided are updated; omitting
+        an argument leaves the current value unchanged.
+
+        Parameters
+        ----------
+        hspace : float, optional
+            Fraction of the average row height to use as vertical gap between
+            panels.  ``0.1`` adds a gap of 10 % of the mean row height.
+            ``None`` (default) leaves the current hspace unchanged.
+        wspace : float, optional
+            Fraction of the average column width to use as horizontal gap.
+            ``None`` (default) leaves the current wspace unchanged.
+        """
+        if hspace is not None:
+            self._hspace = float(hspace)
+        if wspace is not None:
+            self._wspace = float(wspace)
+        self._push_layout()
 
     # ── subplot creation ──────────────────────────────────────────────────────
     def add_subplot(self, spec) -> Axes:
@@ -303,6 +328,8 @@ class Figure(anywidget.AnyWidget):
             "panel_specs":    panel_specs,
             "share_groups":   share_groups,
             "inset_specs":    inset_specs,
+            "hspace":         self._hspace,
+            "wspace":         self._wspace,
         })
 
     # ── inset creation ────────────────────────────────────────────────────────
@@ -463,6 +490,25 @@ class Figure(anywidget.AnyWidget):
             HTML string containing an embedded iframe with srcdoc attribute.
         """
         return repr_html_iframe(self)
+
+    def close(self) -> None:
+        """Close the figure.
+
+        Fires a ``"close"`` event on every panel's :attr:`callbacks`, then
+        hides the widget by setting its CSS ``display`` to ``"none"``.
+        Subsequent calls are no-ops.
+        """
+        if getattr(self, "_closed", False):
+            return
+        self._closed = True
+        close_event = Event(event_type="close")
+        for plot in self._plots_map.values():
+            if hasattr(plot, "callbacks"):
+                plot.callbacks.fire(close_event)
+        try:
+            self.layout.display = "none"
+        except Exception:
+            pass
 
     def __repr__(self) -> str:
         return (f"Figure({self._nrows}x{self._ncols}, "

@@ -346,6 +346,11 @@ function render({ model, el }) {
     gridDiv.style.gridTemplateRows    = rowPx.map(px => px + 'px').join(' ');
     gridDiv.style.width  = '';
     gridDiv.style.height = '';
+    const meanColPx = colPx.length ? colPx.reduce((a,b)=>a+b,0)/colPx.length : 0;
+    const meanRowPx = rowPx.length ? rowPx.reduce((a,b)=>a+b,0)/rowPx.length : 0;
+    // Only override the default gap:4px when the Python caller explicitly set a value.
+    if (layout.wspace != null) gridDiv.style.columnGap = (meanColPx ? Math.round(layout.wspace*meanColPx) : 0)+'px';
+    if (layout.hspace != null) gridDiv.style.rowGap    = (meanRowPx ? Math.round(layout.hspace*meanRowPx) : 0)+'px';
 
     const seen = new Set();
     for (const spec of panel_specs) {
@@ -388,6 +393,7 @@ function render({ model, el }) {
     let plotCanvas, overlayCanvas, markersCanvas, statusBar;
     let xAxisCanvas=null, yAxisCanvas=null, scaleBar=null;
     let cbCanvas=null, cbCtx=null, plotWrap=null, wrapNode=null;
+    let titleCanvas=null;
 
     if (kind === '2d') {
       plotWrap = document.createElement('div');
@@ -421,6 +427,9 @@ function render({ model, el }) {
         'position:absolute;display:none;pointer-events:none;border-radius:0 2px 2px 0;';
       cbCtx = cbCanvas.getContext('2d');
 
+      titleCanvas = document.createElement('canvas');
+      titleCanvas.style.cssText = `position:absolute;pointer-events:none;z-index:8;background:transparent;display:none;`;
+
       plotWrap.appendChild(plotCanvas);
       plotWrap.appendChild(overlayCanvas);
       plotWrap.appendChild(markersCanvas);
@@ -429,6 +438,7 @@ function render({ model, el }) {
       plotWrap.appendChild(cbCanvas);
       plotWrap.appendChild(scaleBar);
       plotWrap.appendChild(statusBar);
+      plotWrap.appendChild(titleCanvas);
       outerContainer.appendChild(plotWrap);
       wrapNode = plotWrap;
 
@@ -483,7 +493,7 @@ function render({ model, el }) {
 
     return { plotCanvas, overlayCanvas, markersCanvas, statusBar,
              xAxisCanvas, yAxisCanvas, scaleBar,
-             cbCanvas, cbCtx, plotWrap, wrapNode };
+             cbCanvas, cbCtx, plotWrap, wrapNode, titleCanvas };
   }
 
   function _createPanelDOM(id, kind, pw, ph, spec) {
@@ -502,6 +512,7 @@ function render({ model, el }) {
     const mkCtx   = stack.markersCanvas.getContext('2d');
     const xCtx    = stack.xAxisCanvas ? stack.xAxisCanvas.getContext('2d') : null;
     const yCtx    = stack.yAxisCanvas ? stack.yAxisCanvas.getContext('2d') : null;
+    const titleCtx = stack.titleCanvas ? stack.titleCanvas.getContext('2d') : null;
 
     const blitCache = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
 
@@ -522,6 +533,8 @@ function render({ model, el }) {
       xAxisCanvas:   stack.xAxisCanvas,
       yAxisCanvas:   stack.yAxisCanvas,
       xCtx, yCtx,
+      titleCanvas:   stack.titleCanvas || null,
+      titleCtx,
       scaleBar:      stack.scaleBar,
       statusBar:     stack.statusBar,
       statsDiv,
@@ -557,6 +570,13 @@ function render({ model, el }) {
           newState.zoom     = p2.state.zoom;
           newState.center_x = p2.state.center_x;
           newState.center_y = p2.state.center_y;
+        } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
+          newState.view_x0 = p2.state.view_x0;
+          newState.view_x1 = p2.state.view_x1;
+        } else if (p2.state && p2.kind === '3d' && !newState._view_from_python) {
+          newState.azimuth   = p2.state.azimuth;
+          newState.elevation = p2.state.elevation;
+          newState.zoom      = p2.state.zoom;
         }
         p2.state = newState;
       }
@@ -679,6 +699,13 @@ function render({ model, el }) {
           newState.zoom     = p2.state.zoom;
           newState.center_x = p2.state.center_x;
           newState.center_y = p2.state.center_y;
+        } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
+          newState.view_x0 = p2.state.view_x0;
+          newState.view_x1 = p2.state.view_x1;
+        } else if (p2.state && p2.kind === '3d' && !newState._view_from_python) {
+          newState.azimuth   = p2.state.azimuth;
+          newState.elevation = p2.state.elevation;
+          newState.zoom      = p2.state.zoom;
         }
         p2.state = newState;
       }
@@ -789,12 +816,31 @@ function render({ model, el }) {
       const hasPhysAxis = st && (st.is_mesh || st.has_axes)
                        && st.x_axis && st.x_axis.length >= 2
                        && st.y_axis && st.y_axis.length >= 2;
+      // Always reserve the PAD_T top strip for the title (mirrors 1D behaviour).
+      // Left/right/bottom gutters are only used when physical axes are present.
       const imgX = hasPhysAxis ? PAD_L : 0;
-      const imgY = hasPhysAxis ? PAD_T : 0;
+      const imgY = PAD_T;
       const imgW = hasPhysAxis ? Math.max(1, pw - PAD_L - PAD_R) : pw;
-      const imgH = hasPhysAxis ? Math.max(1, ph - PAD_T - PAD_B) : ph;
+      let   imgH = Math.max(1, ph - PAD_T - (hasPhysAxis ? PAD_B : 0));
+      // Enforce aspect ratio (st.aspect = number or "equal" → 1.0).
+      if (st && st.aspect != null) {
+        const asp = (st.aspect === 'equal') ? 1.0 : parseFloat(st.aspect);
+        if (Number.isFinite(asp) && asp > 0) imgH = Math.max(1, Math.round(imgW / asp));
+      }
       // Store on panel so event handlers and draw functions don't recompute.
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
+
+      // Title canvas: always sits in the PAD_T strip above the image area
+      if (p.titleCanvas && p.titleCtx) {
+        p.titleCanvas.style.left    = imgX + 'px';
+        p.titleCanvas.style.top     = '0px';
+        p.titleCanvas.style.display = 'block';
+        p.titleCanvas.style.width   = imgW + 'px';
+        p.titleCanvas.style.height  = PAD_T + 'px';
+        p.titleCanvas.width  = imgW * dpr;
+        p.titleCanvas.height = PAD_T * dpr;
+        p.titleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
 
       if (p.plotWrap) {
         p.plotWrap.style.width  = pw + 'px';
@@ -864,13 +910,14 @@ function render({ model, el }) {
 
       // Colorbar: narrow strip to the right of the image area
       if (p.cbCanvas && p.cbCtx) {
-        const cbW = 16;
+        const cbStripW = 16;
+        const cbTotalW = (st && st.colorbar_label) ? cbStripW + 14 : cbStripW;
         const vis = st && st.show_colorbar;
         if (vis) {
           p.cbCanvas.style.display = 'block';
           p.cbCanvas.style.left = (imgX + imgW + 2) + 'px';
           p.cbCanvas.style.top  = imgY + 'px';
-          _sz(p.cbCanvas, p.cbCtx, cbW, imgH);
+          _sz(p.cbCanvas, p.cbCtx, cbTotalW, imgH);
         } else {
           p.cbCanvas.style.display = 'none';
         }
@@ -1160,7 +1207,9 @@ function render({ model, el }) {
     p.cbCanvas.style.display = vis ? 'block' : 'none';
     if(!vis) return;
 
-    const cbW=16;
+    const cbStripW=16;
+    const cbLabel=st.colorbar_label||'';
+    const cbW=cbLabel?(cbStripW+14):cbStripW;
     const imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
     const ctx=p.cbCtx;
     ctx.clearRect(0,0,cbW,imgH);
@@ -1172,17 +1221,17 @@ function render({ model, el }) {
         const ci=Math.max(0,Math.min(255,Math.round(frac*255)));
         const [r2,g2,b2]=st.colormap_data[ci];
         ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
-        ctx.fillRect(0,py,cbW,1);
+        ctx.fillRect(0,py,cbStripW,1);
       }
     } else {
       ctx.fillStyle=theme.dark?'#444':'#ccc';
-      ctx.fillRect(0,0,cbW,imgH);
+      ctx.fillRect(0,0,cbStripW,imgH);
     }
 
     // Border
     ctx.strokeStyle=theme.border||'#888';
     ctx.lineWidth=0.5;
-    ctx.strokeRect(0,0,cbW,imgH);
+    ctx.strokeRect(0,0,cbStripW,imgH);
 
     // display_min / display_max tick marks
     const dMin=st.display_min, dMax=st.display_max;
@@ -1191,8 +1240,20 @@ function render({ model, el }) {
     const vRange=(hMax-hMin)||1;
     function _vToY(v){return imgH-1-((v-hMin)/vRange)*(imgH-1);}
     ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(0,_vToY(dMax));ctx.lineTo(cbW,_vToY(dMax));ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,_vToY(dMin));ctx.lineTo(cbW,_vToY(dMin));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,_vToY(dMax));ctx.lineTo(cbStripW,_vToY(dMax));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,_vToY(dMin));ctx.lineTo(cbStripW,_vToY(dMin));ctx.stroke();
+
+    // Colorbar label (rotated −90° to the right of the strip)
+    if(cbLabel){
+      ctx.save();
+      ctx.translate(cbStripW+9, imgH/2);
+      ctx.rotate(-Math.PI/2);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=theme.unitText;
+      ctx.font='10px sans-serif';
+      ctx.fillText(cbLabel,0,0);
+      ctx.restore();
+    }
   }
 
 
@@ -1206,8 +1267,15 @@ function render({ model, el }) {
     const zoom=st.zoom, cx=st.center_x, cy=st.center_y;
     const units=st.units||'px';
     const hasPhysAxis = (st.is_mesh || st.has_axes) && xArr.length>=2 && yArr.length>=2;
-    const hasX = hasPhysAxis && p.xCtx && p.xAxisCanvas && p.xAxisCanvas.style.display!=='none';
-    const hasY = hasPhysAxis && p.yCtx && p.yAxisCanvas && p.yAxisCanvas.style.display!=='none';
+    if(st.axis_visible===false){
+      if(p.xAxisCanvas) p.xAxisCanvas.style.display='none';
+      if(p.yAxisCanvas) p.yAxisCanvas.style.display='none';
+    } else if(hasPhysAxis){
+      if(st.x_ticks_visible===false&&p.xAxisCanvas) p.xAxisCanvas.style.display='none';
+      if(st.y_ticks_visible===false&&p.yAxisCanvas) p.yAxisCanvas.style.display='none';
+    }
+    const hasX=hasPhysAxis&&st.axis_visible!==false&&st.x_ticks_visible!==false&&p.xCtx&&p.xAxisCanvas&&p.xAxisCanvas.style.display!=='none';
+    const hasY=hasPhysAxis&&st.axis_visible!==false&&st.y_ticks_visible!==false&&p.yCtx&&p.yAxisCanvas&&p.yAxisCanvas.style.display!=='none';
 
     function _visFrac(z,c){
       if(z>=1.0){const h=0.5/z;const cc=Math.max(h,Math.min(1-h,c));return[cc-h,cc+h];}
@@ -1258,6 +1326,8 @@ function render({ model, el }) {
       p.xCtx.textAlign='right'; p.xCtx.textBaseline='bottom';
       p.xCtx.fillStyle=theme.unitText; p.xCtx.font='9px sans-serif';
       p.xCtx.fillText(units, aw-2, ah-1);
+      const xlabel=st.x_label||'';
+      if(xlabel){p.xCtx.fillStyle=theme.tickText;p.xCtx.font='11px sans-serif';p.xCtx.textAlign='center';p.xCtx.textBaseline='bottom';p.xCtx.fillText(xlabel,aw/2,ah-2);}
     }
 
     // ── Y axis canvas: PAD_L × imgH, origin at top-left ─────────────────
@@ -1293,6 +1363,28 @@ function render({ model, el }) {
       p.yCtx.textAlign='left'; p.yCtx.textBaseline='top';
       p.yCtx.fillStyle=theme.unitText; p.yCtx.font='9px sans-serif';
       p.yCtx.fillText(units, 2, 1);
+      const ylabel=st.y_label||'';
+      if(ylabel){
+        p.yCtx.save();
+        p.yCtx.translate(Math.round(aw*0.15),ah/2);
+        p.yCtx.rotate(-Math.PI/2);
+        p.yCtx.textAlign='center'; p.yCtx.textBaseline='middle';
+        p.yCtx.fillStyle=theme.tickText; p.yCtx.font='11px sans-serif';
+        p.yCtx.fillText(ylabel,0,0);
+        p.yCtx.restore();
+      }
+    }
+    const title2d = st.title || '';
+    if (p.titleCanvas && p.titleCtx) {
+      const tw = p.imgW || imgW;
+      p.titleCtx.clearRect(0, 0, tw, PAD_T);
+      if (title2d) {
+        p.titleCtx.fillStyle = theme.tickText;
+        p.titleCtx.font = 'bold 11px sans-serif';
+        p.titleCtx.textAlign = 'center';
+        p.titleCtx.textBaseline = 'middle';
+        p.titleCtx.fillText(title2d, tw / 2, PAD_T / 2);
+      }
     }
   }
 
@@ -1375,13 +1467,28 @@ function render({ model, el }) {
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
       const type = ms.type || 'circles';
+
+      // Coordinate transform dispatch: "data" (default), "axes", "display".
+      // For non-data transforms sizes are in pixels, not scaled by zoom.
+      const tfm = ms.transform || 'data';
+      let _tc;
+      if(tfm==='axes'){
+        const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
+        _tc=(fx,fy)=>[fr.x+fx*fr.w, fr.y+(1-fy)*fr.h];
+      } else if(tfm==='display'){
+        _tc=(ix,iy)=>[ix,iy];
+      } else {
+        _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,imgW,imgH);
+      }
+      const scl = tfm==='data' ? scale : 1;
+
       mkCtx.save();
       mkCtx.strokeStyle=ec; mkCtx.fillStyle=ec; mkCtx.lineWidth=dlw;
 
       if(type==='circles'){
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scale);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
           mkCtx.beginPath();mkCtx.arc(cx,cy,r,0,Math.PI*2);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
           mkCtx.stroke();
@@ -1389,8 +1496,8 @@ function render({ model, el }) {
       } else if(type==='arrows'){
         const HL=8;
         for(let i=0;i<ms.offsets.length;i++){
-          const [x1,y1]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const u=(ms.U[i]||0)*scale, v=(ms.V[i]||0)*scale;
+          const [x1,y1]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const u=(ms.U[i]||0)*scl, v=(ms.V[i]||0)*scl;
           const x2=x1+u,y2=y1+v,ang=Math.atan2(y2-y1,x2-x1);
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
           mkCtx.beginPath();mkCtx.moveTo(x2,y2);
@@ -1400,9 +1507,9 @@ function render({ model, el }) {
         }
       } else if(type==='ellipses'){
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*scale/2);
-          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*scale/2);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*scl/2);
+          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*scl/2);
           const ang=((ms.angles[i]||ms.angles[0]||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
@@ -1410,16 +1517,16 @@ function render({ model, el }) {
         }
       } else if(type==='lines'){
         for(const seg of (ms.segments||[])){
-          const [x1,y1]=_imgToCanvas2d(seg[0][0],seg[0][1],st,imgW,imgH);
-          const [x2,y2]=_imgToCanvas2d(seg[1][0],seg[1][1],st,imgW,imgH);
+          const [x1,y1]=_tc(seg[0][0],seg[0][1]);
+          const [x2,y2]=_tc(seg[1][0],seg[1][1]);
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
         }
       } else if(type==='rectangles'||type==='squares'){
         const heights=type==='squares'?ms.widths:ms.heights;
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
-          const rw=(ms.widths[i]||ms.widths[0]||20)*scale;
-          const rh=((heights[i]||heights[0]||20))*scale;
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const rw=(ms.widths[i]||ms.widths[0]||20)*scl;
+          const rh=((heights[i]||heights[0]||20))*scl;
           const ang=((ms.angles&&(ms.angles[i]||ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
@@ -1430,9 +1537,9 @@ function render({ model, el }) {
         for(let i=0;i<(ms.vertices_list||[]).length;i++){
           const verts=ms.vertices_list[i];
           if(!verts||verts.length<2) continue;
-          const [px0,py0]=_imgToCanvas2d(verts[0][0],verts[0][1],st,imgW,imgH);
+          const [px0,py0]=_tc(verts[0][0],verts[0][1]);
           mkCtx.beginPath();mkCtx.moveTo(px0,py0);
-          for(let k=1;k<verts.length;k++){const[px,py]=_imgToCanvas2d(verts[k][0],verts[k][1],st,imgW,imgH);mkCtx.lineTo(px,py);}
+          for(let k=1;k<verts.length;k++){const[px,py]=_tc(verts[k][0],verts[k][1]);mkCtx.lineTo(px,py);}
           mkCtx.closePath();
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
           mkCtx.stroke();
@@ -1441,7 +1548,7 @@ function render({ model, el }) {
         const fs=ms.fontsize||12;
         mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
         for(let i=0;i<ms.offsets.length;i++){
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,imgW,imgH);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           mkCtx.fillText(String(ms.texts[i]||''),cx,cy);
         }
       }
@@ -1895,8 +2002,17 @@ function render({ model, el }) {
     const yData = p._1dDArr;  // Float64Array (or plain array fallback)
 
     const x0=st.view_x0||0, x1=st.view_x1||1;
-    const dMin=st.data_min, dMax=st.data_max;
+    let dMin=st.data_min, dMax=st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     const units=st.units||'', yUnits=st.y_units||'';
+
+    const isLog = st.yscale === 'log';
+    const _logEps = 1e-300;
+    const effDMin = isLog ? Math.log10(Math.max(_logEps, dMin)) : dMin;
+    const effDMax = isLog ? Math.log10(Math.max(_logEps, dMax)) : dMax;
+    function _toPlotY(v) {
+      return _valToPy1d(isLog ? Math.log10(Math.max(_logEps, v)) : v, effDMin, effDMax, r);
+    }
 
     ctx.clearRect(0,0,pw,ph);
     ctx.fillStyle=theme.bg; ctx.fillRect(0,0,pw,ph);
@@ -1913,12 +2029,21 @@ function render({ model, el }) {
         ctx.beginPath();ctx.moveTo(px,r.y);ctx.lineTo(px,r.y+r.h);ctx.stroke();
       }
     }
-    const yRange=(dMax-dMin)||1;
+    const yRange=(effDMax-effDMin)||1;
     const yStep=findNice(yRange/Math.max(2,Math.floor(r.h/40)));
-    for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){
-      const py=_valToPy1d(v,dMin,dMax,r);
-      if(py<r.y||py>r.y+r.h) continue;
-      ctx.beginPath();ctx.moveTo(r.x,py);ctx.lineTo(r.x+r.w,py);ctx.stroke();
+    if(isLog){
+      const lo=Math.floor(effDMin), hi=Math.ceil(effDMax);
+      for(let e=lo;e<=hi;e++){
+        const py=_toPlotY(Math.pow(10,e));
+        if(py<r.y||py>r.y+r.h) continue;
+        ctx.beginPath();ctx.moveTo(r.x,py);ctx.lineTo(r.x+r.w,py);ctx.stroke();
+      }
+    } else {
+      for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){
+        const py=_valToPy1d(v,dMin,dMax,r);
+        if(py<r.y||py>r.y+r.h) continue;
+        ctx.beginPath();ctx.moveTo(r.x,py);ctx.lineTo(r.x+r.w,py);ctx.stroke();
+      }
     }
 
     // Spans
@@ -1929,7 +2054,7 @@ function render({ model, el }) {
         const px1b=_fracToPx1d(_xToFrac1d(xArr,sp.v1),x0,x1,r);
         ctx.fillRect(px0,r.y,px1b-px0,r.h);
       } else {
-        const py0=_valToPy1d(sp.v1,dMin,dMax,r), py1=_valToPy1d(sp.v0,dMin,dMax,r);
+        const py0=_toPlotY(sp.v1), py1=_toPlotY(sp.v0);
         ctx.fillRect(r.x,py0,r.w,py1-py0);
       }
     }
@@ -1993,10 +2118,21 @@ function render({ model, el }) {
     function _drawLine(yData, lineXArr, color, lw, linestyle, alpha, marker, markersize) {
       if (!yData || !yData.length) return;
       const n = yData.length;
-      const dash = _LINESTYLE_DASH[linestyle || 'solid'] || [];
+      const isStepMid = linestyle === 'step-mid';
+      const dash = isStepMid ? [] : (_LINESTYLE_DASH[linestyle || 'solid'] || []);
       const eff_alpha = (alpha != null && alpha < 1.0) ? alpha : 1.0;
       const ms = Math.max(1, markersize || 4);
       const doMarker = marker && marker !== 'none';
+
+      // Pre-compute pixel positions
+      const allPx = new Array(n), allPy = new Array(n);
+      for (let i = 0; i < n; i++) {
+        const xFrac = lineXArr.length >= 2
+          ? (lineXArr[i] - lineXArr[0]) / ((lineXArr[lineXArr.length - 1] - lineXArr[0]) || 1)
+          : i / ((n - 1) || 1);
+        allPx[i] = _fracToPx1d(xFrac, x0, x1, r);
+        allPy[i] = _toPlotY(yData[i]);
+      }
 
       ctx.save();
       if (eff_alpha < 1.0) ctx.globalAlpha = eff_alpha;
@@ -2004,19 +2140,24 @@ function render({ model, el }) {
       ctx.beginPath();
       ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round';
 
-      const pts = doMarker ? [] : null;
-      let first = true;
-      for (let i = 0; i < n; i++) {
-        const xFrac = lineXArr.length >= 2
-          ? (lineXArr[i] - lineXArr[0]) / ((lineXArr[lineXArr.length - 1] - lineXArr[0]) || 1)
-          : i / ((n - 1) || 1);
-        const px = _fracToPx1d(xFrac, x0, x1, r);
-        const py = _valToPy1d(yData[i], dMin, dMax, r);
-        if (first) { ctx.moveTo(px, py); first = false; } else { ctx.lineTo(px, py); }
-        if (pts) pts.push([px, py]);
+      if (isStepMid && n >= 2) {
+        ctx.moveTo(allPx[0], allPy[0]);
+        for (let i = 0; i < n - 1; i++) {
+          const midX = (allPx[i] + allPx[i + 1]) / 2;
+          ctx.lineTo(midX, allPy[i]);
+          ctx.lineTo(midX, allPy[i + 1]);
+        }
+        ctx.lineTo(allPx[n - 1], allPy[n - 1]);
+      } else {
+        for (let i = 0; i < n; i++) {
+          if (i === 0) ctx.moveTo(allPx[i], allPy[i]);
+          else ctx.lineTo(allPx[i], allPy[i]);
+        }
       }
       ctx.stroke();
       ctx.setLineDash([]);
+
+      const pts = doMarker ? allPx.map((px, i) => [px, allPy[i]]) : null;
 
       // Per-point marker symbols
       if (doMarker && pts && pts.length) {
@@ -2073,45 +2214,64 @@ function render({ model, el }) {
     }
     ctx.restore();
 
+    const axisVis1d=st.axis_visible!==false;
+    const xTicksVis1d=st.x_ticks_visible!==false;
+    const yTicksVis1d=st.y_ticks_visible!==false;
+
     // Axes
     ctx.strokeStyle=theme.axisStroke; ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(r.x,r.y+r.h);ctx.lineTo(r.x+r.w,r.y+r.h);ctx.stroke();
     ctx.beginPath();ctx.moveTo(r.x,r.y);ctx.lineTo(r.x,r.y+r.h);ctx.stroke();
 
-    ctx.fillStyle=theme.tickText; ctx.font='10px monospace';
-    if(xArr.length>=2){
-      const xVMin=_fracToX1d(xArr,x0), xVMax=_fracToX1d(xArr,x1);
-      const xStep=findNice((xVMax-xVMin)/Math.max(2,Math.floor(r.w/70)));
-      ctx.textAlign='center'; ctx.textBaseline='top';
-      for(let v=Math.ceil(xVMin/xStep)*xStep;v<=xVMax+xStep*0.01;v+=xStep){
-        const px=_fracToPx1d(_xToFrac1d(xArr,v),x0,x1,r);
-        if(px<r.x||px>r.x+r.w) continue;
-        ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(px,r.y+r.h);ctx.lineTo(px,r.y+r.h+5);ctx.stroke();
-        ctx.fillStyle=theme.tickText;ctx.fillText(fmtVal(v),px,r.y+r.h+7);
+    if(axisVis1d&&xTicksVis1d){
+      ctx.fillStyle=theme.tickText; ctx.font='10px monospace';
+      if(xArr.length>=2){
+        const xVMin=_fracToX1d(xArr,x0), xVMax=_fracToX1d(xArr,x1);
+        const xStep=findNice((xVMax-xVMin)/Math.max(2,Math.floor(r.w/70)));
+        ctx.textAlign='center'; ctx.textBaseline='top';
+        for(let v=Math.ceil(xVMin/xStep)*xStep;v<=xVMax+xStep*0.01;v+=xStep){
+          const px=_fracToPx1d(_xToFrac1d(xArr,v),x0,x1,r);
+          if(px<r.x||px>r.x+r.w) continue;
+          ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(px,r.y+r.h);ctx.lineTo(px,r.y+r.h+5);ctx.stroke();
+          ctx.fillStyle=theme.tickText;ctx.fillText(fmtVal(v),px,r.y+r.h+7);
+        }
+        if(units&&units!=='px'){ctx.textAlign='right';ctx.textBaseline='top';ctx.fillStyle=theme.unitText;ctx.font='9px monospace';ctx.fillText(units,r.x+r.w,r.y+r.h+24);ctx.font='10px monospace';}
       }
-      if(units&&units!=='px'){ctx.textAlign='right';ctx.textBaseline='top';ctx.fillStyle=theme.unitText;ctx.font='9px monospace';ctx.fillText(units,r.x+r.w,r.y+r.h+24);ctx.font='10px monospace';}
     }
-    ctx.font='10px monospace';ctx.textAlign='right';ctx.textBaseline='middle';
-    let maxTW=0;
-    for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){const tw=ctx.measureText(fmtVal(v)).width;if(tw>maxTW)maxTW=tw;}
-    const tickRX=r.x-8;
-    for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){
-      const py=_valToPy1d(v,dMin,dMax,r);
-      if(py<r.y||py>r.y+r.h) continue;
-      ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(r.x,py);ctx.lineTo(r.x-5,py);ctx.stroke();
-      ctx.fillStyle=theme.tickText;ctx.fillText(fmtVal(v),tickRX,py);
-    }
-    if(yUnits){
-      ctx.save();
-      // Centre the rotated label in the left gutter (x = 0..r.x).
-      // Using a fixed x of PAD_L*0.28 keeps it clear of the tick numbers
-      // regardless of how wide those numbers are.
-      const lcx = Math.round(PAD_L * 0.28);
-      ctx.translate(lcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
-      ctx.fillText(yUnits, 0, 0);
-      ctx.restore();
+    if(axisVis1d&&yTicksVis1d){
+      ctx.font='10px monospace';ctx.textAlign='right';ctx.textBaseline='middle';
+      const tickRX=r.x-8;
+      if(isLog){
+        const lo=Math.floor(effDMin), hi=Math.ceil(effDMax);
+        for(let e=lo;e<=hi;e++){
+          const v=Math.pow(10,e);
+          const py=_toPlotY(v);
+          if(py<r.y||py>r.y+r.h) continue;
+          ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(r.x,py);ctx.lineTo(r.x-5,py);ctx.stroke();
+          ctx.fillStyle=theme.tickText;ctx.fillText('10^'+e,tickRX,py);
+        }
+      } else {
+        let maxTW=0;
+        for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){const tw=ctx.measureText(fmtVal(v)).width;if(tw>maxTW)maxTW=tw;}
+        for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){
+          const py=_valToPy1d(v,dMin,dMax,r);
+          if(py<r.y||py>r.y+r.h) continue;
+          ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(r.x,py);ctx.lineTo(r.x-5,py);ctx.stroke();
+          ctx.fillStyle=theme.tickText;ctx.fillText(fmtVal(v),tickRX,py);
+        }
+      }
+      if(yUnits){
+        ctx.save();
+        // Centre the rotated label in the left gutter (x = 0..r.x).
+        // Using a fixed x of PAD_L*0.28 keeps it clear of the tick numbers
+        // regardless of how wide those numbers are.
+        const lcx = Math.round(PAD_L * 0.28);
+        ctx.translate(lcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+        ctx.fillText(yUnits, 0, 0);
+        ctx.restore();
+      }
     }
 
     // Legend
@@ -2140,6 +2300,14 @@ function render({ model, el }) {
         }
         ctx.fillStyle=theme.tickText;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(lb.text,r.x+28,ly);ly+=16;
       }
+    }
+
+    const title1d=st.title||'';
+    if(title1d){
+      ctx.fillStyle=theme.tickText;
+      ctx.font='bold 11px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(title1d, r.x+r.w/2, PAD_T/2);
     }
 
     drawOverlay1d(p);
@@ -2224,7 +2392,8 @@ function render({ model, el }) {
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const yData = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
-    const dMin=st.data_min, dMax=st.data_max;
+    let dMin=st.data_min, dMax=st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     mkCtx.clearRect(0,0,pw,ph);
     const sets=st.markers||[];
     if(!sets.length) return;
@@ -2254,11 +2423,24 @@ function render({ model, el }) {
       const ec  = isHov && ms.hover_color     ? ms.hover_color     : color;
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
+
+      // Coordinate transform: "axes" and "display" map 2-D offsets to panel
+      // space independently of data values; vlines/hlines stay in data coords.
+      const tfm = ms.transform || 'data';
+      let _tc2d;
+      if(tfm==='axes'){
+        _tc2d=(fx,fy)=>[r.x+fx*r.w, r.y+(1-fy)*r.h];
+      } else if(tfm==='display'){
+        _tc2d=(ix,iy)=>[ix,iy];
+      } else {
+        _tc2d=(off0,off1)=>_offToCanvas([off0,off1]);
+      }
+
       mkCtx.save();mkCtx.strokeStyle=ec;mkCtx.fillStyle=ec;mkCtx.lineWidth=dlw;
 
       if(type==='points'){
         for(let i=0;i<ms.offsets.length;i++){
-          const [px,py]=_offToCanvas(ms.offsets[i]);
+          const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
           const sz=Math.max(1,ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5);
           mkCtx.beginPath();mkCtx.arc(px,py,sz,0,Math.PI*2);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
@@ -2276,14 +2458,72 @@ function render({ model, el }) {
         }
       } else if(type==='lines'){
         for(const seg of (ms.segments||[])){
-          const [x1c,y1c]=_offToCanvas(seg[0]), [x2c,y2c]=_offToCanvas(seg[1]);
+          const [x1c,y1c]= tfm==='data' ? _offToCanvas(seg[0]) : _tc2d(seg[0][0],seg[0][1]);
+          const [x2c,y2c]= tfm==='data' ? _offToCanvas(seg[1]) : _tc2d(seg[1][0],seg[1][1]);
           mkCtx.beginPath();mkCtx.moveTo(x1c,y1c);mkCtx.lineTo(x2c,y2c);mkCtx.stroke();
+        }
+      } else if(type==='ellipses'){
+        for(let i=0;i<ms.offsets.length;i++){
+          const off=ms.offsets[i];
+          const [cx,cy]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
+          const wd=ms.widths[i]!=null?ms.widths[i]:(ms.widths[0]||10);
+          const hd=ms.heights[i]!=null?ms.heights[i]:(ms.heights[0]||10);
+          const rw=Math.max(1, tfm==='data' ? Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2))/2 : wd/2);
+          const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2))/2 : hd/2);
+          const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
+          mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
+          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          mkCtx.stroke();
+        }
+      } else if(type==='rectangles'||type==='squares'){
+        const heights=type==='squares'?ms.widths:ms.heights;
+        for(let i=0;i<ms.offsets.length;i++){
+          const off=ms.offsets[i];
+          const [cx,cy]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
+          const wd=ms.widths[i]!=null?ms.widths[i]:(ms.widths[0]||10);
+          const hd=heights[i]!=null?heights[i]:(heights[0]||10);
+          const rw=Math.max(1, tfm==='data' ? Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2)) : wd);
+          const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2)) : hd);
+          const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
+          mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
+          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          mkCtx.strokeRect(-rw/2,-rh/2,rw,rh);
+          mkCtx.restore();
+        }
+      } else if(type==='polygons'){
+        for(let i=0;i<(ms.vertices_list||[]).length;i++){
+          const verts=ms.vertices_list[i];
+          if(!verts||verts.length<2) continue;
+          const [px0,py0]= tfm==='data' ? _offToCanvas(verts[0]) : _tc2d(verts[0][0],verts[0][1]);
+          mkCtx.beginPath();mkCtx.moveTo(px0,py0);
+          for(let k=1;k<verts.length;k++){
+            const[px,py]= tfm==='data' ? _offToCanvas(verts[k]) : _tc2d(verts[k][0],verts[k][1]);
+            mkCtx.lineTo(px,py);
+          }
+          mkCtx.closePath();
+          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          mkCtx.stroke();
+        }
+      } else if(type==='arrows'){
+        const HL=8;
+        for(let i=0;i<ms.offsets.length;i++){
+          const off=ms.offsets[i];
+          const [x1a,y1a]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
+          const u=ms.U[i]||0, v=ms.V[i]||0;
+          const x2a= tfm==='data' ? _xPx(off[0]+u) : x1a+u;
+          const y2a= tfm==='data' ? _yPx((off[1]||0)+v) : y1a+v;
+          const ang=Math.atan2(y2a-y1a,x2a-x1a);
+          mkCtx.beginPath();mkCtx.moveTo(x1a,y1a);mkCtx.lineTo(x2a,y2a);mkCtx.stroke();
+          mkCtx.beginPath();mkCtx.moveTo(x2a,y2a);
+          mkCtx.lineTo(x2a-HL*Math.cos(ang-Math.PI/6),y2a-HL*Math.sin(ang-Math.PI/6));
+          mkCtx.lineTo(x2a-HL*Math.cos(ang+Math.PI/6),y2a-HL*Math.sin(ang+Math.PI/6));
+          mkCtx.closePath();mkCtx.fill();
         }
       } else if(type==='texts'){
         const fs=ms.fontsize||12;
         mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
         for(let i=0;i<ms.offsets.length;i++){
-          const [px,py]=_offToCanvas(ms.offsets[i]);
+          const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
           mkCtx.fillText(String((ms.texts&&ms.texts[i])||''),px,py);
         }
       }
@@ -3516,7 +3756,8 @@ function render({ model, el }) {
     const orient   = st.orient   || 'v';
     const bwFrac   = st.bar_width !== undefined ? st.bar_width : 0.8;
     const baseline = st.baseline !== undefined  ? st.baseline  : 0;
-    const dMin     = st.data_min, dMax = st.data_max;
+    let dMin = st.data_min, dMax = st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     const logScale = !!st.log_scale;
     const LC       = 1e-10; // log clamp
 
@@ -3589,8 +3830,12 @@ function render({ model, el }) {
     const groupColors = st.group_colors || [];
     const groupLabels = st.group_labels || [];
     const orient      = st.orient || 'v';
-    const dMin        = st.data_min, dMax = st.data_max;
+    let dMin = st.data_min, dMax = st.data_max;
+    if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     const logScale    = !!st.log_scale;
+    const axisVis     = st.axis_visible !== false;
+    const xTicksVis   = st.x_ticks_visible !== false;
+    const yTicksVis   = st.y_ticks_visible !== false;
 
     if (!values.length) return;
 
@@ -3735,6 +3980,7 @@ function render({ model, el }) {
     }
 
     // ── axis borders ──────────────────────────────────────────────────────
+    if (axisVis) {
     ctx.strokeStyle = theme.axisStroke; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(r.x, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(r.x, r.y);         ctx.lineTo(r.x, r.y + r.h);       ctx.stroke();
@@ -3752,120 +3998,131 @@ function render({ model, el }) {
           ctx.beginPath(); ctx.moveTo(r.x, g.basePx); ctx.lineTo(r.x + r.w, g.basePx); ctx.stroke();
         }
       }
-    }
+    } // end axisVis (baseline)
+    } // end axisVis (borders)
 
     // ── tick labels ───────────────────────────────────────────────────────
-    ctx.font = '10px monospace'; ctx.fillStyle = theme.tickText;
+    if (axisVis) {
+      ctx.font = '10px monospace'; ctx.fillStyle = theme.tickText;
 
-    if (orient === 'h') {
-      // Value axis → X ticks at bottom
-      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      if (logScale) {
-        const lMin = Math.log10(Math.max(LC, dMin));
-        const lMax = Math.log10(Math.max(LC, dMax));
-        for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
-          const v = Math.pow(10, exp);
-          if (v < dMin || v > dMax) continue;
-          const px = g.xToPx(v);
-          if (px < r.x || px > r.x + r.w) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(_fmtLogTick(v), px, r.y + r.h + 7);
+      if (orient === 'h') {
+        // Value axis → X ticks at bottom
+        if (xTicksVis) {
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          if (logScale) {
+            const lMin = Math.log10(Math.max(LC, dMin));
+            const lMax = Math.log10(Math.max(LC, dMax));
+            for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
+              const v = Math.pow(10, exp);
+              if (v < dMin || v > dMax) continue;
+              const px = g.xToPx(v);
+              if (px < r.x || px > r.x + r.w) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(_fmtLogTick(v), px, r.y + r.h + 7);
+            }
+          } else {
+            const valRange = (dMax - dMin) || 1;
+            const valStep  = findNice(valRange / Math.max(2, Math.floor(r.w / 40)));
+            for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+              const px = g.xToPx(v);
+              if (px < r.x || px > r.x + r.w) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(fmtVal(v), px, r.y + r.h + 7);
+            }
+          }
+          if (st.y_units) {
+            ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
+            ctx.fillStyle=theme.unitText;
+            ctx.fillText(st.y_units, r.x + r.w, r.y + r.h + 24);
+            ctx.font='10px monospace';
+          }
+        }
+        // Category axis → Y labels on left
+        if (yTicksVis) {
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+          const maxCatLabels = Math.max(1, Math.floor(r.h / 14));
+          const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
+          for (let i = 0; i < g.n; i += catStep) {
+            const cy    = g.yToPx(i);
+            const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
+            ctx.strokeStyle = theme.axisStroke;
+            ctx.beginPath(); ctx.moveTo(r.x, cy); ctx.lineTo(r.x - 4, cy); ctx.stroke();
+            ctx.fillStyle = theme.tickText;
+            ctx.fillText(label, r.x - 7, cy);
+          }
+          if (st.units) {
+            ctx.save();
+            ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+            ctx.fillText(st.units, 0, 0);
+            ctx.restore();
+          }
         }
       } else {
-        const valRange = (dMax - dMin) || 1;
-        const valStep  = findNice(valRange / Math.max(2, Math.floor(r.w / 40)));
-        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-          const px = g.xToPx(v);
-          if (px < r.x || px > r.x + r.w) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(fmtVal(v), px, r.y + r.h + 7);
+        // Category axis → X ticks at bottom
+        if (xTicksVis) {
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          const maxCatLabels = Math.max(1, Math.floor(r.w / 42));
+          const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
+          for (let i = 0; i < g.n; i += catStep) {
+            const cx    = g.xToPx(i);
+            const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
+            ctx.strokeStyle = theme.axisStroke;
+            ctx.beginPath(); ctx.moveTo(cx, r.y + r.h); ctx.lineTo(cx, r.y + r.h + 4); ctx.stroke();
+            ctx.fillStyle = theme.tickText;
+            ctx.fillText(label, cx, r.y + r.h + 7);
+          }
+          if (st.units && st.units !== 'px') {
+            ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
+            ctx.fillStyle=theme.unitText;
+            ctx.fillText(st.units, r.x + r.w, r.y + r.h + 24);
+            ctx.font='10px monospace';
+          }
+        }
+        // Value axis → Y ticks on left
+        if (yTicksVis) {
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+          if (logScale) {
+            const lMin = Math.log10(Math.max(LC, dMin));
+            const lMax = Math.log10(Math.max(LC, dMax));
+            for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
+              const v = Math.pow(10, exp);
+              if (v < dMin || v > dMax) continue;
+              const py = g.yToPx(v);
+              if (py < r.y || py > r.y + r.h) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(_fmtLogTick(v), r.x - 8, py);
+            }
+          } else {
+            const valRange = (dMax - dMin) || 1;
+            const valStep  = findNice(valRange / Math.max(2, Math.floor(r.h / 40)));
+            for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
+              const py = g.yToPx(v);
+              if (py < r.y || py > r.y + r.h) continue;
+              ctx.strokeStyle = theme.axisStroke;
+              ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
+              ctx.fillStyle = theme.tickText;
+              ctx.fillText(fmtVal(v), r.x - 8, py);
+            }
+          }
+          if (st.y_units) {
+            ctx.save();
+            ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
+            ctx.fillText(st.y_units, 0, 0);
+            ctx.restore();
+          }
         }
       }
-      // Category axis → Y labels on left
-      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-      const maxCatLabels = Math.max(1, Math.floor(r.h / 14));
-      const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
-      for (let i = 0; i < g.n; i += catStep) {
-        const cy    = g.yToPx(i);
-        const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
-        ctx.strokeStyle = theme.axisStroke;
-        ctx.beginPath(); ctx.moveTo(r.x, cy); ctx.lineTo(r.x - 4, cy); ctx.stroke();
-        ctx.fillStyle = theme.tickText;
-        ctx.fillText(label, r.x - 7, cy);
-      }
-      if (st.y_units) {
-        ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
-        ctx.fillStyle=theme.unitText;
-        ctx.fillText(st.y_units, r.x + r.w, r.y + r.h + 24);
-        ctx.font='10px monospace';
-      }
-      if (st.units) {
-        ctx.save();
-        ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
-        ctx.fillText(st.units, 0, 0);
-        ctx.restore();
-      }
-    } else {
-      // Category axis → X ticks at bottom
-      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      const maxCatLabels = Math.max(1, Math.floor(r.w / 42));
-      const catStep = Math.max(1, Math.ceil(g.n / maxCatLabels));
-      for (let i = 0; i < g.n; i += catStep) {
-        const cx    = g.xToPx(i);
-        const label = xLabels[i] !== undefined ? String(xLabels[i]) : fmtVal(xCenters[i]);
-        ctx.strokeStyle = theme.axisStroke;
-        ctx.beginPath(); ctx.moveTo(cx, r.y + r.h); ctx.lineTo(cx, r.y + r.h + 4); ctx.stroke();
-        ctx.fillStyle = theme.tickText;
-        ctx.fillText(label, cx, r.y + r.h + 7);
-      }
-      if (st.units && st.units !== 'px') {
-        ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
-        ctx.fillStyle=theme.unitText;
-        ctx.fillText(st.units, r.x + r.w, r.y + r.h + 24);
-        ctx.font='10px monospace';
-      }
-      // Value axis → Y ticks on left
-      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-      if (logScale) {
-        const lMin = Math.log10(Math.max(LC, dMin));
-        const lMax = Math.log10(Math.max(LC, dMax));
-        for (let exp = Math.floor(lMin); exp <= Math.ceil(lMax); exp++) {
-          const v = Math.pow(10, exp);
-          if (v < dMin || v > dMax) continue;
-          const py = g.yToPx(v);
-          if (py < r.y || py > r.y + r.h) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(_fmtLogTick(v), r.x - 8, py);
-        }
-      } else {
-        const valRange = (dMax - dMin) || 1;
-        const valStep  = findNice(valRange / Math.max(2, Math.floor(r.h / 40)));
-        for (let v = Math.ceil(dMin/valStep)*valStep; v <= dMax+valStep*0.01; v += valStep) {
-          const py = g.yToPx(v);
-          if (py < r.y || py > r.y + r.h) continue;
-          ctx.strokeStyle = theme.axisStroke;
-          ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
-          ctx.fillStyle = theme.tickText;
-          ctx.fillText(fmtVal(v), r.x - 8, py);
-        }
-      }
-      if (st.y_units) {
-        ctx.save();
-        ctx.translate(Math.round(PAD_L * 0.28), r.y + r.h / 2); ctx.rotate(-Math.PI/2);
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
-        ctx.fillText(st.y_units, 0, 0);
-        ctx.restore();
-      }
-    }
+    } // end axisVis
 
     // ── group legend (only when group_labels are provided) ────────────────
     if (g.groups > 1 && groupLabels.length > 0) {
@@ -3893,6 +4150,32 @@ function render({ model, el }) {
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.fillText(label, lx + 3 + swatchW + pad, ey + rowH / 2);
       }
+    }
+
+    // ── title ─────────────────────────────────────────────────────────────
+    const titleBar = st.title || '';
+    if (titleBar) {
+      ctx.fillStyle = theme.tickText;
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(titleBar, r.x + r.w / 2, PAD_T / 2);
+    }
+
+    // ── axis labels ───────────────────────────────────────────────────────
+    const xLabelBar = st.x_label || '';
+    const yLabelBar = st.y_label || '';
+    if (xLabelBar) {
+      ctx.fillStyle = theme.tickText; ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(xLabelBar, r.x + r.w / 2, r.y + r.h + 26);
+    }
+    if (yLabelBar) {
+      ctx.save();
+      ctx.translate(Math.round(PAD_L * 0.1), r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = theme.tickText; ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(yLabelBar, 0, 0);
+      ctx.restore();
     }
 
     // Overlay widgets (vlines, hlines) drawn on overlay canvas

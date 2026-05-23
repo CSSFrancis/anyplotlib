@@ -492,3 +492,45 @@ class TestRegressionOldAPIGone:
         plot = ax.plot(np.zeros(10))
         line = plot.add_line(np.zeros(10))
         assert not hasattr(line, "on_click")
+
+
+# ── Phase 3 — Figure.close() ──────────────────────────────────────────────────
+
+class TestFigureClose:
+
+    def test_close_in_valid_event_types(self):
+        assert "close" in VALID_EVENT_TYPES
+
+    def test_figure_close_sets_closed_flag(self):
+        fig, ax = apl.subplots(1, 1)
+        ax.plot(np.zeros(10))
+        assert not getattr(fig, "_closed", False)
+        fig.close()
+        assert fig._closed is True
+
+    def test_figure_close_fires_event_on_plot(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        received = []
+        plot.callbacks.connect("close", lambda e: received.append(e.event_type))
+        fig.close()
+        assert received == ["close"]
+
+    def test_figure_close_fires_on_all_panels(self):
+        fig, (ax1, ax2) = apl.subplots(1, 2)
+        p1 = ax1.plot(np.zeros(10))
+        p2 = ax2.imshow(np.zeros((8, 8)))
+        counts = [0, 0]
+        p1.callbacks.connect("close", lambda e: counts.__setitem__(0, counts[0] + 1))
+        p2.callbacks.connect("close", lambda e: counts.__setitem__(1, counts[1] + 1))
+        fig.close()
+        assert counts == [1, 1]
+
+    def test_figure_close_is_idempotent(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.zeros(10))
+        received = []
+        plot.callbacks.connect("close", lambda e: received.append(e))
+        fig.close()
+        fig.close()
+        assert len(received) == 1

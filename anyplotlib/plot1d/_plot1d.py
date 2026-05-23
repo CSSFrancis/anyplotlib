@@ -245,9 +245,13 @@ class Plot1D(_EventMixin):
                  alpha: float = 1.0,
                  marker: str = "none",
                  markersize: float = 4.0,
-                 label: str = ""):
+                 label: str = "",
+                 yscale: str = "linear"):
         self._id:  str = ""
         self._fig: object = None
+
+        if yscale not in ("linear", "log"):
+            raise ValueError("yscale must be 'linear' or 'log'")
 
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
@@ -287,6 +291,16 @@ class Plot1D(_EventMixin):
             "markers":          [],
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
+            "yscale":            yscale,
+            # Annotation labels
+            "title":             "",
+            # Explicit y-range override: [ymin, ymax] or None (auto)
+            "y_range":           None,
+            # Visibility toggles
+            "axis_visible":      True,
+            "x_ticks_visible":   True,
+            "y_ticks_visible":   True,
+            "_view_from_python": False,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -294,10 +308,13 @@ class Plot1D(_EventMixin):
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
 
-    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
+        """Configure the pointer-settled event threshold (ms and pixel delta)."""
         self._state["pointer_settled_ms"]    = ms
         self._state["pointer_settled_delta"] = delta
         self._push()
+
+    _configure_pointer_settled = configure_pointer_settled  # backward compat
 
     def _push(self) -> None:
         if self._fig is None:
@@ -316,7 +333,6 @@ class Plot1D(_EventMixin):
         x_arr     = d.pop("x_axis")
         d["data_b64"]    = _arr_to_b64(data_arr,  np.float64)
         d["x_axis_b64"]  = _arr_to_b64(x_arr,     np.float64)
-        d["data_length"] = len(data_arr)
         # Encode extra-line arrays too
         new_extra = []
         for ex in d["extra_lines"]:
@@ -421,7 +437,7 @@ class Plot1D(_EventMixin):
     # Extra lines
     # ------------------------------------------------------------------
     def add_line(self, data: np.ndarray, x_axis=None,
-                 color: str = "#ffffff", linewidth: float = 1.5,
+                 color: str = "#4fc3f7", linewidth: float = 1.5,
                  linestyle: str = "solid", ls: str | None = None,
                  alpha: float = 1.0,
                  marker: str = "none", markersize: float = 4.0,
@@ -438,7 +454,7 @@ class Plot1D(_EventMixin):
         x_axis : array-like, shape (N,), optional
             X coordinates.  Defaults to the primary line's x-axis.
         color : str, optional
-            CSS colour string.  Default ``"#ffffff"``.
+            CSS colour string.  Default ``"#4fc3f7"``.
         linewidth : float, optional
             Stroke width in pixels.  Default ``1.5``.
         linestyle : str, optional
@@ -769,13 +785,17 @@ class Plot1D(_EventMixin):
         f1 = 1.0 if x1 is None else max(0.0, min(1.0, (float(x1)-xmin)/span))
         self._state["view_x0"] = f0
         self._state["view_x1"] = f1
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     def reset_view(self) -> None:
         """Reset the view to show the full x range of the primary line."""
         self._state["view_x0"] = 0.0
         self._state["view_x1"] = 1.0
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     # ------------------------------------------------------------------
     # Primary-line property setters
@@ -842,6 +862,84 @@ class Plot1D(_EventMixin):
             self._state["line_markersize"] = float(markersize)
         self._push()
 
+    @property
+    def color(self) -> str:
+        return self._state["line_color"]
+
+    @property
+    def x(self) -> np.ndarray:
+        return np.asarray(self._state["x_axis"])
+
+    @property
+    def y(self) -> np.ndarray:
+        return np.asarray(self._state["data"])
+
+    def set_xlabel(self, label: str) -> None:
+        self._state["units"] = str(label)
+        self._push()
+
+    def set_ylabel(self, label: str) -> None:
+        self._state["y_units"] = str(label)
+        self._push()
+
+    def set_title(self, label: str) -> None:
+        self._state["title"] = str(label)
+        self._push()
+
+    def set_yscale(self, scale: str) -> None:
+        """Set the y-axis scale: ``'linear'`` or ``'log'``."""
+        if scale not in ("linear", "log"):
+            raise ValueError("scale must be 'linear' or 'log'")
+        self._state["yscale"] = scale
+        self._push()
+
+    def set_xlim(self, xmin: float, xmax: float) -> None:
+        self.set_view(x0=xmin, x1=xmax)
+
+    def set_ylim(self, ymin: float, ymax: float) -> None:
+        self._state["y_range"] = [float(ymin), float(ymax)]
+        self._push()
+
+    def get_ylim(self) -> tuple:
+        yr = self._state.get("y_range")
+        if yr is not None:
+            return (float(yr[0]), float(yr[1]))
+        return (float(self._state["data_min"]), float(self._state["data_max"]))
+
+    def get_xlim(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        if len(xarr) < 2:
+            return (0.0, 1.0)
+        xmin, xmax = float(xarr[0]), float(xarr[-1])
+        span = xmax - xmin or 1.0
+        x0 = xmin + self._state["view_x0"] * span
+        x1 = xmin + self._state["view_x1"] * span
+        return (x0, x1)
+
+    def get_xbound(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        return (float(xarr.min()), float(xarr.max()))
+
+    def set_axis_off(self) -> None:
+        self._state["axis_visible"] = False
+        self._push()
+
+    def set_axis_on(self) -> None:
+        self._state["axis_visible"] = True
+        self._push()
+
+    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
+                          y: bool | None = None) -> None:
+        if x is None and y is None:
+            self._state["x_ticks_visible"] = bool(visible)
+            self._state["y_ticks_visible"] = bool(visible)
+        else:
+            if x is not None:
+                self._state["x_ticks_visible"] = bool(x)
+            if y is not None:
+                self._state["y_ticks_visible"] = bool(y)
+        self._push()
+
     # ------------------------------------------------------------------
     # Marker API  (matplotlib-style kwargs → MarkerRegistry)
     # ------------------------------------------------------------------
@@ -852,7 +950,8 @@ class Plot1D(_EventMixin):
                     facecolors=None, edgecolors="#ff0000",
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                    labels=None, label=None,
+                    transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add circle markers at explicit (x, y) positions.
 
         On 1-D panels circles are rendered as filled/stroked discs; *radius*
@@ -893,13 +992,15 @@ class Plot1D(_EventMixin):
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_points(self, offsets, name=None, *, sizes=5,
                    color="#ff0000", facecolors=None,
                    linewidths=1.5, alpha=0.3,
                    hover_edgecolors=None, hover_facecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add point markers at (x, y) positions in data coordinates.
 
         Parameters
@@ -934,12 +1035,14 @@ class Plot1D(_EventMixin):
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_hlines(self, y_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add static horizontal lines spanning the full x range.
 
         Parameters
@@ -966,12 +1069,14 @@ class Plot1D(_EventMixin):
         return self._add_marker("hlines", name, offsets=y_values,
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_vlines(self, x_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add static vertical lines spanning the full y range.
 
         Parameters
@@ -998,12 +1103,14 @@ class Plot1D(_EventMixin):
         return self._add_marker("vlines", name, offsets=x_values,
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_arrows(self, offsets, U, V, name=None, *,
                    edgecolors="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add arrow markers at explicit (x, y) positions.
 
         Parameters
@@ -1032,13 +1139,15 @@ class Plot1D(_EventMixin):
         return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_ellipses(self, offsets, widths, heights, name=None, *,
                      angles=0, facecolors=None, edgecolors="#ff0000",
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                     labels=None, label=None,
+                     transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add ellipse markers at explicit (x, y) positions.
 
         Parameters
@@ -1076,12 +1185,14 @@ class Plot1D(_EventMixin):
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_lines(self, segments, name=None, *,
                   edgecolors="#ff0000", linewidths=1.5,
                   hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                  labels=None, label=None,
+                  transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add line-segment markers (static, not draggable).
 
         Parameters
@@ -1108,13 +1219,15 @@ class Plot1D(_EventMixin):
         return self._add_marker("lines", name, segments=segments,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_rectangles(self, offsets, widths, heights, name=None, *,
                        angles=0, facecolors=None, edgecolors="#ff0000",
                        linewidths=1.5, alpha=0.3,
                        hover_edgecolors=None, hover_facecolors=None,
-                       labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                       labels=None, label=None,
+                       transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add rectangle markers at explicit (x, y) positions.
 
         Parameters
@@ -1152,13 +1265,15 @@ class Plot1D(_EventMixin):
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_squares(self, offsets, widths, name=None, *,
                     angles=0, facecolors=None, edgecolors="#ff0000",
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                    labels=None, label=None,
+                    transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add square markers at explicit (x, y) positions.
 
         Parameters
@@ -1196,13 +1311,15 @@ class Plot1D(_EventMixin):
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_polygons(self, vertices_list, name=None, *,
                      facecolors=None, edgecolors="#ff0000",
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                     labels=None, label=None,
+                     transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add polygon markers defined by explicit vertex lists.
 
         Parameters
@@ -1236,12 +1353,14 @@ class Plot1D(_EventMixin):
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_texts(self, offsets, texts, name=None, *,
                   color="#ff0000", fontsize=12,
                   hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                  labels=None, label=None,
+                  transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add text annotations at explicit (x, y) positions.
 
         Parameters
@@ -1270,7 +1389,8 @@ class Plot1D(_EventMixin):
         return self._add_marker("texts", name, offsets=offsets, texts=texts,
                                 color=color, fontsize=fontsize,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def remove_marker(self, marker_type: str, name: str) -> None:
         """Remove a named marker collection by type and name.

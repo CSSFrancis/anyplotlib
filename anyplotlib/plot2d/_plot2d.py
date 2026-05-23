@@ -108,7 +108,6 @@ class Plot2D(_EventMixin):
             "raw_min":           raw_vmin,
             "raw_max":           raw_vmax,
             "show_colorbar":     False,
-            "log_scale":         False,
             "scale_mode":        "linear",
             "colormap_name":     cmap_name,
             "colormap_data":     cmap_lut,
@@ -126,6 +125,17 @@ class Plot2D(_EventMixin):
             # Set True when Python explicitly changes view; JS uses it to
             # decide whether to preserve the current frontend zoom/pan state.
             "_view_from_python":  False,
+            # Axis / annotation labels (rendered by JS in Phase 4)
+            "x_label":           "",
+            "y_label":           "",
+            "title":             "",
+            "colorbar_label":    "",
+            # Aspect ratio: None means free, float means width/height ratio
+            "aspect":            None,
+            # Visibility toggles
+            "axis_visible":      True,
+            "x_ticks_visible":   True,
+            "y_ticks_visible":   True,
         }
 
         self.markers = MarkerRegistry(self._push_markers,
@@ -133,10 +143,13 @@ class Plot2D(_EventMixin):
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
 
-    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
+        """Configure the pointer-settled event threshold (ms and pixel delta)."""
         self._state["pointer_settled_ms"]    = ms
         self._state["pointer_settled_delta"] = delta
         self._push()
+
+    _configure_pointer_settled = configure_pointer_settled  # backward compat
 
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
@@ -305,6 +318,83 @@ class Plot2D(_EventMixin):
     def colormap_name(self, name: str) -> None:
         self.set_colormap(name)
 
+    def set_xlabel(self, label: str) -> None:
+        self._state["x_label"] = str(label)
+        self._push()
+
+    def set_ylabel(self, label: str) -> None:
+        self._state["y_label"] = str(label)
+        self._push()
+
+    def set_title(self, label: str) -> None:
+        self._state["title"] = str(label)
+        self._push()
+
+    def set_xlim(self, xmin: float, xmax: float) -> None:
+        self.set_view(x0=xmin, x1=xmax)
+
+    def set_ylim(self, ymin: float, ymax: float) -> None:
+        self.set_view(y0=ymin, y1=ymax)
+
+    def get_xlim(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        return (float(xarr.min()), float(xarr.max()))
+
+    def get_ylim(self) -> tuple:
+        yarr = np.asarray(self._state["y_axis"])
+        return (float(yarr.min()), float(yarr.max()))
+
+    def get_xbound(self) -> tuple:
+        xarr = np.asarray(self._state["x_axis"])
+        return (float(xarr.min()), float(xarr.max()))
+
+    def set_extent(self, x_axis, y_axis) -> None:
+        x_axis = np.asarray(x_axis, dtype=float)
+        y_axis = np.asarray(y_axis, dtype=float)
+        w = self._state["image_width"]
+        h = self._state["image_height"]
+        scale_x = float(abs(x_axis[-1] - x_axis[0]) / max(w - 1, 1)) if len(x_axis) >= 2 else 1.0
+        scale_y = float(abs(y_axis[-1] - y_axis[0]) / max(h - 1, 1)) if len(y_axis) >= 2 else 1.0
+        self._state["x_axis"]  = x_axis.tolist()
+        self._state["y_axis"]  = y_axis.tolist()
+        self._state["scale_x"] = scale_x
+        self._state["scale_y"] = scale_y
+        self._push()
+
+    def set_colorbar_label(self, label: str) -> None:
+        self._state["colorbar_label"] = str(label)
+        self._push()
+
+    def set_colorbar_visible(self, visible: bool) -> None:
+        self._state["show_colorbar"] = bool(visible)
+        self._push()
+
+    def set_aspect(self, ratio) -> None:
+        if ratio == "equal":
+            ratio = 1.0
+        self._state["aspect"] = float(ratio) if ratio is not None else None
+        self._push()
+
+    def set_axis_off(self) -> None:
+        self._state["axis_visible"] = False
+        self._push()
+
+    def set_axis_on(self) -> None:
+        self._state["axis_visible"] = True
+        self._push()
+
+    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
+                          y: bool | None = None) -> None:
+        if x is None and y is None:
+            self._state["x_ticks_visible"] = bool(visible)
+            self._state["y_ticks_visible"] = bool(visible)
+        else:
+            if x is not None:
+                self._state["x_ticks_visible"] = bool(x)
+            if y is not None:
+                self._state["y_ticks_visible"] = bool(y)
+        self._push()
+
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
@@ -458,125 +548,147 @@ class Plot2D(_EventMixin):
                     facecolors=None, edgecolors="#ff0000",
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                    labels=None, label=None,
+                    transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add circle markers at (x, y) positions in data coordinates."""
         return self._add_marker("circles", name, offsets=offsets, radius=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_points(self, offsets, name=None, *, sizes=5,
                    color="#ff0000", facecolors=None,
                    linewidths=1.5, alpha=0.3,
                    hover_edgecolors=None, hover_facecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add point markers at (x, y) positions in data coordinates."""
         return self._add_marker("circles", name, offsets=offsets, radius=sizes,
                                 edgecolors=color, facecolors=facecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_hlines(self, y_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add static horizontal lines at the given y positions."""
         return self._add_marker("hlines", name, offsets=y_values,
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_vlines(self, x_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add static vertical lines at the given x positions."""
         return self._add_marker("vlines", name, offsets=x_values,
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_arrows(self, offsets, U, V, name=None, *,
                    edgecolors="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
-                   labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                   labels=None, label=None,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_ellipses(self, offsets, widths, heights, name=None, *,
                      angles=0, facecolors=None, edgecolors="#ff0000",
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                     labels=None, label=None,
+                     transform: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("ellipses", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_lines(self, segments, name=None, *,
                   edgecolors="#ff0000", linewidths=1.5,
                   hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                  labels=None, label=None,
+                  transform: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("lines", name, segments=segments,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_rectangles(self, offsets, widths, heights, name=None, *,
                        angles=0, facecolors=None, edgecolors="#ff0000",
                        linewidths=1.5, alpha=0.3,
                        hover_edgecolors=None, hover_facecolors=None,
-                       labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                       labels=None, label=None,
+                       transform: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("rectangles", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_squares(self, offsets, widths, name=None, *,
                     angles=0, facecolors=None, edgecolors="#ff0000",
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
-                    labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                    labels=None, label=None,
+                    transform: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("squares", name, offsets=offsets,
                                 widths=widths, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_polygons(self, vertices_list, name=None, *,
                      facecolors=None, edgecolors="#ff0000",
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                     labels=None, label=None,
+                     transform: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("polygons", name, vertices_list=vertices_list,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def add_texts(self, offsets, texts, name=None, *,
                   color="#ff0000", fontsize=12,
                   hover_edgecolors=None,
-                  labels=None, label=None) -> "MarkerGroup":  # noqa: F821
+                  labels=None, label=None,
+                  transform: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("texts", name, offsets=offsets, texts=texts,
                                 color=color, fontsize=fontsize,
                                 hover_edgecolors=hover_edgecolors,
-                                labels=labels, label=label)
+                                labels=labels, label=label,
+                                transform=transform)
 
     def remove_marker(self, marker_type: str, name: str) -> None:
         """Remove a named marker collection by type and name.

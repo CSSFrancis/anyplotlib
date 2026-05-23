@@ -1075,3 +1075,67 @@ class TestFigureGridSpecWorkflow:
             assert approx(ph, 200, tol=2), f"{label} height should be 200, got {ph}"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# subplots_adjust
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestSubplotsAdjust:
+
+    def test_hspace_in_layout_json(self):
+        fig, _ = vw.subplots(2, 1, figsize=(400, 400))
+        fig.subplots_adjust(hspace=0.3)
+        layout = _layout(fig)
+        assert abs(layout['hspace'] - 0.3) < 1e-9
+
+    def test_wspace_in_layout_json(self):
+        fig, _ = vw.subplots(1, 2, figsize=(400, 200))
+        fig.subplots_adjust(wspace=0.2)
+        layout = _layout(fig)
+        assert abs(layout['wspace'] - 0.2) < 1e-9
+
+    def test_defaults_are_none(self):
+        fig, _ = vw.subplots(2, 2, figsize=(400, 400))
+        layout = _layout(fig)
+        assert layout['hspace'] is None
+        assert layout['wspace'] is None
+
+    def test_both_together(self):
+        fig, _ = vw.subplots(2, 2, figsize=(600, 600))
+        fig.subplots_adjust(hspace=0.15, wspace=0.25)
+        layout = _layout(fig)
+        assert abs(layout['hspace'] - 0.15) < 1e-9
+        assert abs(layout['wspace'] - 0.25) < 1e-9
+
+    def test_retriggers_layout_push(self):
+        fig, _ = vw.subplots(2, 1, figsize=(400, 400))
+        before = fig.layout_json
+        fig.subplots_adjust(hspace=0.1)
+        assert fig.layout_json != before
+
+
+# ===========================================================================
+# hspace / wspace initial-value contract
+# ===========================================================================
+
+class TestHspaceWspaceInitialState:
+    def test_initial_hspace_is_none(self):
+        """Before subplots_adjust the internal value is None (browser 4px default)."""
+        fig, _ = vw.subplots(2, 2)
+        assert fig._hspace is None
+        assert fig._wspace is None
+
+    def test_subplots_adjust_zero_stores_zero(self):
+        """subplots_adjust(hspace=0.0) must store 0.0, not None."""
+        fig, _ = vw.subplots(2, 1)
+        fig.subplots_adjust(hspace=0.0, wspace=0.0)
+        assert fig._hspace == 0.0
+        assert fig._wspace == 0.0
+
+    def test_subplots_adjust_zero_appears_in_layout(self):
+        fig, _ = vw.subplots(2, 2)
+        fig.subplots_adjust(hspace=0.0, wspace=0.0)
+        layout = json.loads(fig.layout_json)
+        assert layout["hspace"] == pytest.approx(0.0)
+        assert layout["wspace"] == pytest.approx(0.0)
+
+
