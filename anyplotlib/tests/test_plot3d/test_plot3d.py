@@ -287,3 +287,75 @@ class TestPlot3DRepr:
         assert f"n_vertices={len(x)}" in r
 
 
+
+
+# ===========================================================================
+# C1: title initialized in _state
+# ===========================================================================
+
+class TestPlot3DTitle:
+    def test_title_initialized_empty(self):
+        surf, *_ = _surface()
+        assert "title" in surf._state
+        assert surf._state["title"] == ""
+
+    def test_set_title_label_param(self):
+        surf, *_ = _surface()
+        surf.set_title("My Plot")
+        assert surf._state["title"] == "My Plot"
+
+    def test_set_title_in_wire(self):
+        surf, *_ = _surface()
+        surf.set_title("Wire Test")
+        assert surf.to_state_dict()["title"] == "Wire Test"
+
+
+# ===========================================================================
+# C2: axis_on / axis_off on Plot3D
+# ===========================================================================
+
+class TestPlot3DAxisVisibility:
+    def test_axis_visible_initialized_true(self):
+        surf, *_ = _surface()
+        assert surf._state["axis_visible"] is True
+
+    def test_set_axis_off(self):
+        surf, *_ = _surface()
+        surf.set_axis_off()
+        assert surf._state["axis_visible"] is False
+
+    def test_set_axis_on_restores(self):
+        surf, *_ = _surface()
+        surf.set_axis_off()
+        surf.set_axis_on()
+        assert surf._state["axis_visible"] is True
+
+
+# ===========================================================================
+# m1: data-bounds getters on Plot3D
+# ===========================================================================
+
+class TestPlot3DLimGetters:
+    def test_get_xlim(self):
+        surf, XX, YY, ZZ = _surface()
+        lo, hi = surf.get_xlim()
+        assert lo == pytest.approx(float(XX.min()))
+        assert hi == pytest.approx(float(XX.max()))
+
+    def test_get_ylim(self):
+        surf, XX, YY, ZZ = _surface()
+        lo, hi = surf.get_ylim()
+        assert lo == pytest.approx(float(YY.min()))
+        assert hi == pytest.approx(float(YY.max()))
+
+    def test_get_zlim(self):
+        surf, XX, YY, ZZ = _surface()
+        lo, hi = surf.get_zlim()
+        assert lo == pytest.approx(float(ZZ.min()))
+        assert hi == pytest.approx(float(ZZ.max()))
+
+    def test_get_xlim_scatter(self):
+        sc, x, y, z = _scatter()
+        lo, hi = sc.get_xlim()
+        assert lo == pytest.approx(float(x.min()))
+        assert hi == pytest.approx(float(x.max()))

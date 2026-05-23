@@ -899,3 +899,97 @@ class TestPlotBarSetTicksVisibleSignature:
         p.set_ticks_visible(True, y=False)
         assert p._state["x_ticks_visible"] is True
         assert p._state["y_ticks_visible"] is False
+
+
+# ===========================================================================
+# M3: PlotBar constructor-only setters
+# ===========================================================================
+
+class TestPlotBarNewSetters:
+    def test_set_bar_width(self):
+        p = _make_bar()
+        p.set_bar_width(0.5)
+        assert p._state["bar_width"] == pytest.approx(0.5)
+
+    def test_set_align_center(self):
+        p = _make_bar()
+        p.set_align("center")
+        assert p._state["align"] == "center"
+
+    def test_set_align_edge(self):
+        p = _make_bar()
+        p.set_align("edge")
+        assert p._state["align"] == "edge"
+
+    def test_set_align_invalid(self):
+        p = _make_bar()
+        with pytest.raises(ValueError):
+            p.set_align("left")
+
+    def test_set_orient_h(self):
+        p = _make_bar()
+        p.set_orient("h")
+        assert p._state["orient"] == "h"
+
+    def test_set_orient_v(self):
+        p = _make_bar()
+        p.set_orient("v")
+        assert p._state["orient"] == "v"
+
+    def test_set_orient_invalid(self):
+        p = _make_bar()
+        with pytest.raises(ValueError):
+            p.set_orient("diagonal")
+
+    def test_set_group_labels(self):
+        p = _make_bar()
+        p.set_group_labels(["a", "b", "c"])
+        assert p._state["group_labels"] == ["a", "b", "c"]
+
+
+# ===========================================================================
+# M1/M2: standardized parameter names
+# ===========================================================================
+
+class TestPlotBarParameterNames:
+    def test_set_title_uses_label_param(self):
+        import inspect
+        p = _make_bar()
+        sig = inspect.signature(p.set_title)
+        assert "label" in sig.parameters
+
+    def test_set_xlabel_uses_label_param(self):
+        import inspect
+        p = _make_bar()
+        sig = inspect.signature(p.set_xlabel)
+        assert "label" in sig.parameters
+
+    def test_set_xlim_uses_xmin_xmax(self):
+        import inspect
+        p = _make_bar()
+        sig = inspect.signature(p.set_xlim)
+        params = list(sig.parameters)
+        assert params[0] == "xmin"
+        assert params[1] == "xmax"
+
+    def test_set_title_works(self):
+        p = _make_bar()
+        p.set_title(label="My Bar Chart")
+        assert p._state["title"] == "My Bar Chart"
+
+
+# ===========================================================================
+# m2: configure_pointer_settled public on PlotBar
+# ===========================================================================
+
+class TestPlotBarConfigurePointerSettled:
+    def test_public_method_exists(self):
+        p = _make_bar()
+        assert hasattr(p, "configure_pointer_settled")
+        assert callable(p.configure_pointer_settled)
+
+    def test_sets_state(self):
+        p = _make_bar()
+        p.configure_pointer_settled(300, 6)
+        assert p._state["pointer_settled_ms"] == 300
+        assert p._state["pointer_settled_delta"] == 6

@@ -118,9 +118,11 @@ class Plot3D(_EventMixin):
             "color":         color,
             "point_size":    float(point_size),
             "linewidth":     float(linewidth),
+            "title":         "",
             "x_label":       x_label,
             "y_label":       y_label,
             "z_label":       z_label,
+            "axis_visible":  True,
             "azimuth":       float(azimuth),
             "elevation":     float(elevation),
             "zoom":          float(zoom),
@@ -134,10 +136,13 @@ class Plot3D(_EventMixin):
         }
         self.callbacks = CallbackRegistry()
 
-    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
+        """Configure the pointer-settled event threshold (ms and pixel delta)."""
         self._state["pointer_settled_ms"]    = ms
         self._state["pointer_settled_delta"] = delta
         self._push()
+
+    _configure_pointer_settled = configure_pointer_settled  # backward compat
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
@@ -181,6 +186,18 @@ class Plot3D(_EventMixin):
         self._push()
         self._state["_view_from_python"] = False
 
+    def set_axis_off(self) -> None:
+        self._state["axis_visible"] = False
+        self._push()
+
+    def set_axis_on(self) -> None:
+        self._state["axis_visible"] = True
+        self._push()
+
+    def set_title(self, label: str) -> None:
+        self._state["title"] = str(label)
+        self._push()
+
     def set_xlabel(self, label: str) -> None:
         self._state["x_label"] = label
         self._push()
@@ -193,9 +210,20 @@ class Plot3D(_EventMixin):
         self._state["z_label"] = label
         self._push()
 
-    def set_title(self, title: str) -> None:
-        self._state["title"] = title
-        self._push()
+    def get_xlim(self) -> tuple:
+        """Return the data x range as ``(xmin, xmax)``."""
+        b = self._state["data_bounds"]
+        return (b["xmin"], b["xmax"])
+
+    def get_ylim(self) -> tuple:
+        """Return the data y range as ``(ymin, ymax)``."""
+        b = self._state["data_bounds"]
+        return (b["ymin"], b["ymax"])
+
+    def get_zlim(self) -> tuple:
+        """Return the data z range as ``(zmin, zmax)``."""
+        b = self._state["data_bounds"]
+        return (b["zmin"], b["zmax"])
 
     def set_data(self, x, y, z) -> None:
         """Replace the geometry data."""
