@@ -107,6 +107,11 @@ class PlotBar(_EventMixin):
         self._id:  str = ""
         self._fig: object = None
 
+        if align not in ("center", "edge"):
+            raise ValueError("align must be 'center' or 'edge'")
+        if orient not in ("v", "h"):
+            raise ValueError("orient must be 'v' or 'h'")
+
         # ── legacy resolution ──────────────────────────────────────────
         if height is None:
             if values is not None:

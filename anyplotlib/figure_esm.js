@@ -2468,8 +2468,8 @@ function render({ model, el }) {
           const [cx,cy]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
           const wd=ms.widths[i]!=null?ms.widths[i]:(ms.widths[0]||10);
           const hd=ms.heights[i]!=null?ms.heights[i]:(ms.heights[0]||10);
-          const rw=Math.max(1,Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2))/2);
-          const rh=Math.max(1,Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2))/2);
+          const rw=Math.max(1, tfm==='data' ? Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2))/2 : wd/2);
+          const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2))/2 : hd/2);
           const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
@@ -2482,8 +2482,8 @@ function render({ model, el }) {
           const [cx,cy]= tfm==='data' ? _offToCanvas(off) : _tc2d(off[0],off[1]!=null?off[1]:0);
           const wd=ms.widths[i]!=null?ms.widths[i]:(ms.widths[0]||10);
           const hd=heights[i]!=null?heights[i]:(heights[0]||10);
-          const rw=Math.max(1,Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2)));
-          const rh=Math.max(1,Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2)));
+          const rw=Math.max(1, tfm==='data' ? Math.abs(_xPx(off[0]+wd/2)-_xPx(off[0]-wd/2)) : wd);
+          const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2)) : hd);
           const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
           if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
