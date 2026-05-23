@@ -539,22 +539,34 @@
             <span class="s2">&quot;color&quot;</span><span class="p">:</span>         <span class="n">color</span><span class="p">,</span>
             <span class="s2">&quot;point_size&quot;</span><span class="p">:</span>    <span class="nb">float</span><span class="p">(</span><span class="n">point_size</span><span class="p">),</span>
             <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+            <span class="s2">&quot;title&quot;</span><span class="p">:</span>         <span class="s2">&quot;&quot;</span><span class="p">,</span>
             <span class="s2">&quot;x_label&quot;</span><span class="p">:</span>       <span class="n">x_label</span><span class="p">,</span>
             <span class="s2">&quot;y_label&quot;</span><span class="p">:</span>       <span class="n">y_label</span><span class="p">,</span>
             <span class="s2">&quot;z_label&quot;</span><span class="p">:</span>       <span class="n">z_label</span><span class="p">,</span>
+            <span class="s2">&quot;axis_visible&quot;</span><span class="p">:</span>  <span class="kc">True</span><span class="p">,</span>
             <span class="s2">&quot;azimuth&quot;</span><span class="p">:</span>       <span class="nb">float</span><span class="p">(</span><span class="n">azimuth</span><span class="p">),</span>
             <span class="s2">&quot;elevation&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">),</span>
             <span class="s2">&quot;zoom&quot;</span><span class="p">:</span>          <span class="nb">float</span><span class="p">(</span><span class="n">zoom</span><span class="p">),</span>
+            <span class="s2">&quot;_default_azimuth&quot;</span><span class="p">:</span>   <span class="nb">float</span><span class="p">(</span><span class="n">azimuth</span><span class="p">),</span>
+            <span class="s2">&quot;_default_elevation&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">),</span>
+            <span class="s2">&quot;_default_zoom&quot;</span><span class="p">:</span>      <span class="nb">float</span><span class="p">(</span><span class="n">zoom</span><span class="p">),</span>
+            <span class="s2">&quot;_view_from_python&quot;</span><span class="p">:</span>  <span class="kc">False</span><span class="p">,</span>
             <span class="s2">&quot;data_bounds&quot;</span><span class="p">:</span>   <span class="n">data_bounds</span><span class="p">,</span>
             <span class="s2">&quot;pointer_settled_ms&quot;</span><span class="p">:</span>    <span class="mi">0</span><span class="p">,</span>
             <span class="s2">&quot;pointer_settled_delta&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_configure_pointer_settled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="Plot3D.configure_pointer_settled">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.configure_pointer_settled">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">configure_pointer_settled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Configure the pointer-settled event threshold (ms and pixel delta).&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;pointer_settled_ms&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">ms</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;pointer_settled_delta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+    <span class="n">_configure_pointer_settled</span> <span class="o">=</span> <span class="n">configure_pointer_settled</span>  <span class="c1"># backward compat</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -587,14 +599,96 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the camera azimuth (°) and/or elevation (°).&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">azimuth</span>   <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;azimuth&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">azimuth</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">elevation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;elevation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_view_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_view_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 <div class="viewcode-block" id="Plot3D.set_zoom">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_zoom">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_zoom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zoom</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;zoom&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">zoom</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_view_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_view_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.reset_view">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.reset_view">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Restore the camera to the angles/zoom set at construction time.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;azimuth&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_default_azimuth&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;elevation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_default_elevation&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;zoom&quot;</span><span class="p">]</span>      <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_default_zoom&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_view_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_view_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.set_axis_off">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_axis_off">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_axis_off</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;axis_visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.set_axis_on">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_axis_on">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_axis_on</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;axis_visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.set_title">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_title">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.set_xlabel">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_xlabel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_xlabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.set_ylabel">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_ylabel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_ylabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;y_label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.set_zlabel">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_zlabel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_zlabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;z_label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.get_xlim">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.get_xlim">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_xlim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the data x range as ``(xmin, xmax)``.&quot;&quot;&quot;</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_bounds&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;xmin&quot;</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="s2">&quot;xmax&quot;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.get_ylim">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.get_ylim">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ylim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the data y range as ``(ymin, ymax)``.&quot;&quot;&quot;</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_bounds&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;ymin&quot;</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="s2">&quot;ymax&quot;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.get_zlim">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.get_zlim">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_zlim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the data z range as ``(zmin, zmax)``.&quot;&quot;&quot;</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_bounds&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;zmin&quot;</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="s2">&quot;zmax&quot;</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="Plot3D.set_data">
@@ -647,7 +741,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">geom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;geom_type&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vertices&quot;</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vertices_count&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Plot3D(geom=</span><span class="si">{</span><span class="n">geom</span><span class="si">!r}</span><span class="s2">, n_vertices=</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">)&quot;</span></div>
 
 </pre></div>

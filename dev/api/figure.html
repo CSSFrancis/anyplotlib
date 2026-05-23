@@ -600,6 +600,28 @@ Newlines (<code class="docutils literal notranslate"><span class="pre">\n</span>
 
 <dl class="py method">
 <dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">subplots_adjust</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hspace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wspace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure.subplots_adjust"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Set the spacing between subplot panels.</p>
+<p>Only the arguments that are explicitly provided are updated; omitting
+an argument leaves the current value unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hspace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average row height to use as vertical gap between
+panels.  <code class="docutils literal notranslate"><span class="pre">0.1</span></code> adds a gap of 10 % of the mean row height.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (default) leaves the current hspace unchanged.</p></li>
+<li><p><strong>wspace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average column width to use as horizontal gap.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (default) leaves the current wspace unchanged.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">add_subplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure.add_subplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a subplot cell and return its <code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code>.</p>
 <dl class="field-list simple">
@@ -668,6 +690,20 @@ top-to-bottom iteration order.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference internal" href="generated/anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes">Axes</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Close the figure.</p>
+<p>Fires a <code class="docutils literal notranslate"><span class="pre">&quot;close&quot;</span></code> event on every panel’s <code class="xref py py-attr docutils literal notranslate"><span class="pre">callbacks</span></code>, then
+hides the widget by setting its CSS <code class="docutils literal notranslate"><span class="pre">display</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.
+Subsequent calls are no-ops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>

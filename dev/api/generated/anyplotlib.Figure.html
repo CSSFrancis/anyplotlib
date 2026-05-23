@@ -579,6 +579,28 @@ Newlines (<code class="docutils literal notranslate"><span class="pre">\n</span>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Figure.subplots_adjust">
+<span class="sig-name descname"><span class="pre">subplots_adjust</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hspace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wspace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.subplots_adjust"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.subplots_adjust" title="Link to this definition">#</a></dt>
+<dd><p>Set the spacing between subplot panels.</p>
+<p>Only the arguments that are explicitly provided are updated; omitting
+an argument leaves the current value unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hspace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average row height to use as vertical gap between
+panels.  <code class="docutils literal notranslate"><span class="pre">0.1</span></code> adds a gap of 10 % of the mean row height.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (default) leaves the current hspace unchanged.</p></li>
+<li><p><strong>wspace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average column width to use as horizontal gap.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (default) leaves the current wspace unchanged.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Figure.add_subplot">
 <span class="sig-name descname"><span class="pre">add_subplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.add_subplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.add_subplot" title="Link to this definition">#</a></dt>
 <dd><p>Add a subplot cell and return its <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a>.</p>
@@ -652,6 +674,20 @@ top-to-bottom iteration order.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Figure.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.close" title="Link to this definition">#</a></dt>
+<dd><p>Close the figure.</p>
+<p>Fires a <code class="docutils literal notranslate"><span class="pre">&quot;close&quot;</span></code> event on every panel’s <a class="reference internal" href="../callbacks.html#module-anyplotlib.callbacks" title="anyplotlib.callbacks"><code class="xref py py-attr docutils literal notranslate"><span class="pre">callbacks</span></code></a>, then
+hides the widget by setting its CSS <code class="docutils literal notranslate"><span class="pre">display</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.
+Subsequent calls are no-ops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -711,9 +747,11 @@ top-to-bottom iteration order.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.display_stats"><code class="docutils literal notranslate"><span class="pre">Figure.display_stats</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.help_text"><code class="docutils literal notranslate"><span class="pre">Figure.help_text</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.set_help"><code class="docutils literal notranslate"><span class="pre">Figure.set_help()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.subplots_adjust"><code class="docutils literal notranslate"><span class="pre">Figure.subplots_adjust()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.add_subplot"><code class="docutils literal notranslate"><span class="pre">Figure.add_subplot()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.add_inset"><code class="docutils literal notranslate"><span class="pre">Figure.add_inset()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.get_axes"><code class="docutils literal notranslate"><span class="pre">Figure.get_axes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.close"><code class="docutils literal notranslate"><span class="pre">Figure.close()</span></code></a></li>
 </ul>
 </li>
 </ul>
