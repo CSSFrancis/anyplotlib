@@ -9,8 +9,9 @@ from __future__ import annotations
 import numpy as np
 from typing import Callable
 
+from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
-from anyplotlib.callbacks import CallbackRegistry, _EventMixin
+from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
@@ -19,7 +20,7 @@ from anyplotlib.widgets import (
 from anyplotlib._utils import _normalize_image, _build_colormap_lut
 
 
-class Plot2D(_EventMixin):
+class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     """2-D image plot panel.
 
     Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
@@ -143,30 +144,10 @@ class Plot2D(_EventMixin):
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
 
-    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
-        """Configure the pointer-settled event threshold (ms and pixel delta)."""
-        self._state["pointer_settled_ms"]    = ms
-        self._state["pointer_settled_delta"] = delta
-        self._push()
-
-    _configure_pointer_settled = configure_pointer_settled  # backward compat
-
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
         import base64
         return base64.b64encode(arr.tobytes()).decode("ascii")
-
-    def _push(self) -> None:
-        """Serialise _state + markers and write to Figure trait."""
-        if self._fig is None:
-            return
-        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
-        self._fig._push(self._id)
-
-    def _push_markers(self) -> None:
-        """Called by MarkerRegistry whenever markers change."""
-        self._state["markers"] = self.markers.to_wire_list()
-        self._push()
 
     def to_state_dict(self) -> dict:
         """Return a JSON-serialisable copy of the current state."""
@@ -326,10 +307,6 @@ class Plot2D(_EventMixin):
         self._state["y_label"] = str(label)
         self._push()
 
-    def set_title(self, label: str) -> None:
-        self._state["title"] = str(label)
-        self._push()
-
     def set_xlim(self, xmin: float, xmax: float) -> None:
         self.set_view(x0=xmin, x1=xmax)
 
@@ -375,107 +352,113 @@ class Plot2D(_EventMixin):
         self._state["aspect"] = float(ratio) if ratio is not None else None
         self._push()
 
-    def set_axis_off(self) -> None:
-        self._state["axis_visible"] = False
-        self._push()
-
-    def set_axis_on(self) -> None:
-        self._state["axis_visible"] = True
-        self._push()
-
-    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
-                          y: bool | None = None) -> None:
-        if x is None and y is None:
-            self._state["x_ticks_visible"] = bool(visible)
-            self._state["y_ticks_visible"] = bool(visible)
-        else:
-            if x is not None:
-                self._state["x_ticks_visible"] = bool(x)
-            if y is not None:
-                self._state["y_ticks_visible"] = bool(y)
-        self._push()
-
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
     def add_widget(self, kind: str, color: str = "#00e5ff", **kwargs) -> Widget:
-        kind = kind.lower()
-        valid = ("circle", "rectangle", "annular", "polygon", "label", "crosshair")
-        if kind not in valid:
-            raise ValueError(f"kind must be one of {valid}")
+        """Add an overlay widget by kind name.
+
+        Dispatches to the dedicated ``add_<kind>_widget`` method.
+        Supported kinds: ``"circle"``, ``"rectangle"``, ``"annular"``,
+        ``"polygon"``, ``"crosshair"``, ``"label"``.
+        """
+        dispatch = {
+            "circle":    self.add_circle_widget,
+            "rectangle": self.add_rectangle_widget,
+            "annular":   self.add_annular_widget,
+            "polygon":   self.add_polygon_widget,
+            "crosshair": self.add_crosshair_widget,
+            "label":     self.add_label_widget,
+        }
+        key = kind.lower()
+        if key not in dispatch:
+            raise ValueError(f"kind must be one of {tuple(dispatch)}")
+        return dispatch[key](color=color, **kwargs)
+
+    def add_circle_widget(self, cx: float | None = None, cy: float | None = None,
+                          r: float | None = None, color: str = "#00e5ff") -> CircleWidget:
+        """Add a draggable circle overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
-
-        def _f(k, default): return float(kwargs.get(k, default))
-        def _i(k, default): return int(kwargs.get(k, default))
-
-        if kind == "circle":
-            widget = CircleWidget(lambda: None,
-                                  cx=_f("cx", iw / 2), cy=_f("cy", ih / 2),
-                                  r=_f("r", iw * 0.1), color=color)
-        elif kind == "rectangle":
-            widget = RectangleWidget(lambda: None,
-                                     x=_f("x", iw * 0.25), y=_f("y", ih * 0.25),
-                                     w=_f("w", iw * 0.5), h=_f("h", ih * 0.5),
-                                     color=color)
-        elif kind == "annular":
-            r_outer = _f("r_outer", iw * 0.2)
-            r_inner = _f("r_inner", iw * 0.1)
-            widget = AnnularWidget(lambda: None,
-                                   cx=_f("cx", iw / 2), cy=_f("cy", ih / 2),
-                                   r_outer=r_outer, r_inner=r_inner, color=color)
-        elif kind == "polygon":
-            raw = kwargs.get("vertices", [[iw * .25, ih * .25], [iw * .75, ih * .25],
-                                          [iw * .75, ih * .75], [iw * .25, ih * .75]])
-            widget = PolygonWidget(lambda: None, vertices=raw, color=color)
-        elif kind == "crosshair":
-            widget = CrosshairWidget(lambda: None,
-                                     cx=_f("cx", iw / 2), cy=_f("cy", ih / 2),
-                                     color=color)
-        else:  # label
-            widget = LabelWidget(lambda: None,
-                                 x=_f("x", iw * 0.1), y=_f("y", ih * 0.1),
-                                 text=str(kwargs.get("text", "Label")),
-                                 fontsize=_i("fontsize", 14), color=color)
-
-        # Replace the temporary push_fn with a targeted one now that
-        # we have both the widget's _id and the plot's _id.
-        plot_ref = self
-        wid_id   = widget._id
-        def _targeted_push():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items()
-                          if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _targeted_push
-
+        widget = CircleWidget(lambda: None,
+                              cx=float(cx) if cx is not None else iw / 2,
+                              cy=float(cy) if cy is not None else ih / 2,
+                              r=float(r) if r is not None else iw * 0.1,
+                              color=color)
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
-        self._push()       # full panel push once so JS knows about the widget
+        self._push()
         return widget
 
-    def get_widget(self, wid) -> Widget:
-        """Return the Widget object by ID string or Widget instance."""
-        if isinstance(wid, Widget):
-            wid = wid.id
-        try:
-            return self._widgets[wid]
-        except KeyError:
-            raise KeyError(wid)
-
-    def remove_widget(self, wid) -> None:
-        """Remove a widget by ID string or Widget instance."""
-        if isinstance(wid, Widget):
-            wid = wid.id
-        if wid not in self._widgets:
-            raise KeyError(wid)
-        del self._widgets[wid]
+    def add_rectangle_widget(self, x: float | None = None, y: float | None = None,
+                              w: float | None = None, h: float | None = None,
+                              color: str = "#00e5ff") -> RectangleWidget:
+        """Add a draggable rectangle overlay."""
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = RectangleWidget(lambda: None,
+                                 x=float(x) if x is not None else iw * 0.25,
+                                 y=float(y) if y is not None else ih * 0.25,
+                                 w=float(w) if w is not None else iw * 0.5,
+                                 h=float(h) if h is not None else ih * 0.5,
+                                 color=color)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
         self._push()
+        return widget
 
-    def list_widgets(self) -> list:
-        return list(self._widgets.values())
-
-    def clear_widgets(self) -> None:
-        self._widgets.clear()
+    def add_annular_widget(self, cx: float | None = None, cy: float | None = None,
+                           r_outer: float | None = None, r_inner: float | None = None,
+                           color: str = "#00e5ff") -> AnnularWidget:
+        """Add a draggable annular (ring) overlay."""
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = AnnularWidget(lambda: None,
+                               cx=float(cx) if cx is not None else iw / 2,
+                               cy=float(cy) if cy is not None else ih / 2,
+                               r_outer=float(r_outer) if r_outer is not None else iw * 0.2,
+                               r_inner=float(r_inner) if r_inner is not None else iw * 0.1,
+                               color=color)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
         self._push()
+        return widget
+
+    def add_polygon_widget(self, vertices=None, color: str = "#00e5ff") -> PolygonWidget:
+        """Add a draggable polygon overlay."""
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        if vertices is None:
+            vertices = [[iw * .25, ih * .25], [iw * .75, ih * .25],
+                        [iw * .75, ih * .75], [iw * .25, ih * .75]]
+        widget = PolygonWidget(lambda: None, vertices=vertices, color=color)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_crosshair_widget(self, cx: float | None = None, cy: float | None = None,
+                              color: str = "#00e5ff") -> CrosshairWidget:
+        """Add a draggable crosshair overlay."""
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = CrosshairWidget(lambda: None,
+                                 cx=float(cx) if cx is not None else iw / 2,
+                                 cy=float(cy) if cy is not None else ih / 2,
+                                 color=color)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_label_widget(self, x: float | None = None, y: float | None = None,
+                          text: str = "Label", fontsize: int = 14,
+                          color: str = "#00e5ff") -> LabelWidget:
+        """Add a draggable text label overlay."""
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = LabelWidget(lambda: None,
+                             x=float(x) if x is not None else iw * 0.1,
+                             y=float(y) if y is not None else ih * 0.1,
+                             text=str(text), fontsize=int(fontsize), color=color)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
 
     # ------------------------------------------------------------------
     # View control
@@ -523,27 +506,20 @@ class Plot2D(_EventMixin):
                 self._state["center_y"] = (fy0 + fy1) / 2.0
                 zoom_candidates.append(1.0 / (fy1 - fy0))
 
-        if zoom_candidates:
-            self._state["zoom"] = min(zoom_candidates)
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            if zoom_candidates:
+                self._state["zoom"] = min(zoom_candidates)
 
     def reset_view(self) -> None:
         """Reset pan and zoom to show the full image."""
-        self._state["zoom"]     = 1.0
-        self._state["center_x"] = 0.5
-        self._state["center_y"] = 0.5
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            self._state["zoom"]     = 1.0
+            self._state["center_x"] = 0.5
+            self._state["center_y"] = 0.5
 
     # ------------------------------------------------------------------
     # Marker API  (matplotlib-style kwargs → MarkerRegistry)
     # ------------------------------------------------------------------
-    def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
-        return self.markers.add(mtype, name, **kwargs)
-
     def add_circles(self, offsets, name=None, *, radius=5,
                     facecolors=None, edgecolors="#ff0000",
                     linewidths=1.5, alpha=0.3,
@@ -689,37 +665,6 @@ class Plot2D(_EventMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
                                 transform=transform)
-
-    def remove_marker(self, marker_type: str, name: str) -> None:
-        """Remove a named marker collection by type and name.
-
-        Parameters
-        ----------
-        marker_type : str
-            Collection type, e.g. ``"points"``, ``"vlines"``.
-        name : str
-            The name used when the collection was created.
-        """
-        self.markers.remove(marker_type, name)
-
-    def clear_markers(self) -> None:
-        """Remove all marker collections from this panel."""
-        self.markers.clear()
-
-    def list_markers(self) -> list:
-        """Return a summary list of all marker collections on this panel.
-
-        Returns
-        -------
-        list of dict
-            Each dict has keys ``"type"``, ``"name"``, and ``"n"``
-            (number of markers in the collection).
-        """
-        out = []
-        for mtype, td in self.markers._types.items():
-            for name, g in td.items():
-                out.append({"type": mtype, "name": name, "n": g._count()})
-        return out
 
     def __repr__(self) -> str:
         w = self._state.get("image_width", "?")
