@@ -100,8 +100,8 @@ class PolygonWidget(Widget):
     ----------
     push_fn : Callable
         Update callback.
-    vertices : list of (x, y) tuples
-        Polygon vertices in pixel/data coordinates.
+    vertices : list of tuple
+        Polygon vertices ``[(x0, y0), (x1, y1), ...]`` in pixel/data coordinates.
         Must have at least 3 vertices.
     color : str, optional
         CSS colour for the polygon outline. Default ``"#00e5ff"``.
