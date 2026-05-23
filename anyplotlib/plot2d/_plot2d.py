@@ -108,7 +108,6 @@ class Plot2D(_EventMixin):
             "raw_min":           raw_vmin,
             "raw_max":           raw_vmax,
             "show_colorbar":     False,
-            "log_scale":         False,
             "scale_mode":        "linear",
             "colormap_name":     cmap_name,
             "colormap_data":     cmap_lut,
@@ -375,6 +374,10 @@ class Plot2D(_EventMixin):
 
     def set_axis_off(self) -> None:
         self._state["axis_visible"] = False
+        self._push()
+
+    def set_axis_on(self) -> None:
+        self._state["axis_visible"] = True
         self._push()
 
     def set_ticks_visible(self, visible: bool, *, x: bool | None = None,

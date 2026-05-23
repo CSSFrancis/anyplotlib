@@ -343,10 +343,17 @@ class PlotBar(_EventMixin):
         self._state["axis_visible"] = True
         self._push()
 
-    def set_ticks_visible(self, x: bool = True, y: bool = True) -> None:
+    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
+                          y: bool | None = None) -> None:
         """Show or hide x/y tick marks independently."""
-        self._state["x_ticks_visible"] = bool(x)
-        self._state["y_ticks_visible"] = bool(y)
+        if x is None and y is None:
+            self._state["x_ticks_visible"] = bool(visible)
+            self._state["y_ticks_visible"] = bool(visible)
+        else:
+            if x is not None:
+                self._state["x_ticks_visible"] = bool(x)
+            if y is not None:
+                self._state["y_ticks_visible"] = bool(y)
         self._push()
 
     # ------------------------------------------------------------------
@@ -375,6 +382,14 @@ class PlotBar(_EventMixin):
         if yr is not None:
             return (float(yr[0]), float(yr[1]))
         return (float(self._state["data_min"]), float(self._state["data_max"]))
+
+    def get_xlim(self) -> tuple:
+        """Return the current x-axis view range in data coordinates."""
+        x_axis = self._state["x_axis"]
+        span = x_axis[1] - x_axis[0]
+        x0 = x_axis[0] + self._state["view_x0"] * span
+        x1 = x_axis[0] + self._state["view_x1"] * span
+        return (float(x0), float(x1))
 
     def reset_view(self) -> None:
         """Reset pan/zoom to show all bars."""

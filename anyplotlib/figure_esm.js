@@ -573,6 +573,10 @@ function render({ model, el }) {
         } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
           newState.view_x0 = p2.state.view_x0;
           newState.view_x1 = p2.state.view_x1;
+        } else if (p2.state && p2.kind === '3d' && !newState._view_from_python) {
+          newState.azimuth   = p2.state.azimuth;
+          newState.elevation = p2.state.elevation;
+          newState.zoom      = p2.state.zoom;
         }
         p2.state = newState;
       }
@@ -698,6 +702,10 @@ function render({ model, el }) {
         } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
           newState.view_x0 = p2.state.view_x0;
           newState.view_x1 = p2.state.view_x1;
+        } else if (p2.state && p2.kind === '3d' && !newState._view_from_python) {
+          newState.azimuth   = p2.state.azimuth;
+          newState.elevation = p2.state.elevation;
+          newState.zoom      = p2.state.zoom;
         }
         p2.state = newState;
       }

@@ -327,7 +327,6 @@ class Plot1D(_EventMixin):
         x_arr     = d.pop("x_axis")
         d["data_b64"]    = _arr_to_b64(data_arr,  np.float64)
         d["x_axis_b64"]  = _arr_to_b64(x_arr,     np.float64)
-        d["data_length"] = len(data_arr)
         # Encode extra-line arrays too
         new_extra = []
         for ex in d["extra_lines"]:
@@ -910,6 +909,10 @@ class Plot1D(_EventMixin):
 
     def set_axis_off(self) -> None:
         self._state["axis_visible"] = False
+        self._push()
+
+    def set_axis_on(self) -> None:
+        self._state["axis_visible"] = True
         self._push()
 
     def set_ticks_visible(self, visible: bool, *, x: bool | None = None,

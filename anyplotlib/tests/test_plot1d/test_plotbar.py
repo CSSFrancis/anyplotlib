@@ -790,13 +790,13 @@ class TestPlotBarDisplayMethods:
 
     def test_set_ticks_visible_both_false(self):
         p = _make_bar()
-        p.set_ticks_visible(x=False, y=False)
+        p.set_ticks_visible(False)
         assert p._state["x_ticks_visible"] is False
         assert p._state["y_ticks_visible"] is False
 
     def test_set_ticks_visible_x_only(self):
         p = _make_bar()
-        p.set_ticks_visible(x=True, y=False)
+        p.set_ticks_visible(True, x=True, y=False)
         assert p._state["x_ticks_visible"] is True
         assert p._state["y_ticks_visible"] is False
 
@@ -851,3 +851,51 @@ class TestPlotBarViewFromPython:
         p.reset_view()
         assert p._state["_view_from_python"] is False
 
+
+
+# ===========================================================================
+# PlotBar: get_xlim and fixed set_ticks_visible signature
+# ===========================================================================
+
+class TestPlotBarGetXlim:
+    def test_get_xlim_default(self):
+        p = _make_bar()
+        x_axis = p._state["x_axis"]
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(x_axis[0])
+        assert hi == pytest.approx(x_axis[-1])
+
+    def test_get_xlim_after_set_xlim(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.bar(np.arange(10), np.ones(10))
+        p.set_xlim(2.0, 7.0)
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(2.0, abs=0.5)
+        assert hi == pytest.approx(7.0, abs=0.5)
+
+
+class TestPlotBarSetTicksVisibleSignature:
+    def test_positional_visible_both(self):
+        p = _make_bar()
+        p.set_ticks_visible(False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is False
+
+    def test_positional_visible_true(self):
+        p = _make_bar()
+        p.set_ticks_visible(False)
+        p.set_ticks_visible(True)
+        assert p._state["x_ticks_visible"] is True
+        assert p._state["y_ticks_visible"] is True
+
+    def test_keyword_x_only(self):
+        p = _make_bar()
+        p.set_ticks_visible(True, x=False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is True
+
+    def test_keyword_y_only(self):
+        p = _make_bar()
+        p.set_ticks_visible(True, y=False)
+        assert p._state["x_ticks_visible"] is True
+        assert p._state["y_ticks_visible"] is False

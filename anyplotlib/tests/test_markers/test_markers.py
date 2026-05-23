@@ -693,3 +693,34 @@ class TestMarkers1dNewTypes:
         assert "U" in w and "V" in w
         assert len(w["U"]) == 2
 
+
+
+# ===========================================================================
+# Top-level exports
+# ===========================================================================
+
+class TestTopLevelExports:
+    def test_line1d_exported(self):
+        import anyplotlib as apl
+        assert hasattr(apl, "Line1D")
+        from anyplotlib import Line1D
+        assert Line1D is not None
+
+    def test_marker_registry_exported(self):
+        import anyplotlib as apl
+        assert hasattr(apl, "MarkerRegistry")
+        from anyplotlib import MarkerRegistry
+        assert MarkerRegistry is not None
+
+    def test_marker_group_exported(self):
+        import anyplotlib as apl
+        assert hasattr(apl, "MarkerGroup")
+        from anyplotlib import MarkerGroup
+        assert MarkerGroup is not None
+
+    def test_line1d_data_length_not_in_wire(self):
+        """data_length must not appear in to_state_dict() wire output."""
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(np.linspace(0, 1, 64))
+        wire = p.to_state_dict()
+        assert "data_length" not in wire
