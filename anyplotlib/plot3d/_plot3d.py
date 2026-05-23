@@ -124,6 +124,10 @@ class Plot3D(_EventMixin):
             "azimuth":       float(azimuth),
             "elevation":     float(elevation),
             "zoom":          float(zoom),
+            "_default_azimuth":   float(azimuth),
+            "_default_elevation": float(elevation),
+            "_default_zoom":      float(zoom),
+            "_view_from_python":  False,
             "data_bounds":   data_bounds,
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
@@ -158,10 +162,39 @@ class Plot3D(_EventMixin):
         """Set the camera azimuth (°) and/or elevation (°)."""
         if azimuth   is not None: self._state["azimuth"]   = float(azimuth)
         if elevation is not None: self._state["elevation"] = float(elevation)
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     def set_zoom(self, zoom: float) -> None:
         self._state["zoom"] = float(zoom)
+        self._state["_view_from_python"] = True
+        self._push()
+        self._state["_view_from_python"] = False
+
+    def reset_view(self) -> None:
+        """Restore the camera to the angles/zoom set at construction time."""
+        self._state["azimuth"]   = self._state["_default_azimuth"]
+        self._state["elevation"] = self._state["_default_elevation"]
+        self._state["zoom"]      = self._state["_default_zoom"]
+        self._state["_view_from_python"] = True
+        self._push()
+        self._state["_view_from_python"] = False
+
+    def set_xlabel(self, label: str) -> None:
+        self._state["x_label"] = label
+        self._push()
+
+    def set_ylabel(self, label: str) -> None:
+        self._state["y_label"] = label
+        self._push()
+
+    def set_zlabel(self, label: str) -> None:
+        self._state["z_label"] = label
+        self._push()
+
+    def set_title(self, title: str) -> None:
+        self._state["title"] = title
         self._push()
 
     def set_data(self, x, y, z) -> None:

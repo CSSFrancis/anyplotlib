@@ -1,9 +1,11 @@
 from anyplotlib.figure import Figure, GridSpec, SubplotSpec, subplots
 from anyplotlib.axes import Axes, InsetAxes
 from anyplotlib.plot1d import Plot1D, PlotBar
+from anyplotlib.plot1d._plot1d import Line1D
 from anyplotlib.plot2d import Plot2D, PlotMesh
 from anyplotlib.plot3d import Plot3D
 from anyplotlib.callbacks import CallbackRegistry, Event
+from anyplotlib.markers import MarkerRegistry, MarkerGroup
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,
     CrosshairWidget, PolygonWidget, LabelWidget,
@@ -30,7 +32,9 @@ def get_color_cycle() -> list[str]:
 __all__ = [
     "Figure", "GridSpec", "SubplotSpec", "subplots",
     "Axes", "InsetAxes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D", "PlotBar",
+    "Line1D",
     "CallbackRegistry", "Event",
+    "MarkerRegistry", "MarkerGroup",
     "Widget", "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget",
     "VLineWidget", "HLineWidget", "RangeWidget",

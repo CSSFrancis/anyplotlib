@@ -937,3 +937,21 @@ class TestAddLineDefaultColor:
         p.add_line(np.linspace(-1, 1, 128))
         assert p._state["extra_lines"][-1]["color"] == "#4fc3f7"
 
+
+
+# ===========================================================================
+# set_axis_on (Plot1D)
+# ===========================================================================
+
+class TestSetAxisOnPlot1D:
+    def test_set_axis_on_restores(self):
+        p = _plot()
+        p.set_axis_off()
+        assert p._state["axis_visible"] is False
+        p.set_axis_on()
+        assert p._state["axis_visible"] is True
+
+    def test_set_axis_on_default_state(self):
+        p = _plot()
+        p.set_axis_on()
+        assert p._state["axis_visible"] is True

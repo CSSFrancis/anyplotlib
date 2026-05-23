@@ -195,6 +195,59 @@ class TestPlot3DMutations:
         with pytest.raises(ValueError):
             surf.set_data(x, x, x)
 
+    def test_set_view_clears_view_from_python(self):
+        surf, *_ = _surface()
+        surf.set_view(azimuth=10.0)
+        assert surf._state["_view_from_python"] is False
+
+    def test_set_zoom_clears_view_from_python(self):
+        surf, *_ = _surface()
+        surf.set_zoom(1.5)
+        assert surf._state["_view_from_python"] is False
+
+    def test_reset_view_restores_defaults(self):
+        surf, *_ = _surface()
+        surf.set_view(azimuth=90.0, elevation=10.0)
+        surf.set_zoom(3.0)
+        surf.reset_view()
+        assert surf._state["azimuth"]   == pytest.approx(-60.0)
+        assert surf._state["elevation"] == pytest.approx(30.0)
+        assert surf._state["zoom"]      == pytest.approx(1.0)
+        assert surf._state["_view_from_python"] is False
+
+    def test_reset_view_uses_constructor_angles(self):
+        x = np.linspace(-1, 1, 5)
+        y = np.linspace(-1, 1, 5)
+        XX, YY = np.meshgrid(x, y)
+        ZZ = XX * YY
+        fig, ax = apl.subplots(1, 1)
+        surf = ax.plot_surface(XX, YY, ZZ, azimuth=15.0, elevation=45.0, zoom=2.0)
+        surf.set_view(azimuth=0.0, elevation=0.0)
+        surf.reset_view()
+        assert surf._state["azimuth"]   == pytest.approx(15.0)
+        assert surf._state["elevation"] == pytest.approx(45.0)
+        assert surf._state["zoom"]      == pytest.approx(2.0)
+
+    def test_set_xlabel(self):
+        surf, *_ = _surface()
+        surf.set_xlabel("time")
+        assert surf._state["x_label"] == "time"
+
+    def test_set_ylabel(self):
+        surf, *_ = _surface()
+        surf.set_ylabel("depth")
+        assert surf._state["y_label"] == "depth"
+
+    def test_set_zlabel(self):
+        surf, *_ = _surface()
+        surf.set_zlabel("intensity")
+        assert surf._state["z_label"] == "intensity"
+
+    def test_set_title(self):
+        surf, *_ = _surface()
+        surf.set_title("My Surface")
+        assert surf._state["title"] == "My Surface"
+
 
 # ===========================================================================
 # repr() uses vertices_count, not len(vertices)

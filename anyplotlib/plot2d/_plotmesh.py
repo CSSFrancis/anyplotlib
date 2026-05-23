@@ -106,3 +106,11 @@ class PlotMesh(Plot2D):
         if units is not None:
             self._state["units"] = units
         self._push()
+
+    def __repr__(self) -> str:
+        xe = self._state.get("x_axis", [])
+        ye = self._state.get("y_axis", [])
+        cols = max(0, len(xe) - 1)
+        rows = max(0, len(ye) - 1)
+        cmap = self._state.get("colormap_name", "?")
+        return f"PlotMesh({rows}×{cols}, cmap={cmap!r})"

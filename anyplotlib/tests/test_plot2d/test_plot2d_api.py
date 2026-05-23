@@ -425,3 +425,39 @@ class TestPlot2DGetXlim:
         assert xhi == pytest.approx(5.0)
         assert ylo == pytest.approx(2.0)
         assert yhi == pytest.approx(8.0)
+
+
+# ===========================================================================
+# Plot2D: set_axis_on and no log_scale key
+# ===========================================================================
+
+class TestPlot2DSetAxisOn:
+    def test_set_axis_on_restores(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), units="px")
+        p.set_axis_off()
+        assert p._state["axis_visible"] is False
+        p.set_axis_on()
+        assert p._state["axis_visible"] is True
+
+    def test_no_log_scale_key(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), units="px")
+        assert "log_scale" not in p._state
+
+
+class TestPlotMeshRepr:
+    def test_repr_is_plotmesh(self):
+        from anyplotlib.plot2d import PlotMesh
+        fig, ax = apl.subplots(1, 1)
+        p = ax.pcolormesh(np.ones((4, 6)))
+        r = repr(p)
+        assert r.startswith("PlotMesh(")
+        assert "4" in r
+        assert "6" in r
+
+    def test_repr_not_plot2d(self):
+        from anyplotlib.plot2d import PlotMesh
+        fig, ax = apl.subplots(1, 1)
+        p = ax.pcolormesh(np.ones((3, 5)))
+        assert not repr(p).startswith("Plot2D(")
