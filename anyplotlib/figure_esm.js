@@ -115,6 +115,73 @@ function render({ model, el }) {
     return new Int32Array(buf.buffer);
   }
 
+  // ── shared constants ──────────────────────────────────────────────────────
+  const STATS_DIV_CSS =
+    'position:absolute;top:4px;left:4px;padding:4px 7px;' +
+    'background:rgba(0,0,0,0.65);color:#e0e0e0;font-size:10px;' +
+    'font-family:monospace;border-radius:4px;pointer-events:none;' +
+    'white-space:pre;line-height:1.5;z-index:20;display:none;';
+
+  // ── shared helpers ────────────────────────────────────────────────────────
+
+  // Preserve JS-side view state when Python pushes data without requesting a
+  // view change (_view_from_python === false).
+  function _preserveView(p2, newState) {
+    if (!p2.state) return;
+    if (p2.kind === '2d' && !newState._view_from_python) {
+      newState.zoom     = p2.state.zoom;
+      newState.center_x = p2.state.center_x;
+      newState.center_y = p2.state.center_y;
+    } else if ((p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
+      newState.view_x0 = p2.state.view_x0;
+      newState.view_x1 = p2.state.view_x1;
+    } else if (p2.kind === '3d' && !newState._view_from_python) {
+      newState.azimuth   = p2.state.azimuth;
+      newState.elevation = p2.state.elevation;
+      newState.zoom      = p2.state.zoom;
+    }
+  }
+
+  // Factory: returns a debounced commit function.
+  // onCommit is called once per animation frame after the last request.
+  function _makeCommitter(onCommit) {
+    let pending = false;
+    return function() {
+      if (pending) return; pending = true;
+      requestAnimationFrame(() => { pending = false; onCommit(); });
+    };
+  }
+
+  // Factory: returns { clear(), arm(mx, my, e, extraFields?) } for the
+  // pointer_settled dwell-timer pattern.  extraFields is an optional
+  // zero-arg callback that returns extra fields to merge into the event.
+  function _makeSettledScheduler(p) {
+    let timer = null, startX = 0, startY = 0, startTs = 0;
+    return {
+      clear() { clearTimeout(timer); timer = null; },
+      arm(mx, my, e, extraFields) {
+        const ms = p.state?.pointer_settled_ms ?? 0;
+        if (ms <= 0) return;
+        const delta = p.state?.pointer_settled_delta ?? 4;
+        clearTimeout(timer);
+        startX = mx; startY = my; startTs = performance.now();
+        const mods = _modifiers(e);
+        timer = setTimeout(() => {
+          if (Math.hypot(p.mouseX - startX, p.mouseY - startY) <= delta) {
+            const _now = performance.now();
+            _emitEvent(p.id, 'pointer_settled', null, {
+              time_stamp: _now / 1000, modifiers: mods,
+              button: null, buttons: 0,
+              x: Math.round(p.mouseX), y: Math.round(p.mouseY),
+              dwell_ms: _now - startTs,
+              ...(extraFields ? extraFields() : {}),
+            });
+          }
+        }, ms);
+      }
+    };
+  }
+
   // ── per-panel frame timing ────────────────────────────────────────────────
   // Called at the entry of every draw function (draw2d / draw1d / draw3d /
   // drawBar).  Records a high-resolution timestamp in a 60-entry rolling
@@ -517,11 +584,7 @@ function render({ model, el }) {
     const blitCache = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
 
     const statsDiv = document.createElement('div');
-    statsDiv.style.cssText =
-      'position:absolute;top:4px;left:4px;padding:4px 7px;' +
-      'background:rgba(0,0,0,0.65);color:#e0e0e0;font-size:10px;' +
-      'font-family:monospace;border-radius:4px;pointer-events:none;' +
-      'white-space:pre;line-height:1.5;z-index:20;display:none;';
+    statsDiv.style.cssText = STATS_DIV_CSS;
     if (stack.wrapNode) stack.wrapNode.appendChild(statsDiv);
 
     const p = {
@@ -563,21 +626,7 @@ function render({ model, el }) {
       if (!p2) return;
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
-        // Preserve the current view (zoom/pan) so Python data pushes don't
-        // reset it — but only when Python has NOT explicitly requested a view
-        // change (set_view / reset_view set _view_from_python: true).
-        if (p2.state && p2.kind === '2d' && !newState._view_from_python) {
-          newState.zoom     = p2.state.zoom;
-          newState.center_x = p2.state.center_x;
-          newState.center_y = p2.state.center_y;
-        } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
-          newState.view_x0 = p2.state.view_x0;
-          newState.view_x1 = p2.state.view_x1;
-        } else if (p2.state && p2.kind === '3d' && !newState._view_from_python) {
-          newState.azimuth   = p2.state.azimuth;
-          newState.elevation = p2.state.elevation;
-          newState.zoom      = p2.state.zoom;
-        }
+        _preserveView(p2, newState);
         p2.state = newState;
       }
       catch(_) { return; }
@@ -641,11 +690,7 @@ function render({ model, el }) {
     const blitCache = { bitmap:null, bytesKey:null, lutKey:null, w:0, h:0 };
 
     const statsDiv = document.createElement('div');
-    statsDiv.style.cssText =
-      'position:absolute;top:4px;left:4px;padding:4px 7px;' +
-      'background:rgba(0,0,0,0.65);color:#e0e0e0;font-size:10px;' +
-      'font-family:monospace;border-radius:4px;pointer-events:none;' +
-      'white-space:pre;line-height:1.5;z-index:20;display:none;';
+    statsDiv.style.cssText = STATS_DIV_CSS;
     if (stack.wrapNode) stack.wrapNode.appendChild(statsDiv);
 
     const p = {
@@ -692,21 +737,7 @@ function render({ model, el }) {
       if (!p2) return;
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
-        // Preserve the current view (zoom/pan) so Python data pushes don't
-        // reset it — but only when Python has NOT explicitly requested a view
-        // change (set_view / reset_view set _view_from_python: true).
-        if (p2.state && p2.kind === '2d' && !newState._view_from_python) {
-          newState.zoom     = p2.state.zoom;
-          newState.center_x = p2.state.center_x;
-          newState.center_y = p2.state.center_y;
-        } else if (p2.state && (p2.kind === '1d' || p2.kind === 'bar') && !newState._view_from_python) {
-          newState.view_x0 = p2.state.view_x0;
-          newState.view_x1 = p2.state.view_x1;
-        } else if (p2.state && p2.kind === '3d' && !newState._view_from_python) {
-          newState.azimuth   = p2.state.azimuth;
-          newState.elevation = p2.state.elevation;
-          newState.zoom      = p2.state.zoom;
-        }
+        _preserveView(p2, newState);
         p2.state = newState;
       }
       catch(_) { return; }
@@ -1822,16 +1853,8 @@ function render({ model, el }) {
   function _attachEvents3d(p) {
     const { overlayCanvas } = p;
     let dragStart = null;
-    let commitPending = false;
-    let _settledTimer = null;
-    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
-    function _scheduleCommit() {
-      if (commitPending) return; commitPending = true;
-      requestAnimationFrame(() => {
-        commitPending = false;
-        model.save_changes();
-      });
-    }
+    const _scheduleCommit = _makeCommitter(() => model.save_changes());
+    const settled = _makeSettledScheduler(p);
 
 
     overlayCanvas.addEventListener('mousedown', (e) => {
@@ -1857,7 +1880,7 @@ function render({ model, el }) {
       e.preventDefault();
     });
     document.addEventListener('mouseup', (e) => {
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       if (!dragStart) return;
       dragStart = null;
       overlayCanvas.style.cursor = 'grab';
@@ -1889,31 +1912,7 @@ function render({ model, el }) {
       const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       p.mouseX = mx;
       p.mouseY = my;
-      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
-      const _settledMs = (p.state.pointer_settled_ms ?? 0);
-      if (_settledMs > 0) {
-        const _settledDelta = p.state.pointer_settled_delta ?? 4;
-        clearTimeout(_settledTimer);
-        _settledStartX = mx;
-        _settledStartY = my;
-        _settledStartTs = performance.now();
-        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
-        _settledTimer = setTimeout(() => {
-          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
-          if (dist <= _settledDelta) {
-            const _now = performance.now();
-            _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: _now / 1000,
-              modifiers:  _settledMods,
-              button:     null,
-              buttons:    0,
-              x:          Math.round(p.mouseX),
-              y:          Math.round(p.mouseY),
-              dwell_ms:   _now - _settledStartTs,
-            });
-          }
-        }, _settledMs);
-      }
+      settled.arm(mx, my, e);
     });
 
     // Keyboard shortcuts
@@ -1943,7 +1942,7 @@ function render({ model, el }) {
       _emitEvent(p.id, 'pointer_enter', null, {..._pointerFields(e), x: e.offsetX, y: e.offsetY});
     });
     overlayCanvas.addEventListener('mouseleave', (e) => {
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       _emitEvent(p.id, 'pointer_leave', null, {..._pointerFields(e), x: e.offsetX, y: e.offsetY});
     });
     overlayCanvas.addEventListener('keyup', (e) => {
@@ -1964,20 +1963,8 @@ function render({ model, el }) {
 
   function _plotRect1d(pw,ph){return{x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-PAD_R),h:Math.max(1,ph-PAD_T-PAD_B)};}
 
-  function _xToFrac1d(xArr,val){
-    if(xArr.length<2) return 0;
-    const n=xArr.length, asc=xArr[n-1]>=xArr[0];
-    if(asc?val<=xArr[0]:val>=xArr[0]) return 0;
-    if(asc?val>=xArr[n-1]:val<=xArr[n-1]) return 1;
-    let lo=0,hi=n-2;
-    while(lo<hi){const mid=(lo+hi)>>1;const ok=asc?(xArr[mid]<=val&&val<xArr[mid+1]):(xArr[mid]>=val&&val>xArr[mid+1]);if(ok){lo=mid;break;}if(asc?xArr[mid+1]<=val:xArr[mid+1]>=val)lo=mid+1;else hi=mid;}
-    return(lo+(val-xArr[lo])/(xArr[lo+1]-xArr[lo]))/(n-1);
-  }
-  function _fracToX1d(xArr,frac){
-    if(xArr.length<2) return xArr.length?xArr[0]:0;
-    const n=xArr.length,pos=Math.max(0,Math.min(1,frac))*(n-1),lo=Math.min(Math.floor(pos),n-2),t=pos-lo;
-    return xArr[lo]+t*(xArr[lo+1]-xArr[lo]);
-  }
+  // _xToFrac1d / _fracToX1d are identical to _axisValToFrac / _axisFracToVal
+  // (defined at the top of this file) — callers use those shared functions.
   function _fracToPx1d(frac,x0,x1,r){return r.x+((frac-x0)/((x1-x0)||1))*r.w;}
   function _valToPy1d(val,dMin,dMax,r){return r.y+r.h-((val-dMin)/((dMax-dMin)||1))*r.h;}
 
@@ -2021,10 +2008,10 @@ function render({ model, el }) {
     // Grid
     ctx.strokeStyle=theme.gridStroke; ctx.lineWidth=1;
     if(xArr.length>=2){
-      const xVMin=_fracToX1d(xArr,x0), xVMax=_fracToX1d(xArr,x1);
+      const xVMin=_axisFracToVal(xArr,x0), xVMax=_axisFracToVal(xArr,x1);
       const xStep=findNice((xVMax-xVMin)/Math.max(2,Math.floor(r.w/70)));
       for(let v=Math.ceil(xVMin/xStep)*xStep;v<=xVMax+xStep*0.01;v+=xStep){
-        const px=_fracToPx1d(_xToFrac1d(xArr,v),x0,x1,r);
+        const px=_fracToPx1d(_axisValToFrac(xArr,v),x0,x1,r);
         if(px<r.x||px>r.x+r.w) continue;
         ctx.beginPath();ctx.moveTo(px,r.y);ctx.lineTo(px,r.y+r.h);ctx.stroke();
       }
@@ -2050,8 +2037,8 @@ function render({ model, el }) {
     for(const sp of (st.spans||[])){
       ctx.fillStyle=sp.color||(theme.dark?'rgba(255,255,100,0.15)':'rgba(200,160,0,0.15)');
       if(sp.axis==='x'){
-        const px0=_fracToPx1d(_xToFrac1d(xArr,sp.v0),x0,x1,r);
-        const px1b=_fracToPx1d(_xToFrac1d(xArr,sp.v1),x0,x1,r);
+        const px0=_fracToPx1d(_axisValToFrac(xArr,sp.v0),x0,x1,r);
+        const px1b=_fracToPx1d(_axisValToFrac(xArr,sp.v1),x0,x1,r);
         ctx.fillRect(px0,r.y,px1b-px0,r.h);
       } else {
         const py0=_toPlotY(sp.v1), py1=_toPlotY(sp.v0);
@@ -2226,11 +2213,11 @@ function render({ model, el }) {
     if(axisVis1d&&xTicksVis1d){
       ctx.fillStyle=theme.tickText; ctx.font='10px monospace';
       if(xArr.length>=2){
-        const xVMin=_fracToX1d(xArr,x0), xVMax=_fracToX1d(xArr,x1);
+        const xVMin=_axisFracToVal(xArr,x0), xVMax=_axisFracToVal(xArr,x1);
         const xStep=findNice((xVMax-xVMin)/Math.max(2,Math.floor(r.w/70)));
         ctx.textAlign='center'; ctx.textBaseline='top';
         for(let v=Math.ceil(xVMin/xStep)*xStep;v<=xVMax+xStep*0.01;v+=xStep){
-          const px=_fracToPx1d(_xToFrac1d(xArr,v),x0,x1,r);
+          const px=_fracToPx1d(_axisValToFrac(xArr,v),x0,x1,r);
           if(px<r.x||px>r.x+r.w) continue;
           ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(px,r.y+r.h);ctx.lineTo(px,r.y+r.h+5);ctx.stroke();
           ctx.fillStyle=theme.tickText;ctx.fillText(fmtVal(v),px,r.y+r.h+7);
@@ -2330,7 +2317,7 @@ function render({ model, el }) {
       const color=w.color||'#00e5ff';
       ovCtx.save();ovCtx.strokeStyle=color;ovCtx.lineWidth=2;
       if(w.type==='vline'){
-        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
+        const px=_fracToPx1d(_axisValToFrac(xArr,w.x),x0,x1,r);
         ovCtx.setLineDash([5,3]);ovCtx.beginPath();ovCtx.moveTo(px,r.y);ovCtx.lineTo(px,r.y+r.h);ovCtx.stroke();ovCtx.setLineDash([]);
         _ovHandle1d(ovCtx,px,r.y+7,color);
       } else if(w.type==='hline'){
@@ -2338,8 +2325,8 @@ function render({ model, el }) {
         ovCtx.setLineDash([5,3]);ovCtx.beginPath();ovCtx.moveTo(r.x,py);ovCtx.lineTo(r.x+r.w,py);ovCtx.stroke();ovCtx.setLineDash([]);
         _ovHandle1d(ovCtx,r.x+r.w-7,py,color);
       } else if(w.type==='range'){
-        const px0=_fracToPx1d(_xToFrac1d(xArr,w.x0),x0,x1,r);
-        const px1b=_fracToPx1d(_xToFrac1d(xArr,w.x1),x0,x1,r);
+        const px0=_fracToPx1d(_axisValToFrac(xArr,w.x0),x0,x1,r);
+        const px1b=_fracToPx1d(_axisValToFrac(xArr,w.x1),x0,x1,r);
         if(w.style==='fwhm'){
           // FWHM style: o-------o  two handles joined by a dashed horizontal line
           const pyHalf=_valToPy1d(w.y||0,dMin,dMax,r);
@@ -2359,7 +2346,7 @@ function render({ model, el }) {
           _ovHandle1d(ovCtx,px0,r.y+7,color);_ovHandle1d(ovCtx,px1b,r.y+7,color);
         }
       } else if(w.type==='point'){
-        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
+        const px=_fracToPx1d(_axisValToFrac(xArr,w.x),x0,x1,r);
         const py=_valToPy1d(w.y,dMin,dMax,r);
         // Dashed crosshair guide lines (skipped when show_crosshair is false)
         if(w.show_crosshair!==false){
@@ -2402,7 +2389,7 @@ function render({ model, el }) {
     mkCtx.save();mkCtx.beginPath();mkCtx.rect(r.x,r.y,r.w,r.h);mkCtx.clip();
 
     function _offToCanvas(off){
-      const xFrac=xArr.length>=2?_xToFrac1d(xArr,off[0]):(off[0]/((xArr.length-1)||1));
+      const xFrac=xArr.length>=2?_axisValToFrac(xArr,off[0]):(off[0]/((xArr.length-1)||1));
       const px=_fracToPx1d(xFrac,x0,x1,r);
       let py;
       if(off.length>=2&&off[1]!=null){py=_valToPy1d(off[1],dMin,dMax,r);}
@@ -2410,7 +2397,7 @@ function render({ model, el }) {
       else{py=_valToPy1d(0,dMin,dMax,r);}
       return[px,py];
     }
-    function _xPx(v){return _fracToPx1d(xArr.length>=2?_xToFrac1d(xArr,v):0,x0,x1,r);}
+    function _xPx(v){return _fracToPx1d(xArr.length>=2?_axisValToFrac(xArr,v):0,x0,x1,r);}
     function _yPx(v){return _valToPy1d(v,dMin,dMax,r);}
 
     for(let si=0;si<sets.length;si++){
@@ -2563,7 +2550,7 @@ function render({ model, el }) {
       if (bx === null) return null;
       // Convert canvas best-point back to data coords
       const frac = _canvasXToFrac1d(bx, x0, x1, r);
-      const physX = lineXArr.length >= 2 ? _fracToX1d(lineXArr, frac) : frac;
+      const physX = lineXArr.length >= 2 ? _axisFracToVal(lineXArr, frac) : frac;
       const physY = dMin + (r.y + r.h - by) / (r.h||1) * (dMax - dMin);
       return { lineId, canvasPx: bx, canvasPy: by, x: physX, y: physY };
     }
@@ -2667,7 +2654,7 @@ function render({ model, el }) {
       const perLabels=Array.isArray(ms.labels)?ms.labels:null;
       if(ms.type==='points'){
         for(let i=0;i<(ms.offsets||[]).length;i++){
-          const frac=xArr.length>=2?_xToFrac1d(xArr,ms.offsets[i][0]):0;
+          const frac=xArr.length>=2?_axisValToFrac(xArr,ms.offsets[i][0]):0;
           const px=_fracToPx1d(frac,x0,x1,r);
           const sz=Math.max(1,ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5);
           if(Math.sqrt((mx-px)**2+(my-r.y-r.h/2)**2)<=sz+MARKER_HIT)
@@ -2675,7 +2662,7 @@ function render({ model, el }) {
         }
       } else if(ms.type==='vlines'){
         for(let i=0;i<(ms.offsets||[]).length;i++){
-          const px=_fracToPx1d(xArr.length>=2?_xToFrac1d(xArr,ms.offsets[i][0]):0,x0,x1,r);
+          const px=_fracToPx1d(xArr.length>=2?_axisValToFrac(xArr,ms.offsets[i][0]):0,x0,x1,r);
           if(Math.abs(mx-px)<=MARKER_HIT&&my>=r.y&&my<=r.y+r.h)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
@@ -2688,8 +2675,8 @@ function render({ model, el }) {
       } else if(ms.type==='lines'){
         for(let i=0;i<(ms.segments||[]).length;i++){
           const seg=ms.segments[i];
-          const xf1=xArr.length>=2?_xToFrac1d(xArr,seg[0][0]):0;
-          const xf2=xArr.length>=2?_xToFrac1d(xArr,seg[1][0]):0;
+          const xf1=xArr.length>=2?_axisValToFrac(xArr,seg[0][0]):0;
+          const xf2=xArr.length>=2?_axisValToFrac(xArr,seg[1][0]):0;
           const x1c=_fracToPx1d(xf1,x0,x1,r),y1c=_valToPy1d(seg[0][1],dMin,dMax,r);
           const x2c=_fracToPx1d(xf2,x0,x1,r),y2c=_valToPy1d(seg[1][1],dMin,dMax,r);
           const dx=x2c-x1c,dy=y2c-y1c,len2=dx*dx+dy*dy;
@@ -2728,13 +2715,11 @@ function render({ model, el }) {
 
   function _attachEvents2d(p) {
     const { overlayCanvas } = p;
-    let localOnly=false, commitPending=false;
-    let _settledTimer = null;
-    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
-    function _scheduleCommit(){
-      if(commitPending) return; commitPending=true;
-      requestAnimationFrame(()=>{commitPending=false;localOnly=true;model.save_changes();setTimeout(()=>{localOnly=false;},200);});
-    }
+    let localOnly = false;
+    const _scheduleCommit = _makeCommitter(() => {
+      localOnly = true; model.save_changes(); setTimeout(() => { localOnly = false; }, 200);
+    });
+    const settled = _makeSettledScheduler(p);
 
     // Wheel zoom — anchored on the image point under the cursor
     overlayCanvas.addEventListener('wheel',(e)=>{
@@ -2809,7 +2794,7 @@ function render({ model, el }) {
       _scheduleCommit(); e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       if(p.ovDrag2d){
         const _idx=p.ovDrag2d.idx;
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
@@ -2902,51 +2887,27 @@ function render({ model, el }) {
           p._hoverSi=newSi; p._hoverI=mhit?mhit.i:-1;
           drawMarkers2d(p, mhit?{si:newSi}:null);
         }
-        if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);clearTimeout(_settledTimer); _settledTimer = null;return;}
+        if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);settled.clear();return;}
         tooltip.style.display='none';
       } else { p.statusBar.style.display='none'; tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
       }
-      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
-      const _settledMs = (p.state.pointer_settled_ms ?? 0);
-      if (_settledMs > 0) {
-        const _settledDelta = p.state.pointer_settled_delta ?? 4;
-        clearTimeout(_settledTimer);
-        _settledStartX = mx;
-        _settledStartY = my;
-        _settledStartTs = performance.now();
-        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
-        _settledTimer = setTimeout(() => {
-          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
-          if (dist <= _settledDelta) {
-            const _now = performance.now();
-            const st2 = p.state; if (!st2) return;
-            const imgW2 = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
-            const imgH2 = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
-            const [sImgX, sImgY] = _canvasToImg2d(p.mouseX, p.mouseY, st2, imgW2, imgH2);
-            const sXArr = st2.x_axis || [], sYArr = st2.y_axis || [];
-            const _siw = st2.image_width || 1, _sih = st2.image_height || 1;
-            const sPhysX = sXArr.length >= 2 ? _axisFracToVal(sXArr, sImgX / _siw) : sImgX;
-            const sPhysY = sYArr.length >= 2 ? _axisFracToVal(sYArr, sImgY / _sih) : sImgY;
-            _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: _now / 1000,
-              modifiers:  _settledMods,
-              button:     null,
-              buttons:    0,
-              x:          Math.round(p.mouseX),
-              y:          Math.round(p.mouseY),
-              img_x:      sImgX,
-              img_y:      sImgY,
-              xdata:      sPhysX,
-              ydata:      sPhysY,
-              dwell_ms:   _now - _settledStartTs,
-            });
-          }
-        }, _settledMs);
-      }
+      settled.arm(mx, my, e, () => {
+        const st2 = p.state; if (!st2) return {};
+        const imgW2 = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
+        const imgH2 = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
+        const [sImgX, sImgY] = _canvasToImg2d(p.mouseX, p.mouseY, st2, imgW2, imgH2);
+        const sXArr = st2.x_axis || [], sYArr = st2.y_axis || [];
+        const _siw = st2.image_width || 1, _sih = st2.image_height || 1;
+        return {
+          img_x:  sImgX, img_y:  sImgY,
+          xdata:  sXArr.length >= 2 ? _axisFracToVal(sXArr, sImgX / _siw) : sImgX,
+          ydata:  sYArr.length >= 2 ? _axisFracToVal(sYArr, sImgY / _sih) : sImgY,
+        };
+      });
     });
     overlayCanvas.addEventListener('mouseleave',(e)=>{
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       _emitEvent(p.id,'pointer_leave',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
       p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
@@ -3027,13 +2988,11 @@ function render({ model, el }) {
 
   function _attachEvents1d(p) {
     const { overlayCanvas } = p;
-    let localOnly=false, commitPending=false;
-    let _settledTimer = null;
-    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
-    function _scheduleCommit(){
-      if(commitPending) return; commitPending=true;
-      requestAnimationFrame(()=>{commitPending=false;localOnly=true;model.save_changes();setTimeout(()=>{localOnly=false;},200);});
-    }
+    let localOnly = false;
+    const _scheduleCommit = _makeCommitter(() => {
+      localOnly = true; model.save_changes(); setTimeout(() => { localOnly = false; }, 200);
+    });
+    const settled = _makeSettledScheduler(p);
 
     // Wheel zoom
     overlayCanvas.addEventListener('wheel',(e)=>{
@@ -3090,7 +3049,7 @@ function render({ model, el }) {
       model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       const wasWidgetDragging=!!p.ovDrag;   // capture BEFORE clearing
       const wasDragging=wasWidgetDragging||!!p.isPanning;
       if(p.ovDrag){
@@ -3128,7 +3087,7 @@ function render({ model, el }) {
       const r=_plotRect1d(p.pw,p.ph);
       const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
       const frac=_canvasXToFrac1d(p.mouseX,st.view_x0,st.view_x1,r);
-      const physX=xArr.length>=2?_fracToX1d(xArr,frac):frac;
+      const physX=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
       _emitEvent(p.id,'key_down',null,{
         time_stamp:performance.now()/1000,
         modifiers:_modifiers(e),
@@ -3160,12 +3119,12 @@ function render({ model, el }) {
       if(mx<r.x||mx>r.x+r.w||my<r.y||my>r.y+r.h){
         p.statusBar.style.display='none';tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
-        clearTimeout(_settledTimer); _settledTimer = null;
+        settled.clear();
         return;
       }
       const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
       const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
-      const phys=xArr.length>=2?_fracToX1d(xArr,frac):frac;
+      const phys=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
       p.statusBar.textContent=`x:${fmtVal(phys)}`;p.statusBar.style.display='block';
       const mhit=_markerHitTest1d(mx,my,p);
       const newSi=mhit?mhit.si:-1;
@@ -3193,34 +3152,10 @@ function render({ model, el }) {
         }
         if(lhit) _emitEvent(p.id,'pointer_move',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y,..._pointerFields(e)});
       }
-      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
-      const _settledMs = (p.state.pointer_settled_ms ?? 0);
-      if (_settledMs > 0) {
-        const _settledDelta = p.state.pointer_settled_delta ?? 4;
-        clearTimeout(_settledTimer);
-        _settledStartX = mx;
-        _settledStartY = my;
-        _settledStartTs = performance.now();
-        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
-        _settledTimer = setTimeout(() => {
-          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
-          if (dist <= _settledDelta) {
-            const _now = performance.now();
-            _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: _now / 1000,
-              modifiers:  _settledMods,
-              button:     null,
-              buttons:    0,
-              x:          Math.round(p.mouseX),
-              y:          Math.round(p.mouseY),
-              dwell_ms:   _now - _settledStartTs,
-            });
-          }
-        }, _settledMs);
-      }
+      settled.arm(mx, my, e);
     });
     overlayCanvas.addEventListener('mouseleave',(e)=>{
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       _emitEvent(p.id,'pointer_leave',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
       p.statusBar.style.display='none';tooltip.style.display='none';
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
@@ -3234,7 +3169,7 @@ function render({ model, el }) {
         const r=_plotRect1d(p.pw,p.ph);
         const xArr=p._1dXArr||(st.x_axis_b64?_decodeF64(st.x_axis_b64):(st.x_axis||[]));
         const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
-        xdata=xArr.length>=2?_fracToX1d(xArr,frac):frac;
+        xdata=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
       }
       _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,xdata});
     });
@@ -3430,7 +3365,7 @@ function render({ model, el }) {
       const w=widgets[i];
       if(w.visible===false) continue;
       if(w.type==='point'){
-        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
+        const px=_fracToPx1d(_axisValToFrac(xArr,w.x),x0,x1,r);
         const py=_valToPy1d(w.y,st.data_min,st.data_max,r);
         if(Math.hypot(mx-px,my-py)<=HR+4)
           return{idx:i,mode:'move',wtype:'point',startMX:mx,startMY:my,snapW:{...w}};
@@ -3441,15 +3376,15 @@ function render({ model, el }) {
       const w=widgets[i];
       if(w.visible===false) continue;
       if(w.type==='vline'){
-        const px=_fracToPx1d(_xToFrac1d(xArr,w.x),x0,x1,r);
+        const px=_fracToPx1d(_axisValToFrac(xArr,w.x),x0,x1,r);
         if(Math.sqrt((mx-px)**2+(my-(r.y+7))**2)<=HR||Math.abs(mx-px)<=5)
           return{idx:i,mode:'move',wtype:'vline',startMX:mx,snapW:{...w}};
       } else if(w.type==='hline'){
         const py=_valToPy1d(w.y,st.data_min,st.data_max,r);
         if(Math.abs(my-py)<=5) return{idx:i,mode:'move',wtype:'hline',startMY:my,snapW:{...w}};
       } else if(w.type==='range'){
-        const px0=_fracToPx1d(_xToFrac1d(xArr,w.x0),x0,x1,r);
-        const px1b=_fracToPx1d(_xToFrac1d(xArr,w.x1),x0,x1,r);
+        const px0=_fracToPx1d(_axisValToFrac(xArr,w.x0),x0,x1,r);
+        const px1b=_fracToPx1d(_axisValToFrac(xArr,w.x1),x0,x1,r);
         if(w.style==='fwhm'){
           // FWHM style: hit-test the two circular handles
           const pyHalf=_valToPy1d(w.y||0,st.data_min,st.data_max,r);
@@ -3474,7 +3409,7 @@ function render({ model, el }) {
     const {mx,my:py}=_clientPos(e,p.overlayCanvas,p.pw,p.ph);
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0,x1=st.view_x1||1;
-    const xUnit=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r);
+    const xUnit=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r);
     const widgets=st.overlay_widgets;
     const d=p.ovDrag, s=d.snapW, w=widgets[d.idx];
     if(w.type==='vline'){w.x=xUnit;}
@@ -3483,15 +3418,15 @@ function render({ model, el }) {
       if(d.mode==='edge0') w.x0=xUnit;
       else if(d.mode==='edge1') w.x1=xUnit;
       else {
-        const snapPx=_fracToPx1d(xArr.length>=2?_xToFrac1d(xArr,s.x0):0,x0,x1,r);
-        const dxUnit=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(snapPx+(mx-d.startMX),x0,x1,r))-s.x0:(mx-d.startMX)/(r.w||1);
+        const snapPx=_fracToPx1d(xArr.length>=2?_axisValToFrac(xArr,s.x0):0,x0,x1,r);
+        const dxUnit=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(snapPx+(mx-d.startMX),x0,x1,r))-s.x0:(mx-d.startMX)/(r.w||1);
         w.x0=s.x0+dxUnit;w.x1=s.x1+dxUnit;
       }
     } else if(w.type==='point'){
       // Clamp to plot rectangle
       const clampX=Math.max(r.x,Math.min(r.x+r.w,mx));
       const clampY=Math.max(r.y,Math.min(r.y+r.h,py));
-      w.x=xArr.length>=2?_fracToX1d(xArr,_canvasXToFrac1d(clampX,x0,x1,r)):_canvasXToFrac1d(clampX,x0,x1,r);
+      w.x=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(clampX,x0,x1,r)):_canvasXToFrac1d(clampX,x0,x1,r);
       w.y=st.data_max-((clampY-r.y)/(r.h||1))*(st.data_max-st.data_min);
     }
     drawOverlay1d(p);
@@ -4218,13 +4153,8 @@ function render({ model, el }) {
     }
 
     // Widget drag support
-    let commitPending = false;
-    let _settledTimer = null;
-    let _settledStartX = 0, _settledStartY = 0, _settledStartTs = 0;
-    function _scheduleCommit() {
-      if (commitPending) return; commitPending = true;
-      requestAnimationFrame(() => { commitPending = false; model.save_changes(); });
-    }
+    const _scheduleCommit = _makeCommitter(() => model.save_changes());
+    const settled = _makeSettledScheduler(p);
 
     overlayCanvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
@@ -4246,7 +4176,7 @@ function render({ model, el }) {
     });
 
     document.addEventListener('mouseup', (e) => {
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       if (!p.ovDrag) return;
       const _idx = p.ovDrag.idx;
       const _dw  = (p.state.overlay_widgets || [])[_idx] || {};
@@ -4296,35 +4226,11 @@ function render({ model, el }) {
         tooltip.style.display = 'none';
         overlayCanvas.style.cursor = 'default';
       }
-      // pointer_settled dwell timer (zero-cost when pointer_settled_ms === 0)
-      const _settledMs = (p.state.pointer_settled_ms ?? 0);
-      if (_settledMs > 0) {
-        const _settledDelta = p.state.pointer_settled_delta ?? 4;
-        clearTimeout(_settledTimer);
-        _settledStartX = mx;
-        _settledStartY = my;
-        _settledStartTs = performance.now();
-        const _settledMods = _modifiers(e);  // capture at arm time — e is the mousemove event
-        _settledTimer = setTimeout(() => {
-          const dist = Math.hypot(p.mouseX - _settledStartX, p.mouseY - _settledStartY);
-          if (dist <= _settledDelta) {
-            const _now = performance.now();
-            _emitEvent(p.id, 'pointer_settled', null, {
-              time_stamp: _now / 1000,
-              modifiers:  _settledMods,
-              button:     null,
-              buttons:    0,
-              x:          Math.round(p.mouseX),
-              y:          Math.round(p.mouseY),
-              dwell_ms:   _now - _settledStartTs,
-            });
-          }
-        }, _settledMs);
-      }
+      settled.arm(mx, my, e);
     });
 
     overlayCanvas.addEventListener('mouseleave', (e) => {
-      clearTimeout(_settledTimer); _settledTimer = null;
+      settled.clear();
       _emitEvent(p.id, 'pointer_leave', null, {..._pointerFields(e), x: e.offsetX, y: e.offsetY});
       if (p._hovBar !== null) { p._hovBar = null; drawBar(p); }
       tooltip.style.display = 'none';
