@@ -199,15 +199,15 @@ class Plot3D(_EventMixin):
         self._push()
 
     def set_xlabel(self, label: str) -> None:
-        self._state["x_label"] = label
+        self._state["x_label"] = str(label)
         self._push()
 
     def set_ylabel(self, label: str) -> None:
-        self._state["y_label"] = label
+        self._state["y_label"] = str(label)
         self._push()
 
     def set_zlabel(self, label: str) -> None:
-        self._state["z_label"] = label
+        self._state["z_label"] = str(label)
         self._push()
 
     def get_xlim(self) -> tuple:

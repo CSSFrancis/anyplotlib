@@ -151,23 +151,27 @@ class Figure(anywidget.AnyWidget):
         """
         self.help_text = self._resolve_help(text)
 
-    def subplots_adjust(self, hspace: float = 0.0, wspace: float = 0.0) -> None:
+    def subplots_adjust(self, hspace: float | None = None,
+                        wspace: float | None = None) -> None:
         """Set the spacing between subplot panels.
+
+        Only the arguments that are explicitly provided are updated; omitting
+        an argument leaves the current value unchanged.
 
         Parameters
         ----------
         hspace : float, optional
             Fraction of the average row height to use as vertical gap between
             panels.  ``0.1`` adds a gap of 10 % of the mean row height.
-            Default ``0.0`` (no gap).  Before ``subplots_adjust`` is called,
-            figures use a 4 px browser default gap.
+            ``None`` (default) leaves the current hspace unchanged.
         wspace : float, optional
             Fraction of the average column width to use as horizontal gap.
-            Default ``0.0`` (no gap).  Before ``subplots_adjust`` is called,
-            figures use a 4 px browser default gap.
+            ``None`` (default) leaves the current wspace unchanged.
         """
-        self._hspace = float(hspace)
-        self._wspace = float(wspace)
+        if hspace is not None:
+            self._hspace = float(hspace)
+        if wspace is not None:
+            self._wspace = float(wspace)
         self._push_layout()
 
     # ── subplot creation ──────────────────────────────────────────────────────
@@ -502,7 +506,7 @@ class Figure(anywidget.AnyWidget):
             if hasattr(plot, "callbacks"):
                 plot.callbacks.fire(close_event)
         try:
-            self.layout = {"display": "none"}
+            self.layout.display = "none"
         except Exception:
             pass
 

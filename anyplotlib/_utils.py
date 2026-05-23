@@ -51,7 +51,7 @@ def _norm_linestyle(ls: str) -> str:
     if canonical is None:
         raise ValueError(
             f"Unknown linestyle {ls!r}. Expected one of: "
-            "'solid', 'dashed', 'dotted', 'dashdot', 'step-mid' "
+            "'solid', 'dashed', 'dotted', 'dashdot', 'step-mid' (alias: 'steps-mid') "
             "or shorthands '-', '--', ':', '-.'."
         )
     return canonical

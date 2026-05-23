@@ -250,6 +250,9 @@ class Plot1D(_EventMixin):
         self._id:  str = ""
         self._fig: object = None
 
+        if yscale not in ("linear", "log"):
+            raise ValueError("yscale must be 'linear' or 'log'")
+
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
             raise ValueError(f"data must be 1-D, got {data.shape}")
