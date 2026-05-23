@@ -11,8 +11,9 @@ import uuid as _uuid
 import numpy as np
 from typing import Callable
 
+from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
-from anyplotlib.callbacks import CallbackRegistry, _EventMixin
+from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
@@ -147,7 +148,7 @@ class Line1D:
 # Plot1D
 # ---------------------------------------------------------------------------
 
-class Plot1D(_EventMixin):
+class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
     """1-D line plot panel returned by :meth:`Axes.plot`.
 
     All display state is stored in a plain ``_state`` dict.  Every mutation
@@ -307,24 +308,6 @@ class Plot1D(_EventMixin):
                                       allowed=MarkerRegistry._KNOWN_1D)
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
-
-    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
-        """Configure the pointer-settled event threshold (ms and pixel delta)."""
-        self._state["pointer_settled_ms"]    = ms
-        self._state["pointer_settled_delta"] = delta
-        self._push()
-
-    _configure_pointer_settled = configure_pointer_settled  # backward compat
-
-    def _push(self) -> None:
-        if self._fig is None:
-            return
-        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
-        self._fig._push(self._id)
-
-    def _push_markers(self) -> None:
-        self._state["markers"] = self.markers.to_wire_list()
-        self._push()
 
     def to_state_dict(self) -> dict:
         d = dict(self._state)
@@ -615,12 +598,7 @@ class Plot1D(_EventMixin):
             :meth:`on_changed` / :meth:`on_release`.
         """
         widget = _VLineWidget(lambda: None, x=float(x), color=color)
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
@@ -642,12 +620,7 @@ class Plot1D(_EventMixin):
             :meth:`on_changed` / :meth:`on_release`.
         """
         widget = _HLineWidget(lambda: None, y=float(y), color=color)
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
@@ -685,12 +658,7 @@ class Plot1D(_EventMixin):
         """
         widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
                               color=color, style=style, y=float(y))
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
             self._push()
@@ -723,43 +691,11 @@ class Plot1D(_EventMixin):
         """
         widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color,
                               show_crosshair=show_crosshair)
-        plot_ref, wid_id = self, widget._id
-        def _tp_point():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp_point
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
             self._push()
         return widget
-
-    def get_widget(self, wid) -> Widget:
-        """Return the Widget object by ID string or Widget instance."""
-        if isinstance(wid, Widget):
-            wid = wid.id
-        try:
-            return self._widgets[wid]
-        except KeyError:
-            raise KeyError(wid)
-
-    def remove_widget(self, wid) -> None:
-        """Remove a widget by ID string or Widget instance."""
-        if isinstance(wid, Widget):
-            wid = wid.id
-        if wid not in self._widgets:
-            raise KeyError(wid)
-        del self._widgets[wid]
-        self._push()
-
-    def list_widgets(self) -> list:
-        """Return a list of all active widget objects on this panel."""
-        return list(self._widgets.values())
-
-    def clear_widgets(self) -> None:
-        """Remove all interactive overlay widgets from this panel."""
-        self._widgets.clear()
-        self._push()
 
     # ------------------------------------------------------------------
     # View control
@@ -783,19 +719,15 @@ class Plot1D(_EventMixin):
         span = xmax - xmin or 1.0
         f0 = 0.0 if x0 is None else max(0.0, min(1.0, (float(x0)-xmin)/span))
         f1 = 1.0 if x1 is None else max(0.0, min(1.0, (float(x1)-xmin)/span))
-        self._state["view_x0"] = f0
-        self._state["view_x1"] = f1
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            self._state["view_x0"] = f0
+            self._state["view_x1"] = f1
 
     def reset_view(self) -> None:
         """Reset the view to show the full x range of the primary line."""
-        self._state["view_x0"] = 0.0
-        self._state["view_x1"] = 1.0
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            self._state["view_x0"] = 0.0
+            self._state["view_x1"] = 1.0
 
     # ------------------------------------------------------------------
     # Primary-line property setters
@@ -882,10 +814,6 @@ class Plot1D(_EventMixin):
         self._state["y_units"] = str(label)
         self._push()
 
-    def set_title(self, label: str) -> None:
-        self._state["title"] = str(label)
-        self._push()
-
     def set_yscale(self, scale: str) -> None:
         """Set the y-axis scale: ``'linear'`` or ``'log'``."""
         if scale not in ("linear", "log"):
@@ -920,32 +848,9 @@ class Plot1D(_EventMixin):
         xarr = np.asarray(self._state["x_axis"])
         return (float(xarr.min()), float(xarr.max()))
 
-    def set_axis_off(self) -> None:
-        self._state["axis_visible"] = False
-        self._push()
-
-    def set_axis_on(self) -> None:
-        self._state["axis_visible"] = True
-        self._push()
-
-    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
-                          y: bool | None = None) -> None:
-        if x is None and y is None:
-            self._state["x_ticks_visible"] = bool(visible)
-            self._state["y_ticks_visible"] = bool(visible)
-        else:
-            if x is not None:
-                self._state["x_ticks_visible"] = bool(x)
-            if y is not None:
-                self._state["y_ticks_visible"] = bool(y)
-        self._push()
-
     # ------------------------------------------------------------------
     # Marker API  (matplotlib-style kwargs → MarkerRegistry)
     # ------------------------------------------------------------------
-    def _add_marker(self, mtype: str, name: str | None, **kwargs) -> "MarkerGroup":  # noqa: F821
-        return self.markers.add(mtype, name, **kwargs)
-
     def add_circles(self, offsets, name=None, *, radius=5,
                     facecolors=None, edgecolors="#ff0000",
                     linewidths=1.5, alpha=0.3,
@@ -1391,37 +1296,6 @@ class Plot1D(_EventMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
                                 transform=transform)
-
-    def remove_marker(self, marker_type: str, name: str) -> None:
-        """Remove a named marker collection by type and name.
-
-        Parameters
-        ----------
-        marker_type : str
-            Collection type, e.g. ``"points"``, ``"vlines"``.
-        name : str
-            The name used when the collection was created.
-        """
-        self.markers.remove(marker_type, name)
-
-    def clear_markers(self) -> None:
-        """Remove all marker collections from this panel."""
-        self.markers.clear()
-
-    def list_markers(self) -> list:
-        """Return a summary list of all marker collections on this panel.
-
-        Returns
-        -------
-        list of dict
-            Each dict has keys ``"type"``, ``"name"``, and ``"n"``
-            (number of markers in the collection).
-        """
-        out = []
-        for mtype, td in self.markers._types.items():
-            for name, g in td.items():
-                out.append({"type": mtype, "name": name, "n": g._count()})
-        return out
 
     def __repr__(self) -> str:
         n = len(self._state.get("data", []))
