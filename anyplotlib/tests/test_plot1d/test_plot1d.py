@@ -955,3 +955,63 @@ class TestSetAxisOnPlot1D:
         p = _plot()
         p.set_axis_on()
         assert p._state["axis_visible"] is True
+
+
+# ===========================================================================
+# M4: set_yscale on Plot1D
+# ===========================================================================
+
+class TestSetYscale:
+    def test_set_yscale_log(self):
+        p = _plot()
+        p.set_yscale("log")
+        assert p._state["yscale"] == "log"
+
+    def test_set_yscale_linear(self):
+        p = _plot()
+        p.set_yscale("log")
+        p.set_yscale("linear")
+        assert p._state["yscale"] == "linear"
+
+    def test_set_yscale_invalid(self):
+        p = _plot()
+        with pytest.raises(ValueError):
+            p.set_yscale("symlog")
+
+
+# ===========================================================================
+# m2: configure_pointer_settled public on Plot1D
+# ===========================================================================
+
+class TestPlot1DConfigurePointerSettled:
+    def test_public_method_exists(self):
+        p = _plot()
+        assert hasattr(p, "configure_pointer_settled")
+        assert callable(p.configure_pointer_settled)
+
+    def test_sets_state(self):
+        p = _plot()
+        p.configure_pointer_settled(200, 5)
+        assert p._state["pointer_settled_ms"] == 200
+        assert p._state["pointer_settled_delta"] == 5
+
+
+# ===========================================================================
+# m3: direct tests for set_title/xlabel/ylabel and set_axis_on on Plot1D
+# ===========================================================================
+
+class TestPlot1DDisplayMethods:
+    def test_set_title(self):
+        p = _plot()
+        p.set_title("My Plot")
+        assert p._state["title"] == "My Plot"
+
+    def test_set_xlabel(self):
+        p = _plot()
+        p.set_xlabel("Time (s)")
+        assert p._state["units"] == "Time (s)"
+
+    def test_set_ylabel(self):
+        p = _plot()
+        p.set_ylabel("Amplitude")
+        assert p._state["y_units"] == "Amplitude"

@@ -143,10 +143,13 @@ class Plot2D(_EventMixin):
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
 
-    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
+        """Configure the pointer-settled event threshold (ms and pixel delta)."""
         self._state["pointer_settled_ms"]    = ms
         self._state["pointer_settled_delta"] = delta
         self._push()
+
+    _configure_pointer_settled = configure_pointer_settled  # backward compat
 
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:

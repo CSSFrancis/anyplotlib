@@ -305,10 +305,13 @@ class Plot1D(_EventMixin):
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
 
-    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
+        """Configure the pointer-settled event threshold (ms and pixel delta)."""
         self._state["pointer_settled_ms"]    = ms
         self._state["pointer_settled_delta"] = delta
         self._push()
+
+    _configure_pointer_settled = configure_pointer_settled  # backward compat
 
     def _push(self) -> None:
         if self._fig is None:
@@ -878,6 +881,13 @@ class Plot1D(_EventMixin):
 
     def set_title(self, label: str) -> None:
         self._state["title"] = str(label)
+        self._push()
+
+    def set_yscale(self, scale: str) -> None:
+        """Set the y-axis scale: ``'linear'`` or ``'log'``."""
+        if scale not in ("linear", "log"):
+            raise ValueError("scale must be 'linear' or 'log'")
+        self._state["yscale"] = scale
         self._push()
 
     def set_xlim(self, xmin: float, xmax: float) -> None:

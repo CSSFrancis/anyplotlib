@@ -461,3 +461,46 @@ class TestPlotMeshRepr:
         fig, ax = apl.subplots(1, 1)
         p = ax.pcolormesh(np.ones((3, 5)))
         assert not repr(p).startswith("Plot2D(")
+
+
+# ===========================================================================
+# m2: configure_pointer_settled public on Plot2D
+# ===========================================================================
+
+class TestPlot2DConfigurePointerSettled:
+    def test_public_method_exists(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), units="px")
+        assert hasattr(p, "configure_pointer_settled")
+        assert callable(p.configure_pointer_settled)
+
+    def test_sets_state(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), units="px")
+        p.configure_pointer_settled(150, 3)
+        assert p._state["pointer_settled_ms"] == 150
+        assert p._state["pointer_settled_delta"] == 3
+
+
+# ===========================================================================
+# m3: set_title / set_xlabel / set_ylabel direct tests on Plot2D
+# ===========================================================================
+
+class TestPlot2DDisplayMethods:
+    def test_set_title(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), units="px")
+        p.set_title("My Image")
+        assert p._state["title"] == "My Image"
+
+    def test_set_xlabel(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), units="px")
+        p.set_xlabel("x (nm)")
+        assert p._state["x_label"] == "x (nm)"
+
+    def test_set_ylabel(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), units="px")
+        p.set_ylabel("y (nm)")
+        assert p._state["y_label"] == "y (nm)"

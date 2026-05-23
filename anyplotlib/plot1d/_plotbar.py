@@ -213,10 +213,13 @@ class PlotBar(_EventMixin):
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
 
-    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
+        """Configure the pointer-settled event threshold (ms and pixel delta)."""
         self._state["pointer_settled_ms"]    = ms
         self._state["pointer_settled_delta"] = delta
         self._push()
+
+    _configure_pointer_settled = configure_pointer_settled  # backward compat
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
@@ -318,19 +321,43 @@ class PlotBar(_EventMixin):
     # ------------------------------------------------------------------
     # Display control
     # ------------------------------------------------------------------
-    def set_title(self, text: str) -> None:
+    def set_title(self, label: str) -> None:
         """Set the panel title."""
-        self._state["title"] = str(text)
+        self._state["title"] = str(label)
         self._push()
 
-    def set_xlabel(self, text: str) -> None:
+    def set_xlabel(self, label: str) -> None:
         """Set the x-axis label."""
-        self._state["x_label"] = str(text)
+        self._state["x_label"] = str(label)
         self._push()
 
-    def set_ylabel(self, text: str) -> None:
+    def set_ylabel(self, label: str) -> None:
         """Set the y-axis / value-axis label."""
-        self._state["y_label"] = str(text)
+        self._state["y_label"] = str(label)
+        self._push()
+
+    def set_bar_width(self, width: float) -> None:
+        """Set the bar width."""
+        self._state["bar_width"] = float(width)
+        self._push()
+
+    def set_align(self, align: str) -> None:
+        """Set bar alignment: ``'center'`` or ``'edge'``."""
+        if align not in ("center", "edge"):
+            raise ValueError("align must be 'center' or 'edge'")
+        self._state["align"] = align
+        self._push()
+
+    def set_orient(self, orient: str) -> None:
+        """Set bar orientation: ``'v'`` (vertical) or ``'h'`` (horizontal)."""
+        if orient not in ("v", "h"):
+            raise ValueError("orient must be 'v' or 'h'")
+        self._state["orient"] = orient
+        self._push()
+
+    def set_group_labels(self, labels) -> None:
+        """Replace the category labels on the category axis."""
+        self._state["group_labels"] = list(labels)
         self._push()
 
     def set_axis_off(self) -> None:
@@ -359,14 +386,14 @@ class PlotBar(_EventMixin):
     # ------------------------------------------------------------------
     # View (xlim / ylim)
     # ------------------------------------------------------------------
-    def set_xlim(self, x_min: float, x_max: float) -> None:
-        """Pan/zoom the x-axis to [x_min, x_max] in data coordinates."""
+    def set_xlim(self, xmin: float, xmax: float) -> None:
+        """Pan/zoom the x-axis to [xmin, xmax] in data coordinates."""
         x_axis = self._state["x_axis"]
         span = x_axis[1] - x_axis[0]
         if span == 0:
             return
-        self._state["view_x0"] = (x_min - x_axis[0]) / span
-        self._state["view_x1"] = (x_max - x_axis[0]) / span
+        self._state["view_x0"] = (xmin - x_axis[0]) / span
+        self._state["view_x1"] = (xmax - x_axis[0]) / span
         self._state["_view_from_python"] = True
         self._push()
         self._state["_view_from_python"] = False
