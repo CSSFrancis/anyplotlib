@@ -195,4 +195,167 @@ class TestPlot3DMutations:
         with pytest.raises(ValueError):
             surf.set_data(x, x, x)
 
+    def test_set_view_clears_view_from_python(self):
+        surf, *_ = _surface()
+        surf.set_view(azimuth=10.0)
+        assert surf._state["_view_from_python"] is False
 
+    def test_set_zoom_clears_view_from_python(self):
+        surf, *_ = _surface()
+        surf.set_zoom(1.5)
+        assert surf._state["_view_from_python"] is False
+
+    def test_reset_view_restores_defaults(self):
+        surf, *_ = _surface()
+        surf.set_view(azimuth=90.0, elevation=10.0)
+        surf.set_zoom(3.0)
+        surf.reset_view()
+        assert surf._state["azimuth"]   == pytest.approx(-60.0)
+        assert surf._state["elevation"] == pytest.approx(30.0)
+        assert surf._state["zoom"]      == pytest.approx(1.0)
+        assert surf._state["_view_from_python"] is False
+
+    def test_reset_view_uses_constructor_angles(self):
+        x = np.linspace(-1, 1, 5)
+        y = np.linspace(-1, 1, 5)
+        XX, YY = np.meshgrid(x, y)
+        ZZ = XX * YY
+        fig, ax = apl.subplots(1, 1)
+        surf = ax.plot_surface(XX, YY, ZZ, azimuth=15.0, elevation=45.0, zoom=2.0)
+        surf.set_view(azimuth=0.0, elevation=0.0)
+        surf.reset_view()
+        assert surf._state["azimuth"]   == pytest.approx(15.0)
+        assert surf._state["elevation"] == pytest.approx(45.0)
+        assert surf._state["zoom"]      == pytest.approx(2.0)
+
+    def test_set_xlabel(self):
+        surf, *_ = _surface()
+        surf.set_xlabel("time")
+        assert surf._state["x_label"] == "time"
+
+    def test_set_ylabel(self):
+        surf, *_ = _surface()
+        surf.set_ylabel("depth")
+        assert surf._state["y_label"] == "depth"
+
+    def test_set_zlabel(self):
+        surf, *_ = _surface()
+        surf.set_zlabel("intensity")
+        assert surf._state["z_label"] == "intensity"
+
+    def test_set_title(self):
+        surf, *_ = _surface()
+        surf.set_title("My Surface")
+        assert surf._state["title"] == "My Surface"
+
+
+# ===========================================================================
+# repr() uses vertices_count, not len(vertices)
+# ===========================================================================
+
+class TestPlot3DRepr:
+    def test_repr_uses_vertices_count(self):
+        """repr() must read vertices_count, not len(state['vertices'])."""
+
+        class _FakePlot3D(Plot3D):
+            def __init__(self):
+                self._state = {"geom_type": "mesh", "vertices_count": 42}
+                self._id = ""
+                self._fig = None
+
+        assert "n_vertices=42" in repr(_FakePlot3D())
+
+    def test_repr_zero_when_count_zero(self):
+        class _FakePlot3D(Plot3D):
+            def __init__(self):
+                self._state = {"geom_type": "scatter", "vertices_count": 0}
+                self._id = ""
+                self._fig = None
+
+        assert "n_vertices=0" in repr(_FakePlot3D())
+
+    def test_repr_on_real_line(self):
+        _, x, y, z = _line()
+        # _line() creates a Plot3D via plot3d(); repr must not raise and must
+        # show the correct vertex count.
+        from anyplotlib.plot3d._plot3d import Plot3D as _P3D
+        # find the plot object returned by _line
+        ln, *_ = _line()
+        r = repr(ln)
+        assert "n_vertices=" in r
+        # vertex count must equal len(x), not 0
+        assert f"n_vertices={len(x)}" in r
+
+
+
+
+# ===========================================================================
+# C1: title initialized in _state
+# ===========================================================================
+
+class TestPlot3DTitle:
+    def test_title_initialized_empty(self):
+        surf, *_ = _surface()
+        assert "title" in surf._state
+        assert surf._state["title"] == ""
+
+    def test_set_title_label_param(self):
+        surf, *_ = _surface()
+        surf.set_title("My Plot")
+        assert surf._state["title"] == "My Plot"
+
+    def test_set_title_in_wire(self):
+        surf, *_ = _surface()
+        surf.set_title("Wire Test")
+        assert surf.to_state_dict()["title"] == "Wire Test"
+
+
+# ===========================================================================
+# C2: axis_on / axis_off on Plot3D
+# ===========================================================================
+
+class TestPlot3DAxisVisibility:
+    def test_axis_visible_initialized_true(self):
+        surf, *_ = _surface()
+        assert surf._state["axis_visible"] is True
+
+    def test_set_axis_off(self):
+        surf, *_ = _surface()
+        surf.set_axis_off()
+        assert surf._state["axis_visible"] is False
+
+    def test_set_axis_on_restores(self):
+        surf, *_ = _surface()
+        surf.set_axis_off()
+        surf.set_axis_on()
+        assert surf._state["axis_visible"] is True
+
+
+# ===========================================================================
+# m1: data-bounds getters on Plot3D
+# ===========================================================================
+
+class TestPlot3DLimGetters:
+    def test_get_xlim(self):
+        surf, XX, YY, ZZ = _surface()
+        lo, hi = surf.get_xlim()
+        assert lo == pytest.approx(float(XX.min()))
+        assert hi == pytest.approx(float(XX.max()))
+
+    def test_get_ylim(self):
+        surf, XX, YY, ZZ = _surface()
+        lo, hi = surf.get_ylim()
+        assert lo == pytest.approx(float(YY.min()))
+        assert hi == pytest.approx(float(YY.max()))
+
+    def test_get_zlim(self):
+        surf, XX, YY, ZZ = _surface()
+        lo, hi = surf.get_zlim()
+        assert lo == pytest.approx(float(ZZ.min()))
+        assert hi == pytest.approx(float(ZZ.max()))
+
+    def test_get_xlim_scatter(self):
+        sc, x, y, z = _scatter()
+        lo, hi = sc.get_xlim()
+        assert lo == pytest.approx(float(x.min()))
+        assert hi == pytest.approx(float(x.max()))

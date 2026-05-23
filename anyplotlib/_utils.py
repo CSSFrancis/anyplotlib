@@ -9,14 +9,16 @@ from __future__ import annotations
 import numpy as np
 
 _LINESTYLE_ALIASES: dict[str, str] = {
-    "-":        "solid",
-    "--":       "dashed",
-    ":":        "dotted",
-    "-.":       "dashdot",
-    "solid":    "solid",
-    "dashed":   "dashed",
-    "dotted":   "dotted",
-    "dashdot":  "dashdot",
+    "-":         "solid",
+    "--":        "dashed",
+    ":":         "dotted",
+    "-.":        "dashdot",
+    "solid":     "solid",
+    "dashed":    "dashed",
+    "dotted":    "dotted",
+    "dashdot":   "dashdot",
+    "step-mid":  "step-mid",
+    "steps-mid": "step-mid",
 }
 
 
@@ -49,7 +51,7 @@ def _norm_linestyle(ls: str) -> str:
     if canonical is None:
         raise ValueError(
             f"Unknown linestyle {ls!r}. Expected one of: "
-            "'solid', 'dashed', 'dotted', 'dashdot', "
+            "'solid', 'dashed', 'dotted', 'dashdot', 'step-mid' (alias: 'steps-mid') "
             "or shorthands '-', '--', ':', '-.'."
         )
     return canonical

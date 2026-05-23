@@ -118,22 +118,31 @@ class Plot3D(_EventMixin):
             "color":         color,
             "point_size":    float(point_size),
             "linewidth":     float(linewidth),
+            "title":         "",
             "x_label":       x_label,
             "y_label":       y_label,
             "z_label":       z_label,
+            "axis_visible":  True,
             "azimuth":       float(azimuth),
             "elevation":     float(elevation),
             "zoom":          float(zoom),
+            "_default_azimuth":   float(azimuth),
+            "_default_elevation": float(elevation),
+            "_default_zoom":      float(zoom),
+            "_view_from_python":  False,
             "data_bounds":   data_bounds,
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
         }
         self.callbacks = CallbackRegistry()
 
-    def _configure_pointer_settled(self, ms: int, delta: float) -> None:
+    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
+        """Configure the pointer-settled event threshold (ms and pixel delta)."""
         self._state["pointer_settled_ms"]    = ms
         self._state["pointer_settled_delta"] = delta
         self._push()
+
+    _configure_pointer_settled = configure_pointer_settled  # backward compat
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
@@ -158,11 +167,63 @@ class Plot3D(_EventMixin):
         """Set the camera azimuth (°) and/or elevation (°)."""
         if azimuth   is not None: self._state["azimuth"]   = float(azimuth)
         if elevation is not None: self._state["elevation"] = float(elevation)
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
 
     def set_zoom(self, zoom: float) -> None:
         self._state["zoom"] = float(zoom)
+        self._state["_view_from_python"] = True
         self._push()
+        self._state["_view_from_python"] = False
+
+    def reset_view(self) -> None:
+        """Restore the camera to the angles/zoom set at construction time."""
+        self._state["azimuth"]   = self._state["_default_azimuth"]
+        self._state["elevation"] = self._state["_default_elevation"]
+        self._state["zoom"]      = self._state["_default_zoom"]
+        self._state["_view_from_python"] = True
+        self._push()
+        self._state["_view_from_python"] = False
+
+    def set_axis_off(self) -> None:
+        self._state["axis_visible"] = False
+        self._push()
+
+    def set_axis_on(self) -> None:
+        self._state["axis_visible"] = True
+        self._push()
+
+    def set_title(self, label: str) -> None:
+        self._state["title"] = str(label)
+        self._push()
+
+    def set_xlabel(self, label: str) -> None:
+        self._state["x_label"] = str(label)
+        self._push()
+
+    def set_ylabel(self, label: str) -> None:
+        self._state["y_label"] = str(label)
+        self._push()
+
+    def set_zlabel(self, label: str) -> None:
+        self._state["z_label"] = str(label)
+        self._push()
+
+    def get_xlim(self) -> tuple:
+        """Return the data x range as ``(xmin, xmax)``."""
+        b = self._state["data_bounds"]
+        return (b["xmin"], b["xmax"])
+
+    def get_ylim(self) -> tuple:
+        """Return the data y range as ``(ymin, ymax)``."""
+        b = self._state["data_bounds"]
+        return (b["ymin"], b["ymax"])
+
+    def get_zlim(self) -> tuple:
+        """Return the data z range as ``(zmin, zmax)``."""
+        b = self._state["data_bounds"]
+        return (b["zmin"], b["zmax"])
 
     def set_data(self, x, y, z) -> None:
         """Replace the geometry data."""
@@ -211,5 +272,5 @@ class Plot3D(_EventMixin):
 
     def __repr__(self) -> str:
         geom = self._state.get("geom_type", "?")
-        n = len(self._state.get("vertices", []))
+        n = self._state.get("vertices_count", 0)
         return f"Plot3D(geom={geom!r}, n_vertices={n})"

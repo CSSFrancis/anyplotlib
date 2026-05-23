@@ -661,3 +661,357 @@ class TestPlot1DMarkerHelpers:
         p.clear_markers()
         assert p.markers.to_wire_list() == []
 
+
+# ===========================================================================
+# Phase 2 — Plot1D state methods
+# ===========================================================================
+
+class TestPlot1DProperties:
+
+    def test_color_property(self):
+        p = _plot(color="#ff0000")
+        assert p.color == "#ff0000"
+
+    def test_x_property_returns_ndarray(self):
+        p = _plot_lin(32)
+        x = p.x
+        assert isinstance(x, np.ndarray)
+        assert len(x) == 32
+
+    def test_y_property_returns_ndarray(self):
+        data = np.linspace(0.0, 1.0, 64)
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(data)
+        y = p.y
+        assert isinstance(y, np.ndarray)
+        assert len(y) == 64
+
+
+class TestPlot1DLabels:
+
+    def test_set_xlabel_updates_units(self):
+        p = _plot()
+        p.set_xlabel("Energy (eV)")
+        assert p._state["units"] == "Energy (eV)"
+
+    def test_set_ylabel_updates_y_units(self):
+        p = _plot()
+        p.set_ylabel("Counts")
+        assert p._state["y_units"] == "Counts"
+
+    def test_set_title(self):
+        p = _plot()
+        p.set_title("Spectrum")
+        assert p._state["title"] == "Spectrum"
+
+    def test_default_title_empty(self):
+        p = _plot()
+        assert p._state["title"] == ""
+
+
+class TestPlot1DAxisLimits:
+
+    def test_set_xlim_changes_view(self):
+        p = _plot_lin(64)
+        p.set_xlim(10, 50)
+        assert p._state["view_x0"] != 0.0 or p._state["view_x1"] != 1.0
+
+    def test_set_ylim_stores_y_range(self):
+        p = _plot()
+        p.set_ylim(-2.0, 2.0)
+        assert p._state["y_range"] == [-2.0, 2.0]
+
+    def test_get_ylim_returns_data_bounds(self):
+        data = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(data)
+        lo, hi = p.get_ylim()
+        assert lo < hi
+        assert lo <= 0.0
+        assert hi >= 4.0
+
+    def test_get_xbound_returns_x_range(self):
+        p = _plot_lin(32)
+        lo, hi = p.get_xbound()
+        assert lo == pytest.approx(0.0)
+        assert hi == pytest.approx(31.0)
+
+
+class TestPlot1DAxisVisibility:
+
+    def test_set_axis_off(self):
+        p = _plot()
+        assert p._state["axis_visible"] is True
+        p.set_axis_off()
+        assert p._state["axis_visible"] is False
+
+    def test_set_ticks_visible_false(self):
+        p = _plot()
+        p.set_ticks_visible(False)
+        assert p._state["x_ticks_visible"] is False
+        assert p._state["y_ticks_visible"] is False
+
+    def test_set_ticks_visible_per_axis(self):
+        p = _plot()
+        p.set_ticks_visible(False, x=True, y=False)
+        assert p._state["x_ticks_visible"] is True
+        assert p._state["y_ticks_visible"] is False
+
+
+# ===========================================================================
+# Phase 5 — step-mid linestyle + semilogy / yscale
+# ===========================================================================
+
+class TestNormLinestyleStepMid:
+
+    def test_step_mid_accepted(self):
+        from anyplotlib._utils import _norm_linestyle
+        assert _norm_linestyle("step-mid") == "step-mid"
+
+    def test_steps_mid_alias(self):
+        from anyplotlib._utils import _norm_linestyle
+        assert _norm_linestyle("steps-mid") == "step-mid"
+
+    def test_step_mid_stored_in_state(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(np.zeros(16), linestyle="step-mid")
+        assert p._state["line_linestyle"] == "step-mid"
+
+    def test_step_mid_via_set_linestyle(self):
+        p = _plot()
+        p.set_linestyle("step-mid")
+        assert p._state["line_linestyle"] == "step-mid"
+
+
+class TestSemilogy:
+
+    def test_semilogy_sets_yscale_log(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.semilogy(np.logspace(0, 3, 64))
+        assert p._state["yscale"] == "log"
+
+    def test_yscale_stored_in_state(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(np.zeros(16), yscale="log")
+        assert p._state["yscale"] == "log"
+
+    def test_yscale_default_is_linear(self):
+        p = _plot()
+        assert p._state["yscale"] == "linear"
+
+    def test_semilogy_passes_kwargs(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.semilogy(np.ones(16), color="#ff0000")
+        assert p._state["line_color"] == "#ff0000"
+        assert p._state["yscale"] == "log"
+
+
+# ===========================================================================
+# set_ylim / get_ylim
+# ===========================================================================
+
+class TestSetGetYlim:
+    def test_get_ylim_default_returns_data_bounds(self):
+        p = _plot()
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(p._state["data_min"])
+        assert hi == pytest.approx(p._state["data_max"])
+
+    def test_set_ylim_stored_in_state(self):
+        p = _plot()
+        p.set_ylim(-2.0, 5.0)
+        assert p._state["y_range"] == [-2.0, 5.0]
+
+    def test_get_ylim_after_set_ylim(self):
+        p = _plot()
+        p.set_ylim(-1.5, 3.0)
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(-1.5)
+        assert hi == pytest.approx(3.0)
+
+    def test_y_range_not_cleared_by_reset_view(self):
+        p = _plot()
+        p.set_ylim(-1.0, 1.0)
+        p.reset_view()
+        lo, hi = p.get_ylim()
+        assert lo == pytest.approx(-1.0)
+        assert hi == pytest.approx(1.0)
+
+    def test_y_range_in_state_dict(self):
+        p = _plot()
+        p.set_ylim(0.0, 10.0)
+        assert p.to_state_dict()["y_range"] == [0.0, 10.0]
+
+    def test_y_range_none_by_default(self):
+        assert _plot()._state["y_range"] is None
+
+    def test_y_range_propagated_to_state_dict(self):
+        p = _plot()
+        p.set_ylim(-5.0, 5.0)
+        assert p.to_state_dict()["y_range"] == [-5.0, 5.0]
+
+    def test_markers_state_dict_contains_y_range(self):
+        p = _plot()
+        p.set_ylim(0.0, 10.0)
+        assert p.to_state_dict()["y_range"] == [0.0, 10.0]
+
+
+# ===========================================================================
+# get_xlim
+# ===========================================================================
+
+class TestGetXlim:
+    def test_get_xlim_full_view(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(0.0, 10.0, 64)
+        p = ax.plot(np.sin(x), axes=[x])
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(0.0, abs=0.01)
+        assert hi == pytest.approx(10.0, abs=0.01)
+
+    def test_get_xlim_after_set_xlim(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(0.0, 10.0, 64)
+        p = ax.plot(np.sin(x), axes=[x])
+        p.set_xlim(2.0, 8.0)
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(2.0, abs=0.1)
+        assert hi == pytest.approx(8.0, abs=0.1)
+
+    def test_get_xlim_default_x_axis(self):
+        p = _plot_lin(n=100)
+        lo, hi = p.get_xlim()
+        assert lo == pytest.approx(0.0, abs=0.01)
+        assert hi == pytest.approx(99.0, abs=0.01)
+
+
+# ===========================================================================
+# _view_from_python flag
+# ===========================================================================
+
+class TestViewFromPython:
+    def test_initial_view_from_python_false(self):
+        assert _plot()._state["_view_from_python"] is False
+
+    def test_set_view_clears_flag_after_push(self):
+        p = _plot()
+        p.set_view(x0=0.2, x1=0.8)
+        assert p._state["_view_from_python"] is False
+
+    def test_reset_view_clears_flag_after_push(self):
+        p = _plot()
+        p.set_view(x0=0.2, x1=0.8)
+        p.reset_view()
+        assert p._state["_view_from_python"] is False
+
+    def test_set_xlim_clears_flag_after_push(self):
+        fig, ax = apl.subplots(1, 1)
+        x = np.linspace(0, 10, 64)
+        p = ax.plot(np.sin(x), axes=[x])
+        p.set_xlim(2.0, 8.0)
+        assert p._state["_view_from_python"] is False
+        assert p._state["view_x0"] != 0.0 or p._state["view_x1"] != 1.0
+
+    def test_view_from_python_present_in_state_dict(self):
+        p = _plot()
+        p.set_view(x0=0.1, x1=0.9)
+        sd = p.to_state_dict()
+        assert "_view_from_python" in sd
+        assert sd["_view_from_python"] is False
+
+
+# ===========================================================================
+# add_line default color
+# ===========================================================================
+
+class TestAddLineDefaultColor:
+    def test_default_color_is_not_white(self):
+        import inspect
+        p = _plot()
+        default = inspect.signature(p.add_line).parameters["color"].default
+        assert default != "#ffffff"
+        assert default == "#4fc3f7"
+
+    def test_add_line_uses_default_color_in_state(self):
+        p = _plot()
+        p.add_line(np.linspace(-1, 1, 128))
+        assert p._state["extra_lines"][-1]["color"] == "#4fc3f7"
+
+
+
+# ===========================================================================
+# set_axis_on (Plot1D)
+# ===========================================================================
+
+class TestSetAxisOnPlot1D:
+    def test_set_axis_on_restores(self):
+        p = _plot()
+        p.set_axis_off()
+        assert p._state["axis_visible"] is False
+        p.set_axis_on()
+        assert p._state["axis_visible"] is True
+
+    def test_set_axis_on_default_state(self):
+        p = _plot()
+        p.set_axis_on()
+        assert p._state["axis_visible"] is True
+
+
+# ===========================================================================
+# M4: set_yscale on Plot1D
+# ===========================================================================
+
+class TestSetYscale:
+    def test_set_yscale_log(self):
+        p = _plot()
+        p.set_yscale("log")
+        assert p._state["yscale"] == "log"
+
+    def test_set_yscale_linear(self):
+        p = _plot()
+        p.set_yscale("log")
+        p.set_yscale("linear")
+        assert p._state["yscale"] == "linear"
+
+    def test_set_yscale_invalid(self):
+        p = _plot()
+        with pytest.raises(ValueError):
+            p.set_yscale("symlog")
+
+
+# ===========================================================================
+# m2: configure_pointer_settled public on Plot1D
+# ===========================================================================
+
+class TestPlot1DConfigurePointerSettled:
+    def test_public_method_exists(self):
+        p = _plot()
+        assert hasattr(p, "configure_pointer_settled")
+        assert callable(p.configure_pointer_settled)
+
+    def test_sets_state(self):
+        p = _plot()
+        p.configure_pointer_settled(200, 5)
+        assert p._state["pointer_settled_ms"] == 200
+        assert p._state["pointer_settled_delta"] == 5
+
+
+# ===========================================================================
+# m3: direct tests for set_title/xlabel/ylabel and set_axis_on on Plot1D
+# ===========================================================================
+
+class TestPlot1DDisplayMethods:
+    def test_set_title(self):
+        p = _plot()
+        p.set_title("My Plot")
+        assert p._state["title"] == "My Plot"
+
+    def test_set_xlabel(self):
+        p = _plot()
+        p.set_xlabel("Time (s)")
+        assert p._state["units"] == "Time (s)"
+
+    def test_set_ylabel(self):
+        p = _plot()
+        p.set_ylabel("Amplitude")
+        assert p._state["y_units"] == "Amplitude"

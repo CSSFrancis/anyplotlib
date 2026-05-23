@@ -59,6 +59,9 @@ def _offsets_2d(offsets) -> list:
     return arr.tolist()
 
 
+_VALID_TRANSFORMS = frozenset({"data", "axes", "display"})
+
+
 def _offsets_1d(offsets) -> list:
     """Accept (N,), (N,1) or (N,2) — return (N,1) or (N,2) list."""
     arr = np.asarray(offsets, dtype=float)
@@ -91,11 +94,18 @@ class MarkerGroup:
         the parent figure trait.
     """
 
-    def __init__(self, marker_type: str, name: str, kwargs: dict, push_fn):
+    def __init__(self, marker_type: str, name: str, kwargs: dict, push_fn,
+                 parent: "MarkerTypeDict | None" = None):
         self._type = marker_type
         self._name = name
+        tfm = kwargs.get("transform", "data")
+        if tfm not in _VALID_TRANSFORMS:
+            raise ValueError(
+                f"transform must be one of {sorted(_VALID_TRANSFORMS)}, got {tfm!r}"
+            )
         self._data: dict = dict(kwargs)
         self._push_fn = push_fn
+        self._parent: "MarkerTypeDict | None" = parent
 
     # ------------------------------------------------------------------
     def set(self, **kwargs) -> None:
@@ -107,8 +117,19 @@ class MarkerGroup:
             Properties to update (e.g., offsets, radius, facecolors).
             Matplotlib-style names are translated to wire format.
         """
+        if "transform" in kwargs and kwargs["transform"] not in _VALID_TRANSFORMS:
+            raise ValueError(
+                f"transform must be one of {sorted(_VALID_TRANSFORMS)}, "
+                f"got {kwargs['transform']!r}"
+            )
         self._data.update(kwargs)
         self._push_fn()
+
+    def remove(self) -> None:
+        """Remove this group from its parent and trigger a re-render."""
+        if self._parent is None:
+            raise RuntimeError("MarkerGroup has no parent; cannot remove.")
+        del self._parent[self._name]
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"MarkerGroup(type={self._type!r}, name={self._name!r}, n={self._count()})"
@@ -322,6 +343,9 @@ class MarkerGroup:
         else:
             raise ValueError(f"Unknown marker type: {t!r}")
 
+        # ── coordinate transform (always emitted; defaults to "data") ──────
+        wire["transform"] = d.get("transform", "data")
+
         # ── common optional fields ──────────────────────────────────────────
         label = d.get("label")
         if label is not None:
@@ -483,7 +507,7 @@ class MarkerTypeDict:
     # ------------------------------------------------------------------
     def _add(self, name: str, kwargs: dict) -> "MarkerGroup":
         """Internal: create and register a MarkerGroup without double-pushing."""
-        g = MarkerGroup(self._type, name, kwargs, self._push_fn)
+        g = MarkerGroup(self._type, name, kwargs, self._push_fn, parent=self)
         self._groups[name] = g
         return g
 
@@ -517,7 +541,7 @@ class MarkerRegistry:
     })
     _KNOWN_1D = frozenset({
         "points", "vlines", "hlines", "lines", "rectangles",
-        "ellipses", "polygons", "texts",
+        "ellipses", "polygons", "texts", "arrows", "squares",
     })
     # pcolormesh panels only support points (circles) and line segments
     _KNOWN_MESH = frozenset({"circles", "lines"})
