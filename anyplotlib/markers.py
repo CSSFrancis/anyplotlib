@@ -62,6 +62,14 @@ def _offsets_2d(offsets) -> list:
 _VALID_TRANSFORMS = frozenset({"data", "axes", "display"})
 
 
+def _apply_fill_color(wire: dict, d: dict) -> None:
+    """Apply facecolors/alpha fill fields to a wire dict if facecolors is set."""
+    fc = d.get("facecolors")
+    if fc is not None:
+        wire["fill_color"] = fc
+        wire["fill_alpha"] = float(d.get("alpha", 0.3))
+
+
 def _offsets_1d(offsets) -> list:
     """Accept (N,), (N,1) or (N,2) — return (N,1) or (N,2) list."""
     arr = np.asarray(offsets, dtype=float)
@@ -177,10 +185,7 @@ class MarkerGroup:
                 "color":     d.get("edgecolors", "#ff0000"),
                 "linewidth": float(d.get("linewidths", 1.5)),
             }
-            fc = d.get("facecolors")
-            if fc is not None:
-                wire["fill_color"] = fc
-                wire["fill_alpha"] = float(d.get("alpha", 0.3))
+            _apply_fill_color(wire, d)
 
         elif t == "arrows":
             offsets = _offsets_2d(d["offsets"])
@@ -210,10 +215,7 @@ class MarkerGroup:
                 "color":     d.get("edgecolors", d.get("color", "#ff0000")),
                 "linewidth": float(d.get("linewidths", 1.5)),
             }
-            fc = d.get("facecolors")
-            if fc is not None:
-                wire["fill_color"] = fc
-                wire["fill_alpha"] = float(d.get("alpha", 0.3))
+            _apply_fill_color(wire, d)
 
         elif t == "lines":
             segs = np.asarray(d["segments"], dtype=float)
@@ -244,10 +246,7 @@ class MarkerGroup:
                 "color":     d.get("edgecolors", d.get("color", "#ff0000")),
                 "linewidth": float(d.get("linewidths", 1.5)),
             }
-            fc = d.get("facecolors")
-            if fc is not None:
-                wire["fill_color"] = fc
-                wire["fill_alpha"] = float(d.get("alpha", 0.3))
+            _apply_fill_color(wire, d)
 
         elif t == "squares":
             offsets = _offsets_2d(d["offsets"])
@@ -262,10 +261,7 @@ class MarkerGroup:
                 "color":     d.get("edgecolors", d.get("color", "#ff0000")),
                 "linewidth": float(d.get("linewidths", 1.5)),
             }
-            fc = d.get("facecolors")
-            if fc is not None:
-                wire["fill_color"] = fc
-                wire["fill_alpha"] = float(d.get("alpha", 0.3))
+            _apply_fill_color(wire, d)
 
         elif t == "polygons":
             vlist = []
@@ -282,10 +278,7 @@ class MarkerGroup:
                 "color":        d.get("edgecolors", d.get("color", "#ff0000")),
                 "linewidth":    float(d.get("linewidths", 1.5)),
             }
-            fc = d.get("facecolors")
-            if fc is not None:
-                wire["fill_color"] = fc
-                wire["fill_alpha"] = float(d.get("alpha", 0.3))
+            _apply_fill_color(wire, d)
 
         elif t == "texts":
             offsets = _offsets_2d(d["offsets"])
@@ -313,10 +306,7 @@ class MarkerGroup:
                 "color":     d.get("edgecolors", d.get("color", "#ff0000")),
                 "linewidth": float(d.get("linewidths", 1.5)),
             }
-            fc = d.get("facecolors")
-            if fc is not None:
-                wire["fill_color"] = fc
-                wire["fill_alpha"] = float(d.get("alpha", 0.3))
+            _apply_fill_color(wire, d)
 
         elif t == "vlines":
             offsets = _offsets_1d(d["offsets"])

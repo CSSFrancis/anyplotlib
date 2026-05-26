@@ -9,7 +9,8 @@ from __future__ import annotations
 import numpy as np
 from typing import Callable
 
-from anyplotlib.callbacks import CallbackRegistry, _EventMixin
+from anyplotlib._base_plot import _BasePlot, _PanelMixin
+from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
@@ -75,7 +76,7 @@ def _bar_range(flat: np.ndarray, bottom: float, log_scale: bool):
     return dmin, dmax
 
 
-class PlotBar(_EventMixin):
+class PlotBar(_BasePlot, _PanelMixin):
     """Bar-chart plot panel.
 
     Not an anywidget.  Holds state in ``_state`` dict; every mutation calls
@@ -137,9 +138,6 @@ class PlotBar(_EventMixin):
                 f"height must be 1-D or 2-D, got shape {height_arr.shape}"
             )
         n = values_2d.shape[0]
-
-        if orient not in ("v", "h"):
-            raise ValueError("orient must be 'v' or 'h'")
 
         # ── x (positions or labels) ────────────────────────────────────
         _x_labels: list = []
@@ -217,21 +215,6 @@ class PlotBar(_EventMixin):
         }
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
-
-    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
-        """Configure the pointer-settled event threshold (ms and pixel delta)."""
-        self._state["pointer_settled_ms"]    = ms
-        self._state["pointer_settled_delta"] = delta
-        self._push()
-
-    _configure_pointer_settled = configure_pointer_settled  # backward compat
-
-    # ------------------------------------------------------------------
-    def _push(self) -> None:
-        if self._fig is None:
-            return
-        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
-        self._fig._push(self._id)
 
     def to_state_dict(self) -> dict:
         d = dict(self._state)
@@ -326,11 +309,6 @@ class PlotBar(_EventMixin):
     # ------------------------------------------------------------------
     # Display control
     # ------------------------------------------------------------------
-    def set_title(self, label: str) -> None:
-        """Set the panel title."""
-        self._state["title"] = str(label)
-        self._push()
-
     def set_xlabel(self, label: str) -> None:
         """Set the x-axis label."""
         self._state["x_label"] = str(label)
@@ -365,29 +343,6 @@ class PlotBar(_EventMixin):
         self._state["group_labels"] = list(labels)
         self._push()
 
-    def set_axis_off(self) -> None:
-        """Hide axes, ticks, and labels."""
-        self._state["axis_visible"] = False
-        self._push()
-
-    def set_axis_on(self) -> None:
-        """Show axes, ticks, and labels."""
-        self._state["axis_visible"] = True
-        self._push()
-
-    def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
-                          y: bool | None = None) -> None:
-        """Show or hide x/y tick marks independently."""
-        if x is None and y is None:
-            self._state["x_ticks_visible"] = bool(visible)
-            self._state["y_ticks_visible"] = bool(visible)
-        else:
-            if x is not None:
-                self._state["x_ticks_visible"] = bool(x)
-            if y is not None:
-                self._state["y_ticks_visible"] = bool(y)
-        self._push()
-
     # ------------------------------------------------------------------
     # View (xlim / ylim)
     # ------------------------------------------------------------------
@@ -397,11 +352,9 @@ class PlotBar(_EventMixin):
         span = x_axis[1] - x_axis[0]
         if span == 0:
             return
-        self._state["view_x0"] = (xmin - x_axis[0]) / span
-        self._state["view_x1"] = (xmax - x_axis[0]) / span
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            self._state["view_x0"] = (xmin - x_axis[0]) / span
+            self._state["view_x1"] = (xmax - x_axis[0]) / span
 
     def set_ylim(self, y_min: float, y_max: float) -> None:
         """Fix the value-axis range to [y_min, y_max]."""
@@ -425,12 +378,10 @@ class PlotBar(_EventMixin):
 
     def reset_view(self) -> None:
         """Reset pan/zoom to show all bars."""
-        self._state["view_x0"] = 0.0
-        self._state["view_x1"] = 1.0
-        self._state["y_range"] = None
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            self._state["view_x0"] = 0.0
+            self._state["view_x1"] = 1.0
+            self._state["y_range"] = None
 
     # ------------------------------------------------------------------
     # Overlay Widgets
@@ -438,12 +389,7 @@ class PlotBar(_EventMixin):
     def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
         """Add a draggable vertical line at data position *x*."""
         widget = _VLineWidget(lambda: None, x=float(x), color=color)
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
@@ -451,12 +397,7 @@ class PlotBar(_EventMixin):
     def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
         """Add a draggable horizontal line at value-axis position *y*."""
         widget = _HLineWidget(lambda: None, y=float(y), color=color)
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
@@ -469,12 +410,7 @@ class PlotBar(_EventMixin):
         """Add a draggable range overlay. See :meth:`Plot1D.add_range_widget` for full docs."""
         widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
                               color=color, style=style, y=float(y))
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
             self._push()
@@ -487,41 +423,11 @@ class PlotBar(_EventMixin):
         """Add a freely-draggable control point to this panel."""
         widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color,
                               show_crosshair=show_crosshair)
-        plot_ref, wid_id = self, widget._id
-        def _tp():
-            if plot_ref._fig is not None:
-                fields = {k: v for k, v in widget._data.items() if k not in ("id", "type")}
-                plot_ref._fig._push_widget(plot_ref._id, wid_id, fields)
-        widget._push_fn = _tp
+        widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
             self._push()
         return widget
-
-    def get_widget(self, wid) -> Widget:
-        """Return the Widget object by ID string or Widget instance."""
-        if isinstance(wid, Widget):
-            wid = wid.id
-        try:
-            return self._widgets[wid]
-        except KeyError:
-            raise KeyError(wid)
-
-    def remove_widget(self, wid) -> None:
-        """Remove a widget by ID string or Widget instance."""
-        if isinstance(wid, Widget):
-            wid = wid.id
-        if wid not in self._widgets:
-            raise KeyError(wid)
-        del self._widgets[wid]
-        self._push()
-
-    def list_widgets(self) -> list:
-        return list(self._widgets.values())
-
-    def clear_widgets(self) -> None:
-        self._widgets.clear()
-        self._push()
 
     def __repr__(self) -> str:
         n = len(self._state.get("values", []))

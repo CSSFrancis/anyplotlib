@@ -124,21 +124,6 @@ def _set_baselines_path(request):
 
 
 # ---------------------------------------------------------------------------
-# Playwright browser  (one Chromium instance for the whole test session)
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="session")
-def _pw_browser():
-    """Yield a headless Chromium browser for the whole test session."""
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        yield browser
-        browser.close()
-
-
-# ---------------------------------------------------------------------------
 # HTML builder with readiness sentinel
 # ---------------------------------------------------------------------------
 

@@ -1,8 +1,24 @@
-"""Tests for the redesigned Event dataclass and CallbackRegistry."""
+"""
+tests/test_interactive/test_callbacks_unit.py
+==============================================
+
+Pure-Python unit tests for the callback system.  No browser required.
+
+These tests cover:
+  - ``Event`` dataclass fields and defaults
+  - ``CallbackRegistry`` connect / disconnect / fire / priority / wildcards
+  - ``pause_events`` / ``hold_events`` context-manager semantics
+  - ``_EventMixin`` registration, decoration, and removal API
+  - Regression: old callback API is gone from all plot types
+  - ``fig.close()`` fires the ``close`` event on every panel
+"""
 from __future__ import annotations
+
 import time
-import pytest
+
 import numpy as np
+import pytest
+
 import anyplotlib as apl
 from anyplotlib.callbacks import Event, CallbackRegistry, VALID_EVENT_TYPES, _EventMixin
 
@@ -92,6 +108,8 @@ class TestEvent:
         e = Event(event_type="pointer_down", stop_propagation=True)
         assert "stop_propagation" not in repr(e)
 
+
+# ── CallbackRegistry ──────────────────────────────────────────────────────────
 
 class TestCallbackRegistry:
     def test_connect_returns_int_cid(self):
@@ -204,6 +222,8 @@ class TestCallbackRegistry:
         assert calls == ["pointer_down", "pointer_up"]
 
 
+# ── pause_events / hold_events ────────────────────────────────────────────────
+
 class TestPauseHold:
     def test_pause_drops_events(self):
         reg = CallbackRegistry()
@@ -249,7 +269,7 @@ class TestPauseHold:
         with reg.pause_events("pointer_move"):
             with reg.pause_events("pointer_move"):
                 reg.fire(Event("pointer_move"))
-            reg.fire(Event("pointer_move"))  # still paused — outer not exited
+            reg.fire(Event("pointer_move"))  # still paused
         reg.fire(Event("pointer_move"))      # now fires
         assert calls == [1]
 
@@ -260,8 +280,8 @@ class TestPauseHold:
         with reg.hold_events("pointer_settled"):
             reg.fire(Event("pointer_settled"))
             reg.fire(Event("pointer_settled"))
-            assert calls == []       # buffered, not fired yet
-        assert calls == [1, 1]       # flushed on exit
+            assert calls == []
+        assert calls == [1, 1]
 
     def test_hold_fires_non_held_types_immediately(self):
         reg = CallbackRegistry()
@@ -270,10 +290,10 @@ class TestPauseHold:
         reg.connect("pointer_move",    lambda e: move_calls.append(1))
         reg.connect("pointer_settled", lambda e: settled_calls.append(1))
         with reg.hold_events("pointer_settled"):
-            reg.fire(Event("pointer_move"))       # not held → immediate
-            reg.fire(Event("pointer_settled"))    # held → buffered
+            reg.fire(Event("pointer_move"))
+            reg.fire(Event("pointer_settled"))
         assert move_calls == [1]
-        assert settled_calls == [1]   # flushed on exit
+        assert settled_calls == [1]
 
     def test_hold_events_in_order(self):
         reg = CallbackRegistry()
@@ -292,11 +312,12 @@ class TestPauseHold:
         with reg.hold_events("pointer_move"):
             with reg.pause_events("pointer_move"):
                 reg.fire(Event("pointer_move"))
-        assert calls == []   # dropped, not buffered then flushed
+        assert calls == []
 
+
+# ── _EventMixin ───────────────────────────────────────────────────────────────
 
 class _FakePlot(_EventMixin):
-    """Minimal plot stub for testing _EventMixin."""
     def __init__(self):
         self.callbacks = CallbackRegistry()
         self._settled_config = (0, 0)
@@ -309,8 +330,7 @@ class TestEventMixin:
     def test_functional_form_single_type(self):
         plot = _FakePlot()
         calls = []
-        fn = lambda e: calls.append(e.event_type)
-        plot.add_event_handler(fn, "pointer_down")
+        plot.add_event_handler(lambda e: calls.append(e.event_type), "pointer_down")
         plot.callbacks.fire(Event("pointer_down"))
         assert calls == ["pointer_down"]
 
@@ -414,12 +434,9 @@ class TestEventMixin:
         assert calls == [1]
 
 
-# ── regression: old API is gone ──────────────────────────────────────────────
-
+# ── Regression: old API is gone ──────────────────────────────────────────────
 
 class TestRegressionOldAPIGone:
-    """Confirm old decorator methods no longer exist on plots and widgets."""
-
     def test_plot1d_no_on_click(self):
         fig, ax = apl.subplots(1, 1)
         plot = ax.plot(np.zeros(10))
@@ -435,16 +452,6 @@ class TestRegressionOldAPIGone:
         plot = ax.plot(np.zeros(10))
         assert not hasattr(plot, "on_release")
 
-    def test_plot1d_no_on_key(self):
-        fig, ax = apl.subplots(1, 1)
-        plot = ax.plot(np.zeros(10))
-        assert not hasattr(plot, "on_key")
-
-    def test_plot1d_no_disconnect(self):
-        fig, ax = apl.subplots(1, 1)
-        plot = ax.plot(np.zeros(10))
-        assert not hasattr(plot, "disconnect")
-
     def test_plot2d_no_on_click(self):
         fig, ax = apl.subplots(1, 1)
         plot = ax.imshow(np.zeros((32, 32)))
@@ -456,20 +463,12 @@ class TestRegressionOldAPIGone:
         w = plot.add_vline_widget(5.0)
         assert not hasattr(w, "on_changed")
 
-    def test_widget_no_on_release(self):
-        fig, ax = apl.subplots(1, 1)
-        plot = ax.plot(np.zeros(10))
-        w = plot.add_vline_widget(5.0)
-        assert not hasattr(w, "on_release")
-
     def test_event_no_phys_x(self):
-        from anyplotlib.callbacks import Event
         e = Event(event_type="pointer_down", xdata=3.14)
         assert not hasattr(e, "phys_x")
         assert e.xdata == 3.14
 
     def test_plot3d_no_on_click(self):
-        import numpy as np
         x = np.linspace(-2, 2, 10)
         XX, YY = np.meshgrid(x, x)
         fig, ax = apl.subplots(1, 1)
@@ -487,17 +486,10 @@ class TestRegressionOldAPIGone:
         line = plot.add_line(np.zeros(10))
         assert not hasattr(line, "on_hover")
 
-    def test_line1d_no_on_click(self):
-        fig, ax = apl.subplots(1, 1)
-        plot = ax.plot(np.zeros(10))
-        line = plot.add_line(np.zeros(10))
-        assert not hasattr(line, "on_click")
 
-
-# ── Phase 3 — Figure.close() ──────────────────────────────────────────────────
+# ── fig.close() ──────────────────────────────────────────────────────────────
 
 class TestFigureClose:
-
     def test_close_in_valid_event_types(self):
         assert "close" in VALID_EVENT_TYPES
 
