@@ -66,12 +66,15 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["anyplotlib/tests"]
+testpaths = [
+    "anyplotlib/tests",
+    "anyplotlib/sphinx_anywidget/tests",
+]
 addopts = "--cov=anyplotlib --cov-report=xml --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["anyplotlib"]
-omit = ["anyplotlib/tests/*", "Examples/*", "docs/*"]
+omit = ["anyplotlib/tests/*", "anyplotlib/sphinx_anywidget/tests/*", "Examples/*", "docs/*"]
 
 [tool.coverage.report]
 exclude_lines = [

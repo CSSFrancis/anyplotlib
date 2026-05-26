@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -53,9 +52,8 @@ def build_wheel(
         tmp_dir = Path(tmp_str)
         result = subprocess.run(
             [
-                sys.executable, "-m", "pip", "wheel",
-                "--no-deps", "--quiet",
-                "--wheel-dir", str(tmp_dir),
+                "uv", "build", "--wheel",
+                "--out-dir", str(tmp_dir),
                 str(project_root),
             ],
             capture_output=True,

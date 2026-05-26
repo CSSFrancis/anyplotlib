@@ -10,7 +10,8 @@ from typing import Callable
 
 import numpy as np
 
-from anyplotlib.callbacks import CallbackRegistry, _EventMixin
+from anyplotlib._base_plot import _BasePlot
+from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib._utils import _arr_to_b64, _build_colormap_lut
 
 
@@ -25,7 +26,7 @@ def _triangulate_grid(rows: int, cols: int) -> list:
     return faces
 
 
-class Plot3D(_EventMixin):
+class Plot3D(_BasePlot):
     """3-D plot panel.
 
     Supports three geometry types matching matplotlib's 3-D Axes API:
@@ -136,14 +137,6 @@ class Plot3D(_EventMixin):
         }
         self.callbacks = CallbackRegistry()
 
-    def configure_pointer_settled(self, ms: int, delta: float = 4) -> None:
-        """Configure the pointer-settled event threshold (ms and pixel delta)."""
-        self._state["pointer_settled_ms"]    = ms
-        self._state["pointer_settled_delta"] = delta
-        self._push()
-
-    _configure_pointer_settled = configure_pointer_settled  # backward compat
-
     # ------------------------------------------------------------------
     def _push(self) -> None:
         if self._fig is None:
@@ -165,38 +158,20 @@ class Plot3D(_EventMixin):
     def set_view(self, azimuth: float | None = None,
                  elevation: float | None = None) -> None:
         """Set the camera azimuth (°) and/or elevation (°)."""
-        if azimuth   is not None: self._state["azimuth"]   = float(azimuth)
-        if elevation is not None: self._state["elevation"] = float(elevation)
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            if azimuth   is not None: self._state["azimuth"]   = float(azimuth)
+            if elevation is not None: self._state["elevation"] = float(elevation)
 
     def set_zoom(self, zoom: float) -> None:
-        self._state["zoom"] = float(zoom)
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
+        with self._python_view_push():
+            self._state["zoom"] = float(zoom)
 
     def reset_view(self) -> None:
         """Restore the camera to the angles/zoom set at construction time."""
-        self._state["azimuth"]   = self._state["_default_azimuth"]
-        self._state["elevation"] = self._state["_default_elevation"]
-        self._state["zoom"]      = self._state["_default_zoom"]
-        self._state["_view_from_python"] = True
-        self._push()
-        self._state["_view_from_python"] = False
-
-    def set_axis_off(self) -> None:
-        self._state["axis_visible"] = False
-        self._push()
-
-    def set_axis_on(self) -> None:
-        self._state["axis_visible"] = True
-        self._push()
-
-    def set_title(self, label: str) -> None:
-        self._state["title"] = str(label)
-        self._push()
+        with self._python_view_push():
+            self._state["azimuth"]   = self._state["_default_azimuth"]
+            self._state["elevation"] = self._state["_default_elevation"]
+            self._state["zoom"]      = self._state["_default_zoom"]
 
     def set_xlabel(self, label: str) -> None:
         self._state["x_label"] = str(label)
