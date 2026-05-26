@@ -488,7 +488,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.Plot1D">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.</span></span><span class="sig-name descname"><span class="pre">Plot1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linestyle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markersize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yscale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_EventMixin</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_BasePlot</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_PanelMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_MarkerMixin</span></code></p>
 <p>1-D line plot panel returned by <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes.plot" title="anyplotlib.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Axes.plot()</span></code></a>.</p>
 <p>All display state is stored in a plain <code class="docutils literal notranslate"><span class="pre">_state</span></code> dict.  Every mutation
 ends with <code class="xref py py-meth docutils literal notranslate"><span class="pre">_push()</span></code>, which serialises the state to the parent
@@ -565,39 +565,22 @@ to reset).</p>
 <dt><strong>Interactive widgets</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.Plot1D.add_vline_widget" title="anyplotlib.Plot1D.add_vline_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_vline_widget()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_hline_widget" title="anyplotlib.Plot1D.add_hline_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_hline_widget()</span></code></a> /
 <a class="reference internal" href="#anyplotlib.Plot1D.add_range_widget" title="anyplotlib.Plot1D.add_range_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_range_widget()</span></code></a> — draggable overlays that report their
 position back to Python via callbacks.  Manage them with
-<a class="reference internal" href="#anyplotlib.Plot1D.get_widget" title="anyplotlib.Plot1D.get_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_widget()</span></code></a>, <a class="reference internal" href="#anyplotlib.Plot1D.remove_widget" title="anyplotlib.Plot1D.remove_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_widget()</span></code></a>, <a class="reference internal" href="#anyplotlib.Plot1D.list_widgets" title="anyplotlib.Plot1D.list_widgets"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_widgets()</span></code></a>,
-and <a class="reference internal" href="#anyplotlib.Plot1D.clear_widgets" title="anyplotlib.Plot1D.clear_widgets"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_widgets()</span></code></a>.</p>
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">get_widget()</span></code>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_widget()</span></code>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">list_widgets()</span></code>,
+and <code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_widgets()</span></code>.</p>
 </dd>
 <dt><strong>Static marker collections</strong></dt><dd><p><a class="reference internal" href="#anyplotlib.Plot1D.add_points" title="anyplotlib.Plot1D.add_points"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_points()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_circles" title="anyplotlib.Plot1D.add_circles"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_circles()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_vlines" title="anyplotlib.Plot1D.add_vlines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_vlines()</span></code></a> /
 <a class="reference internal" href="#anyplotlib.Plot1D.add_hlines" title="anyplotlib.Plot1D.add_hlines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_hlines()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_arrows" title="anyplotlib.Plot1D.add_arrows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_arrows()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_ellipses" title="anyplotlib.Plot1D.add_ellipses"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_ellipses()</span></code></a> /
 <a class="reference internal" href="#anyplotlib.Plot1D.add_lines" title="anyplotlib.Plot1D.add_lines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_lines()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_rectangles" title="anyplotlib.Plot1D.add_rectangles"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_rectangles()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_squares" title="anyplotlib.Plot1D.add_squares"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_squares()</span></code></a> /
 <a class="reference internal" href="#anyplotlib.Plot1D.add_polygons" title="anyplotlib.Plot1D.add_polygons"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_polygons()</span></code></a> / <a class="reference internal" href="#anyplotlib.Plot1D.add_texts" title="anyplotlib.Plot1D.add_texts"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_texts()</span></code></a> — fixed overlays
 positioned at explicit data coordinates.  Access them via
-<code class="docutils literal notranslate"><span class="pre">plot.markers[type][name]</span></code> and manage with <a class="reference internal" href="#anyplotlib.Plot1D.remove_marker" title="anyplotlib.Plot1D.remove_marker"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_marker()</span></code></a>,
-<a class="reference internal" href="#anyplotlib.Plot1D.clear_markers" title="anyplotlib.Plot1D.clear_markers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_markers()</span></code></a>, and <a class="reference internal" href="#anyplotlib.Plot1D.list_markers" title="anyplotlib.Plot1D.list_markers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_markers()</span></code></a>.</p>
+<code class="docutils literal notranslate"><span class="pre">plot.markers[type][name]</span></code> and manage with <code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_marker()</span></code>,
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_markers()</span></code>, and <code class="xref py py-meth docutils literal notranslate"><span class="pre">list_markers()</span></code>.</p>
 </dd>
 <dt><strong>Callbacks</strong></dt><dd><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_changed()</span></code> / <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_release()</span></code> / <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_click()</span></code> /
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_key()</span></code> — react to pan/zoom frames, mouse clicks, and
 key-presses.  Remove a handler with <code class="xref py py-meth docutils literal notranslate"><span class="pre">disconnect()</span></code>.</p>
 </dd>
 </dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.configure_pointer_settled">
-<span class="sig-name descname"><span class="pre">configure_pointer_settled</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.configure_pointer_settled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.configure_pointer_settled" title="Link to this definition">#</a></dt>
-<dd><p>Configure the pointer-settled event threshold (ms and pixel delta).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ms</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
-<li><p><strong>delta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Plot1D.to_state_dict">
 <span class="sig-name descname"><span class="pre">to_state_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.to_state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.to_state_dict" title="Link to this definition">#</a></dt>
@@ -870,50 +853,6 @@ several widgets at once; call <code class="xref py py-meth docutils literal notr
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.get_widget">
-<span class="sig-name descname"><span class="pre">get_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.get_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.get_widget" title="Link to this definition">#</a></dt>
-<dd><p>Return the Widget object by ID string or Widget instance.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="anyplotlib.Widget.html#anyplotlib.Widget" title="anyplotlib.widgets._base.Widget"><em>Widget</em></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.remove_widget">
-<span class="sig-name descname"><span class="pre">remove_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.remove_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.remove_widget" title="Link to this definition">#</a></dt>
-<dd><p>Remove a widget by ID string or Widget instance.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.list_widgets">
-<span class="sig-name descname"><span class="pre">list_widgets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.list_widgets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.list_widgets" title="Link to this definition">#</a></dt>
-<dd><p>Return a list of all active widget objects on this panel.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.clear_widgets">
-<span class="sig-name descname"><span class="pre">clear_widgets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.clear_widgets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.clear_widgets" title="Link to this definition">#</a></dt>
-<dd><p>Remove all interactive overlay widgets from this panel.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Plot1D.set_view">
 <span class="sig-name descname"><span class="pre">set_view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.set_view"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.set_view" title="Link to this definition">#</a></dt>
 <dd><p>Programmatically set the visible x range.</p>
@@ -1060,19 +999,6 @@ current right edge.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.set_title">
-<span class="sig-name descname"><span class="pre">set_title</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.set_title"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.set_title" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Plot1D.set_yscale">
 <span class="sig-name descname"><span class="pre">set_yscale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.set_yscale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.set_yscale" title="Link to this definition">#</a></dt>
 <dd><p>Set the y-axis scale: <code class="docutils literal notranslate"><span class="pre">'linear'</span></code> or <code class="docutils literal notranslate"><span class="pre">'log'</span></code>.</p>
@@ -1144,43 +1070,6 @@ current right edge.</p></li>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.set_axis_off">
-<span class="sig-name descname"><span class="pre">set_axis_off</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.set_axis_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.set_axis_off" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.set_axis_on">
-<span class="sig-name descname"><span class="pre">set_axis_on</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.set_axis_on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.set_axis_on" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.set_ticks_visible">
-<span class="sig-name descname"><span class="pre">set_ticks_visible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">visible</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.set_ticks_visible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.set_ticks_visible" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>visible</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
-<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em> | </em><em>None</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1476,49 +1365,6 @@ in data coordinates.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.remove_marker">
-<span class="sig-name descname"><span class="pre">remove_marker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">marker_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.remove_marker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.remove_marker" title="Link to this definition">#</a></dt>
-<dd><p>Remove a named marker collection by type and name.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Collection type, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;points&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;vlines&quot;</span></code>.</p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The name used when the collection was created.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.clear_markers">
-<span class="sig-name descname"><span class="pre">clear_markers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.clear_markers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.clear_markers" title="Link to this definition">#</a></dt>
-<dd><p>Remove all marker collections from this panel.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="anyplotlib.Plot1D.list_markers">
-<span class="sig-name descname"><span class="pre">list_markers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.list_markers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot1D.list_markers" title="Link to this definition">#</a></dt>
-<dd><p>Return a summary list of all marker collections on this panel.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Each dict has keys <code class="docutils literal notranslate"><span class="pre">&quot;type&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;n&quot;</span></code>
-(number of markers in the collection).</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
-</dd>
-</dl>
-</dd></dl>
-
 </section>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1589,7 +1435,6 @@ in data coordinates.</p></li>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D"><code class="docutils literal notranslate"><span class="pre">Plot1D</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.configure_pointer_settled"><code class="docutils literal notranslate"><span class="pre">Plot1D.configure_pointer_settled()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.to_state_dict"><code class="docutils literal notranslate"><span class="pre">Plot1D.to_state_dict()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.line"><code class="docutils literal notranslate"><span class="pre">Plot1D.line</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.data"><code class="docutils literal notranslate"><span class="pre">Plot1D.data</span></code></a></li>
@@ -1604,10 +1449,6 @@ in data coordinates.</p></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_hline_widget"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_hline_widget()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_range_widget"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_range_widget()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_point_widget"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_point_widget()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.get_widget"><code class="docutils literal notranslate"><span class="pre">Plot1D.get_widget()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.remove_widget"><code class="docutils literal notranslate"><span class="pre">Plot1D.remove_widget()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.list_widgets"><code class="docutils literal notranslate"><span class="pre">Plot1D.list_widgets()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.clear_widgets"><code class="docutils literal notranslate"><span class="pre">Plot1D.clear_widgets()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_view"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_view()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.reset_view"><code class="docutils literal notranslate"><span class="pre">Plot1D.reset_view()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_color"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_color()</span></code></a></li>
@@ -1620,16 +1461,12 @@ in data coordinates.</p></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.y"><code class="docutils literal notranslate"><span class="pre">Plot1D.y</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_xlabel"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_xlabel()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_ylabel"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_ylabel()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_title"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_title()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_yscale"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_yscale()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_xlim"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_xlim()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_ylim"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_ylim()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.get_ylim"><code class="docutils literal notranslate"><span class="pre">Plot1D.get_ylim()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.get_xlim"><code class="docutils literal notranslate"><span class="pre">Plot1D.get_xlim()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.get_xbound"><code class="docutils literal notranslate"><span class="pre">Plot1D.get_xbound()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_axis_off"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_axis_off()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_axis_on"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_axis_on()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.set_ticks_visible"><code class="docutils literal notranslate"><span class="pre">Plot1D.set_ticks_visible()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_circles"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_circles()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_points"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_points()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_hlines"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_hlines()</span></code></a></li>
@@ -1641,9 +1478,6 @@ in data coordinates.</p></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_squares"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_squares()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_polygons"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_polygons()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.add_texts"><code class="docutils literal notranslate"><span class="pre">Plot1D.add_texts()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.remove_marker"><code class="docutils literal notranslate"><span class="pre">Plot1D.remove_marker()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.clear_markers"><code class="docutils literal notranslate"><span class="pre">Plot1D.clear_markers()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot1D.list_markers"><code class="docutils literal notranslate"><span class="pre">Plot1D.list_markers()</span></code></a></li>
 </ul>
 </li>
 </ul>
