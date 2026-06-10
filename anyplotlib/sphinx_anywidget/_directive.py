@@ -36,8 +36,11 @@ import tempfile
 from html import escape as _html_escape
 from pathlib import Path
 
-# Reuse the _PYODIDE_PACKAGES_RE parser from the scraper.
-from anyplotlib.sphinx_anywidget._scraper import _PYODIDE_PACKAGES_RE
+# Reuse the regex parsers from the scraper.
+from anyplotlib.sphinx_anywidget._scraper import (
+    _PYODIDE_PACKAGES_RE,
+    _PYODIDE_MOCK_PACKAGES_RE,
+)
 
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
@@ -201,6 +204,21 @@ class AnywidgetFigureDirective(Directive):
                     except Exception:
                         pass
 
+                # Detect _PYODIDE_MOCK_PACKAGES = [...] in the source.
+                _mock_attr = ""
+                m2 = _PYODIDE_MOCK_PACKAGES_RE.search(python_src)
+                if m2:
+                    try:
+                        import ast as _ast2
+                        mock_pkgs = _ast2.literal_eval(m2.group(1))
+                        if mock_pkgs:
+                            _mock_attr = (
+                                f' data-pyodide-mock-packages='
+                                f'"{_html_escape(_json.dumps(mock_pkgs), quote=True)}"'
+                            )
+                    except Exception:
+                        pass
+
                 stem = src_path.stem
                 script_tag = (
                     f'<script type="text/x-python"'
@@ -208,6 +226,7 @@ class AnywidgetFigureDirective(Directive):
                     f' data-fig-index="0"'
                     f' data-src-file="{stem}"'
                     f'{_pkg_attr}'
+                    f'{_mock_attr}'
                     f' data-src="{data_src}"></script>'
                 )
                 raw_html += "\n" + script_tag + "\n"

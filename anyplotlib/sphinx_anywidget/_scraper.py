@@ -56,6 +56,14 @@ _PYODIDE_PACKAGES_RE = re.compile(
     r"^_PYODIDE_PACKAGES\s*=\s*(\[[^\]]*\])", re.MULTILINE
 )
 
+# Pattern that extracts _PYODIDE_MOCK_PACKAGES = [...] declarations from source.
+# These are passed to micropip.add_mock_package() before the wheel install so
+# that packages unavailable in Pyodide (e.g. dask, rosettasciio) are silently
+# skipped during dependency resolution.
+_PYODIDE_MOCK_PACKAGES_RE = re.compile(
+    r"^_PYODIDE_MOCK_PACKAGES\s*=\s*(\[[^\]]*\])", re.MULTILINE
+)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -343,12 +351,28 @@ class AnywidgetScraper:
                         except Exception:
                             pass
 
+                    # Detect _PYODIDE_MOCK_PACKAGES = [...] in the source.
+                    _mock_attr = ""
+                    m2 = _PYODIDE_MOCK_PACKAGES_RE.search(python_src)
+                    if m2:
+                        try:
+                            import ast as _ast2
+                            mock_pkgs = _ast2.literal_eval(m2.group(1))
+                            if mock_pkgs:
+                                _mock_attr = (
+                                    f' data-pyodide-mock-packages='
+                                    f'"{_html_escape(_json.dumps(mock_pkgs), quote=True)}"'
+                                )
+                        except Exception:
+                            pass
+
                     python_block = (
                         f'<script type="text/x-python"'
                         f' data-fig-id="{fig_id}"'
                         f' data-fig-index="{fig_index}"'
                         f' data-src-file="{Path(src_file).stem}"'
                         f'{_pkg_attr}'
+                        f'{_mock_attr}'
                         f' data-src="{data_src}"></script>'
                     )
                     rst += "\n\n.. raw:: html\n\n    " + python_block + "\n\n"

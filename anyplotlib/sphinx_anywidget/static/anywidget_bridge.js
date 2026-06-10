@@ -196,6 +196,19 @@ _AWI_REGISTRY = {}   # fig_id → widget instance
     //    properly installed above so micropip will find them and skip them.
     //    We do NOT pass deps=False — that triggers a micropip 0.7.x internal
     //    bug ("attempted to install wheel before downloading it").
+
+    // Collect all _PYODIDE_MOCK_PACKAGES declared by any example on this page
+    // so they can be registered as mock packages BEFORE the wheel install.
+    // (Dep resolution happens during install, not during exec.)
+    const _globalMockPkgs = [];
+    for (const s of document.querySelectorAll(
+        'script[type="text/x-python"][data-pyodide-mock-packages]')) {
+      try {
+        const pkgs = JSON.parse(s.dataset.pyodideMockPackages || '[]');
+        for (const p of pkgs) if (!_globalMockPkgs.includes(p)) _globalMockPkgs.push(p);
+      } catch (_) {}
+    }
+
     const wheelUrl = _DOCS_ROOT + '_static/wheels/';
     // Discover wheel name: try the configured package name from the <script>
     // data-package attribute injected by _build_pyodide_wheel, else fall back
@@ -203,11 +216,17 @@ _AWI_REGISTRY = {}   # fig_id → widget instance
     const pkgName = _inferPackageName();
     const fullWheelUrl = wheelUrl + pkgName + '-0.0.0-py3-none-any.whl';
     console.info('[sphinx_anywidget] installing wheel from', fullWheelUrl);
+    const _mockList = JSON.stringify(['anywidget', ..._globalMockPkgs]);
     await _step('install wheel', pyodide.runPythonAsync(`
 import micropip
-# Register anywidget as a mock so micropip skips it during dep resolution.
-# Our sys.modules stub (installed in step 5) takes priority at import time.
-micropip.add_mock_package("anywidget", "999.0.0")
+# Register anywidget + any page-level mock packages so micropip skips them
+# during dep resolution.  Our sys.modules stub takes priority at import time.
+for _pkg in ${_mockList}:
+    try:
+        micropip.add_mock_package(_pkg, "999.0.0")
+    except Exception:
+        pass
+del _pkg
 await micropip.install(${JSON.stringify(fullWheelUrl)})
 `));
     console.info('[sphinx_anywidget] package wheel installed');
@@ -261,7 +280,7 @@ print('[sphinx_anywidget] anywidget monkey-patch installed')
 
     // 8. Collect text/x-python script blocks, group by src-file so each
     //    example source runs exactly once even with multiple figures.
-    const srcGroups = new Map();  // srcFile → { src, pairs: [{figId, figIndex}], packages: [] }
+    const srcGroups = new Map();  // srcFile → { src, pairs, packages, mockPackages }
 
     for (const script of document.querySelectorAll(
         'script[type="text/x-python"][data-fig-id]')) {
@@ -272,12 +291,15 @@ print('[sphinx_anywidget] anywidget monkey-patch installed')
       try { src = JSON.parse(script.dataset.src || 'null') || ''; } catch (_) {}
       let packages = [];
       try { packages = JSON.parse(script.dataset.pyodidePackages || 'null') || []; } catch (_) {}
+      let mockPackages = [];
+      try { mockPackages = JSON.parse(script.dataset.pyodideMockPackages || 'null') || []; } catch (_) {}
 
-      if (!srcGroups.has(srcFile)) srcGroups.set(srcFile, { src, pairs: [], packages });
+      if (!srcGroups.has(srcFile)) srcGroups.set(srcFile, { src, pairs: [], packages, mockPackages });
       const grp = srcGroups.get(srcFile);
       grp.pairs.push({ figId, figIndex });
       // Merge any packages declared by any script tag for this source file.
       for (const p of packages) if (!grp.packages.includes(p)) grp.packages.push(p);
+      for (const p of mockPackages) if (!grp.mockPackages.includes(p)) grp.mockPackages.push(p);
     }
 
     for (const g of srcGroups.values())
@@ -286,7 +308,7 @@ print('[sphinx_anywidget] anywidget monkey-patch installed')
     // 9. Run each example source once, assign _anywidget_fig_id in creation
     //    order, then push current state into the matching iframes.
     const _execErrors = [];
-    for (const [srcFile, { src, pairs, packages }] of srcGroups) {
+    for (const [srcFile, { src, pairs, packages, mockPackages }] of srcGroups) {
       const figIdList = JSON.stringify(pairs.map(p => p.figId));
       console.info(`[sphinx_anywidget] running: ${srcFile} (${pairs.length} figure(s))`);
       const _srcFileRepr = JSON.stringify(srcFile);
