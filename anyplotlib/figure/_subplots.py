@@ -60,9 +60,9 @@ def subplots(nrows=1, ncols=1, *,
 
     Examples
     --------
-    >>> import anyplotlib as vw
+    >>> import anyplotlib as apl
     >>> import numpy as np
-    >>> fig, axs = vw.subplots(2, 1, figsize=(640, 600))
+    >>> fig, axs = apl.subplots(2, 1, figsize=(640, 600))
     >>> v2d = axs[0].imshow(np.random.rand(128, 128))
     >>> v1d = axs[1].plot(np.sin(np.linspace(0, 6.28, 256)))
     >>> fig

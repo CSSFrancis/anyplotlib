@@ -1,54 +1,119 @@
-Anyplotlib
-----------
+# anyplotlib
 
 [![codecov](https://codecov.io/gh/CSSFrancis/anyplotlib/branch/main/graph/badge.svg)](https://codecov.io/gh/CSSFrancis/anyplotlib)
+[![Tests](https://github.com/CSSFrancis/anyplotlib/actions/workflows/tests.yml/badge.svg)](https://github.com/CSSFrancis/anyplotlib/actions/workflows/tests.yml)
 
-Welcome to **anyplotlib** – a lightweight, interactive viewer for 1-D signals and
-2-D images, backed by [anywidget](https://anywidget.dev/) and a pure-JavaScript
-canvas renderer.  The goal is to duplicate and extend the interactive plotting capabilities of Matplotlib,
-although the scope is intentionally limited in the following ways:
-
-1. This uses the object-oriented API of Matplotlib, not the stateful pyplot interface. This means there is
-no `plt.imshow` or `plt.plot` – instead, you create a Figure object and call methods on it to add data
-and customize the plot. This is a deliberate choice to avoid the pitfalls of the stateful API.
+**anyplotlib** is a fast, interactive plotting library for Jupyter, built on
+[anywidget](https://anywidget.dev/) and a pure-JavaScript canvas renderer.
+It follows matplotlib's object-oriented API — create a `Figure`, call methods
+on `Axes` — so switching is often a one-line change:
 
 ```python
 import anyplotlib as apl
-import matplotlib.pyplot as plt
 
-# matplotlib:
-fig, axs = plt.subplots(1,1)
-axs.imshow(...)
-
-# anyplotlib equivalent:
-fig, axs = apl.subplots(1,1)
-axs.imshow(...)
+fig, ax = apl.subplots(1, 1)        # same shape as plt.subplots(1, 1)
+ax.imshow(data)                     # pan, zoom, and inspect — live
+fig                                 # display in a Jupyter cell
 ```
 
-2. In matplotlib they use vector graphics (SVG) to render the plot, which is great for static images.  It's especially
-great for making publication-quality figures.  (If you haven't try inkscape + matplotlib SVG output,
-it's pretty amazing.) For interactivity, it can be slow.  Anyplotlib uses a pure-JavaScript canvas renderer which is
-much faster for interactive applications, but the quality of the output is not as good as vector graphics.  This is a
-trade-off that we are willing to make for the sake of interactivity.
+If you have used matplotlib's OO interface, you already know most of
+anyplotlib. What you gain is interactivity that stays fast on large data —
+without a kernel round-trip per frame.
 
-3. Matplotlib supports a wide range of marker styles, line styles, and other plot elements.  Anyplotlib focuses on a
-core set of features that are most commonly used in scientific plotting.  This means that some of the more
-esoteric features of Matplotlib may not be available in Anyplotlib. In general we try to match the lower level
-`collections` API of Matplotlib.
+## Why another plotting library?
 
-4. Each collection, plot, image is rendered as a single object on the canvas.  This is highly performant and more
-importantly allows for blitting. This is one of the main reasons why the `ipympl` backend of Matplotlib is so slow.
+Matplotlib is a superb tool for publication-quality static figures, but its
+interactive notebook story (`ipympl`) re-renders the whole figure on the
+Python side for every frame. anyplotlib makes the opposite trade-off:
 
-5. Finally `anyplotlib` uses `AnyWidget` as the underlying widget framework.  This means that it can be used in any
-environment that supports `AnyWidget`, including Jupyter notebooks, JupyterLab, and PyCharm notebook preview.  Under
-the hood, `AnyWidget` uses a pure-JavaScript implementation of the widget protocol, which allows for fast rendering
-and interactivity.
+- **All rendering happens in the browser.** Python serialises compact state
+  (raw image bytes, base64-encoded float arrays) once; pan/zoom/drag never
+  touch the kernel.
+- **Each image, line collection, or marker group is a single canvas object**,
+  so blitting works and drag interactions run at full frame rate.
+- **The scope is deliberately limited.** The OO API only (no `plt.plot()`
+  global state), a curated set of plot types and marker styles, and raster
+  canvas output rather than vector graphics. For print-quality SVG/PDF
+  figures, matplotlib remains the right tool.
 
-## Getting Started
+## Features
 
-Install from PyPI:
+- **Plot types** — `plot` (1-D lines with markers, linestyles, legends, log y),
+  `imshow` (2-D images with colormaps, colorbars, scale bars, overlay masks),
+  `pcolormesh` (non-uniform 2-D meshes), `bar` (grouped, horizontal, log,
+  value labels), and 3-D `plot_surface` / `scatter3d` / `plot3d`.
+- **Layouts** — `subplots`, matplotlib-compatible `GridSpec` indexing
+  (slices, spans, negative indices), `width_ratios`/`height_ratios`,
+  `sharex`/`sharey` linked pan-zoom, and floating inset axes with
+  minimize/maximize.
+- **Markers** — static overlays (points, circles, ellipses, rectangles,
+  polygons, arrows, line segments, text, h/v lines) with matplotlib-style
+  kwargs and live `.set()` updates.
+- **Widgets** — draggable overlays (`RectangleWidget`, `CircleWidget`,
+  `AnnularWidget`, `CrosshairWidget`, `PolygonWidget`, `VLineWidget`,
+  `HLineWidget`, `RangeWidget`, …) that report positions back to Python.
+- **Events** — a two-tier callback system: `pointer_move` fires every drag
+  frame for cheap updates; `pointer_settled` / `pointer_up` fire once for
+  expensive recomputation. Plus `key_down`, `wheel`, `double_click`, and
+  per-line scoped handlers.
+- **Interactive docs** — the bundled `anyplotlib.sphinx_anywidget` extension
+  makes any anywidget figure live in Sphinx Gallery pages via Pyodide — no
+  kernel or server needed.
+- **Embeddable anywhere** — figures don't require Jupyter. Export
+  self-contained HTML (`fig.save_html("plot.html")`), mount the renderer
+  directly in an Electron app or web page via the JS `mount()` API, or run a
+  live Python backend over any transport with `anyplotlib.embed.FigureBridge`
+  (full callback support). See the embedding guide in the docs.
+
+```python
+import numpy as np
+import anyplotlib as apl
+
+fig, (ax_img, ax_spec) = apl.subplots(1, 2, figsize=(900, 400))
+img  = ax_img.imshow(stack.mean(axis=2), cmap="viridis")
+spec = ax_spec.plot(stack[64, 64], units="eV")
+
+cross = img.add_widget("crosshair", cx=64, cy=64)
+
+@cross.add_event_handler("pointer_move")   # every drag frame — keep it cheap
+def update(event):
+    spec.set_data(stack[int(cross.cy), int(cross.cx)])
+```
+
+## Installation
+
 ```bash
 pip install anyplotlib
 ```
 
-See the [documentation](https://cssfrancis.github.io/anyplotlib/) for more information.
+Works anywhere anywidget does: JupyterLab, Jupyter Notebook, VS Code,
+PyCharm, Google Colab, and marimo. Dependencies are intentionally light:
+`anywidget`, `numpy`, `traitlets`, and `colorcet` (no matplotlib required).
+
+## Documentation
+
+Full docs, a live example gallery (interactive in the browser — no install),
+and the event-system guide are at
+**[cssfrancis.github.io/anyplotlib](https://cssfrancis.github.io/anyplotlib/)**.
+
+## Development
+
+```bash
+git clone https://github.com/CSSFrancis/anyplotlib
+cd anyplotlib
+uv sync                              # install with dev dependencies
+uv run playwright install chromium   # browsers for rendering tests
+uv run pytest                        # full suite (unit + Playwright + visual)
+make html                            # build the docs locally
+```
+
+The architecture is a single `anywidget.AnyWidget` (`Figure`) that owns all
+traitlets; plot objects are plain Python classes that serialise their state
+dicts to per-panel traits, and `figure_esm.js` renders them. See
+[AGENTS.md](AGENTS.md) for the codebase guide and
+[`anyplotlib/FIGURE_ESM.md`](anyplotlib/FIGURE_ESM.md) for a map of the JS
+renderer.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

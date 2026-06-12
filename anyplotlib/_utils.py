@@ -121,9 +121,9 @@ def _build_colormap_lut(name: str) -> list:
 
     # ── 2. Try matplotlib ─────────────────────────────────────────────────
     try:
-        import matplotlib.cm as _cm
+        import matplotlib
         import numpy as _np
-        cmap = _cm.get_cmap(name, 256)
+        cmap = matplotlib.colormaps[name]
         rgba = cmap(_np.linspace(0, 1, 256))
         return [[int(r * 255), int(g * 255), int(b * 255)]
                 for r, g, b, _ in rgba]

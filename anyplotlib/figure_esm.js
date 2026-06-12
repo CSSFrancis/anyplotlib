@@ -115,6 +115,203 @@ function render({ model, el }) {
     return new Int32Array(buf.buffer);
   }
 
+  // ── rich-text (mini-TeX) label engine ───────────────────────────────────
+  // Canvas cannot run MathJax, so labels support a small TeX subset that
+  // covers scientific axis labels.  Inside $...$ delimiters:
+  //   ^{...} / ^x      superscript (exponents)        $10^{-3}$, $x^2$
+  //   _{...} / _x      subscript                      $E_F$, $k_{B}T$
+  //   \alpha ... \Omega  Greek letters                $\mu m$, $\Delta E$
+  //   \times \cdot \pm \degree \AA \infty \propto \approx \leq \geq \neq
+  //   \partial \nabla \hbar \rightarrow \leftarrow \sum \int \sqrt \prime
+  //   \mathrm{...}     upright (non-italic) text inside math
+  // Letters in math mode render italic; text outside $...$ is untouched.
+  // \$ renders a literal dollar sign.  Nested scripts are flattened to one
+  // level.  Python passes label strings through verbatim — all parsing
+  // happens here at draw time.
+  const _TEX_SYM = {
+    alpha:'α', beta:'β', gamma:'γ', delta:'δ', epsilon:'ε', varepsilon:'ε',
+    zeta:'ζ', eta:'η', theta:'θ', vartheta:'ϑ', iota:'ι', kappa:'κ',
+    lambda:'λ', mu:'μ', nu:'ν', xi:'ξ', pi:'π', rho:'ρ', sigma:'σ',
+    tau:'τ', upsilon:'υ', phi:'φ', varphi:'φ', chi:'χ', psi:'ψ', omega:'ω',
+    Gamma:'Γ', Delta:'Δ', Theta:'Θ', Lambda:'Λ', Xi:'Ξ', Pi:'Π',
+    Sigma:'Σ', Upsilon:'Υ', Phi:'Φ', Psi:'Ψ', Omega:'Ω',
+    times:'×', cdot:'·', pm:'±', mp:'∓', deg:'°', degree:'°', circ:'°',
+    AA:'Å', angstrom:'Å', infty:'∞', propto:'∝', approx:'≈', sim:'~',
+    le:'≤', leq:'≤', ge:'≥', geq:'≥', ne:'≠', neq:'≠',
+    rightarrow:'→', to:'→', leftarrow:'←', leftrightarrow:'↔',
+    partial:'∂', nabla:'∇', hbar:'ℏ', ell:'ℓ', prime:'′',
+    sqrt:'√', sum:'Σ', int:'∫', langle:'⟨', rangle:'⟩',
+  };
+
+  // Parse a label into runs: [{t, lvl, it}] — lvl 0 normal / +1 sup / -1 sub.
+  function _texRuns(text) {
+    const runs = [];
+    const s = String(text);
+    const n = s.length;
+    let i = 0, math = false;
+    let buf = '', bufLvl = 0, bufIt = false;
+    const flush = () => { if (buf) { runs.push({ t: buf, lvl: bufLvl, it: bufIt }); buf = ''; } };
+    const emit = (t, lvl, it) => {
+      if (lvl !== bufLvl || it !== bufIt) { flush(); bufLvl = lvl; bufIt = it; }
+      buf += t;
+    };
+    // Read a {…} group (brace-balanced), a \command, or a single char.
+    // Assumes i points just past the ^ / _ that introduced the group.
+    function readGroup() {
+      if (i < n && s[i] === '{') {
+        let depth = 1, g = ''; i++;
+        while (i < n) {
+          const c = s[i];
+          if (c === '{') depth++;
+          else if (c === '}') { depth--; if (!depth) { i++; break; } }
+          g += c; i++;
+        }
+        return g;
+      }
+      if (i < n && s[i] === '\\') {
+        let j = i + 1, name = '';
+        while (j < n && /[A-Za-z]/.test(s[j])) { name += s[j]; j++; }
+        i = j;
+        return '\\' + name;
+      }
+      return i < n ? s[i++] : '';
+    }
+    while (i < n) {
+      const c = s[i];
+      if (c === '\\' && s[i + 1] === '$') { emit('$', 0, false); i += 2; continue; }
+      if (c === '$') { math = !math; i++; continue; }
+      if (!math) { emit(c, 0, false); i++; continue; }
+      if (c === '^' || c === '_') {
+        i++;
+        const lvl = c === '^' ? 1 : -1;
+        // Re-parse group content in math mode so \symbols work inside {…};
+        // nested scripts collapse to this run's level.
+        for (const r of _texRuns('$' + readGroup() + '$')) emit(r.t, lvl, r.it);
+        continue;
+      }
+      if (c === '\\') {
+        let j = i + 1, name = '';
+        while (j < n && /[A-Za-z]/.test(s[j])) { name += s[j]; j++; }
+        if (name === 'mathrm' && s[j] === '{') {
+          i = j;
+          emit(readGroup(), 0, false);
+          continue;
+        }
+        const sym = _TEX_SYM[name];
+        emit(sym !== undefined ? sym : name, 0, false);
+        i = j;
+        if (s[i] === ' ') i++;   // TeX swallows the space after a command
+        continue;
+      }
+      emit(c, 0, /[A-Za-z]/.test(c));   // math-mode letters are italic
+      i++;
+    }
+    flush();
+    return runs;
+  }
+
+  // Measure + position runs left-to-right at base size px.
+  function _texLayout(ctx, text, px, weight, family) {
+    const out = [];
+    let xOff = 0;
+    for (const r of _texRuns(text)) {
+      const size = r.lvl ? Math.max(7, px * 0.68) : px;
+      // Offsets are relative to the shared alphabetic baseline: superscripts
+      // rise so their top roughly aligns with the base cap height (avoids
+      // clipping in the 12-px title strip); subscripts drop below baseline.
+      const dy   = r.lvl === 1 ? -px * 0.28 : r.lvl === -1 ? px * 0.16 : 0;
+      const font = (r.it ? 'italic ' : '') + (weight ? weight + ' ' : '')
+                 + size.toFixed(1) + 'px ' + family;
+      ctx.font = font;
+      out.push({ t: r.t, x: xOff, dy, font });
+      xOff += ctx.measureText(r.t).width;
+    }
+    return { runs: out, w: xOff };
+  }
+
+  // Draw a (possibly TeX-formatted) label.  Respects the caller's fillStyle
+  // and textBaseline; alignment is handled internally via opts.align so it
+  // stays correct for multi-run TeX strings.
+  //   _drawTex(ctx, '$10^{-3}$ counts', x, y, 12, {align:'right', weight:'bold'})
+  function _drawTex(ctx, text, x, y, px, opts) {
+    const o = opts || {};
+    const family = o.family || 'sans-serif';
+    const weight = o.weight || '';
+    const t = text == null ? '' : String(text);
+    if (!t) return;
+    ctx.save();
+    if (t.indexOf('$') === -1) {          // fast path — no math segments
+      ctx.font = (weight ? weight + ' ' : '') + px + 'px ' + family;
+      ctx.textAlign = o.align || 'center';
+      ctx.fillText(t, x, y);
+      ctx.restore();
+      return;
+    }
+    const lay = _texLayout(ctx, t, px, weight, family);
+    const align = o.align || 'center';
+    let x0 = x;
+    if (align === 'center') x0 = x - lay.w / 2;
+    else if (align === 'right') x0 = x - lay.w;
+    // Draw all runs on one shared alphabetic baseline so sup/sub offsets are
+    // consistent across font sizes.  Convert the caller's baseline so TeX
+    // text sits at exactly the same height a plain fillText would.
+    // TextMetrics.fontBoundingBoxAscent is measured RELATIVE TO the current
+    // textBaseline, so the alphabetic-baseline offset is the difference of
+    // the ascent measured under each baseline.
+    ctx.font = (weight ? weight + ' ' : '') + px + 'px ' + family;
+    let yb = y;
+    const fmCur = ctx.measureText('Mg');
+    if (fmCur.fontBoundingBoxAscent != null) {
+      const ascCur = fmCur.fontBoundingBoxAscent;
+      ctx.textBaseline = 'alphabetic';
+      yb = y + (ctx.measureText('Mg').fontBoundingBoxAscent - ascCur);
+    } else {
+      const bl = ctx.textBaseline;   // heuristic fallback (old browsers)
+      if (bl === 'middle') yb = y + px * 0.30;
+      else if (bl === 'top' || bl === 'hanging') yb = y + px * 0.78;
+      else if (bl === 'bottom' || bl === 'ideographic') yb = y - px * 0.20;
+      ctx.textBaseline = 'alphabetic';
+    }
+    ctx.textAlign = 'left';
+    for (const r of lay.runs) {
+      ctx.font = r.font;
+      ctx.fillText(r.t, x0 + r.x, yb + r.dy);
+    }
+    ctx.restore();
+  }
+
+  // ── 2D gutter geometry helpers ───────────────────────────────────────────
+  // Total width reserved for the colorbar (strip + rotated-label gutter).
+  // 0 when the colorbar is hidden.  The image area shrinks by this amount so
+  // the strip and its label always fit inside the panel.
+  function _cbWidth(st) {
+    if (!st || !st.show_colorbar) return 0;
+    const labelW = st.colorbar_label
+      ? Math.round((st.colorbar_label_size || 10) + 8) : 0;
+    return 16 + labelW;
+  }
+
+  // Height of the title strip.  Stays at PAD_T for default-size plain titles
+  // so existing layouts are pixel-identical; grows for title_size > 11 and
+  // for TeX titles (superscripts rise above the cap height) so 2D titles are
+  // never clipped.  1D/bar use the fixed strip and clamp the drawn size
+  // instead (see _titlePx).
+  function _padT(st) {
+    if (!st || !st.title) return PAD_T;
+    const ts = st.title_size || 11;
+    const hasTex = String(st.title).indexOf('$') !== -1;
+    if (ts <= 11 && !hasTex) return PAD_T;
+    return Math.max(PAD_T, Math.ceil(ts * 1.3) + (hasTex ? 4 : 2));
+  }
+
+  // Drawn title size for panels with a fixed PAD_T strip (1D / bar): clamp
+  // so ascenders, descenders, and TeX superscripts always fit.
+  function _titlePx(st) {
+    const ts = st.title_size || 11;
+    const hasTex = st.title && String(st.title).indexOf('$') !== -1;
+    return Math.min(ts, hasTex ? 10 : 11);
+  }
+
   // ── shared constants ──────────────────────────────────────────────────────
   const STATS_DIV_CSS =
     'position:absolute;top:4px;left:4px;padding:4px 7px;' +
@@ -847,29 +1044,36 @@ function render({ model, el }) {
       const hasPhysAxis = st && (st.is_mesh || st.has_axes)
                        && st.x_axis && st.x_axis.length >= 2
                        && st.y_axis && st.y_axis.length >= 2;
-      // Always reserve the PAD_T top strip for the title (mirrors 1D behaviour).
+      // Always reserve the top strip for the title (mirrors 1D behaviour).
       // Left/right/bottom gutters are only used when physical axes are present.
+      // The colorbar (strip + label gutter) takes space from the image width
+      // so it is never clipped at the panel's right edge.
+      const cbW  = _cbWidth(st);
+      const padT = _padT(st);
       const imgX = hasPhysAxis ? PAD_L : 0;
-      const imgY = PAD_T;
-      const imgW = hasPhysAxis ? Math.max(1, pw - PAD_L - PAD_R) : pw;
-      let   imgH = Math.max(1, ph - PAD_T - (hasPhysAxis ? PAD_B : 0));
+      const imgY = padT;
+      const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
+                               - (cbW ? cbW + 2 : 0));
+      let   imgH = Math.max(1, ph - padT - (hasPhysAxis ? PAD_B : 0));
       // Enforce aspect ratio (st.aspect = number or "equal" → 1.0).
       if (st && st.aspect != null) {
         const asp = (st.aspect === 'equal') ? 1.0 : parseFloat(st.aspect);
         if (Number.isFinite(asp) && asp > 0) imgH = Math.max(1, Math.round(imgW / asp));
       }
       // Store on panel so event handlers and draw functions don't recompute.
+      // _cbW/_padT let draw2d detect when a state push requires a re-layout.
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
+      p._cbW = cbW;  p._padT = padT;
 
-      // Title canvas: always sits in the PAD_T strip above the image area
+      // Title canvas: sits in the title strip above the image area
       if (p.titleCanvas && p.titleCtx) {
         p.titleCanvas.style.left    = imgX + 'px';
         p.titleCanvas.style.top     = '0px';
         p.titleCanvas.style.display = 'block';
         p.titleCanvas.style.width   = imgW + 'px';
-        p.titleCanvas.style.height  = PAD_T + 'px';
+        p.titleCanvas.style.height  = padT + 'px';
         p.titleCanvas.width  = imgW * dpr;
-        p.titleCanvas.height = PAD_T * dpr;
+        p.titleCanvas.height = padT * dpr;
         p.titleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
 
@@ -939,16 +1143,13 @@ function render({ model, el }) {
         }
       }
 
-      // Colorbar: narrow strip to the right of the image area
+      // Colorbar: strip + label gutter in the space reserved by _cbWidth
       if (p.cbCanvas && p.cbCtx) {
-        const cbStripW = 16;
-        const cbTotalW = (st && st.colorbar_label) ? cbStripW + 14 : cbStripW;
-        const vis = st && st.show_colorbar;
-        if (vis) {
+        if (cbW) {
           p.cbCanvas.style.display = 'block';
           p.cbCanvas.style.left = (imgX + imgW + 2) + 'px';
           p.cbCanvas.style.top  = imgY + 'px';
-          _sz(p.cbCanvas, p.cbCtx, cbTotalW, imgH);
+          _sz(p.cbCanvas, p.cbCtx, cbW, imgH);
         } else {
           p.cbCanvas.style.display = 'none';
         }
@@ -1240,7 +1441,7 @@ function render({ model, el }) {
 
     const cbStripW=16;
     const cbLabel=st.colorbar_label||'';
-    const cbW=cbLabel?(cbStripW+14):cbStripW;
+    const cbW=_cbWidth(st)||cbStripW;
     const imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
     const ctx=p.cbCtx;
     ctx.clearRect(0,0,cbW,imgH);
@@ -1274,15 +1475,14 @@ function render({ model, el }) {
     ctx.beginPath();ctx.moveTo(0,_vToY(dMax));ctx.lineTo(cbStripW,_vToY(dMax));ctx.stroke();
     ctx.beginPath();ctx.moveTo(0,_vToY(dMin));ctx.lineTo(cbStripW,_vToY(dMin));ctx.stroke();
 
-    // Colorbar label (rotated −90° to the right of the strip)
+    // Colorbar label (rotated −90°, centred in the label gutter)
     if(cbLabel){
       ctx.save();
-      ctx.translate(cbStripW+9, imgH/2);
+      ctx.translate(cbStripW + (cbW - cbStripW) / 2 + 1, imgH/2);
       ctx.rotate(-Math.PI/2);
-      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.textBaseline='middle';
       ctx.fillStyle=theme.unitText;
-      ctx.font='10px sans-serif';
-      ctx.fillText(cbLabel,0,0);
+      _drawTex(ctx,cbLabel,0,0,st.colorbar_label_size||10,{align:'center'});
       ctx.restore();
     }
   }
@@ -1332,7 +1532,7 @@ function render({ model, el }) {
       const xVMin=_axisFracToVal(xArr,xF0), xVMax=_axisFracToVal(xArr,xF1);
       const step=findNice((xVMax-xVMin)/Math.max(3,Math.floor(imgW/60)));
       p.xCtx.strokeStyle=theme.tickStroke;
-      p.xCtx.fillStyle=theme.tickText; p.xCtx.font='10px sans-serif';
+      p.xCtx.fillStyle=theme.tickText; p.xCtx.font=(st.tick_size||10)+'px sans-serif';
       p.xCtx.textAlign='center'; p.xCtx.textBaseline='top';
       // Generate nice tick values; place each at its true canvas position
       // via binary-search into the axis array (works for both linear and
@@ -1350,7 +1550,10 @@ function render({ model, el }) {
         p.xCtx.beginPath(); p.xCtx.moveTo(px2,0); p.xCtx.lineTo(px2,TICK); p.xCtx.stroke();
         // Skip label if too close to the previous one
         if(px2-lastPx>=minLabelGap){
-          p.xCtx.fillText(fmtVal(v), px2, TICK+2);
+          const txt=fmtVal(v);
+          // Nudge edge labels inward so they are never clipped by the canvas
+          const hw=p.xCtx.measureText(txt).width/2;
+          p.xCtx.fillText(txt, Math.min(Math.max(px2,hw), aw-hw), TICK+2);
           lastPx=px2;
         }
       }
@@ -1358,7 +1561,7 @@ function render({ model, el }) {
       p.xCtx.fillStyle=theme.unitText; p.xCtx.font='9px sans-serif';
       p.xCtx.fillText(units, aw-2, ah-1);
       const xlabel=st.x_label||'';
-      if(xlabel){p.xCtx.fillStyle=theme.tickText;p.xCtx.font='11px sans-serif';p.xCtx.textAlign='center';p.xCtx.textBaseline='bottom';p.xCtx.fillText(xlabel,aw/2,ah-2);}
+      if(xlabel){p.xCtx.fillStyle=theme.tickText;p.xCtx.textBaseline='bottom';_drawTex(p.xCtx,xlabel,aw/2,ah-2,st.x_label_size||11,{align:'center'});}
     }
 
     // ── Y axis canvas: PAD_L × imgH, origin at top-left ─────────────────
@@ -1373,7 +1576,7 @@ function render({ model, el }) {
       const yVMin=_axisFracToVal(yArr,yF0), yVMax=_axisFracToVal(yArr,yF1);
       const step=findNice((yVMax-yVMin)/Math.max(3,Math.floor(imgH/60)));
       p.yCtx.strokeStyle=theme.tickStroke;
-      p.yCtx.fillStyle=theme.tickText; p.yCtx.font='10px sans-serif';
+      p.yCtx.fillStyle=theme.tickText; p.yCtx.font=(st.tick_size||10)+'px sans-serif';
       p.yCtx.textAlign='right'; p.yCtx.textBaseline='middle';
       const yTicks=[];
       for(let v=Math.ceil(yVMin/step)*step; v<=yVMax+step*0.01; v+=step) yTicks.push(v);
@@ -1386,7 +1589,9 @@ function render({ model, el }) {
         if(py2<0||py2>imgH) continue;
         p.yCtx.beginPath(); p.yCtx.moveTo(aw,py2); p.yCtx.lineTo(aw-TICK,py2); p.yCtx.stroke();
         if(py2-lastPy>=minLabelGapY){
-          p.yCtx.fillText(fmtVal(v), aw-TICK-2, py2);
+          // Nudge edge labels inward so digits are never cut by the canvas
+          const vh=(st.tick_size||10)*0.5+1;
+          p.yCtx.fillText(fmtVal(v), aw-TICK-2, Math.min(Math.max(py2,vh), ah-vh));
           lastPy=py2;
         }
       }
@@ -1397,24 +1602,26 @@ function render({ model, el }) {
       const ylabel=st.y_label||'';
       if(ylabel){
         p.yCtx.save();
-        p.yCtx.translate(Math.round(aw*0.15),ah/2);
+        // Keep the rotated label's full height inside the gutter at large sizes
+        const ylpx=st.y_label_size||11;
+        p.yCtx.translate(Math.max(Math.round(aw*0.15), Math.ceil(ylpx*0.62)+1), ah/2);
         p.yCtx.rotate(-Math.PI/2);
-        p.yCtx.textAlign='center'; p.yCtx.textBaseline='middle';
-        p.yCtx.fillStyle=theme.tickText; p.yCtx.font='11px sans-serif';
-        p.yCtx.fillText(ylabel,0,0);
+        p.yCtx.textBaseline='middle';
+        p.yCtx.fillStyle=theme.tickText;
+        _drawTex(p.yCtx,ylabel,0,0,ylpx,{align:'center'});
         p.yCtx.restore();
       }
     }
     const title2d = st.title || '';
     if (p.titleCanvas && p.titleCtx) {
-      const tw = p.imgW || imgW;
-      p.titleCtx.clearRect(0, 0, tw, PAD_T);
+      const tw   = p.imgW || imgW;
+      const padT = p._padT || PAD_T;   // strip grows with title_size > 11
+      p.titleCtx.clearRect(0, 0, tw, padT);
       if (title2d) {
         p.titleCtx.fillStyle = theme.tickText;
-        p.titleCtx.font = 'bold 11px sans-serif';
-        p.titleCtx.textAlign = 'center';
         p.titleCtx.textBaseline = 'middle';
-        p.titleCtx.fillText(title2d, tw / 2, PAD_T / 2);
+        _drawTex(p.titleCtx, title2d, tw / 2, padT / 2,
+                 st.title_size || 11, { align: 'center', weight: 'bold' });
       }
     }
   }
@@ -1762,11 +1969,11 @@ function render({ model, el }) {
     const ap = axisVerts.map(v => _project3(_applyRot(R, v), cx, cy, scale));
 
     const axDefs = [
-      { i0:0, i1:1, label: st.x_label||'x', col:'#e06c75' },
-      { i0:2, i1:3, label: st.y_label||'y', col:'#98c379' },
-      { i0:4, i1:5, label: st.z_label||'z', col:'#61afef' },
+      { i0:0, i1:1, label: st.x_label||'x', col:'#e06c75', size: st.x_label_size||11 },
+      { i0:2, i1:3, label: st.y_label||'y', col:'#98c379', size: st.y_label_size||11 },
+      { i0:4, i1:5, label: st.z_label||'z', col:'#61afef', size: st.z_label_size||11 },
     ];
-    for (const { i0, i1, label, col } of axDefs) {
+    for (const { i0, i1, label, col, size } of axDefs) {
       ctx.beginPath();
       ctx.moveTo(ap[i0][0], ap[i0][1]);
       ctx.lineTo(ap[i1][0], ap[i1][1]);
@@ -1777,10 +1984,9 @@ function render({ model, el }) {
       ctx.setLineDash([]);
       // Positive-end label
       ctx.fillStyle   = col;
-      ctx.font        = 'bold 11px sans-serif';
-      ctx.textAlign   = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(label, ap[i1][0], ap[i1][1]);
+      _drawTex(ctx, label, ap[i1][0], ap[i1][1], size,
+               { align: 'center', weight: 'bold' });
     }
 
     // ── Tick marks on each axis (5 evenly spaced) ─────────────────────────
@@ -2211,7 +2417,7 @@ function render({ model, el }) {
     ctx.beginPath();ctx.moveTo(r.x,r.y);ctx.lineTo(r.x,r.y+r.h);ctx.stroke();
 
     if(axisVis1d&&xTicksVis1d){
-      ctx.fillStyle=theme.tickText; ctx.font='10px monospace';
+      ctx.fillStyle=theme.tickText; ctx.font=(st.tick_size||10)+'px monospace';
       if(xArr.length>=2){
         const xVMin=_axisFracToVal(xArr,x0), xVMax=_axisFracToVal(xArr,x1);
         const xStep=findNice((xVMax-xVMin)/Math.max(2,Math.floor(r.w/70)));
@@ -2220,13 +2426,16 @@ function render({ model, el }) {
           const px=_fracToPx1d(_axisValToFrac(xArr,v),x0,x1,r);
           if(px<r.x||px>r.x+r.w) continue;
           ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(px,r.y+r.h);ctx.lineTo(px,r.y+r.h+5);ctx.stroke();
-          ctx.fillStyle=theme.tickText;ctx.fillText(fmtVal(v),px,r.y+r.h+7);
+          const xtTxt=fmtVal(v);
+          const xtHw=ctx.measureText(xtTxt).width/2;
+          ctx.fillStyle=theme.tickText;
+          ctx.fillText(xtTxt, Math.min(Math.max(px,xtHw), pw-xtHw), r.y+r.h+7);
         }
-        if(units&&units!=='px'){ctx.textAlign='right';ctx.textBaseline='top';ctx.fillStyle=theme.unitText;ctx.font='9px monospace';ctx.fillText(units,r.x+r.w,r.y+r.h+24);ctx.font='10px monospace';}
+        if(units&&units!=='px'){ctx.textBaseline='top';ctx.fillStyle=theme.unitText;_drawTex(ctx,units,r.x+r.w,r.y+r.h+24,st.x_label_size||9,{align:'right',family:'monospace'});}
       }
     }
     if(axisVis1d&&yTicksVis1d){
-      ctx.font='10px monospace';ctx.textAlign='right';ctx.textBaseline='middle';
+      ctx.font=(st.tick_size||10)+'px monospace';ctx.textAlign='right';ctx.textBaseline='middle';
       const tickRX=r.x-8;
       if(isLog){
         const lo=Math.floor(effDMin), hi=Math.ceil(effDMax);
@@ -2235,7 +2444,7 @@ function render({ model, el }) {
           const py=_toPlotY(v);
           if(py<r.y||py>r.y+r.h) continue;
           ctx.strokeStyle=theme.axisStroke;ctx.beginPath();ctx.moveTo(r.x,py);ctx.lineTo(r.x-5,py);ctx.stroke();
-          ctx.fillStyle=theme.tickText;ctx.fillText('10^'+e,tickRX,py);
+          ctx.fillStyle=theme.tickText;_drawTex(ctx,'$10^{'+e+'}$',tickRX,py,st.tick_size||10,{align:'right',family:'monospace'});
         }
       } else {
         let maxTW=0;
@@ -2252,11 +2461,12 @@ function render({ model, el }) {
         // Centre the rotated label in the left gutter (x = 0..r.x).
         // Using a fixed x of PAD_L*0.28 keeps it clear of the tick numbers
         // regardless of how wide those numbers are.
-        const lcx = Math.round(PAD_L * 0.28);
+        const ylpx1d = st.y_label_size||9;
+        const lcx = Math.max(Math.round(PAD_L * 0.28), Math.ceil(ylpx1d*0.62)+1);
         ctx.translate(lcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=theme.unitText; ctx.font='9px monospace';
-        ctx.fillText(yUnits, 0, 0);
+        ctx.textBaseline='middle';
+        ctx.fillStyle=theme.unitText;
+        _drawTex(ctx, yUnits, 0, 0, ylpx1d, {align:'center',family:'monospace'});
         ctx.restore();
       }
     }
@@ -2292,9 +2502,11 @@ function render({ model, el }) {
     const title1d=st.title||'';
     if(title1d){
       ctx.fillStyle=theme.tickText;
-      ctx.font='bold 11px sans-serif';
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(title1d, r.x+r.w/2, PAD_T/2);
+      ctx.textBaseline='middle';
+      // 1D titles live in the fixed PAD_T strip; clamp the drawn size so
+      // ascenders/descenders never clip (the 2D title strip grows instead).
+      _drawTex(ctx, title1d, r.x+r.w/2, PAD_T/2, _titlePx(st),
+               {align:'center', weight:'bold'});
     }
 
     drawOverlay1d(p);
@@ -3574,10 +3786,13 @@ function render({ model, el }) {
       const hasPhysAxis = st && (st.is_mesh || st.has_axes)
                        && st.x_axis && st.x_axis.length >= 2
                        && st.y_axis && st.y_axis.length >= 2;
+      const cbW  = _cbWidth(st);
+      const padT = _padT(st);
       const imgX = hasPhysAxis ? PAD_L : 0;
-      const imgY = hasPhysAxis ? PAD_T : 0;
-      const imgW = hasPhysAxis ? Math.max(1, pw - PAD_L - PAD_R) : pw;
-      const imgH = hasPhysAxis ? Math.max(1, ph - PAD_T - PAD_B) : ph;
+      const imgY = hasPhysAxis ? padT : 0;
+      const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
+                               - (cbW ? cbW + 2 : 0));
+      const imgH = hasPhysAxis ? Math.max(1, ph - padT - PAD_B) : ph;
       // Update stored dims so event handlers stay consistent during CSS resize
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
 
@@ -3605,7 +3820,7 @@ function render({ model, el }) {
       }
       if (p.cbCanvas && p.cbCanvas.style.display !== 'none') {
         p.cbCanvas.style.left = (imgX + imgW + 2) + 'px'; p.cbCanvas.style.top = imgY + 'px';
-        _szCSS(p.cbCanvas, 16, imgH);
+        _szCSS(p.cbCanvas, cbW || 16, imgH);
       }
     } else if (p.kind === '3d') {
       _szCSS(p.plotCanvas,    pw, ph);
@@ -3783,7 +3998,7 @@ function render({ model, el }) {
       if (Math.abs(v - Math.pow(10, exp)) < v * 1e-6) {
         if (exp === 0) return '1';
         if (exp === 1) return '10';
-        return `10^${exp}`;
+        return `$10^{${exp}}$`;   // rendered as a true superscript by _drawTex
       }
       return fmtVal(v);
     }
@@ -3938,7 +4153,7 @@ function render({ model, el }) {
 
     // ── tick labels ───────────────────────────────────────────────────────
     if (axisVis) {
-      ctx.font = '10px monospace'; ctx.fillStyle = theme.tickText;
+      ctx.font = (st.tick_size||10) + 'px monospace'; ctx.fillStyle = theme.tickText;
 
       if (orient === 'h') {
         // Value axis → X ticks at bottom
@@ -3955,7 +4170,8 @@ function render({ model, el }) {
               ctx.strokeStyle = theme.axisStroke;
               ctx.beginPath(); ctx.moveTo(px, r.y + r.h); ctx.lineTo(px, r.y + r.h + 4); ctx.stroke();
               ctx.fillStyle = theme.tickText;
-              ctx.fillText(_fmtLogTick(v), px, r.y + r.h + 7);
+              _drawTex(ctx, _fmtLogTick(v), px, r.y + r.h + 7,
+                       st.tick_size||10, {align:'center', family:'monospace'});
             }
           } else {
             const valRange = (dMax - dMin) || 1;
@@ -4010,7 +4226,8 @@ function render({ model, el }) {
             ctx.strokeStyle = theme.axisStroke;
             ctx.beginPath(); ctx.moveTo(cx, r.y + r.h); ctx.lineTo(cx, r.y + r.h + 4); ctx.stroke();
             ctx.fillStyle = theme.tickText;
-            ctx.fillText(label, cx, r.y + r.h + 7);
+            const catHw = ctx.measureText(label).width / 2;
+            ctx.fillText(label, Math.min(Math.max(cx, catHw), p.pw - catHw), r.y + r.h + 7);
           }
           if (st.units && st.units !== 'px') {
             ctx.textAlign='right'; ctx.textBaseline='top'; ctx.font='9px monospace';
@@ -4033,7 +4250,8 @@ function render({ model, el }) {
               ctx.strokeStyle = theme.axisStroke;
               ctx.beginPath(); ctx.moveTo(r.x, py); ctx.lineTo(r.x - 5, py); ctx.stroke();
               ctx.fillStyle = theme.tickText;
-              ctx.fillText(_fmtLogTick(v), r.x - 8, py);
+              _drawTex(ctx, _fmtLogTick(v), r.x - 8, py,
+                       st.tick_size||10, {align:'right', family:'monospace'});
             }
           } else {
             const valRange = (dMax - dMin) || 1;
@@ -4091,25 +4309,28 @@ function render({ model, el }) {
     const titleBar = st.title || '';
     if (titleBar) {
       ctx.fillStyle = theme.tickText;
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(titleBar, r.x + r.w / 2, PAD_T / 2);
+      ctx.textBaseline = 'middle';
+      // Fixed PAD_T strip — clamp drawn size like 1D (2D strips grow instead).
+      _drawTex(ctx, titleBar, r.x + r.w / 2, PAD_T / 2, _titlePx(st),
+               { align: 'center', weight: 'bold' });
     }
 
     // ── axis labels ───────────────────────────────────────────────────────
     const xLabelBar = st.x_label || '';
     const yLabelBar = st.y_label || '';
     if (xLabelBar) {
-      ctx.fillStyle = theme.tickText; ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      ctx.fillText(xLabelBar, r.x + r.w / 2, r.y + r.h + 26);
+      ctx.fillStyle = theme.tickText; ctx.textBaseline = 'top';
+      _drawTex(ctx, xLabelBar, r.x + r.w / 2, r.y + r.h + 26,
+               st.x_label_size || 10, { align: 'center' });
     }
     if (yLabelBar) {
       ctx.save();
-      ctx.translate(Math.round(PAD_L * 0.1), r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
-      ctx.fillStyle = theme.tickText; ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(yLabelBar, 0, 0);
+      const ylpxBar = st.y_label_size || 10;
+      ctx.translate(Math.max(Math.round(PAD_L * 0.1), Math.ceil(ylpxBar*0.62)+1),
+                    r.y + r.h / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = theme.tickText; ctx.textBaseline = 'middle';
+      _drawTex(ctx, yLabelBar, 0, 0, ylpxBar, { align: 'center' });
       ctx.restore();
     }
 
@@ -4412,6 +4633,116 @@ function render({ model, el }) {
 }
 
 export default { render };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Embedding API — use anyplotlib WITHOUT Jupyter or the anywidget runtime.
+//
+// For Electron apps, MDI sub-windows, or any plain web page:
+//
+//   import apl, { mount } from './figure_esm.js';
+//
+//   const handle = mount(document.getElementById('plot'), state, {
+//     onEvent: (ev) => console.log(ev.event_type, ev.xdata, ev.ydata),
+//   });
+//   handle.setPanelState(panelId, newPanelState);   // live data update
+//   handle.resize(800, 500);
+//   handle.dispose();
+//
+// `state` is the serialised figure state produced by the Python side:
+// `anyplotlib.embed.figure_state(fig)` — a plain JSON dict of
+// {layout_json, fig_width, fig_height, event_json, panel_<id>_json, ...}.
+//
+// For a live Python backend (e.g. an Electron app with a Python sidecar over
+// WebSocket/stdio), pair `mount(..., {onSync})` with
+// `anyplotlib.embed.FigureBridge` on the Python side:
+//   JS → Python:  onSync(key, value)            → bridge.receive(key, value)
+//   Python → JS:  FigureBridge(fig, send=...)   → handle.applyUpdate(key, value)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Minimal stand-in for the anywidget model: get/set/save_changes/on/off.
+// set() fires per-key listeners synchronously (matching anywidget semantics);
+// save_changes() flushes dirty keys to the optional outbound sync handler.
+export function createLocalModel(initialState) {
+  const _data   = Object.assign({}, initialState || {});
+  const _cbs    = {};
+  const _anyCbs = [];
+  const _dirty  = new Set();
+  let _onSync   = null;
+
+  return {
+    get(key) { return _data[key]; },
+    set(key, val) {
+      _data[key] = val;
+      _dirty.add(key);
+      const ev = 'change:' + key;
+      if (_cbs[ev]) for (const cb of [..._cbs[ev]]) { try { cb({ new: val }); } catch (_) {} }
+      for (const cb of [..._anyCbs]) { try { cb(); } catch (_) {} }
+    },
+    save_changes() {
+      const keys = [..._dirty];
+      _dirty.clear();
+      if (_onSync) {
+        for (const k of keys) { try { _onSync(k, _data[k]); } catch (_) {} }
+      }
+    },
+    on(event, cb) {
+      if (event === 'change') { _anyCbs.push(cb); return; }
+      (_cbs[event] = _cbs[event] || []).push(cb);
+    },
+    off(event, cb) {
+      if (!event) { for (const k in _cbs) _cbs[k] = []; _anyCbs.length = 0; return; }
+      if (_cbs[event]) _cbs[event] = _cbs[event].filter((c) => c !== cb);
+    },
+    // Apply an update that originated OUTSIDE this view (e.g. from a Python
+    // bridge): listeners fire so the figure re-renders, but the key is not
+    // marked dirty, so it is never echoed back through onSync.
+    applyRemote(key, val) {
+      this.set(key, val);
+      _dirty.delete(key);
+    },
+    _setSyncHandler(fn) { _onSync = fn; },
+    get model() { return this; },
+  };
+}
+
+// Mount a figure into *el* and return a control handle.
+//   opts.onEvent(ev)        — parsed interaction events (pointer/key/wheel …)
+//   opts.onSync(key, value) — raw outbound model writes, for a Python bridge
+export function mount(el, state, opts) {
+  const o = opts || {};
+  const model = createLocalModel(state);
+  if (o.onSync) model._setSyncHandler(o.onSync);
+  if (o.onEvent) {
+    model.on('change:event_json', () => {
+      try {
+        const ev = JSON.parse(model.get('event_json') || '{}');
+        if (ev && ev.event_type && ev.source !== 'python') o.onEvent(ev);
+      } catch (_) {}
+    });
+  }
+  render({ model, el });
+  return {
+    model,
+    get(key) { return model.get(key); },
+    set(key, value) { model.set(key, value); model.save_changes(); },
+    // Replace one panel's full state (object or pre-serialised JSON string).
+    setPanelState(panelId, panelState) {
+      const v = typeof panelState === 'string' ? panelState : JSON.stringify(panelState);
+      this.set('panel_' + panelId + '_json', v);
+    },
+    // Inbound update from a Python bridge — renders without echoing to onSync.
+    applyUpdate(key, value) { model.applyRemote(key, value); },
+    resize(width, height) {
+      model.set('fig_width', Math.round(width));
+      model.set('fig_height', Math.round(height));
+      model.save_changes();
+    },
+    // Remove the figure's DOM.  (Window-level listeners registered by the
+    // renderer are inert once the DOM is gone; for complete cleanup, discard
+    // the containing element or iframe.)
+    dispose() { model.off(); el.replaceChildren(); },
+  };
+}
 
 
 

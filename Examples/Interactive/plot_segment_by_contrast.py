@@ -38,7 +38,7 @@ The cursor position is exposed as ``event.xdata`` (column) and
 """
 
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 # ── Synthetic multi-region image ──────────────────────────────────────────────
 # Five Gaussian blobs at different intensity levels on a smooth background,
@@ -114,7 +114,7 @@ SEED_RADIUS_PIXELS = 5   # marker radius for seed dots
 
 # ── Figure ────────────────────────────────────────────────────────────────────
 
-fig, ax = vw.subplots(figsize=(520, 520),
+fig, ax = apl.subplots(figsize=(520, 520),
     help="Left-click          →  add positive seed (grow mask)\n"
          "Shift + Left-click  →  add negative seed (shrink mask)\n"
          "Hover + Delete      →  remove nearest seed\n"

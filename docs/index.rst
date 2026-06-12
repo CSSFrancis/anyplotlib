@@ -116,6 +116,7 @@ blitting instead of SVG.
 
    getting_started
    events
+   embedding
    api/index
    auto_examples/index
    Performance <auto_examples/Benchmarks/plot_benchmark_comparison>

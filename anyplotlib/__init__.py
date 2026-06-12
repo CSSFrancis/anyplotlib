@@ -5,6 +5,7 @@ from anyplotlib.plot1d._plot1d import Line1D
 from anyplotlib.plot2d import Plot2D, PlotMesh
 from anyplotlib.plot3d import Plot3D
 from anyplotlib.callbacks import CallbackRegistry, Event
+from anyplotlib import embed
 from anyplotlib.markers import MarkerRegistry, MarkerGroup
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,
@@ -39,4 +40,5 @@ __all__ = [
     "CrosshairWidget", "PolygonWidget", "LabelWidget",
     "VLineWidget", "HLineWidget", "RangeWidget",
     "show_help", "get_color_cycle",
+    "embed",
 ]

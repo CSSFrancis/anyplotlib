@@ -30,7 +30,7 @@ of the selected region, displayed in a side-by-side panel.
 """
 
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 # ── Synthetic real-space image ────────────────────────────────────────────────
 # Periodic lattice (two overlapping sinusoidal gratings) + Gaussian envelope
@@ -66,7 +66,7 @@ scale = 0.1          # Å per pixel
 xy_px = np.arange(N) * scale   # physical axis in Å
 
 # ── Figure layout: real-space (left) | FFT (right) ───────────────────────────
-fig, (ax_real, ax_fft) = vw.subplots(
+fig, (ax_real, ax_fft) = apl.subplots(
     1, 2,
     figsize=(900, 460),
     sharex=False,

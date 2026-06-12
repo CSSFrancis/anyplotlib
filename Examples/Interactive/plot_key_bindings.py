@@ -46,7 +46,7 @@ the cursor was when the key was pressed.
 """
 
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 # ── Synthetic test image ──────────────────────────────────────────────────────
 rng = np.random.default_rng(0)
@@ -56,7 +56,7 @@ XX, YY = np.meshgrid(x, x)
 data = np.sin(XX) * np.cos(YY) + 0.15 * rng.standard_normal((N, N))
 
 # ── Figure ────────────────────────────────────────────────────────────────────
-fig, ax = vw.subplots(figsize=(520, 520))
+fig, ax = apl.subplots(figsize=(520, 520))
 plot = ax.imshow(data)
 
 # ── Key handlers ─────────────────────────────────────────────────────────────

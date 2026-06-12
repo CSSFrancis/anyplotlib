@@ -491,6 +491,23 @@ class Figure(anywidget.AnyWidget):
         """
         return repr_html_iframe(self)
 
+    def to_html(self, *, resizable: bool = True) -> str:
+        """Return a self-contained HTML page rendering this figure.
+
+        The page inlines the JS renderer and all data — no Jupyter kernel or
+        network needed at view time.  Load it in any browser context, e.g.
+        an Electron ``BrowserWindow`` or ``<webview>``.  See
+        :mod:`anyplotlib.embed` for the full embedding guide (including live
+        Python sync via ``FigureBridge``).
+        """
+        from anyplotlib.embed import to_html
+        return to_html(self, resizable=resizable)
+
+    def save_html(self, path, *, resizable: bool = True):
+        """Write :meth:`to_html` output to *path*; returns the ``Path``."""
+        from anyplotlib.embed import save_html
+        return save_html(self, path, resizable=resizable)
+
     def close(self) -> None:
         """Close the figure.
 
