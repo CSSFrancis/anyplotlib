@@ -9,7 +9,7 @@ Demonstrate the three 3-D geometry types supported by
 Drag to rotate, scroll to zoom, press **R** to reset the view.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 # ── Surface ───────────────────────────────────────────────────────────────────
 x = np.linspace(-3, 3, 60)
@@ -17,7 +17,7 @@ y = np.linspace(-3, 3, 60)
 XX, YY = np.meshgrid(x, y)
 ZZ = np.sin(np.sqrt(XX ** 2 + YY ** 2))
 
-fig, ax = vw.subplots(1, 1, figsize=(520, 480))
+fig, ax = apl.subplots(1, 1, figsize=(520, 480))
 surf = ax.plot_surface(XX, YY, ZZ,
                        colormap="viridis",
                        x_label="x", y_label="y", z_label="sin(r)")
@@ -37,7 +37,7 @@ xs = r * np.sin(phi) * np.cos(theta)
 ys = r * np.sin(phi) * np.sin(theta)
 zs = r * np.cos(phi)
 
-fig2, ax2 = vw.subplots(1, 1, figsize=(480, 480))
+fig2, ax2 = apl.subplots(1, 1, figsize=(480, 480))
 sc = ax2.scatter3d(xs, ys, zs,
                    color="#4fc3f7", point_size=3,
                    x_label="x", y_label="y", z_label="z")
@@ -53,7 +53,7 @@ hx = np.cos(t)
 hy = np.sin(t)
 hz = t / (4 * np.pi)
 
-fig3, ax3 = vw.subplots(1, 1, figsize=(480, 480))
+fig3, ax3 = apl.subplots(1, 1, figsize=(480, 480))
 ln = ax3.plot3d(hx, hy, hz,
                 color="#ff7043", linewidth=2,
                 x_label="cos t", y_label="sin t", z_label="t")

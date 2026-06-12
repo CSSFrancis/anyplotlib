@@ -806,13 +806,24 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
     def y(self) -> np.ndarray:
         return np.asarray(self._state["data"])
 
-    def set_xlabel(self, label: str) -> None:
-        self._state["units"] = str(label)
-        self._push()
+    def set_xlabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the x-axis label.
 
-    def set_ylabel(self, label: str) -> None:
-        self._state["y_units"] = str(label)
-        self._push()
+        Parameters
+        ----------
+        label : str
+            Label text.  Supports the mini-TeX subset for scientific
+            notation, e.g. ``r"Energy ($10^{-3}$ eV)"`` or ``r"$\\Delta t$ (s)"``
+            — see :class:`~anyplotlib._base_plot._BasePlot` notes.
+        fontsize : float, optional
+            Font size in CSS pixels.  Default 9.  ``None`` keeps the
+            current size.
+        """
+        self._set_label("units", label, "x_label_size", fontsize)
+
+    def set_ylabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the y-axis label.  Same semantics as :meth:`set_xlabel`."""
+        self._set_label("y_units", label, "y_label_size", fontsize)
 
     def set_yscale(self, scale: str) -> None:
         """Set the y-axis scale: ``'linear'`` or ``'log'``."""

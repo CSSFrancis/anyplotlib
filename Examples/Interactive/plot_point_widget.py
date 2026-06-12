@@ -33,7 +33,7 @@ and the previous one is removed, so only one tangent is shown at a time.
 """
 
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 # ── Curve ──────────────────────────────────────────────────────────────────
 x = np.linspace(0.0, 4.0 * np.pi, 512)
@@ -48,7 +48,7 @@ def df(t, h=1e-5):
 y = f(x)
 
 # ── Figure ─────────────────────────────────────────────────────────────────
-fig, ax = vw.subplots(figsize=(680, 340))
+fig, ax = apl.subplots(figsize=(680, 340))
 plot = ax.plot(y, axes=[x], units="rad",
                color="#4fc3f7", linewidth=2.0, label="f(x)")
 
@@ -58,7 +58,7 @@ y0_init = float(np.max(y))
 pt = plot.add_point_widget(x0_init, y0_init, color="#00e5ff")
 
 # Track the current tangent line handle so we can replace it
-_tangent_line: "vw.Line1D | None" = None  # type: ignore[name-defined]
+_tangent_line: "apl.Line1D | None" = None  # type: ignore[name-defined]
 
 def _draw_tangent(xq: float) -> None:
     """Snap point to curve, compute slope, draw tangent overlay."""

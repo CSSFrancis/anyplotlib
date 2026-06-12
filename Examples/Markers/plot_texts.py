@@ -7,14 +7,14 @@ Place text annotations on a 2-D image with
 Use ``markers["texts"]["name"].set(...)`` to update them live.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 rng  = np.random.default_rng(7)
 data = rng.standard_normal((128, 128)).cumsum(0).cumsum(1)
 data = (data - data.min()) / (data.max() - data.min())
 xy   = np.linspace(0, 10, 128)
 
-fig, ax = vw.subplots(1, 1, figsize=(460, 460))
+fig, ax = apl.subplots(1, 1, figsize=(460, 460))
 v = ax.imshow(data, axes=[xy, xy], units="nm")
 
 v.add_texts([[4.0, 4.0], [4.0, 116.0], [88.0, 4.0], [88.0, 116.0]],

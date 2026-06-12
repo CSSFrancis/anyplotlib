@@ -15,7 +15,7 @@ diamond markers.
 Pan and zoom with the mouse; press **R** to reset the view.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 rng = np.random.default_rng(0)
 
@@ -37,7 +37,7 @@ spectrum = (
 )
 
 # ── Plot ──────────────────────────────────────────────────────────────────────
-fig, ax = vw.subplots(1, 1, figsize=(620, 340))
+fig, ax = apl.subplots(1, 1, figsize=(620, 340))
 v = ax.plot(spectrum, axes=[energy], units="eV", y_units="Intensity (a.u.)",
             color="#4fc3f7", linewidth=1.5)
 

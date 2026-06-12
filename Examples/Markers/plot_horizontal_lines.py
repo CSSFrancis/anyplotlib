@@ -7,12 +7,12 @@ Draw static horizontal threshold lines on a 1-D plot with
 Use ``markers["hlines"]["name"].set(...)`` to update them live.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 x      = np.linspace(0, 4 * np.pi, 512)
 signal = np.sin(x)
 
-fig, ax = vw.subplots(1, 1, figsize=(560, 300))
+fig, ax = apl.subplots(1, 1, figsize=(560, 300))
 v = ax.plot(signal, axes=[x], units="rad")
 
 v.add_hlines([0.5, 0.0, -0.5], name="thresholds",

@@ -244,10 +244,10 @@ class Axes:
         Basic sine wave with a physical x-axis::
 
             import numpy as np
-            import anyplotlib as vw
+            import anyplotlib as apl
 
             x = np.linspace(0, 4 * np.pi, 512)
-            fig, ax = vw.subplots(1, 1, figsize=(620, 320))
+            fig, ax = apl.subplots(1, 1, figsize=(620, 320))
             v = ax.plot(np.sin(x), axes=[x], units="rad",
                         color="#ff7043", linewidth=2, label="sin")
             v  # display in a Jupyter cell

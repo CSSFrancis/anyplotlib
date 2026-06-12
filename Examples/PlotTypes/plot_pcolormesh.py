@@ -12,7 +12,7 @@ array) rather than center arrays.  This enables fully non-linear axes where
 each cell can have a different width/height in data coordinates.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 rng = np.random.default_rng(42)
 
@@ -36,7 +36,7 @@ y_edges = np.concatenate([[y_centres[0] - (y_centres[1] - y_centres[0]) / 2],
                            [y_centres[-1] + (y_centres[-1] - y_centres[-2]) / 2]])
 
 # ── Plot ──────────────────────────────────────────────────────────────────────
-fig, ax = vw.subplots(1, 1, figsize=(560, 460))
+fig, ax = apl.subplots(1, 1, figsize=(560, 460))
 mesh = ax.pcolormesh(data, x_edges=x_edges, y_edges=y_edges, units="arb.")
 mesh.set_colormap("viridis")
 fig

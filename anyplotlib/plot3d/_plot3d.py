@@ -26,6 +26,62 @@ def _triangulate_grid(rows: int, cols: int) -> list:
     return faces
 
 
+def _geometry_state(geom_type: str, x, y, z) -> dict:
+    """Validate x/y/z for *geom_type* and return the wire-format state fields.
+
+    Shared by ``Plot3D.__init__`` and ``Plot3D.set_data`` so geometry
+    validation and encoding live in exactly one place.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    z = np.asarray(z, dtype=float)
+
+    if geom_type == "surface":
+        # Accept 2-D grid arrays (meshgrid style) or 1-D flat arrays
+        if x.ndim == 2 and y.ndim == 2 and z.ndim == 2:
+            rows, cols = z.shape
+            xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
+        elif x.ndim == 1 and y.ndim == 1 and z.ndim == 2:
+            rows, cols = z.shape
+            if len(x) != cols or len(y) != rows:
+                raise ValueError(
+                    "For surface with 1-D x/y: x must have length ncols "
+                    "and y must have length nrows")
+            XX, YY = np.meshgrid(x, y)
+            xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
+        else:
+            raise ValueError(
+                "Surface x/y/z must be 2-D grids of the same shape, "
+                "or 1-D x/y centre arrays with 2-D z.")
+        faces_list = _triangulate_grid(rows, cols)
+    else:
+        if x.ndim != 1 or y.ndim != 1 or z.ndim != 1:
+            raise ValueError("scatter/line x, y, z must be 1-D arrays")
+        if not (len(x) == len(y) == len(z)):
+            raise ValueError("x, y, z must have the same length")
+        xf, yf, zf = x, y, z
+        faces_list = []
+
+    # Encode geometry as b64 (float32 saves 50 % wire size vs float64)
+    verts_arr = np.column_stack([xf, yf, zf]).astype(np.float32)   # (N, 3)
+    zvals_arr = zf.astype(np.float32)                              # (N,)
+    faces_arr = (np.asarray(faces_list, dtype=np.int32).reshape(-1, 3)
+                 if faces_list else np.empty((0, 3), dtype=np.int32))
+
+    return {
+        "vertices_b64":   _arr_to_b64(verts_arr, np.float32),
+        "vertices_count": len(verts_arr),
+        "faces_b64":      _arr_to_b64(faces_arr, np.int32),
+        "faces_count":    len(faces_arr),
+        "z_values_b64":   _arr_to_b64(zvals_arr, np.float32),
+        "data_bounds": {
+            "xmin": float(xf.min()), "xmax": float(xf.max()),
+            "ymin": float(yf.min()), "ymax": float(yf.max()),
+            "zmin": float(zf.min()), "zmax": float(zf.max()),
+        },
+    }
+
+
 class Plot3D(_BasePlot):
     """3-D plot panel.
 
@@ -61,59 +117,12 @@ class Plot3D(_BasePlot):
         if geom_type not in ("surface", "scatter", "line"):
             raise ValueError("geom_type must be 'surface', 'scatter', or 'line'")
 
-        x = np.asarray(x, dtype=float)
-        y = np.asarray(y, dtype=float)
-        z = np.asarray(z, dtype=float)
-
-        if geom_type == "surface":
-            # Accept 2-D grid arrays (meshgrid style) or 1-D flat arrays
-            if x.ndim == 2 and y.ndim == 2 and z.ndim == 2:
-                rows, cols = z.shape
-                xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
-            elif x.ndim == 1 and y.ndim == 1 and z.ndim == 2:
-                rows, cols = z.shape
-                if len(x) != cols or len(y) != rows:
-                    raise ValueError(
-                        "For surface with 1-D x/y: x must have length ncols "
-                        "and y must have length nrows")
-                XX, YY = np.meshgrid(x, y)
-                xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
-            else:
-                raise ValueError(
-                    "Surface x/y/z must be 2-D grids of the same shape, "
-                    "or 1-D x/y centre arrays with 2-D z.")
-            faces_list = _triangulate_grid(rows, cols)
-        else:
-            if x.ndim != 1 or y.ndim != 1 or z.ndim != 1:
-                raise ValueError("scatter/line x, y, z must be 1-D arrays")
-            if not (len(x) == len(y) == len(z)):
-                raise ValueError("x, y, z must have the same length")
-            xf, yf, zf = x, y, z
-            faces_list = []
-
-        # Normalised data bounds for the JS renderer (from raw arrays — fast)
-        data_bounds = {
-            "xmin": float(xf.min()), "xmax": float(xf.max()),
-            "ymin": float(yf.min()), "ymax": float(yf.max()),
-            "zmin": float(zf.min()), "zmax": float(zf.max()),
-        }
-
-        # Encode geometry as b64 (float32 saves 50 % wire size vs float64)
-        verts_arr  = np.column_stack([xf, yf, zf]).astype(np.float32)   # (N, 3)
-        zvals_arr  = zf.astype(np.float32)                                # (N,)
-        faces_arr  = (np.asarray(faces_list, dtype=np.int32).reshape(-1, 3)
-                      if faces_list else np.empty((0, 3), dtype=np.int32))
-
         cmap_lut = _build_colormap_lut(colormap)
 
         self._state: dict = {
             "kind":          "3d",
             "geom_type":     geom_type,
-            "vertices_b64":  _arr_to_b64(verts_arr,  np.float32),
-            "vertices_count": len(verts_arr),
-            "faces_b64":     _arr_to_b64(faces_arr,  np.int32),
-            "faces_count":   len(faces_arr),
-            "z_values_b64":  _arr_to_b64(zvals_arr,  np.float32),
+            **_geometry_state(geom_type, x, y, z),
             "colormap_name": colormap,
             "colormap_data": cmap_lut,
             "color":         color,
@@ -131,7 +140,6 @@ class Plot3D(_BasePlot):
             "_default_elevation": float(elevation),
             "_default_zoom":      float(zoom),
             "_view_from_python":  False,
-            "data_bounds":   data_bounds,
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
         }
@@ -173,17 +181,17 @@ class Plot3D(_BasePlot):
             self._state["elevation"] = self._state["_default_elevation"]
             self._state["zoom"]      = self._state["_default_zoom"]
 
-    def set_xlabel(self, label: str) -> None:
-        self._state["x_label"] = str(label)
-        self._push()
+    def set_xlabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the x-axis label (mini-TeX allowed; default size 11 px)."""
+        self._set_label("x_label", label, "x_label_size", fontsize)
 
-    def set_ylabel(self, label: str) -> None:
-        self._state["y_label"] = str(label)
-        self._push()
+    def set_ylabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the y-axis label (mini-TeX allowed; default size 11 px)."""
+        self._set_label("y_label", label, "y_label_size", fontsize)
 
-    def set_zlabel(self, label: str) -> None:
-        self._state["z_label"] = str(label)
-        self._push()
+    def set_zlabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the z-axis label (mini-TeX allowed; default size 11 px)."""
+        self._set_label("z_label", label, "z_label_size", fontsize)
 
     def get_xlim(self) -> tuple:
         """Return the data x range as ``(xmin, xmax)``."""
@@ -201,48 +209,8 @@ class Plot3D(_BasePlot):
         return (b["zmin"], b["zmax"])
 
     def set_data(self, x, y, z) -> None:
-        """Replace the geometry data."""
-        # Re-run the same logic as __init__ for the stored geom_type
-        geom_type = self._state["geom_type"]
-        x = np.asarray(x, dtype=float)
-        y = np.asarray(y, dtype=float)
-        z = np.asarray(z, dtype=float)
-
-        if geom_type == "surface":
-            if x.ndim == 2 and y.ndim == 2 and z.ndim == 2:
-                rows, cols = z.shape
-                xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
-            elif x.ndim == 1 and y.ndim == 1 and z.ndim == 2:
-                rows, cols = z.shape
-                XX, YY = np.meshgrid(x, y)
-                xf, yf, zf = XX.ravel(), YY.ravel(), z.ravel()
-            else:
-                raise ValueError("Surface x/y/z must be 2-D grids or 1-D+2-D.")
-            faces_list = _triangulate_grid(rows, cols)
-        else:
-            xf, yf, zf = x.ravel(), y.ravel(), z.ravel()
-            faces_list = []
-
-        data_bounds = {
-            "xmin": float(xf.min()), "xmax": float(xf.max()),
-            "ymin": float(yf.min()), "ymax": float(yf.max()),
-            "zmin": float(zf.min()), "zmax": float(zf.max()),
-        }
-
-        verts_arr = np.column_stack([xf, yf, zf]).astype(np.float32)
-        zvals_arr = zf.astype(np.float32)
-        faces_arr = (np.asarray(faces_list, dtype=np.int32).reshape(-1, 3)
-                     if faces_list else np.empty((0, 3), dtype=np.int32))
-
-        self._state.update({
-            "vertices_b64":   _arr_to_b64(verts_arr, np.float32),
-            "vertices_count": len(verts_arr),
-            "faces_b64":      _arr_to_b64(faces_arr, np.int32),
-            "faces_count":    len(faces_arr),
-            "z_values_b64":   _arr_to_b64(zvals_arr, np.float32),
-            "data_bounds":    data_bounds,
-            "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
-        })
+        """Replace the geometry data (same shape rules as the constructor)."""
+        self._state.update(_geometry_state(self._state["geom_type"], x, y, z))
         self._push()
 
     def __repr__(self) -> str:

@@ -38,7 +38,7 @@ A side-by-side viewer for a 3-D ``(y, x, energy)`` dataset.
 """
 
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 # ── Synthetic (NY, NX, NE) dataset ─────────────────────────────────────────
 rng = np.random.default_rng(7)
@@ -78,7 +78,7 @@ img_full = data.sum(axis=-1).astype(float)   # full-energy projection (NY, NX)
 CX0, CY0 = NX // 2, NY // 2
 
 # ── Figure layout ───────────────────────────────────────────────────────────
-fig, (ax_img, ax_spec) = vw.subplots(
+fig, (ax_img, ax_spec) = apl.subplots(
     1, 2,
     figsize=(950, 460),
     help=(

@@ -30,9 +30,43 @@ class _BasePlot(_EventMixin):
 
     _configure_pointer_settled = configure_pointer_settled
 
-    def set_title(self, label: str) -> None:
-        self._state["title"] = str(label)
+    #: Mini-TeX formatting note shared by all label setters.
+    #:
+    #: Label strings support a small TeX subset inside ``$...$`` delimiters,
+    #: rendered by the JS canvas engine (no MathJax needed):
+    #:
+    #: * ``$10^{-3}$`` / ``$x^2$``  — superscripts (exponents)
+    #: * ``$E_F$`` / ``$k_{B}T$``   — subscripts
+    #: * ``$\\alpha$ … $\\Omega$``  — Greek letters
+    #: * ``\\times \\cdot \\pm \\degree \\AA \\infty \\propto \\approx``
+    #:   ``\\leq \\geq \\neq \\partial \\nabla \\hbar \\rightarrow`` — symbols
+    #: * ``$\\mathrm{...}$``        — upright text inside math (letters in
+    #:   math mode are italic by default)
+    #:
+    #: Example: ``plot.set_xlabel(r"$q$ ($\\AA^{-1}$)", fontsize=14)``
+
+    def _set_label(self, key: str, label: str, size_key: str,
+                   fontsize: float | None) -> None:
+        """Store a label string (TeX subset allowed) and its optional size."""
+        self._state[key] = str(label)
+        if fontsize is not None:
+            self._state[size_key] = float(fontsize)
         self._push()
+
+    def set_title(self, label: str, fontsize: float | None = None) -> None:
+        """Set the panel title.
+
+        Parameters
+        ----------
+        label : str
+            Title text.  Supports the mini-TeX subset (``$10^{-3}$``,
+            ``$\\alpha$``, …) — see the class notes on label formatting.
+        fontsize : float, optional
+            Font size in CSS pixels.  Default 11.  On 2-D panels the title
+            strip grows to fit larger sizes.  1-D and bar titles render in a
+            fixed 12-px strip, so the drawn size is clamped to 11 there.
+        """
+        self._set_label("title", label, "title_size", fontsize)
 
     def set_axis_off(self) -> None:
         self._state["axis_visible"] = False
@@ -89,6 +123,19 @@ class _PanelMixin:
             return
         self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
+
+    def set_tick_label_size(self, size: float) -> None:
+        """Set the font size of the tick (axis number) labels in CSS pixels.
+
+        Applies to both axes of the panel.  Default 10.
+
+        Parameters
+        ----------
+        size : float
+            Tick label font size in pixels.
+        """
+        self._state["tick_size"] = float(size)
+        self._push()
 
     def set_ticks_visible(self, visible: bool, *, x: bool | None = None,
                           y: bool | None = None) -> None:

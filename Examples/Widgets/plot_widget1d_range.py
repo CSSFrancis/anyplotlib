@@ -8,12 +8,12 @@ Drag either handle to resize the selected interval, or drag the band
 to move it.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 x      = np.linspace(0, 4 * np.pi, 512)
 signal = np.sin(x)
 
-fig, ax = vw.subplots(1, 1, figsize=(560, 300))
+fig, ax = apl.subplots(1, 1, figsize=(560, 300))
 v = ax.plot(signal, axes=[x], units="rad")
 
 v.add_range_widget(x0=np.pi, x1=2 * np.pi, color="#ffeb3b")

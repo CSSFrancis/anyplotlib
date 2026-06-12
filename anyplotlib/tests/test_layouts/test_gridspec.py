@@ -33,7 +33,7 @@ import json
 import numpy as np
 import pytest
 
-import anyplotlib as vw
+import anyplotlib as apl
 from anyplotlib.figure import Figure
 from anyplotlib.figure import GridSpec, SubplotSpec
 from anyplotlib.axes import Axes  # noqa: F401
@@ -202,24 +202,24 @@ class TestGridSpecIndexing:
 class TestSubplotsAPI:
 
     def test_1x1_returns_scalar_axes(self):
-        fig, ax = vw.subplots(1, 1)
+        fig, ax = apl.subplots(1, 1)
         assert isinstance(ax, Axes)
 
     def test_1xN_returns_1d_array(self):
-        fig, axs = vw.subplots(1, 3)
+        fig, axs = apl.subplots(1, 3)
         assert axs.shape == (3,)
         assert all(isinstance(a, Axes) for a in axs)
 
     def test_Nx1_returns_1d_array(self):
-        fig, axs = vw.subplots(3, 1)
+        fig, axs = apl.subplots(3, 1)
         assert axs.shape == (3,)
 
     def test_NxM_returns_2d_array(self):
-        fig, axs = vw.subplots(2, 3)
+        fig, axs = apl.subplots(2, 3)
         assert axs.shape == (2, 3)
 
     def test_axes_specs_match_positions(self):
-        fig, axs = vw.subplots(2, 3)
+        fig, axs = apl.subplots(2, 3)
         for r in range(2):
             for c in range(3):
                 ax = axs[r, c]
@@ -227,34 +227,34 @@ class TestSubplotsAPI:
                 assert ax._spec.col_start == c
 
     def test_figure_nrows_ncols(self):
-        fig, _ = vw.subplots(3, 4)
+        fig, _ = apl.subplots(3, 4)
         assert fig._nrows == 3 and fig._ncols == 4
 
     def test_figsize_stored(self):
-        fig, _ = vw.subplots(1, 1, figsize=(800, 600))
+        fig, _ = apl.subplots(1, 1, figsize=(800, 600))
         assert fig.fig_width == 800 and fig.fig_height == 600
 
     def test_width_ratios_forwarded(self):
-        fig, _ = vw.subplots(1, 3, width_ratios=[2, 1, 1])
+        fig, _ = apl.subplots(1, 3, width_ratios=[2, 1, 1])
         assert fig._width_ratios == [2, 1, 1]
 
     def test_height_ratios_forwarded(self):
-        fig, _ = vw.subplots(3, 1, height_ratios=[1, 2, 1])
+        fig, _ = apl.subplots(3, 1, height_ratios=[1, 2, 1])
         assert fig._height_ratios == [1, 2, 1]
 
     def test_sharex_stored(self):
-        fig, _ = vw.subplots(2, 1, sharex=True)
+        fig, _ = apl.subplots(2, 1, sharex=True)
         assert fig._sharex is True
 
     def test_gridspec_kw_width_ratios(self):
         """gridspec_kw={'width_ratios': ...} should work like width_ratios=."""
-        fig1, _ = vw.subplots(1, 2, width_ratios=[2, 1], figsize=(300, 100))
-        fig2, _ = vw.subplots(1, 2, gridspec_kw={"width_ratios": [2, 1]}, figsize=(300, 100))
+        fig1, _ = apl.subplots(1, 2, width_ratios=[2, 1], figsize=(300, 100))
+        fig2, _ = apl.subplots(1, 2, gridspec_kw={"width_ratios": [2, 1]}, figsize=(300, 100))
         assert fig1._width_ratios == fig2._width_ratios == [2, 1]
 
     def test_gridspec_kw_height_ratios(self):
-        fig1, _ = vw.subplots(2, 1, height_ratios=[3, 1], figsize=(100, 400))
-        fig2, _ = vw.subplots(2, 1, gridspec_kw={"height_ratios": [3, 1]}, figsize=(100, 400))
+        fig1, _ = apl.subplots(2, 1, height_ratios=[3, 1], figsize=(100, 400))
+        fig2, _ = apl.subplots(2, 1, gridspec_kw={"height_ratios": [3, 1]}, figsize=(100, 400))
         assert fig1._height_ratios == fig2._height_ratios == [3, 1]
 
 
@@ -266,13 +266,13 @@ class TestEqualRatioSizing:
     """1D-only panels, equal ratios: each track should be fw/ncols × fh/nrows."""
 
     def test_1x1_1d(self):
-        fig, ax = vw.subplots(1, 1, figsize=(400, 300))
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
         v = ax.plot(np.zeros(10))
         pw, ph = _sizes(fig)[v._id]
         assert pw == 400 and ph == 300
 
     def test_2x1_equal_heights(self):
-        fig, axs = vw.subplots(2, 1, figsize=(400, 600))
+        fig, axs = apl.subplots(2, 1, figsize=(400, 600))
         v0 = axs[0].plot(np.zeros(10))
         v1 = axs[1].plot(np.zeros(10))
         s = _sizes(fig)
@@ -283,7 +283,7 @@ class TestEqualRatioSizing:
             f"each row height should be 300, got {ph0}, {ph1}"
 
     def test_1x2_equal_widths(self):
-        fig, axs = vw.subplots(1, 2, figsize=(600, 300))
+        fig, axs = apl.subplots(1, 2, figsize=(600, 300))
         v0 = axs[0].plot(np.zeros(10))
         v1 = axs[1].plot(np.zeros(10))
         s = _sizes(fig)
@@ -294,7 +294,7 @@ class TestEqualRatioSizing:
             f"each column width should be 300, got {pw0}, {pw1}"
 
     def test_3x3_equal_all(self):
-        fig, axs = vw.subplots(3, 3, figsize=(600, 600))
+        fig, axs = apl.subplots(3, 3, figsize=(600, 600))
         # Attach 1D plots to all 9 cells
         plots = [[axs[r, c].plot(np.zeros(10)) for c in range(3)] for r in range(3)]
         s = _sizes(fig)
@@ -305,14 +305,14 @@ class TestEqualRatioSizing:
                 assert approx(ph, 200), f"[{r},{c}] ph={ph}, expected 200"
 
     def test_total_width_not_exceeded(self):
-        fig, axs = vw.subplots(1, 3, figsize=(500, 200))
+        fig, axs = apl.subplots(1, 3, figsize=(500, 200))
         plots = [axs[c].plot(np.zeros(10)) for c in range(3)]
         s = _sizes(fig)
         total_w = sum(s[p._id][0] for p in plots)
         assert total_w <= 500 + 3, f"total_w={total_w} exceeds figsize width 500"
 
     def test_total_height_not_exceeded(self):
-        fig, axs = vw.subplots(3, 1, figsize=(200, 500))
+        fig, axs = apl.subplots(3, 1, figsize=(200, 500))
         plots = [axs[r].plot(np.zeros(10)) for r in range(3)]
         s = _sizes(fig)
         total_h = sum(s[p._id][1] for p in plots)
@@ -328,7 +328,7 @@ class TestRatioSizing:
 
     def test_2col_2to1_width_ratio(self):
         """Left column 2× wider than right column."""
-        fig, axs = vw.subplots(1, 2, figsize=(600, 200),
+        fig, axs = apl.subplots(1, 2, figsize=(600, 200),
                                width_ratios=[2, 1])
         v0 = axs[0].plot(np.zeros(10))
         v1 = axs[1].plot(np.zeros(10))
@@ -342,7 +342,7 @@ class TestRatioSizing:
 
     def test_2row_3to1_height_ratio(self):
         """Top row 3× taller than bottom row."""
-        fig, axs = vw.subplots(2, 1, figsize=(200, 800),
+        fig, axs = apl.subplots(2, 1, figsize=(200, 800),
                                height_ratios=[3, 1])
         v0 = axs[0].plot(np.zeros(10))
         v1 = axs[1].plot(np.zeros(10))
@@ -355,8 +355,8 @@ class TestRatioSizing:
 
     def test_3col_equal_after_normalisation(self):
         """Ratios [2, 2, 2] → same as [1, 1, 1] → equal widths."""
-        fig_eq,  axs_eq  = vw.subplots(1, 3, figsize=(600, 100))
-        fig_rat, axs_rat = vw.subplots(1, 3, figsize=(600, 100),
+        fig_eq,  axs_eq  = apl.subplots(1, 3, figsize=(600, 100))
+        fig_rat, axs_rat = apl.subplots(1, 3, figsize=(600, 100),
                                        width_ratios=[2, 2, 2])
         for i in range(3):
             axs_eq[i].plot(np.zeros(5))
@@ -369,7 +369,7 @@ class TestRatioSizing:
 
     def test_ratios_reflected_in_layout_json(self):
         """layout_json must carry the correct ratios."""
-        fig, _ = vw.subplots(2, 2,
+        fig, _ = apl.subplots(2, 2,
                              width_ratios=[1, 3],
                              height_ratios=[2, 1])
         layout = _layout(fig)
@@ -377,14 +377,14 @@ class TestRatioSizing:
         assert layout["height_ratios"] == [2, 1]
 
     def test_nrows_ncols_in_layout_json(self):
-        fig, _ = vw.subplots(3, 4)
+        fig, _ = apl.subplots(3, 4)
         layout = _layout(fig)
         assert layout["nrows"] == 3
         assert layout["ncols"] == 4
 
     def test_panel_row_col_indices_in_layout_json(self):
         """Each panel spec must carry the correct row/col start-stop."""
-        fig, axs = vw.subplots(2, 3, figsize=(600, 400))
+        fig, axs = apl.subplots(2, 3, figsize=(600, 400))
         for r in range(2):
             for c in range(3):
                 axs[r, c].plot(np.zeros(5))
@@ -409,7 +409,7 @@ class Test2DPanelLayout:
 
     def test_2d_panel_gets_full_cell_width(self):
         """A 2D panel's canvas width equals the grid-ratio column width."""
-        fig, ax = vw.subplots(1, 1, figsize=(400, 300))
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
         v = ax.imshow(np.zeros((128, 128)))
         pw, ph = _sizes(fig)[v._id]
         assert pw == 400, f"expected pw=400, got {pw}"
@@ -417,28 +417,28 @@ class Test2DPanelLayout:
 
     def test_2d_nonsquare_canvas_from_nonsquare_figsize(self):
         """Non-square figsize → non-square canvas even for a square image."""
-        fig, ax = vw.subplots(1, 1, figsize=(600, 200))
+        fig, ax = apl.subplots(1, 1, figsize=(600, 200))
         v = ax.imshow(np.zeros((128, 128)))
         pw, ph = _sizes(fig)[v._id]
         assert pw == 600 and ph == 200, f"expected 600×200, got {pw}×{ph}"
 
     def test_wide_image_does_not_shrink_canvas(self):
         """Wide image (2:1) in a square cell — canvas stays square."""
-        fig, ax = vw.subplots(1, 1, figsize=(400, 400))
+        fig, ax = apl.subplots(1, 1, figsize=(400, 400))
         v = ax.imshow(np.zeros((128, 256)))   # H=128, W=256
         pw, ph = _sizes(fig)[v._id]
         assert pw == 400 and ph == 400, f"expected 400×400, got {pw}×{ph}"
 
     def test_tall_image_does_not_shrink_canvas(self):
         """Tall image (1:2) in a square cell — canvas stays square."""
-        fig, ax = vw.subplots(1, 1, figsize=(400, 400))
+        fig, ax = apl.subplots(1, 1, figsize=(400, 400))
         v = ax.imshow(np.zeros((256, 128)))   # H=256, W=128
         pw, ph = _sizes(fig)[v._id]
         assert pw == 400 and ph == 400, f"expected 400×400, got {pw}×{ph}"
 
     def test_2d_and_1d_same_row_same_height(self):
         """2D and 1D panels in the same row must have the same canvas height."""
-        fig, axs = vw.subplots(1, 2, figsize=(800, 400))
+        fig, axs = apl.subplots(1, 2, figsize=(800, 400))
         v2d = axs[0].imshow(np.zeros((128, 128)))
         v1d = axs[1].plot(np.zeros(256))
         s = _sizes(fig)
@@ -449,7 +449,7 @@ class Test2DPanelLayout:
 
     def test_2d_and_1d_same_col_same_width(self):
         """2D and 1D panels in the same column must have the same canvas width."""
-        fig, axs = vw.subplots(2, 1, figsize=(400, 800))
+        fig, axs = apl.subplots(2, 1, figsize=(400, 800))
         v2d = axs[0].imshow(np.zeros((128, 128)))
         v1d = axs[1].plot(np.zeros(256))
         s = _sizes(fig)
@@ -465,7 +465,7 @@ class Test2DPanelLayout:
         a square image in row-0 of a height_ratios=[2,1] layout used to
         shrink the shared column from 800 px to 333 px.
         """
-        fig, axs = vw.subplots(2, 1, figsize=(800, 600),
+        fig, axs = apl.subplots(2, 1, figsize=(800, 600),
                                height_ratios=[2, 1])
         v2d = axs[0].imshow(np.zeros((256, 256)))
         v1d = axs[1].plot(np.zeros(10))
@@ -482,7 +482,7 @@ class Test2DPanelLayout:
     def test_two_2d_panels_same_col_same_width(self):
         """Two 2D panels with different aspect ratios in the same column
         must both get the column width — no convergence loop needed."""
-        fig, axs = vw.subplots(2, 1, figsize=(400, 800))
+        fig, axs = apl.subplots(2, 1, figsize=(400, 800))
         vA = axs[0].imshow(np.zeros((128, 128)))   # square
         vB = axs[1].imshow(np.zeros((128, 64)))    # wide
         s = _sizes(fig)
@@ -493,7 +493,7 @@ class Test2DPanelLayout:
 
     def test_minimum_canvas_size_floor(self):
         """Even a tiny figsize must produce canvas size ≥ 64 px."""
-        fig, ax = vw.subplots(1, 1, figsize=(10, 10))
+        fig, ax = apl.subplots(1, 1, figsize=(10, 10))
         v = ax.imshow(np.zeros((128, 128)))
         pw, ph = _sizes(fig)[v._id]
         assert pw >= 64 and ph >= 64, f"min size floor: {pw}×{ph}"
@@ -506,14 +506,14 @@ class Test2DPanelLayout:
 class TestLayoutJson:
 
     def test_layout_json_has_required_keys(self):
-        fig, _ = vw.subplots(2, 2)
+        fig, _ = apl.subplots(2, 2)
         layout = _layout(fig)
         for key in ("nrows", "ncols", "width_ratios", "height_ratios",
                     "fig_width", "fig_height", "panel_specs", "share_groups"):
             assert key in layout, f"missing key '{key}' in layout_json"
 
     def test_panel_specs_has_required_keys(self):
-        fig, ax = vw.subplots(1, 1)
+        fig, ax = apl.subplots(1, 1)
         ax.plot(np.zeros(5))
         spec = _specs(fig)[0]
         for key in ("id", "kind", "row_start", "row_stop",
@@ -521,17 +521,17 @@ class TestLayoutJson:
             assert key in spec, f"missing key '{key}' in panel_spec"
 
     def test_panel_kind_1d(self):
-        fig, ax = vw.subplots(1, 1)
+        fig, ax = apl.subplots(1, 1)
         ax.plot(np.zeros(5))
         assert _specs(fig)[0]["kind"] == "1d"
 
     def test_panel_kind_2d(self):
-        fig, ax = vw.subplots(1, 1)
+        fig, ax = apl.subplots(1, 1)
         ax.imshow(np.zeros((32, 32)))
         assert _specs(fig)[0]["kind"] == "2d"
 
     def test_sharex_group_in_layout(self):
-        fig, axs = vw.subplots(2, 1, sharex=True)
+        fig, axs = apl.subplots(2, 1, sharex=True)
         axs[0].plot(np.zeros(5))
         axs[1].plot(np.zeros(5))
         layout = _layout(fig)
@@ -540,14 +540,14 @@ class TestLayoutJson:
         assert len(group) == 2
 
     def test_sharey_group_in_layout(self):
-        fig, axs = vw.subplots(1, 2, sharey=True)
+        fig, axs = apl.subplots(1, 2, sharey=True)
         axs[0].plot(np.zeros(5))
         axs[1].plot(np.zeros(5))
         layout = _layout(fig)
         assert "y" in layout["share_groups"]
 
     def test_no_share_groups_when_false(self):
-        fig, axs = vw.subplots(2, 1)
+        fig, axs = apl.subplots(2, 1)
         axs[0].plot(np.zeros(5))
         axs[1].plot(np.zeros(5))
         layout = _layout(fig)
@@ -555,7 +555,7 @@ class TestLayoutJson:
 
     def test_layout_updates_on_resize(self):
         """fig_width/fig_height change must propagate into layout_json."""
-        fig, ax = vw.subplots(1, 1, figsize=(400, 300))
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
         ax.plot(np.zeros(5))
         fig.fig_width = 800
         fig.fig_height = 600
@@ -570,7 +570,7 @@ class TestLayoutJson:
         Add a second panel after the first.  Both must get updated sizes
         (the column or row track must be recalculated).
         """
-        fig, axs = vw.subplots(2, 1, figsize=(400, 400))
+        fig, axs = apl.subplots(2, 1, figsize=(400, 400))
         v0 = axs[0].plot(np.zeros(5))
         # At this point only one panel is registered
         s_before = _sizes(fig)[v0._id]
@@ -583,20 +583,20 @@ class TestLayoutJson:
         assert approx(ph0, 200, tol=2), f"each row should be 200 px, got {ph0}"
 
     def test_panel_count_in_layout(self):
-        fig, axs = vw.subplots(2, 3, figsize=(600, 400))
+        fig, axs = apl.subplots(2, 3, figsize=(600, 400))
         for r in range(2):
             for c in range(3):
                 axs[r, c].plot(np.zeros(5))
         assert len(_specs(fig)) == 6
 
     def test_figure_repr(self):
-        fig, _ = vw.subplots(2, 3, figsize=(600, 400))
+        fig, _ = apl.subplots(2, 3, figsize=(600, 400))
         r = repr(fig)
         assert "2x3" in r
 
     def test_get_axes_order(self):
         """get_axes() must return axes sorted row-major (top-left → bottom-right)."""
-        fig, axs = vw.subplots(2, 2, figsize=(400, 400))
+        fig, axs = apl.subplots(2, 2, figsize=(400, 400))
         for r in range(2):
             for c in range(2):
                 axs[r, c].plot(np.zeros(5))
@@ -612,7 +612,7 @@ class TestLayoutJson:
 class TestEdgeCases:
 
     def test_single_row_many_cols(self):
-        fig, axs = vw.subplots(1, 5, figsize=(500, 100))
+        fig, axs = apl.subplots(1, 5, figsize=(500, 100))
         plots = [axs[c].plot(np.zeros(5)) for c in range(5)]
         s = _sizes(fig)
         widths = [s[p._id][0] for p in plots]
@@ -624,7 +624,7 @@ class TestEdgeCases:
             assert approx(w, 100, tol=2), f"width {w} should be ≈100"
 
     def test_single_col_many_rows(self):
-        fig, axs = vw.subplots(5, 1, figsize=(100, 500))
+        fig, axs = apl.subplots(5, 1, figsize=(100, 500))
         plots = [axs[r].plot(np.zeros(5)) for r in range(5)]
         s = _sizes(fig)
         widths  = [s[p._id][0] for p in plots]
@@ -658,7 +658,7 @@ class TestEdgeCases:
 
     def test_replacing_plot_preserves_panel_id(self):
         """Calling imshow/plot a second time on the same Axes must reuse panel id."""
-        fig, ax = vw.subplots(1, 1)
+        fig, ax = apl.subplots(1, 1)
         v1 = ax.plot(np.zeros(5))
         pid1 = v1._id
         v2 = ax.imshow(np.zeros((32, 32)))
@@ -668,14 +668,14 @@ class TestEdgeCases:
     def test_2d_canvas_equals_cell_allocation(self):
         """Non-square figsize with a square image → canvas equals the full cell
         (no aspect-lock shrinking).  The image is letterboxed by the JS renderer."""
-        fig, ax = vw.subplots(1, 1, figsize=(600, 300))
+        fig, ax = apl.subplots(1, 1, figsize=(600, 300))
         v = ax.imshow(np.zeros((128, 128)))
         pw, ph = _sizes(fig)[v._id]
         assert pw == 600 and ph == 300, \
             f"canvas should equal full figsize 600×300, got {pw}×{ph}"
 
     def test_layout_json_is_valid_json(self):
-        fig, axs = vw.subplots(2, 2, figsize=(400, 400))
+        fig, axs = apl.subplots(2, 2, figsize=(400, 400))
         for r in range(2):
             for c in range(2):
                 axs[r, c].plot(np.zeros(5))
@@ -708,7 +708,7 @@ class TestEdgeCases:
         assert ax_br._spec.row_start  == 1 and ax_br._spec.col_start == 1
 
     def test_figsize_in_layout_json(self):
-        fig, ax = vw.subplots(1, 1, figsize=(777, 555))
+        fig, ax = apl.subplots(1, 1, figsize=(777, 555))
         ax.plot(np.zeros(5))
         layout = _layout(fig)
         assert layout["fig_width"]  == 777
@@ -736,7 +736,7 @@ class TestPanelAlignment:
     # ── two-row, one-column ───────────────────────────────────────────────
 
     def test_2row_1col_same_width(self):
-        fig, axs = vw.subplots(2, 1, figsize=(600, 600))
+        fig, axs = apl.subplots(2, 1, figsize=(600, 600))
         v2d = axs[0].imshow(np.random.rand(128, 128))
         v1d = axs[1].plot(np.sin(np.linspace(0, 6, 256)))
         s = _sizes(fig)
@@ -748,7 +748,7 @@ class TestPanelAlignment:
 
     def test_2row_1col_left_edge_aligned(self):
         """Left edge of the 2D image area and 1D plot area must both be PAD_L."""
-        fig, axs = vw.subplots(2, 1, figsize=(600, 600))
+        fig, axs = apl.subplots(2, 1, figsize=(600, 600))
         v2d = axs[0].imshow(np.random.rand(128, 128))
         v1d = axs[1].plot(np.sin(np.linspace(0, 6, 256)))
         s = _sizes(fig)
@@ -760,7 +760,7 @@ class TestPanelAlignment:
 
     def test_2row_1col_plot_area_widths_equal(self):
         """Plot-area widths must match when panels share a column."""
-        fig, axs = vw.subplots(2, 1, figsize=(600, 600))
+        fig, axs = apl.subplots(2, 1, figsize=(600, 600))
         v2d = axs[0].imshow(np.random.rand(128, 128))
         v1d = axs[1].plot(np.sin(np.linspace(0, 6, 256)))
         s = _sizes(fig)
@@ -771,7 +771,7 @@ class TestPanelAlignment:
     # ── one-row, two-column ───────────────────────────────────────────────
 
     def test_1row_2col_same_height(self):
-        fig, axs = vw.subplots(1, 2, figsize=(800, 400))
+        fig, axs = apl.subplots(1, 2, figsize=(800, 400))
         v2d = axs[0].imshow(np.random.rand(64, 64))
         v1d = axs[1].plot(np.cos(np.linspace(0, 6, 256)))
         s = _sizes(fig)
@@ -783,7 +783,7 @@ class TestPanelAlignment:
 
     def test_1row_2col_top_bottom_aligned(self):
         """Top and bottom y-coordinates of plot areas must match across the row."""
-        fig, axs = vw.subplots(1, 2, figsize=(800, 400))
+        fig, axs = apl.subplots(1, 2, figsize=(800, 400))
         v2d = axs[0].imshow(np.random.rand(64, 64))
         v1d = axs[1].plot(np.cos(np.linspace(0, 6, 256)))
         s = _sizes(fig)
@@ -797,14 +797,14 @@ class TestPanelAlignment:
     def test_square_image_gets_square_canvas(self):
         """A 128×128 image in a 500×500 figsize → canvas is 500×500 (pw == ph).
         Images are letterboxed in JS; the Python layout never changes the cell."""
-        fig, axs = vw.subplots(1, 1, figsize=(500, 500))
+        fig, axs = apl.subplots(1, 1, figsize=(500, 500))
         v2d = axs.imshow(np.random.rand(128, 128))
         pw, ph = _sizes(fig)[v2d._id]
         assert pw == ph, f"Square figsize must give pw==ph: pw={pw}, ph={ph}"
 
     def test_wide_image_canvas_equals_cell(self):
         """A 2:1 image in a square cell gets a square canvas — no aspect-lock."""
-        fig, axs = vw.subplots(1, 1, figsize=(512, 512))
+        fig, axs = apl.subplots(1, 1, figsize=(512, 512))
         v2d = axs.imshow(np.random.rand(128, 256))  # w=256, h=128
         pw, ph = _sizes(fig)[v2d._id]
         assert pw == 512 and ph == 512, (
@@ -816,7 +816,7 @@ class TestPanelAlignment:
     def test_nonsquare_2d_and_1d_same_column(self):
         """A tall non-square image in a 2-row, 1-col layout must not affect the
         1D panel's canvas width — both must equal the column track width."""
-        fig, axs = vw.subplots(2, 1, figsize=(600, 800))
+        fig, axs = apl.subplots(2, 1, figsize=(600, 800))
         v2d = axs[0].imshow(np.random.rand(256, 128))  # tall image
         v1d = axs[1].plot(np.random.rand(256))
         s = _sizes(fig)
@@ -829,7 +829,7 @@ class TestPanelAlignment:
     # ── plot-area dimensions are positive ─────────────────────────────────
 
     def test_plot_areas_positive(self):
-        fig, axs = vw.subplots(2, 1, figsize=(400, 400))
+        fig, axs = apl.subplots(2, 1, figsize=(400, 400))
         v2d = axs[0].imshow(np.random.rand(64, 64))
         v1d = axs[1].plot(np.random.rand(128))
         for pid, (pw, ph) in _sizes(fig).items():
@@ -1082,32 +1082,32 @@ class TestFigureGridSpecWorkflow:
 class TestSubplotsAdjust:
 
     def test_hspace_in_layout_json(self):
-        fig, _ = vw.subplots(2, 1, figsize=(400, 400))
+        fig, _ = apl.subplots(2, 1, figsize=(400, 400))
         fig.subplots_adjust(hspace=0.3)
         layout = _layout(fig)
         assert abs(layout['hspace'] - 0.3) < 1e-9
 
     def test_wspace_in_layout_json(self):
-        fig, _ = vw.subplots(1, 2, figsize=(400, 200))
+        fig, _ = apl.subplots(1, 2, figsize=(400, 200))
         fig.subplots_adjust(wspace=0.2)
         layout = _layout(fig)
         assert abs(layout['wspace'] - 0.2) < 1e-9
 
     def test_defaults_are_none(self):
-        fig, _ = vw.subplots(2, 2, figsize=(400, 400))
+        fig, _ = apl.subplots(2, 2, figsize=(400, 400))
         layout = _layout(fig)
         assert layout['hspace'] is None
         assert layout['wspace'] is None
 
     def test_both_together(self):
-        fig, _ = vw.subplots(2, 2, figsize=(600, 600))
+        fig, _ = apl.subplots(2, 2, figsize=(600, 600))
         fig.subplots_adjust(hspace=0.15, wspace=0.25)
         layout = _layout(fig)
         assert abs(layout['hspace'] - 0.15) < 1e-9
         assert abs(layout['wspace'] - 0.25) < 1e-9
 
     def test_retriggers_layout_push(self):
-        fig, _ = vw.subplots(2, 1, figsize=(400, 400))
+        fig, _ = apl.subplots(2, 1, figsize=(400, 400))
         before = fig.layout_json
         fig.subplots_adjust(hspace=0.1)
         assert fig.layout_json != before
@@ -1120,19 +1120,19 @@ class TestSubplotsAdjust:
 class TestHspaceWspaceInitialState:
     def test_initial_hspace_is_none(self):
         """Before subplots_adjust the internal value is None (browser 4px default)."""
-        fig, _ = vw.subplots(2, 2)
+        fig, _ = apl.subplots(2, 2)
         assert fig._hspace is None
         assert fig._wspace is None
 
     def test_subplots_adjust_zero_stores_zero(self):
         """subplots_adjust(hspace=0.0) must store 0.0, not None."""
-        fig, _ = vw.subplots(2, 1)
+        fig, _ = apl.subplots(2, 1)
         fig.subplots_adjust(hspace=0.0, wspace=0.0)
         assert fig._hspace == 0.0
         assert fig._wspace == 0.0
 
     def test_subplots_adjust_zero_appears_in_layout(self):
-        fig, _ = vw.subplots(2, 2)
+        fig, _ = apl.subplots(2, 2)
         fig.subplots_adjust(hspace=0.0, wspace=0.0)
         layout = json.loads(fig.layout_json)
         assert layout["hspace"] == pytest.approx(0.0)

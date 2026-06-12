@@ -309,15 +309,13 @@ class PlotBar(_BasePlot, _PanelMixin):
     # ------------------------------------------------------------------
     # Display control
     # ------------------------------------------------------------------
-    def set_xlabel(self, label: str) -> None:
-        """Set the x-axis label."""
-        self._state["x_label"] = str(label)
-        self._push()
+    def set_xlabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the x-axis label (mini-TeX allowed; default size 10 px)."""
+        self._set_label("x_label", label, "x_label_size", fontsize)
 
-    def set_ylabel(self, label: str) -> None:
-        """Set the y-axis / value-axis label."""
-        self._state["y_label"] = str(label)
-        self._push()
+    def set_ylabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the y-axis / value-axis label (mini-TeX allowed; default size 10 px)."""
+        self._set_label("y_label", label, "y_label_size", fontsize)
 
     def set_bar_width(self, width: float) -> None:
         """Set the bar width."""
