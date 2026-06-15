@@ -1706,10 +1706,19 @@ function render({ model, el }) {
       const padT = p._padT || PAD_T;   // strip grows with title_size > 11
       p.titleCtx.clearRect(0, 0, tw, padT);
       if (title2d) {
+        // Clamp the drawn size so even the tallest glyphs (caps, descenders,
+        // TeX superscripts) fit the strip WITH clear top/bottom margin on
+        // every platform.  Font hinting varies — macOS Chromium renders ~1px
+        // taller than Windows at the same px — so a strip-tight title was
+        // clipped at row 0 on macOS CI.  Reserve ~4px total vertical margin;
+        // padT grows for large/TeX titles (see _padT) so this only bites the
+        // 12px default strip, capping an 11px title to ~8px — a sub-pixel
+        // change well within the visual-regression tolerance.
+        const px = Math.min(st.title_size || 11, padT - 4);
         p.titleCtx.fillStyle = theme.tickText;
         p.titleCtx.textBaseline = 'middle';
         _drawTex(p.titleCtx, title2d, tw / 2, padT / 2,
-                 st.title_size || 11, { align: 'center', weight: 'bold' });
+                 px, { align: 'center', weight: 'bold' });
       }
     }
   }
