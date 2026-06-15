@@ -215,6 +215,16 @@ triangles, draws axes with per-axis `_drawTex` labels (`x/y/z_label_size`).
   `_writeState()` (sets `p._selfWrite`), and the panel-json listener skips
   self-writes — without this every drag frame paid a second
   JSON.parse + full redraw.
+- **Geometry channel** (perf): plots that declare `_GEOM_KEYS` on the Python
+  side (Plot2D, Plot3D) split heavy keys (`vertices_b64`, `image_b64`,
+  `colormap_data`, …) into a second `panel_<id>_geom` trait, re-sent only
+  when their content hash changes; the view trait carries `_geom_rev`.  JS
+  caches the decoded geom (`p._geomCache`/`p._geomRev`) and `_applyGeom`
+  splices it into the state before every draw, so view-only updates
+  (highlight, camera, planes, title) never re-parse or re-transmit
+  geometry.  Both the `change:panel_<id>_geom` and `change:panel_<id>_json`
+  listeners call `_applyGeom`; the geom trait is loaded before the first
+  draw.  Pairs with `Figure.batch()` push-coalescing on the Python side.
 - **WebGPU path** (progressive enhancement, additive): scatter points
   (`_GPU_POINT_WGSL`) and voxels (`_GPU_VOXEL_WGSL`) render instanced on the
   GPU when available and above threshold (`GPU_POINT_THRESHOLD` 20k /

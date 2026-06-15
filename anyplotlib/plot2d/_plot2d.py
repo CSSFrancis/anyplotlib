@@ -31,6 +31,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         plot.markers["circles"]["g1"].set(radius=8)
     """
 
+    #: Heavy state keys routed to the geometry channel (see Figure._push).
+    #: ``colormap_data`` is large and only changes on set_colormap.
+    _GEOM_KEYS = frozenset({"image_b64", "colormap_data", "overlay_mask_b64"})
+
     def __init__(self, data: np.ndarray,
                  x_axis=None, y_axis=None, units: str = "px",
                  cmap: str | None = None,

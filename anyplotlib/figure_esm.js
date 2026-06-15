@@ -339,6 +339,30 @@ function render({ model, el }) {
     }
   }
 
+  // Geometry channel: heavy keys (vertices/image/colormap) travel in a
+  // separate panel_<id>_geom trait, re-sent only when they change.  The light
+  // view payload carries _geom_rev; we cache the decoded geom per panel and
+  // splice it into the state before drawing, so view-only updates (highlight,
+  // camera, planes) never re-parse or re-transmit geometry.
+  function _applyGeom(p2, state) {
+    if (state._geom_rev === undefined) return state;   // panel has no geom channel
+    if (p2._geomCache && p2._geomRev === state._geom_rev) {
+      Object.assign(state, p2._geomCache);
+    } else if (p2._geomCache) {
+      // Stale/missing rev — keep last known geometry rather than dropping it.
+      Object.assign(state, p2._geomCache);
+    }
+    return state;
+  }
+
+  // Parse the geom trait into the per-panel cache.
+  function _loadGeom(p2, raw, rev) {
+    try {
+      p2._geomCache = JSON.parse(raw || '{}');
+      p2._geomRev = rev;
+    } catch (_) {}
+  }
+
   // Factory: returns a debounced commit function.
   // onCommit is called once per animation frame after the last request.
   function _makeCommitter(onCommit) {
@@ -831,6 +855,20 @@ function render({ model, el }) {
     _resizePanelDOM(id, pw, ph);
     _attachPanelEvents(p);
 
+    // Geometry channel (only when this panel declared one on the Python side).
+    const _geomTrait = `panel_${id}_geom`;
+    const _hasGeom = model.get(_geomTrait) !== undefined;
+    if (_hasGeom) {
+      model.on(`change:${_geomTrait}`, () => {
+        const p2 = panels.get(id);
+        if (!p2) return;
+        const rev = (p2.state && p2.state._geom_rev !== undefined)
+          ? p2.state._geom_rev : ((p2._geomRev || 0) + 1);
+        _loadGeom(p2, model.get(_geomTrait), rev);
+        if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+      });
+    }
+
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
@@ -841,6 +879,7 @@ function render({ model, el }) {
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
         _preserveView(p2, newState);
+        _applyGeom(p2, newState);
         p2.state = newState;
       }
       catch(_) { return; }
@@ -848,7 +887,11 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    try { p.state = JSON.parse(model.get(`panel_${id}_json`)); } catch(_) {}
+    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    try {
+      p.state = JSON.parse(model.get(`panel_${id}_json`));
+      _applyGeom(p, p.state);
+    } catch(_) {}
     _redrawPanel(p);
   }
 
@@ -946,6 +989,20 @@ function render({ model, el }) {
     });
 
 
+    // Geometry channel (only when this panel declared one on the Python side).
+    const _geomTrait = `panel_${id}_geom`;
+    const _hasGeom = model.get(_geomTrait) !== undefined;
+    if (_hasGeom) {
+      model.on(`change:${_geomTrait}`, () => {
+        const p2 = panels.get(id);
+        if (!p2) return;
+        const rev = (p2.state && p2.state._geom_rev !== undefined)
+          ? p2.state._geom_rev : ((p2._geomRev || 0) + 1);
+        _loadGeom(p2, model.get(_geomTrait), rev);
+        if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+      });
+    }
+
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
@@ -956,6 +1013,7 @@ function render({ model, el }) {
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
         _preserveView(p2, newState);
+        _applyGeom(p2, newState);
         p2.state = newState;
       }
       catch(_) { return; }
@@ -963,7 +1021,11 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    try { p.state = JSON.parse(model.get(`panel_${id}_json`)); } catch(_) {}
+    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    try {
+      p.state = JSON.parse(model.get(`panel_${id}_json`));
+      _applyGeom(p, p.state);
+    } catch(_) {}
     _redrawPanel(p);
   }
 
