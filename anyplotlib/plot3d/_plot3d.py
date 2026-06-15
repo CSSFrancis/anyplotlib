@@ -152,6 +152,14 @@ class Plot3D(_BasePlot):
     calls ``_push()`` which writes to the parent Figure's panel trait.
     """
 
+    #: Heavy, rarely-changing state keys routed to the separate geometry
+    #: channel — re-sent only when their content changes, so view updates
+    #: (highlight / camera / planes) never re-transmit them.
+    _GEOM_KEYS = frozenset({
+        "vertices_b64", "faces_b64", "z_values_b64", "point_colors_b64",
+        "colormap_data",
+    })
+
     def __init__(self, geom_type: str,
                  x, y, z, *,
                  colormap: str = "viridis",
