@@ -17,7 +17,7 @@ from anyplotlib.widgets import (
     RectangleWidget, CircleWidget, AnnularWidget,
     CrosshairWidget, PolygonWidget, LabelWidget,
 )
-from anyplotlib._utils import _normalize_image, _build_colormap_lut
+from anyplotlib._utils import _normalize_image, _build_colormap_lut, _to_rgba_u8
 
 
 class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
@@ -48,12 +48,17 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._origin: str = origin
 
         data = np.asarray(data)
-        if data.ndim == 3:
-            data = data[:, :, 0]
-        if data.ndim != 2:
-            raise ValueError(f"data must be 2-D (H x W), got {data.shape}")
+        # (H, W, 3|4) arrays render as true-colour RGB(A); anything else 2-D.
+        self._is_rgb: bool = data.ndim == 3 and data.shape[2] in (3, 4)
+        if data.ndim == 3 and not self._is_rgb:
+            raise ValueError(
+                f"3-D image data must have 3 (RGB) or 4 (RGBA) channels, "
+                f"got shape {data.shape}")
+        if data.ndim not in (2, 3):
+            raise ValueError(f"data must be 2-D (H x W) or (H x W x 3|4), "
+                             f"got {data.shape}")
 
-        h, w = data.shape
+        h, w = data.shape[:2]
 
         # origin='lower' — row 0 at the bottom, matching matplotlib's matrix
         # convention.  Flip the data so our renderer (which always draws row 0
@@ -76,7 +81,12 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if origin == "lower":
             y_axis = y_axis[::-1]
 
-        img_u8, raw_vmin, raw_vmax = _normalize_image(data)
+        if self._is_rgb:
+            # True-colour path: bytes go to JS as RGBA; no LUT applies.
+            img_u8 = _to_rgba_u8(data)
+            raw_vmin, raw_vmax = 0.0, 255.0
+        else:
+            img_u8, raw_vmin, raw_vmax = _normalize_image(data)
         self._raw_u8   = img_u8
         self._raw_vmin = raw_vmin
         self._raw_vmax = raw_vmax
@@ -95,6 +105,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._state: dict = {
             "kind":              "2d",
             "is_mesh":           False,
+            "is_rgb":            self._is_rgb,
             "has_axes":          x_axis_given or y_axis_given,
             "image_b64":         self._encode_bytes(img_u8),
             "image_width":       w,
@@ -178,17 +189,25 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         so the new data is displayed with the same orientation.
         """
         data = np.asarray(data)
-        if data.ndim == 3:
-            data = data[:, :, 0]
-        if data.ndim != 2:
-            raise ValueError(f"data must be 2-D, got {data.shape}")
-        h, w = data.shape
+        is_rgb = data.ndim == 3 and data.shape[2] in (3, 4)
+        if data.ndim == 3 and not is_rgb:
+            raise ValueError(
+                f"3-D image data must have 3 (RGB) or 4 (RGBA) channels, "
+                f"got shape {data.shape}")
+        if data.ndim not in (2, 3):
+            raise ValueError(f"data must be 2-D or (H x W x 3|4), got {data.shape}")
+        h, w = data.shape[:2]
 
         if self._origin == "lower":
             data = np.flipud(data)
 
         self._data = data.astype(float)
-        img_u8, vmin, vmax = _normalize_image(data)
+        self._is_rgb = is_rgb
+        self._state["is_rgb"] = is_rgb
+        if is_rgb:
+            img_u8, vmin, vmax = _to_rgba_u8(data), 0.0, 255.0
+        else:
+            img_u8, vmin, vmax = _normalize_image(data)
         self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
 
         if x_axis is not None:
@@ -205,7 +224,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if units is not None:
             self._state["units"] = units
 
-        self._state.update({
+        fields = {
             "image_b64":    self._encode_bytes(img_u8),
             "image_width":  w,
             "image_height": h,
@@ -213,8 +232,12 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "display_max":  vmax,
             "raw_min":      vmin,
             "raw_max":      vmax,
-            "colormap_data": _build_colormap_lut(self._state["colormap_name"]),
-        })
+        }
+        # RGB images never use the colormap LUT — skip the (costly) rebuild and
+        # leave the existing entry untouched.  Only recompute for scalar data.
+        if not is_rgb:
+            fields["colormap_data"] = _build_colormap_lut(self._state["colormap_name"])
+        self._state.update(fields)
         self._push()
 
     def set_overlay_mask(self, mask: "np.ndarray | None",

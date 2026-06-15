@@ -285,7 +285,7 @@ function render({ model, el }) {
   // 0 when the colorbar is hidden.  The image area shrinks by this amount so
   // the strip and its label always fit inside the panel.
   function _cbWidth(st) {
-    if (!st || !st.show_colorbar) return 0;
+    if (!st || !st.show_colorbar || st.is_rgb) return 0;
     const labelW = st.colorbar_label
       ? Math.round((st.colorbar_label_size || 10) + 8) : 0;
     return 16 + labelW;
@@ -658,6 +658,7 @@ function render({ model, el }) {
     let xAxisCanvas=null, yAxisCanvas=null, scaleBar=null;
     let cbCanvas=null, cbCtx=null, plotWrap=null, wrapNode=null;
     let titleCanvas=null;
+    let stack3dGpuCanvas=null;   // WebGPU geometry canvas (3D only)
 
     if (kind === '2d') {
       plotWrap = document.createElement('div');
@@ -707,13 +708,22 @@ function render({ model, el }) {
       wrapNode = plotWrap;
 
     } else if (kind === '3d') {
-      plotCanvas = document.createElement('canvas');
-      plotCanvas.style.cssText =
-        `display:block;border-radius:2px;background:${theme.bgPlot};`;
       const wrap3 = document.createElement('div');
       wrap3.style.cssText = 'position:relative;display:inline-block;line-height:0;';
+      // gpuCanvas (WebGPU geometry) sits BELOW plotCanvas; plotCanvas draws
+      // decorations (axes/labels/sphere/planes/highlight) over a transparent
+      // background when GPU mode is active.  Hidden until/unless GPU activates.
+      var gpuCanvas = document.createElement('canvas');
+      gpuCanvas.style.cssText =
+        `position:absolute;top:0;left:0;display:none;border-radius:2px;` +
+        `background:${theme.bgPlot};z-index:0;`;
+      wrap3.appendChild(gpuCanvas);
+      plotCanvas = document.createElement('canvas');
+      plotCanvas.style.cssText =
+        `position:relative;display:block;border-radius:2px;background:${theme.bgPlot};z-index:1;`;
       wrap3.appendChild(plotCanvas);
       outerContainer.appendChild(wrap3);
+      stack3dGpuCanvas = gpuCanvas;
       overlayCanvas = document.createElement('canvas');
       overlayCanvas.style.cssText =
         'position:absolute;top:0;left:0;z-index:5;pointer-events:all;outline:none;';
@@ -757,7 +767,8 @@ function render({ model, el }) {
 
     return { plotCanvas, overlayCanvas, markersCanvas, statusBar,
              xAxisCanvas, yAxisCanvas, scaleBar,
-             cbCanvas, cbCtx, plotWrap, wrapNode, titleCanvas };
+             cbCanvas, cbCtx, plotWrap, wrapNode, titleCanvas,
+             gpuCanvas: stack3dGpuCanvas };
   }
 
   function _createPanelDOM(id, kind, pw, ph, spec) {
@@ -812,6 +823,8 @@ function render({ model, el }) {
       sbLine:    null,
       sbLabel:   null,
       plotWrap:  stack.plotWrap,
+      gpuCanvas: stack.gpuCanvas || null,
+      _gpu:      undefined,   // undefined | 'pending' | 'active' | 'unavailable'
     };
     panels.set(id, p);
 
@@ -821,6 +834,10 @@ function render({ model, el }) {
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
+      // Skip the echo of our own interaction writes (orbit / plane drags):
+      // the state is already current and a second parse+redraw per mouse
+      // event doubles the frame cost.
+      if (p2._selfWrite) return;
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
         _preserveView(p2, newState);
@@ -932,6 +949,10 @@ function render({ model, el }) {
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
+      // Skip the echo of our own interaction writes (orbit / plane drags):
+      // the state is already current and a second parse+redraw per mouse
+      // event doubles the frame cost.
+      if (p2._selfWrite) return;
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
         _preserveView(p2, newState);
@@ -1273,7 +1294,8 @@ function render({ model, el }) {
 
     if(!b64||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
 
-    const lk=_lutKey(st);
+    const isRgb=!!st.is_rgb;   // bytes are RGBA (4/px) — no LUT applies
+    const lk=isRgb?'__rgb__':_lutKey(st);
     const needRebuild = b64!==blitCache.bytesKey || lk!==blitCache.lutKey
                      || !blitCache.bitmap || blitCache.w!==iw || blitCache.h!==ih;
     if(!needRebuild && blitCache.bitmap){
@@ -1285,10 +1307,14 @@ function render({ model, el }) {
         bytes=new Uint8Array(bin.length);
         for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
       } catch(_){return;}
-      const lut=_buildLut32(st);
       const imgData=new ImageData(iw,ih);
-      const out32=new Uint32Array(imgData.data.buffer);
-      for(let i=0;i<iw*ih;i++) out32[i]=lut[bytes[i]];
+      if(isRgb){
+        imgData.data.set(bytes.subarray(0, iw*ih*4));
+      } else {
+        const lut=_buildLut32(st);
+        const out32=new Uint32Array(imgData.data.buffer);
+        for(let i=0;i<iw*ih;i++) out32[i]=lut[bytes[i]];
+      }
       const oc=new OffscreenCanvas(iw,ih);
       oc.getContext('2d').putImageData(imgData,0,0);
       blitCache.bitmap=oc; blitCache.bytesKey=b64; blitCache.lutKey=lk;
@@ -1435,7 +1461,7 @@ function render({ model, el }) {
 
   function drawColorbar2d(p) {
     const st=p.state; if(!st||!p.cbCanvas||!p.cbCtx) return;
-    const vis=st.show_colorbar||false;
+    const vis=(st.show_colorbar&&!st.is_rgb)||false;   // no LUT for RGB images
     p.cbCanvas.style.display = vis ? 'block' : 'none';
     if(!vis) return;
 
@@ -1797,15 +1823,21 @@ function render({ model, el }) {
   // ── 3D drawing ───────────────────────────────────────────────────────────
 
   function _rot3(az, el) {
-    // Rotation matrix: Ry(az) * Rx(-el)  (azimuth around world-Y, elevation around screen-X)
+    // Turntable camera (matplotlib azim/elev semantics): azimuth spins the
+    // scene about the DATA z-axis, elevation tilts it toward the viewer.
+    // Screen axes after rotation: x'→right, y'→depth into screen, z'→up.
+    // Unlike the previous Ry·Rx form (which pinned the data x-axis into the
+    // screen plane), this view direction reaches ANY point on the sphere —
+    // required for rotate-to-face interactions (e.g. the IPF explorer).
+    // The camera faces unit vector v when  el = asin(vz),  az = atan2(vx, -vy).
     const azR = az * Math.PI / 180, elR = el * Math.PI / 180;
     const ca = Math.cos(azR), sa = Math.sin(azR);
     const ce = Math.cos(elR), se = Math.sin(elR);
-    // R = Ry(az) * Rx(-el):
+    // R = Tilt_x(el) * Spin_z(az)
     return [
-      [ ca,      sa*se,   sa*ce],
-      [ 0,       ce,     -se   ],
-      [-sa,      ca*se,   ca*ce],
+      [ ca,     sa,     0 ],
+      [-ce*sa,  ce*ca, -se],
+      [-se*sa,  se*ca,  ce],
     ];
   }
 
@@ -1830,6 +1862,445 @@ function render({ model, el }) {
     return `rgb(${c[0]},${c[1]},${c[2]})`;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // WebGPU geometry renderer (progressive enhancement — Phase 1 prototype).
+  //
+  // Strictly additive: only instanced POINTS move to the GPU, and only when
+  // (a) navigator.gpu exists, (b) an adapter+device resolve, and (c) the
+  // panel opts in (gpu_mode 'always', or 'auto' above GPU_POINT_THRESHOLD).
+  // Every failure — no navigator.gpu, null adapter, device loss — leaves
+  // p._gpu === 'unavailable' and the Canvas2D path renders exactly as before.
+  //
+  // Decorations (axes, labels, sphere, planes, highlight) are NEVER on the
+  // GPU; draw3d draws them over a transparent plotCanvas when GPU is active.
+  // ═══════════════════════════════════════════════════════════════════════
+  const GPU_POINT_THRESHOLD = 20000;
+  const GPU_VOXEL_THRESHOLD = 8000;   // cubes cost ~6× a point on canvas
+  let _gpuDevicePromise = null;   // module singleton: Promise<GPUDevice|null>
+
+  function _gpuDevice() {
+    if (_gpuDevicePromise) return _gpuDevicePromise;
+    _gpuDevicePromise = (async () => {
+      try {
+        if (!navigator.gpu) return null;
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) return null;
+        const device = await adapter.requestDevice();
+        device.lost.then((info) => {
+          // Permanent per-session fallback: any GPU panel reverts to canvas.
+          _gpuDevicePromise = Promise.resolve(null);
+          for (const p of panels.values()) {
+            if (p.kind === '3d' && p._gpu === 'active') {
+              p._gpu = 'unavailable';
+              if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+              _gpuDisposePanel(p);
+              _redrawPanel(p);
+            }
+          }
+          console.warn('[anyplotlib] WebGPU device lost — fell back to canvas:',
+                       info && info.message);
+        });
+        return device;
+      } catch (e) {
+        console.warn('[anyplotlib] WebGPU init failed — using canvas:', e);
+        return null;
+      }
+    })();
+    return _gpuDevicePromise;
+  }
+
+  // Report GPU activation back to Python via an event (so plot.gpu_active
+  // reflects reality).  Fire-and-forget; ignored if no one listens.
+  function _reportGpu(p) {
+    try {
+      _emitEvent(p.id, 'gpu_status', null, { gpu_active: p._gpu === 'active' });
+    } catch (_) {}
+  }
+
+  // Should this panel try the GPU path for its current state?
+  function _gpuWanted(st) {
+    if (typeof navigator === 'undefined' || !navigator.gpu) return false;
+    const mode = st.gpu_mode || 'auto';
+    if (mode === 'off') return false;
+    const geom = st.geom_type;
+    if (geom !== 'scatter' && geom !== 'voxels') return false;
+    if (mode === 'always') return true;
+    const thr = geom === 'voxels' ? GPU_VOXEL_THRESHOLD : GPU_POINT_THRESHOLD;
+    return (st.vertices_count || 0) > thr;
+  }
+
+  const _GPU_POINT_WGSL = `
+struct Uniforms {
+  mvp      : mat4x4<f32>,   // clip-space transform (orthographic)
+  viewport : vec2<f32>,     // panel pixels
+  ptSize   : f32,
+  _pad     : f32,
+};
+@group(0) @binding(0) var<uniform> U : Uniforms;
+
+struct VsOut {
+  @builtin(position) pos : vec4<f32>,
+  @location(0) color     : vec4<f32>,
+  @location(1) quad      : vec2<f32>,
+};
+
+// Unit quad (two triangles) expanded per instance into a screen-space square.
+const QUAD = array<vec2<f32>, 6>(
+  vec2(-1.0,-1.0), vec2(1.0,-1.0), vec2(-1.0,1.0),
+  vec2(-1.0, 1.0), vec2(1.0,-1.0), vec2( 1.0,1.0));
+
+@vertex
+fn vs(@location(0) center : vec3<f32>,
+      @location(1) color  : vec4<f32>,
+      @builtin(vertex_index) vi : u32) -> VsOut {
+  var out : VsOut;
+  let clip = U.mvp * vec4<f32>(center, 1.0);
+  let q    = QUAD[vi];
+  // Offset in NDC by point size (pixels → NDC via viewport).  Orthographic,
+  // so clip.w == 1; divide-by-w is implicit and the offset is in NDC units.
+  let off  = vec2<f32>(q.x * U.ptSize * 2.0 / U.viewport.x,
+                       q.y * U.ptSize * 2.0 / U.viewport.y);
+  out.pos   = vec4<f32>(clip.x + off.x, clip.y + off.y, clip.z, 1.0);
+  out.color = color;
+  out.quad  = q;
+  return out;
+}
+
+@fragment
+fn fs(in : VsOut) -> @location(0) vec4<f32> {
+  if (dot(in.quad, in.quad) > 1.0) { discard; }   // round points
+  return in.color;
+}
+`;
+
+  // Voxel cubes: 36 vertices (12 tris) for a unit cube centred at origin,
+  // instanced per voxel.  Per-face shading + depth buffer (no sorting).
+  // Slice emphasis (voxels on a PlaneWidget) is computed in the vertex shader
+  // from up to 4 plane uniforms → dragging a plane is a uniform write, no
+  // geometry re-upload.  Opaque mode (Phase 2); translucency is Phase 3.
+  const _GPU_VOXEL_WGSL = `
+struct Uniforms {
+  mvp        : mat4x4<f32>,
+  half       : f32,          // half voxel edge, data units
+  baseAlpha  : f32,
+  sliceAlpha : f32,
+  nPlanes    : f32,
+  planeAxis  : vec4<f32>,    // axis index 0/1/2 per plane (-1 = unused)
+  planePos   : vec4<f32>,    // plane position, data units
+  shade      : vec4<f32>,    // x,y,z face shade + pad
+};
+@group(0) @binding(0) var<uniform> U : Uniforms;
+
+struct VsOut {
+  @builtin(position) pos : vec4<f32>,
+  @location(0) color     : vec4<f32>,
+  @location(1) alpha     : f32,
+};
+
+// 36 cube corners (±1) and matching face axis (0=x,1=y,2=z) per triangle.
+const CUBE = array<vec3<f32>, 36>(
+  // +x
+  vec3(1.,-1.,-1.), vec3(1.,1.,-1.), vec3(1.,1.,1.), vec3(1.,-1.,-1.), vec3(1.,1.,1.), vec3(1.,-1.,1.),
+  // -x
+  vec3(-1.,-1.,-1.), vec3(-1.,1.,1.), vec3(-1.,1.,-1.), vec3(-1.,-1.,-1.), vec3(-1.,-1.,1.), vec3(-1.,1.,1.),
+  // +y
+  vec3(-1.,1.,-1.), vec3(1.,1.,1.), vec3(1.,1.,-1.), vec3(-1.,1.,-1.), vec3(-1.,1.,1.), vec3(1.,1.,1.),
+  // -y
+  vec3(-1.,-1.,-1.), vec3(1.,-1.,-1.), vec3(1.,-1.,1.), vec3(-1.,-1.,-1.), vec3(1.,-1.,1.), vec3(-1.,-1.,1.),
+  // +z
+  vec3(-1.,-1.,1.), vec3(1.,-1.,1.), vec3(1.,1.,1.), vec3(-1.,-1.,1.), vec3(1.,1.,1.), vec3(-1.,1.,1.),
+  // -z
+  vec3(-1.,-1.,-1.), vec3(1.,1.,-1.), vec3(1.,-1.,-1.), vec3(-1.,-1.,-1.), vec3(-1.,1.,-1.), vec3(1.,1.,-1.));
+const FACE_AXIS = array<u32, 12>(0u,0u, 0u,0u, 1u,1u, 1u,1u, 2u,2u, 2u,2u);
+
+@vertex
+fn vs(@location(0) center : vec3<f32>,
+      @location(1) color  : vec4<f32>,
+      @builtin(vertex_index) vi : u32) -> VsOut {
+  var out : VsOut;
+  let corner = CUBE[vi] * U.half;
+  out.pos = U.mvp * vec4<f32>(center + corner, 1.0);
+  // Per-face shading
+  let fa = FACE_AXIS[vi / 3u];
+  var sh = U.shade.x;
+  if (fa == 1u) { sh = U.shade.y; }
+  if (fa == 2u) { sh = U.shade.z; }
+  out.color = vec4<f32>(color.rgb * sh, color.a);
+  // Slice emphasis: opaque if the voxel centre lies on any plane.
+  var emph = false;
+  let np = i32(U.nPlanes);
+  for (var i = 0; i < np; i = i + 1) {
+    let ax = U.planeAxis[i];
+    var cv = center.x;
+    if (ax > 1.5) { cv = center.z; } else if (ax > 0.5) { cv = center.y; }
+    if (abs(cv - U.planePos[i]) <= U.half * 1.1) { emph = true; }
+  }
+  out.alpha = select(U.baseAlpha, U.sliceAlpha, emph);
+  return out;
+}
+
+@fragment
+fn fs(in : VsOut) -> @location(0) vec4<f32> {
+  return vec4<f32>(in.color.rgb, in.alpha);
+}
+`;
+
+  function _gpuInitPanel(p, device, geom) {
+    const fmt = navigator.gpu.getPreferredCanvasFormat();
+    const ctx = p.gpuCanvas.getContext('webgpu');
+    // Opaque canvas: voxel alpha-blending happens inside the render pass over
+    // the opaque background clear, so the canvas itself stays opaque.
+    ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
+    const isVox = geom === 'voxels';
+    const module = device.createShaderModule({
+      code: isVox ? _GPU_VOXEL_WGSL : _GPU_POINT_WGSL });
+    // Voxels with baseAlpha < 1 blend (back-to-front not guaranteed, but the
+    // depth buffer + low alpha reads acceptably for a translucent volume;
+    // opaque voxels use depth only).
+    const blend = {
+      color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+      alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' },
+    };
+    const pipeline = device.createRenderPipeline({
+      layout: 'auto',
+      vertex: {
+        module, entryPoint: 'vs',
+        buffers: [
+          { arrayStride: 12, stepMode: 'instance',
+            attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] },
+          { arrayStride: 4, stepMode: 'instance',
+            attributes: [{ shaderLocation: 1, offset: 0, format: 'unorm8x4' }] },
+        ],
+      },
+      fragment: { module, entryPoint: 'fs',
+                  targets: [{ format: fmt, blend: isVox ? blend : undefined }] },
+      primitive: { topology: 'triangle-list',
+                   cullMode: isVox ? 'back' : 'none' },
+      depthStencil: { format: 'depth24plus',
+                      // Translucent voxels: test depth but don't write it, so
+                      // blending isn't order-killed; opaque points write depth.
+                      depthWriteEnabled: !isVox, depthCompare: 'less' },
+    });
+    const uniformBuf = device.createBuffer({
+      size: isVox ? 160 : 96,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    const bindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: { buffer: uniformBuf } }],
+    });
+    p._gpuObj = { device, ctx, fmt, pipeline, uniformBuf, bindGroup, geom,
+                  posBuf: null, colBuf: null, depthTex: null,
+                  count: 0, geomKey: null };
+  }
+
+  function _gpuUploadGeometry(p) {
+    const g = p._gpuObj, st = p.state, device = g.device;
+    const key = st.vertices_b64 || '';
+    if (g.geomKey === key && g.posBuf) return;
+    g.geomKey = key;
+    if (g.posBuf) g.posBuf.destroy();
+    if (g.colBuf) g.colBuf.destroy();
+
+    const verts = p._3dVerts || [];   // [[x,y,z],...] decoded by draw3d
+    const n = verts.length;
+    g.count = n;
+    const pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      pos[i*3] = verts[i][0]; pos[i*3+1] = verts[i][1]; pos[i*3+2] = verts[i][2];
+    }
+    g.posBuf = device.createBuffer({
+      size: Math.max(16, pos.byteLength),
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(g.posBuf, 0, pos);
+
+    // Colours: per-point RGBA u8, or replicate the single colour.
+    const col = new Uint8Array(n * 4);
+    const pc = p._3dPCols;
+    if (pc) {
+      for (let i = 0; i < n; i++) {
+        col[i*4] = pc[i*3]; col[i*4+1] = pc[i*3+1];
+        col[i*4+2] = pc[i*3+2]; col[i*4+3] = 255;
+      }
+    } else {
+      const c = st.color || '#4fc3f7';
+      const r = parseInt(c.slice(1,3),16), gg = parseInt(c.slice(3,5),16),
+            b = parseInt(c.slice(5,7),16);
+      for (let i = 0; i < n; i++) {
+        col[i*4]=r; col[i*4+1]=gg; col[i*4+2]=b; col[i*4+3]=255;
+      }
+    }
+    g.colBuf = device.createBuffer({
+      size: Math.max(16, col.byteLength),
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(g.colBuf, 0, col);
+  }
+
+  // Orthographic clip-space matrix matching the canvas projection EXACTLY.
+  // Canvas does:  n = k*v - o  (k=2/maxR; o_i = k*bmin_i + extent_i/maxR),
+  //   sx = cx + scale*(r0·n) ;  sy = cy - scale*(r2·n) ;  depth from (r1·n)
+  // We want clip = M·[v;1] (WGSL is M × column-vector) producing:
+  //   clip.x = NDC.x = 2*sx/pw - 1
+  //   clip.y = NDC.y = 1 - 2*sy/ph   (NDC y is up; screen y is down)
+  //   clip.z in [0,1], clip.w = 1
+  //
+  // Substituting n = k*v - o, each clip component is affine in v:
+  //   clip.x = (2*scale*k/pw)*(r0·v) + [ -(2*scale/pw)*(r0·o) + (2*cx/pw - 1) ]
+  //   clip.y = -(2*scale*k/ph)*(r2·v) + [  (2*scale/ph)*(r2·o) + (1 - 2*cy/ph) ]
+  //   clip.z = -0.35*k*(r1·v) + [ 0.35*(r1·o) + 0.5 ]
+  //
+  // Build the 4 ROWS, then transpose into WGSL's column-major storage.
+  function _gpuMatrix(R, scale, cx, cy, pw, ph, bnds, maxR, xr, yr, zr) {
+    const r0 = R[0], r1 = R[1], r2 = R[2];
+    const k = 2 / maxR;
+    const ox = k*bnds.xmin + xr/maxR;
+    const oy = k*bnds.ymin + yr/maxR;
+    const oz = k*bnds.zmin + zr/maxR;
+    const r0o = r0[0]*ox + r0[1]*oy + r0[2]*oz;
+    const r1o = r1[0]*ox + r1[1]*oy + r1[2]*oz;
+    const r2o = r2[0]*ox + r2[1]*oy + r2[2]*oz;
+    const sx = 2*scale*k/pw,  sy = 2*scale*k/ph;
+    // Rows of M (M·[vx,vy,vz,1]ᵀ).  For Y: canvas does sy = cy - scale*(r2·n)
+    // (screen y down), and NDC.y = 1 - 2*sy/ph flips again — the two
+    // negations CANCEL, so rowY's coefficients are +sy*r2, not -sy*r2.
+    const rowX = [ sx*r0[0],  sx*r0[1],  sx*r0[2],  -(2*scale/pw)*r0o + (2*cx/pw - 1) ];
+    const rowY = [ sy*r2[0],  sy*r2[1],  sy*r2[2],  -(2*scale/ph)*r2o + (1 - 2*cy/ph) ];
+    const rowZ = [-0.35*k*r1[0], -0.35*k*r1[1], -0.35*k*r1[2], 0.35*r1o + 0.5 ];
+    const rowW = [0, 0, 0, 1];
+    // Column-major: column j = [rowX[j], rowY[j], rowZ[j], rowW[j]]
+    return new Float32Array([
+      rowX[0], rowY[0], rowZ[0], rowW[0],
+      rowX[1], rowY[1], rowZ[1], rowW[1],
+      rowX[2], rowY[2], rowZ[2], rowW[2],
+      rowX[3], rowY[3], rowZ[3], rowW[3],
+    ]);
+  }
+
+  function _gpuDrawPoints(p, R, scale, cx, cy) {
+    const g = p._gpuObj;
+    if (!g || !g.count) return;
+    const device = g.device, dpr = window.devicePixelRatio || 1;
+    const W = Math.max(1, Math.round(p.pw * dpr));
+    const H = Math.max(1, Math.round(p.ph * dpr));
+    if (p.gpuCanvas.width !== W || p.gpuCanvas.height !== H || !g.depthTex) {
+      p.gpuCanvas.width = W; p.gpuCanvas.height = H;
+      if (g.depthTex) g.depthTex.destroy();
+      g.depthTex = device.createTexture({
+        size: [W, H], format: 'depth24plus',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT });
+    }
+    // Uniforms (matrix uses dpr-scaled pixels so points size in CSS px)
+    const gm = p._gpuGeom;
+    const mvp = _gpuMatrix(R, scale * dpr, cx * dpr, cy * dpr, W, H,
+                           gm.bnds, gm.maxR, gm.xr, gm.yr, gm.zr);
+    const u = new Float32Array(24);
+    u.set(mvp, 0);
+    u[16] = W; u[17] = H; u[18] = (p.state.point_size || 4) * dpr;
+    device.queue.writeBuffer(g.uniformBuf, 0, u);
+
+    const enc = device.createCommandEncoder();
+    const bg = theme.bgPlot;
+    const cr = parseInt(bg.slice(1,3),16)/255 || 0.1;
+    const cg = parseInt(bg.slice(3,5),16)/255 || 0.1;
+    const cb = parseInt(bg.slice(5,7),16)/255 || 0.12;
+    const pass = enc.beginRenderPass({
+      colorAttachments: [{
+        view: g.ctx.getCurrentTexture().createView(),
+        clearValue: { r: cr, g: cg, b: cb, a: 1 },
+        loadOp: 'clear', storeOp: 'store' }],
+      depthStencilAttachment: {
+        view: g.depthTex.createView(),
+        depthClearValue: 1.0, depthLoadOp: 'clear', depthStoreOp: 'store' },
+    });
+    pass.setPipeline(g.pipeline);
+    pass.setBindGroup(0, g.bindGroup);
+    pass.setVertexBuffer(0, g.posBuf);
+    pass.setVertexBuffer(1, g.colBuf);
+    pass.draw(6, g.count);
+    pass.end();
+    device.queue.submit([enc.finish()]);
+  }
+
+  // Ensure the gpuCanvas + depth texture are sized to the panel (dpr-scaled).
+  function _gpuEnsureSize(p) {
+    const g = p._gpuObj, device = g.device, dpr = window.devicePixelRatio || 1;
+    const W = Math.max(1, Math.round(p.pw * dpr));
+    const H = Math.max(1, Math.round(p.ph * dpr));
+    if (p.gpuCanvas.width !== W || p.gpuCanvas.height !== H || !g.depthTex) {
+      p.gpuCanvas.width = W; p.gpuCanvas.height = H;
+      if (g.depthTex) g.depthTex.destroy();
+      g.depthTex = device.createTexture({
+        size: [W, H], format: 'depth24plus',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT });
+    }
+    return { W, H, dpr };
+  }
+
+  function _gpuBeginPass(g, enc) {
+    const bg = theme.bgPlot;
+    const cr = parseInt(bg.slice(1,3),16)/255 || 0.1;
+    const cg = parseInt(bg.slice(3,5),16)/255 || 0.1;
+    const cb = parseInt(bg.slice(5,7),16)/255 || 0.12;
+    return enc.beginRenderPass({
+      colorAttachments: [{
+        view: g.ctx.getCurrentTexture().createView(),
+        clearValue: { r: cr, g: cg, b: cb, a: 1 },
+        loadOp: 'clear', storeOp: 'store' }],
+      depthStencilAttachment: {
+        view: g.depthTex.createView(),
+        depthClearValue: 1.0, depthLoadOp: 'clear', depthStoreOp: 'store' },
+    });
+  }
+
+  function _gpuDrawVoxels(p, R, scale, cx, cy) {
+    const g = p._gpuObj;
+    if (!g || !g.count) return;
+    const st = p.state, device = g.device;
+    const { W, H, dpr } = _gpuEnsureSize(p);
+    const gm = p._gpuGeom;
+    const mvp = _gpuMatrix(R, scale * dpr, cx * dpr, cy * dpr, W, H,
+                           gm.bnds, gm.maxR, gm.xr, gm.yr, gm.zr);
+    // Uniform layout (std140-ish): mat4(0..63), half/baseA/sliceA/nPlanes
+    // (64..79), planeAxis vec4(80..95), planePos vec4(96..111),
+    // shade vec4(112..127).  Buffer is 160 to satisfy 16-byte rounding.
+    const u = new Float32Array(40);
+    u.set(mvp, 0);
+    u[16] = (st.voxel_size || 1) / 2;
+    u[17] = st.voxel_alpha != null ? st.voxel_alpha : 0.3;
+    u[18] = st.voxel_slice_alpha != null ? st.voxel_slice_alpha : 0.95;
+    const AXI = { x: 0, y: 1, z: 2 };
+    const planes = (st.overlay_widgets || [])
+      .filter(w => w.type === 'plane' && w.visible !== false).slice(0, 4);
+    u[19] = planes.length;
+    for (let i = 0; i < planes.length; i++) {
+      u[20 + i] = AXI[planes[i].axis] ?? 2;   // planeAxis vec4 @ float 20
+      u[24 + i] = planes[i].position || 0;     // planePos  vec4 @ float 24
+    }
+    u[28] = 0.82; u[29] = 0.68; u[30] = 1.0;   // shade x/y/z (match canvas)
+    device.queue.writeBuffer(g.uniformBuf, 0, u);
+
+    const enc = device.createCommandEncoder();
+    const pass = _gpuBeginPass(g, enc);
+    pass.setPipeline(g.pipeline);
+    pass.setBindGroup(0, g.bindGroup);
+    pass.setVertexBuffer(0, g.posBuf);
+    pass.setVertexBuffer(1, g.colBuf);
+    pass.draw(36, g.count);
+    pass.end();
+    device.queue.submit([enc.finish()]);
+  }
+
+  function _gpuDisposePanel(p) {
+    const g = p._gpuObj;
+    if (!g) return;
+    try {
+      g.posBuf && g.posBuf.destroy();
+      g.colBuf && g.colBuf.destroy();
+      g.depthTex && g.depthTex.destroy();
+      g.uniformBuf && g.uniformBuf.destroy();
+    } catch (_) {}
+    p._gpuObj = null;
+  }
+
   function draw3d(p) {
     const st = p.state; if (!st) return;
     _recordFrame(p);
@@ -1845,6 +2316,7 @@ function render({ model, el }) {
     const zKey = st.z_values_b64 || '';
     if (p._3dVertsKey !== vKey) {
       p._3dVertsKey = vKey;
+      p._voxGen = (p._voxGen || 0) + 1;   // invalidates voxel projection cache
       if (vKey) {
         const vf = _decodeF32(vKey);
         const nv = vf.length / 3;
@@ -1898,8 +2370,71 @@ function render({ model, el }) {
     const cx = pw / 2, cy = ph / 2;
     const scale = zoom * Math.min(pw, ph) * 0.32;
 
-    // Pre-project all vertices
-    const proj = verts.map(v => {
+    // ── WebGPU geometry path (instanced points + voxels) ──────────────────
+    // Decide once whether this panel renders geometry on the GPU.  On the
+    // first frame that wants it, kick off async device init; until it
+    // resolves (or if it fails) the canvas path below runs unchanged.
+    // A geom-type change tears down and re-inits the pipeline.
+    let gpuActive = false;
+    const gpuGeomChanged = p._gpuObj && p._gpuObj.geom !== geom;
+    if (gpuGeomChanged) { _gpuDisposePanel(p); p._gpu = undefined; }
+    if (p.kind === '3d' && _gpuWanted(st)) {
+      if (p._gpu === undefined) {
+        p._gpu = 'pending';
+        const initGeom = geom;
+        _gpuDevice().then((device) => {
+          if (!device || !panels.has(p.id)) { p._gpu = 'unavailable'; return; }
+          try { _gpuInitPanel(p, device, initGeom); p._gpu = 'active'; }
+          catch (e) { console.warn('[anyplotlib] GPU panel init failed:', e);
+                      p._gpu = 'unavailable'; }
+          _reportGpu(p);
+          _redrawPanel(p);
+        });
+      }
+      gpuActive = (p._gpu === 'active' && !!p._gpuObj);
+    } else if (p._gpu === 'active') {
+      // State no longer wants GPU — revert to canvas.
+      p._gpu = undefined; gpuActive = false;
+      if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+      _gpuDisposePanel(p);
+    }
+
+    if (gpuActive) {
+      // Decode per-instance colours (the canvas block that normally does this
+      // is skipped in GPU mode).
+      const pcKey = st.point_colors_b64 || '';
+      if (p._3dPColKey !== pcKey) {
+        p._3dPColKey = pcKey;
+        if (pcKey) {
+          const bin = atob(pcKey);
+          const buf = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+          p._3dPCols = buf;
+        } else { p._3dPCols = null; }
+      }
+      // Stash geometry params the GPU matrix needs, upload, draw.
+      p._gpuGeom = { bnds, maxR, xr, yr, zr };
+      p.gpuCanvas.style.display = 'block';
+      p.gpuCanvas.style.width  = pw + 'px';
+      p.gpuCanvas.style.height = ph + 'px';
+      // plotCanvas becomes a transparent decoration overlay
+      ctx.clearRect(0, 0, pw, ph);
+      try {
+        _gpuUploadGeometry(p);
+        if (geom === 'voxels') _gpuDrawVoxels(p, R, scale, cx, cy);
+        else                   _gpuDrawPoints(p, R, scale, cx, cy);
+      } catch (e) {
+        console.warn('[anyplotlib] GPU draw failed — falling back:', e);
+        p._gpu = 'unavailable'; gpuActive = false;
+        p.gpuCanvas.style.display = 'none';
+        ctx.fillStyle = theme.bgPlot; ctx.fillRect(0, 0, pw, ph);
+      }
+    }
+    p._gpuActiveNow = gpuActive;
+
+    // Pre-project all vertices (voxels use a faster typed-array path inline;
+    // skipped entirely when the GPU is drawing the geometry).
+    const proj = (geom === 'voxels' || gpuActive) ? null : verts.map(v => {
       const nv = norm(v);
       const rv = _applyRot(R, nv);
       return { s: _project3(rv, cx, cy, scale), d: rv[1] }; // d = depth (into screen)
@@ -1907,6 +2442,65 @@ function render({ model, el }) {
 
     // Z-value normalisation for colormap
     const zMin = bnds.zmin, zMax = bnds.zmax, zRange = (zMax - zMin) || 1;
+
+    // ── Reference sphere (set_sphere): shaded silhouette + wireframe ──────
+    // Drawn before the geometry so data sits on top; far-side scatter points
+    // are dimmed below for a correct depth read.
+    const sp = st.sphere;
+    const sphereOn = !!(sp && sp.radius > 0);
+    if (sphereOn) {
+      const cN   = norm([0, 0, 0]);
+      const cRot = _applyRot(R, cN);
+      const [spx, spy] = _project3(cRot, cx, cy, scale);
+      const spr  = (2 * sp.radius / maxR) * scale;
+      const col  = sp.color || '#9e9e9e';
+      ctx.save();
+      // Shaded silhouette disk (light from upper-left)
+      const grad = ctx.createRadialGradient(
+        spx - spr * 0.35, spy - spr * 0.35, spr * 0.1, spx, spy, spr);
+      grad.addColorStop(0, theme.dark ? '#cfd8dc' : '#ffffff');
+      grad.addColorStop(1, col);
+      ctx.globalAlpha = sp.alpha != null ? sp.alpha : 0.15;
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(spx, spy, spr, 0, Math.PI * 2); ctx.fill();
+      // Silhouette ring
+      ctx.globalAlpha = Math.min(1, (sp.alpha != null ? sp.alpha : 0.15) * 3);
+      ctx.strokeStyle = col; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(spx, spy, spr, 0, Math.PI * 2); ctx.stroke();
+      // Latitude/longitude wireframe, depth-dimmed per segment
+      if (sp.wireframe !== false) {
+        ctx.lineWidth = 0.7;
+        const SEG = 72, r3 = sp.radius;
+        const circles = [];
+        for (let lat = -60; lat <= 60; lat += 30) {        // parallels
+          const cl = Math.cos(lat * Math.PI / 180) * r3;
+          const zl = Math.sin(lat * Math.PI / 180) * r3;
+          circles.push(t => [cl * Math.cos(t), cl * Math.sin(t), zl]);
+        }
+        for (let lon = 0; lon < 180; lon += 30) {          // meridians
+          const cl = Math.cos(lon * Math.PI / 180), sl = Math.sin(lon * Math.PI / 180);
+          circles.push(t => {
+            const x3 = Math.cos(t) * r3;
+            return [Math.sin(t) * r3 * cl, Math.sin(t) * r3 * sl, x3];
+          });
+        }
+        for (const f of circles) {
+          let prev = null;
+          for (let i = 0; i <= SEG; i++) {
+            const t  = (i / SEG) * Math.PI * 2;
+            const rv = _applyRot(R, norm(f(t)));
+            const s  = _project3(rv, cx, cy, scale);
+            if (prev) {
+              ctx.globalAlpha = (rv[1] + prev[2]) / 2 > 0 ? 0.06 : 0.22;
+              ctx.strokeStyle = col;
+              ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(s[0], s[1]); ctx.stroke();
+            }
+            prev = [s[0], s[1], rv[1]];
+          }
+        }
+      }
+      ctx.restore();
+    }
 
     if (geom === 'surface' && faces.length > 0) {
       // Compute per-face mean depth and mean z for colour
@@ -1934,16 +2528,227 @@ function render({ model, el }) {
         ctx.stroke();
       }
 
-    } else if (geom === 'scatter') {
+    } else if (geom === 'scatter' && !gpuActive) {
+      // Optional per-point colours: b64-encoded uint8 RGB triplets
+      const pcKey = st.point_colors_b64 || '';
+      if (p._3dPColKey !== pcKey) {
+        p._3dPColKey = pcKey;
+        p._3dPColUniq = null;
+        if (pcKey) {
+          const bin = atob(pcKey);
+          const buf = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+          p._3dPCols = buf;
+        } else { p._3dPCols = null; }
+      }
+      const pCols = p._3dPCols;
       // Sort back-to-front so nearer points draw on top
       const order = proj.map((p2, i) => ({ i, d: p2.d })).sort((a, b) => b.d - a.d);
+      ctx.save();
       for (const { i } of order) {
         const [sx, sy] = proj[i].s;
+        // Dim far-side points when a reference sphere is shown (depth cue)
+        ctx.globalAlpha = (sphereOn && proj[i].d > 0) ? 0.25 : 1.0;
         ctx.beginPath();
         ctx.arc(sx, sy, ptSize, 0, Math.PI * 2);
-        ctx.fillStyle = color;
+        ctx.fillStyle = pCols
+          ? `rgb(${pCols[i*3]},${pCols[i*3+1]},${pCols[i*3+2]})`
+          : color;
         ctx.fill();
       }
+      ctx.restore();
+
+    } else if (geom === 'voxels' && !gpuActive) {
+      // Shaded translucent cubes at the vertex centres.  Voxels lying on a
+      // plane widget's slice render at voxel_slice_alpha (more opaque).
+      const pcKey = st.point_colors_b64 || '';
+      if (p._3dPColKey !== pcKey) {
+        p._3dPColKey = pcKey;
+        p._3dPColUniq = null;
+        if (pcKey) {
+          const bin = atob(pcKey);
+          const buf = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+          p._3dPCols = buf;
+        } else { p._3dPCols = null; }
+      }
+      const pCols  = p._3dPCols;
+      const vsz    = st.voxel_size || 1;
+      const h      = vsz / 2;
+      const baseA  = st.voxel_alpha != null ? st.voxel_alpha : 0.3;
+      const sliceA = st.voxel_slice_alpha != null ? st.voxel_slice_alpha : 0.95;
+      const planes = (st.overlay_widgets || []).filter(
+        w => w.type === 'plane' && w.visible !== false);
+      const AXI = { x: 0, y: 1, z: 2 };
+
+      // Orthographic projection + affine normalisation ⇒ the screen offset
+      // of a fixed data-space offset is constant, so cube-corner offsets and
+      // face visibility are computed ONCE per frame (one projection/voxel).
+      const s2 = 2 / maxR;
+      const corners = [];
+      for (let ci = 0; ci < 8; ci++) {
+        const o  = [ci & 1 ? h : -h, ci & 2 ? h : -h, ci & 4 ? h : -h];
+        const rv = _applyRot(R, [o[0] * s2, o[1] * s2, o[2] * s2]);
+        corners.push([rv[0] * scale, -rv[2] * scale]);
+      }
+      // Corner bit encoding: bit0 → +x, bit1 → +y, bit2 → +z
+      const FACES = [
+        { a: 0, n: [ 1, 0, 0], idx: [1, 3, 7, 5] },
+        { a: 0, n: [-1, 0, 0], idx: [0, 2, 6, 4] },
+        { a: 1, n: [0,  1, 0], idx: [2, 3, 7, 6] },
+        { a: 1, n: [0, -1, 0], idx: [0, 1, 5, 4] },
+        { a: 2, n: [0, 0,  1], idx: [4, 5, 7, 6] },
+        { a: 2, n: [0, 0, -1], idx: [0, 1, 3, 2] },
+      ];
+      const SHADE = [0.82, 0.68, 1.0];   // x / y / z faces — top brightest
+      const visF = [];
+      for (const f of FACES) {
+        if (_applyRot(R, f.n)[1] < 0) visF.push({ idx: f.idx, shade: SHADE[f.a] });
+      }
+
+      // Volumes typically have few label colours (grains, phases), so render
+      // each (colour, emphasis) cube ONCE into a sprite and blit per voxel —
+      // drawImage is ~10× cheaper than three path fills.  Degenerate
+      // many-colour data falls back to direct path drawing.
+      if (p._3dPColUniq == null) {
+        if (!pCols) { p._3dPColUniq = 1; }
+        else {
+          const seen = new Set();
+          for (let i = 0; i < pCols.length; i += 3) {
+            seen.add((pCols[i] << 16) | (pCols[i + 1] << 8) | pCols[i + 2]);
+            if (seen.size > 256) break;
+          }
+          p._3dPColUniq = seen.size;
+        }
+      }
+      const useSprites = p._3dPColUniq <= 256 &&
+                         typeof OffscreenCanvas !== 'undefined';
+
+      // Typed-array projection with inlined matrix math: no per-vertex
+      // allocations.  Cached per (geometry, view, panel size): redraws that
+      // don't move the camera — e.g. plane-widget drags — skip projection
+      // and depth-sort entirely and only re-blit.
+      const nV = verts.length;
+      const projKey = `${p._voxGen || 0}|${az}|${el}|${zoom}|${pw}x${ph}|${vsz}`;
+      if (p._voxProjKey !== projKey || p._voxProjN !== nV) {
+        p._voxProjKey = projKey;
+        p._voxProjN = nV;
+        const SXn = new Float32Array(nV);
+        const SYn = new Float32Array(nV);
+        const DPn = new Float32Array(nV);
+        const k2 = 2 / maxR;
+        const bx0 = bnds.xmin, by0 = bnds.ymin, bz0 = bnds.zmin;
+        const ox2 = xr / maxR, oy2 = yr / maxR, oz2 = zr / maxR;
+        const r00 = R[0][0], r01 = R[0][1], r02 = R[0][2];
+        const r10 = R[1][0], r11 = R[1][1], r12 = R[1][2];
+        const r20 = R[2][0], r21 = R[2][1], r22 = R[2][2];
+        for (let i = 0; i < nV; i++) {
+          const v  = verts[i];
+          const nx = (v[0] - bx0) * k2 - ox2;
+          const ny = (v[1] - by0) * k2 - oy2;
+          const nz = (v[2] - bz0) * k2 - oz2;
+          SXn[i] = cx + (r00 * nx + r01 * ny + r02 * nz) * scale;
+          DPn[i] = r10 * nx + r11 * ny + r12 * nz;
+          SYn[i] = cy - (r20 * nx + r21 * ny + r22 * nz) * scale;
+        }
+        p._voxSX = SXn; p._voxSY = SYn; p._voxDP = DPn;
+        p._voxOrder = Array.from({ length: nV }, (_, i) => i)
+          .sort((a, b) => DPn[b] - DPn[a]);
+      }
+      const SXa = p._voxSX, SYa = p._voxSY;
+      const order = p._voxOrder;
+      ctx.save();
+
+      if (useSprites) {
+        // Sprite extent = cube bounding box at the current rotation/zoom
+        let mnX = 1e9, mnY = 1e9, mxX = -1e9, mxY = -1e9;
+        for (const c of corners) {
+          if (c[0] < mnX) mnX = c[0]; if (c[0] > mxX) mxX = c[0];
+          if (c[1] < mnY) mnY = c[1]; if (c[1] > mxY) mxY = c[1];
+        }
+        const sw = Math.max(2, Math.ceil(mxX - mnX) + 2);
+        const sh = Math.max(2, Math.ceil(mxY - mnY) + 2);
+        const ox = -mnX + 1, oy = -mnY + 1;
+        const sprKey = `${az}|${el}|${zoom}|${vsz}|${pw}x${ph}`;
+        if (p._voxSprKey !== sprKey) {
+          p._voxSprKey = sprKey;
+          p._voxSprites = new Map();
+        }
+        const sprites = p._voxSprites;
+        const getSprite = (r0, g0, b0, stroked) => {
+          const k = ((r0 << 16) | (g0 << 8) | b0) * 2 + (stroked ? 1 : 0);
+          let s = sprites.get(k);
+          if (s) return s;
+          s = new OffscreenCanvas(sw, sh);
+          const sc = s.getContext('2d');
+          sc.lineWidth = 0.5;
+          sc.strokeStyle = 'rgba(0,0,0,0.35)';
+          for (const f of visF) {
+            sc.fillStyle =
+              `rgb(${(r0 * f.shade) | 0},${(g0 * f.shade) | 0},${(b0 * f.shade) | 0})`;
+            sc.beginPath();
+            sc.moveTo(ox + corners[f.idx[0]][0], oy + corners[f.idx[0]][1]);
+            for (let k2 = 1; k2 < 4; k2++) {
+              sc.lineTo(ox + corners[f.idx[k2]][0], oy + corners[f.idx[k2]][1]);
+            }
+            sc.closePath();
+            sc.fill();
+            if (stroked) sc.stroke();   // crisp edges on the selected slice
+          }
+          sprites.set(k, s);
+          return s;
+        };
+        for (let oi = 0; oi < nV; oi++) {
+          const i = order[oi];
+          const v = verts[i];
+          let emph = false;
+          for (const pl of planes) {
+            if (Math.abs(v[AXI[pl.axis] ?? 2] - (pl.position || 0)) <= vsz * 0.55) {
+              emph = true; break;
+            }
+          }
+          ctx.globalAlpha = emph ? sliceA : baseA;
+          const r0 = pCols ? pCols[i * 3]     : 79;
+          const g0 = pCols ? pCols[i * 3 + 1] : 195;
+          const b0 = pCols ? pCols[i * 3 + 2] : 247;
+          // Integer-snapped blit: subpixel drawImage triggers resampling,
+          // which dominates frame time in software rasterisers.
+          ctx.drawImage(getSprite(r0, g0, b0, emph),
+                        (SXa[i] - ox + 0.5) | 0, (SYa[i] - oy + 0.5) | 0);
+        }
+      } else {
+        // Direct path drawing (many unique colours / no OffscreenCanvas)
+        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        for (let oi = 0; oi < nV; oi++) {
+          const i = order[oi];
+          const vx2 = SXa[i], vy2 = SYa[i];
+          const v = verts[i];
+          let emph = false;
+          for (const pl of planes) {
+            if (Math.abs(v[AXI[pl.axis] ?? 2] - (pl.position || 0)) <= vsz * 0.55) {
+              emph = true; break;
+            }
+          }
+          ctx.globalAlpha = emph ? sliceA : baseA;
+          const r0 = pCols ? pCols[i * 3]     : 79;
+          const g0 = pCols ? pCols[i * 3 + 1] : 195;
+          const b0 = pCols ? pCols[i * 3 + 2] : 247;
+          for (const f of visF) {
+            ctx.fillStyle =
+              `rgb(${(r0 * f.shade) | 0},${(g0 * f.shade) | 0},${(b0 * f.shade) | 0})`;
+            ctx.beginPath();
+            ctx.moveTo(vx2 + corners[f.idx[0]][0], vy2 + corners[f.idx[0]][1]);
+            for (let k = 1; k < 4; k++) {
+              ctx.lineTo(vx2 + corners[f.idx[k]][0], vy2 + corners[f.idx[k]][1]);
+            }
+            ctx.closePath();
+            ctx.fill();
+            if (emph) ctx.stroke();
+          }
+        }
+      }
+      ctx.restore();
 
     } else if (geom === 'line') {
       ctx.beginPath();
@@ -1960,6 +2765,50 @@ function render({ model, el }) {
       for (const { s } of proj) {
         ctx.beginPath(); ctx.arc(s[0], s[1], lw + 1, 0, Math.PI * 2); ctx.fill();
       }
+    }
+
+    // ── Plane widgets: translucent draggable slice selectors ──────────────
+    // Drawn over the geometry; screen-space quads + the axis screen
+    // direction are cached on the panel for mousedown hit-testing and drag.
+    p._3dPlanes = [];
+    const planeWs = (st.overlay_widgets || []).filter(
+      w => w.type === 'plane' && w.visible !== false);
+    if (planeWs.length) {
+      const AXI = { x: 0, y: 1, z: 2 };
+      const lo = [bnds.xmin, bnds.ymin, bnds.zmin];
+      const hi = [bnds.xmax, bnds.ymax, bnds.zmax];
+      ctx.save();
+      for (const w of planeWs) {
+        const a   = AXI[w.axis] ?? 2;
+        const u   = (a + 1) % 3, vA = (a + 2) % 3;
+        const pos = Math.max(lo[a], Math.min(hi[a], w.position || 0));
+        const mk  = (uu, vv) => {
+          const c = [0, 0, 0]; c[a] = pos; c[u] = uu; c[vA] = vv; return c;
+        };
+        const cs  = [mk(lo[u], lo[vA]), mk(hi[u], lo[vA]),
+                     mk(hi[u], hi[vA]), mk(lo[u], hi[vA])];
+        const scr = cs.map(c => _project3(_applyRot(R, norm(c)), cx, cy, scale));
+        // Screen direction of +1 data unit along the plane's axis (for drag)
+        const c0 = [0, 0, 0];
+        c0[a] = pos; c0[u] = (lo[u] + hi[u]) / 2; c0[vA] = (lo[vA] + hi[vA]) / 2;
+        const c1 = c0.slice(); c1[a] = pos + 1;
+        const s0 = _project3(_applyRot(R, norm(c0)), cx, cy, scale);
+        const s1 = _project3(_applyRot(R, norm(c1)), cx, cy, scale);
+        const col = w.color || '#00e5ff';
+        const al  = w.alpha != null ? w.alpha : 0.12;
+        ctx.globalAlpha = al;
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(scr[0][0], scr[0][1]);
+        for (let k = 1; k < 4; k++) ctx.lineTo(scr[k][0], scr[k][1]);
+        ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = Math.min(1, al * 5);
+        ctx.lineWidth = 1.5; ctx.strokeStyle = col; ctx.stroke();
+        p._3dPlanes.push({ id: w.id, corners: scr,
+                           dir: [s1[0] - s0[0], s1[1] - s0[1]],
+                           lo: lo[a], hi: hi[a] });
+      }
+      ctx.restore();
     }
 
     // ── Draw axes ────────────────────────────────────────────────────────────
@@ -2024,6 +2873,34 @@ function render({ model, el }) {
         ctx.fillText(fmtVal(tv), tx + 3, ty - 1);
       }
     }
+
+    // ── Highlight point (drawn last, always on top) ───────────────────────
+    // st.highlight = {x, y, z, color, size} in data coordinates.  A filled
+    // dot with a contrasting ring; semi-transparent when on the far side of
+    // the data (depth cue).
+    const hl = st.highlight;
+    if (hl && hl.x != null) {
+      const rv = _applyRot(R, norm([hl.x, hl.y, hl.z]));
+      const [hx, hy] = _project3(rv, cx, cy, scale);
+      const far = rv[1] > 0;
+      const sz  = hl.size || 7;
+      ctx.save();
+      ctx.globalAlpha = far ? 0.45 : 1.0;
+      ctx.beginPath();
+      ctx.arc(hx, hy, sz, 0, Math.PI * 2);
+      ctx.fillStyle = hl.color || '#ff1744';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = theme.dark ? '#ffffff' : '#1a1a1a';
+      ctx.stroke();
+      // Outer ring for visibility against same-coloured points
+      ctx.beginPath();
+      ctx.arc(hx, hy, sz + 3.5, 0, Math.PI * 2);
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = hl.color || '#ff1744';
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // ── event emission helper (module-scope: accessible to all attach fns) ──
@@ -2059,19 +2936,78 @@ function render({ model, el }) {
   function _attachEvents3d(p) {
     const { overlayCanvas } = p;
     let dragStart = null;
+    let planeDrag = null;   // active plane-widget drag, or null
     const _scheduleCommit = _makeCommitter(() => model.save_changes());
     const settled = _makeSettledScheduler(p);
 
+    // Write our (already-applied) interaction state without triggering the
+    // panel listener echo — see the _selfWrite guard in _createPanelDOM.
+    function _writeState() {
+      p._selfWrite = true;
+      try { model.set(`panel_${p.id}_json`, JSON.stringify(p.state)); }
+      finally { p._selfWrite = false; }
+    }
+
+    // Point-in-quad test against the screen-space planes cached by draw3d.
+    function _hitPlane(mx, my) {
+      const list = p._3dPlanes || [];
+      for (let i = list.length - 1; i >= 0; i--) {
+        const c = list[i].corners;
+        let inside = false;
+        for (let k = 0, j = 3; k < 4; j = k++) {
+          if (((c[k][1] > my) !== (c[j][1] > my)) &&
+              (mx < (c[j][0] - c[k][0]) * (my - c[k][1]) /
+                    (c[j][1] - c[k][1]) + c[k][0])) {
+            inside = !inside;
+          }
+        }
+        if (inside) return list[i];
+      }
+      return null;
+    }
 
     overlayCanvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
       const {mx:_d3mx, my:_d3my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      // Plane-widget drag takes precedence over orbiting.
+      // Cache only the widget ID — p.state is replaced on every model echo,
+      // so object references into overlay_widgets go stale mid-drag.
+      const hit = _hitPlane(_d3mx, _d3my);
+      if (hit) {
+        const ws = (p.state.overlay_widgets || []).find(w => w.id === hit.id);
+        if (ws) {
+          planeDrag = { id: hit.id, dir: hit.dir, lo: hit.lo, hi: hit.hi,
+                        mx: _d3mx, my: _d3my, start: ws.position || 0 };
+          overlayCanvas.style.cursor = 'move';
+          return;
+        }
+      }
       dragStart = { mx: _d3mx, my: _d3my,
                     az: p.state.azimuth, el: p.state.elevation };
       overlayCanvas.style.cursor = 'grabbing';
       // Do NOT call e.preventDefault() — suppresses click → dblclick cascade.
     });
     document.addEventListener('mousemove', (e) => {
+      if (planeDrag) {
+        const {mx, my} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+        const d   = planeDrag.dir;
+        const len2 = d[0] * d[0] + d[1] * d[1] || 1;
+        const delta = ((mx - planeDrag.mx) * d[0] + (my - planeDrag.my) * d[1]) / len2;
+        // Re-resolve the widget in the CURRENT state (replaced on model echo)
+        const ws = (p.state.overlay_widgets || []).find(w => w.id === planeDrag.id);
+        if (ws) {
+          ws.position = Math.max(planeDrag.lo,
+            Math.min(planeDrag.hi, planeDrag.start + delta));
+          draw3d(p);
+          // Write fresh state BEFORE emitting so the listener echo re-parses
+          // the updated widgets (mirrors the orbit-drag pattern).
+          _writeState();
+          _emitEvent(p.id, 'pointer_move', planeDrag.id,
+            { axis: ws.axis, position: ws.position, ..._pointerFields(e) });
+        }
+        e.preventDefault();
+        return;
+      }
       if (!dragStart) return;
       const {mx:_d3mx2, my:_d3my2} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       const dx = _d3mx2 - dragStart.mx;
@@ -2079,7 +3015,7 @@ function render({ model, el }) {
       p.state.azimuth   = dragStart.az + dx * 0.5;
       p.state.elevation = Math.max(-89, Math.min(89, dragStart.el - dy * 0.5));
       draw3d(p);
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _writeState();
       _emitEvent(p.id, 'pointer_move', null,
         { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
           ..._pointerFields(e) });
@@ -2087,10 +3023,22 @@ function render({ model, el }) {
     });
     document.addEventListener('mouseup', (e) => {
       settled.clear();
+      if (planeDrag) {
+        const wid = planeDrag.id;
+        planeDrag = null;
+        overlayCanvas.style.cursor = 'grab';
+        _writeState();
+        const ws = (p.state.overlay_widgets || []).find(w => w.id === wid);
+        _emitEvent(p.id, 'pointer_up', wid,
+          { axis: ws ? ws.axis : null, position: ws ? ws.position : null,
+            ..._pointerFields(e), button: e.button });
+        _scheduleCommit();
+        return;
+      }
       if (!dragStart) return;
       dragStart = null;
       overlayCanvas.style.cursor = 'grab';
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _writeState();
       _emitEvent(p.id, 'pointer_up', null,
         { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
           ..._pointerFields(e), button: e.button });
@@ -2101,7 +3049,7 @@ function render({ model, el }) {
       e.preventDefault();
       p.state.zoom = Math.max(0.1, Math.min(10, p.state.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
       draw3d(p);
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      _writeState();
       _emitEvent(p.id, 'wheel', null, {
         time_stamp: performance.now() / 1000,
         modifiers: _modifiers(e),
@@ -2135,7 +3083,7 @@ function render({ model, el }) {
       if (e.key.toLowerCase() === 'r') {
         p.state.azimuth = -60; p.state.elevation = 30; p.state.zoom = 1;
         draw3d(p);
-        model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+        _writeState();
         model.save_changes();
         e.stopPropagation(); e.preventDefault();
       }

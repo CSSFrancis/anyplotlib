@@ -44,8 +44,12 @@ class Axes:
 
         Parameters
         ----------
-        data : np.ndarray, shape (H, W) or (H, W, C)
-            Image data.  RGB/RGBA arrays use only the first channel.
+        data : np.ndarray, shape (H, W) or (H, W, 3|4)
+            Image data.  2-D arrays are colormapped.  ``(H, W, 3)`` /
+            ``(H, W, 4)`` arrays render as true-colour RGB(A): uint8 values
+            are used directly; floats are interpreted as 0–1 (or 0–255 when
+            the max exceeds 1).  ``cmap``/``vmin``/``vmax`` and the colorbar
+            do not apply to RGB images.
         axes : [x_axis, y_axis], optional
             Physical coordinate arrays for each axis.
         units : str, optional
@@ -129,28 +133,108 @@ class Axes:
 
     def scatter3d(self, x, y, z, *,
                   color: str = "#4fc3f7",
+                  colors=None,
                   point_size: float = 4.0,
                   x_label: str = "x", y_label: str = "y", z_label: str = "z",
                   azimuth: float = -60.0, elevation: float = 30.0,
-                  zoom: float = 1.0) -> "Plot3D":
+                  zoom: float = 1.0,
+                  bounds=None,
+                  gpu: str | bool = "auto") -> "Plot3D":
         """Attach a 3-D scatter plot to this axes cell.
 
         Parameters
         ----------
         x, y, z : array-like, shape (N,)  Point coordinates.
         color : str, optional  CSS colour for all points.
+        colors : list of "#rrggbb" or (N, 3) array, optional
+            Per-point colours (overrides *color*).  Floats are 0–1.
         point_size : float, optional  Radius of each point in pixels.
         x_label, y_label, z_label : str, optional  Axis labels.
         azimuth, elevation : float, optional  Initial camera angles in degrees.
         zoom : float, optional  Initial zoom factor.
+        bounds : ((xmin, xmax), (ymin, ymax), (zmin, zmax)), optional
+            Fix the axes bounds instead of fitting them to the data — keeps
+            the origin and scale stable, e.g. ``((-1, 1),) * 3`` for unit
+            vectors on a sphere.
+        gpu : ``"auto"`` | bool, optional
+            WebGPU acceleration policy.  ``"auto"`` (default) renders on the
+            GPU when available and the cloud exceeds ~20k points, else
+            Canvas2D; ``True`` always attempts GPU; ``False`` forces Canvas2D.
+            Falls back silently when WebGPU is unavailable — check
+            :attr:`Plot3D.gpu_active` for the actual path.
 
         Returns
         -------
         Plot3D
         """
-        plot = Plot3D("scatter", x, y, z, color=color, point_size=point_size,
+        plot = Plot3D("scatter", x, y, z, color=color, colors=colors,
+                      point_size=point_size,
                       x_label=x_label, y_label=y_label, z_label=z_label,
-                      azimuth=azimuth, elevation=elevation, zoom=zoom)
+                      azimuth=azimuth, elevation=elevation, zoom=zoom,
+                      bounds=bounds, gpu=gpu)
+        self._attach(plot)
+        return plot
+
+    def voxels(self, x, y, z, *,
+               colors=None,
+               color: str = "#4fc3f7",
+               size: float = 1.0,
+               alpha: float = 0.3,
+               x_label: str = "x", y_label: str = "y", z_label: str = "z",
+               azimuth: float = -60.0, elevation: float = 30.0,
+               zoom: float = 1.0,
+               bounds=None,
+               gpu: str | bool = "auto") -> "Plot3D":
+        """Attach a 3-D voxel plot: shaded translucent cubes at the centres.
+
+        Designed for volumetric grain/label maps.  Add draggable
+        :class:`~anyplotlib.PlaneWidget` slice selectors with
+        ``plot.add_widget("plane", axis=..., position=...)`` — voxels lying
+        on a plane render at ``voxel_slice_alpha`` (more opaque) so the
+        selected slice pops out of the translucent volume.
+
+        **Large volumes** With WebGPU (``gpu="auto"``, the default, active
+        above ~8k cubes when a GPU is present) hundreds of thousands of
+        voxels render interactively via instancing.  On the Canvas2D
+        fallback the budget is ~20k cubes (~3–6 µs each); a warning is
+        emitted above that *only when* ``gpu=False``.  For volumes too large
+        even for the GPU (e.g. a 512 × 512 × 300 tomogram = 78M voxels),
+        downsample with stride slicing (``vol[::s, ::s, ::s]``) or draw only
+        grain-boundary voxels, and pair the 3-D overview with linked
+        full-resolution 2-D slice panels — the voxel grain explorer example
+        demonstrates this pattern.
+
+        Parameters
+        ----------
+        x, y, z : array-like, shape (N,)
+            Voxel centre coordinates.
+        colors : list of "#rrggbb" or (N, 3) array, optional
+            Per-voxel colours (overrides *color*).  Floats are 0–1.
+        color : str, optional  Single CSS colour when *colors* is omitted.
+        size : float, optional  Cube edge length in data units.  Default 1.
+        alpha : float, optional
+            Base voxel opacity (0–1).  Default 0.3.  See also
+            :meth:`Plot3D.set_voxel_alpha`.
+        x_label, y_label, z_label : str, optional  Axis labels.
+        azimuth, elevation : float, optional  Initial camera angles in degrees.
+        zoom : float, optional  Initial zoom factor.
+        bounds : ((xmin, xmax), (ymin, ymax), (zmin, zmax)), optional
+            Fix the axes bounds instead of fitting them to the data.
+        gpu : ``"auto"`` | bool, optional
+            WebGPU acceleration policy.  ``"auto"`` (default) renders cubes
+            on the GPU when available and the set exceeds ~8k; ``True`` always
+            attempts GPU; ``False`` forces Canvas2D.  Falls back silently when
+            WebGPU is unavailable — see :attr:`Plot3D.gpu_active`.
+
+        Returns
+        -------
+        Plot3D
+        """
+        plot = Plot3D("voxels", x, y, z, color=color, colors=colors,
+                      voxel_size=size, alpha=alpha,
+                      x_label=x_label, y_label=y_label, z_label=z_label,
+                      azimuth=azimuth, elevation=elevation, zoom=zoom,
+                      bounds=bounds, gpu=gpu)
         self._attach(plot)
         return plot
 

@@ -57,6 +57,28 @@ def _norm_linestyle(ls: str) -> str:
     return canonical
 
 
+def _to_rgba_u8(data: np.ndarray) -> np.ndarray:
+    """Convert an (H, W, 3|4) colour array to uint8 RGBA.
+
+    Floats are interpreted as 0–1 (scaled ×255) when the max is ≤ 1,
+    otherwise as 0–255 and clipped.  A missing alpha channel becomes 255.
+    """
+    data = np.asarray(data)
+    if data.ndim != 3 or data.shape[2] not in (3, 4):
+        raise ValueError(f"expected (H, W, 3|4) colour array, got {data.shape}")
+    if data.dtype != np.uint8:
+        arr = data.astype(np.float64)
+        if arr.max() <= 1.0:
+            arr = arr * 255.0
+        data = np.clip(arr, 0, 255).astype(np.uint8)
+    if data.shape[2] == 3:
+        rgba = np.empty((*data.shape[:2], 4), dtype=np.uint8)
+        rgba[..., :3] = data
+        rgba[..., 3] = 255
+        return rgba
+    return np.ascontiguousarray(data)
+
+
 def _normalize_image(data: np.ndarray):
     """Normalise data to uint8, returning (img_u8, vmin, vmax)."""
     img = data.astype(np.float64, copy=False)

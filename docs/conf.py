@@ -63,7 +63,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 sphinx_gallery_conf = {
     "examples_dirs": "../Examples",
     "gallery_dirs": "auto_examples",
-    "filename_pattern": r"/plot_",
+    # [\\/] matches both path separators so examples execute on Windows too
+    # (a bare "/" silently skips execution there — pages build but have no
+    # figures).
+    "filename_pattern": r"[\\/]plot_",
     "plot_gallery": True,
     "download_all_examples": True,
     "remove_config_comments": True,
@@ -116,68 +119,8 @@ autodoc_typehints = "description"
 # ---------------------------------------------------------------------------
 # Pyodide wheel
 # ---------------------------------------------------------------------------
-# Built once per `make html` so pyodide_bridge.js can install the *exact*
-# version of anyplotlib that generated these docs — no PyPI release needed.
-#
-# Dev build   (DOCS_VERSION=dev)     → wheel from working tree
-# Stable build (DOCS_VERSION=v0.1.0) → wheel from the checked-out tag
-#
-# Both produce _static/wheels/anyplotlib-latest-py3-none-any.whl, a stable
-# filename that pyodide_bridge.js can always reference.  Each deployed version
-# has its own copy under its own URL prefix (e.g. /dev/_static/wheels/ vs
-# /v0.1.0/_static/wheels/) so there is no cross-version contamination —
-# pyodide_bridge.js derives the wheel URL from its own script src, which
-# already carries the version prefix.
-def setup(app):
-    """Build the anyplotlib wheel for the in-browser Pyodide bridge.
-
-    In CI the workflow pre-builds the wheel before sphinx-build runs, so we
-    skip the build step if ``anyplotlib-0.0.0-py3-none-any.whl`` is already
-    present.  This avoids a redundant ``pip wheel`` invocation and keeps the
-    local ``make html`` path working without needing ``uv build``.
-    """
-    import subprocess
-    import sys
-    from pathlib import Path
-
-    wheels_dir = Path(__file__).parent / "_static" / "wheels"
-    wheels_dir.mkdir(parents=True, exist_ok=True)
-
-    stable = wheels_dir / "anyplotlib-0.0.0-py3-none-any.whl"
-
-    # If the wheel was already built by the workflow step (or a previous local
-    # build), reuse it rather than rebuilding.
-    if stable.exists():
-        print(f"[pyodide_bridge] wheel already present → {stable}")
-        return
-
-    # Remove stale wheels from previous builds.
-    for old in wheels_dir.glob("anyplotlib*.whl"):
-        old.unlink(missing_ok=True)
-
-    # Build a pure-Python wheel from the project root.
-    # --no-deps: only package anyplotlib itself; micropip resolves deps.
-    project_root = Path(__file__).parent.parent
-    result = subprocess.run(
-        [
-            sys.executable, "-m", "pip", "wheel",
-            "--no-deps", "--quiet",
-            "--wheel-dir", str(wheels_dir),
-            str(project_root),
-        ],
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode != 0:
-        print(f"\n[pyodide_bridge] WARNING: wheel build failed:\n{result.stderr}")
-        return
-
-    # Rename to the stable sentinel name micropip accepts for URL installs.
-    # "0.0.0" is a valid PEP 440 version; micropip skips PyPI checks for
-    # wheels installed by URL so the actual version number doesn't matter.
-    wheels = sorted(wheels_dir.glob("anyplotlib*.whl"))
-    if wheels:
-        stable.unlink(missing_ok=True)
-        wheels[-1].rename(stable)
-        print(f"[pyodide_bridge] wheel → {stable}")
+# The anyplotlib.sphinx_anywidget extension builds the Pyodide wheel at
+# builder-inited (uv-based, with a source-mtime staleness check so the ⚡
+# interactive mode never runs stale code).  In CI the workflow pre-builds a
+# fresh wheel before sphinx-build, which the extension then reuses.  No
+# conf.py wheel logic is needed.

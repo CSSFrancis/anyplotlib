@@ -304,6 +304,45 @@ def test_bench_plot3d(bench_page, update_benchmarks, ignore_hardware):
                      ignore_hardware=ignore_hardware)
 
 
+# ── voxel benchmarks ──────────────────────────────────────────────────────────
+
+def _voxel_scene(n_vox):
+    rng = np.random.default_rng(7)
+    pts = rng.uniform(0, 48, size=(n_vox, 3))
+    palette = rng.integers(0, 255, size=(40, 3)).astype(np.uint8)
+    colors = palette[rng.integers(0, 40, size=n_vox)]
+    fig, ax = apl.subplots(1, 1, figsize=(480, 480))
+    plot = ax.voxels(pts[:, 0], pts[:, 1], pts[:, 2], colors=colors,
+                     size=3.0, alpha=0.15, bounds=((0, 48),) * 3)
+    plot.add_widget("plane", axis="z", position=24)
+    return fig, plot
+
+
+@pytest.mark.parametrize("n_vox", [4000, 10000], ids=["4kvox", "10kvox"])
+def test_bench_voxels_orbit(n_vox, bench_page, update_benchmarks, ignore_hardware):
+    """Voxel orbiting: full projection + depth sort + sprite blit per frame."""
+    fig, plot = _voxel_scene(n_vox)
+    page = bench_page(fig)
+    timing = _run_bench(page, plot._id, perturb_field="azimuth",
+                        perturb_delta=1.0, n_warmup=3, n_samples=15)
+    _check_or_update(f"js_voxels_orbit_{n_vox}", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
+
+
+def test_bench_voxels_reblit(bench_page, update_benchmarks, ignore_hardware):
+    """Voxel re-blit (camera unchanged): the plane-drag hot path.
+
+    Perturbing ``voxel_alpha`` redraws without invalidating the cached
+    projection/depth-sort or per-colour sprites, isolating the blit loop.
+    """
+    fig, plot = _voxel_scene(4000)
+    page = bench_page(fig)
+    timing = _run_bench(page, plot._id, perturb_field="voxel_alpha",
+                        perturb_delta=0.0005, n_warmup=3, n_samples=15)
+    _check_or_update("js_voxels_reblit_4000", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
+
+
 # ── bar chart benchmark ───────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("n_bars", [10, 100], ids=["10bars", "100bars"])
