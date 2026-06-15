@@ -7,7 +7,6 @@ Top-level Figure widget (the single anywidget.AnyWidget subclass).
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import json
 import pathlib
 import time
@@ -121,10 +120,10 @@ class Figure(anywidget.AnyWidget):
         self._batching: bool = False
         self._batch_dirty: set = set()
         # Geometry-channel bookkeeping (per panel id): a monotonic revision
-        # and the hash of the last geometry blob sent, so geometry is
-        # re-transmitted only when it genuinely changes.
+        # and the last geometry dict sent, so geometry is re-transmitted only
+        # when its values genuinely change.
         self._geom_rev: dict = {}
-        self._geom_hash: dict = {}
+        self._geom_last: dict = {}
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -251,7 +250,7 @@ class Figure(anywidget.AnyWidget):
         if getattr(plot, "_GEOM_KEYS", None) and not self.has_trait(f"panel_{pid}_geom"):
             self.add_traits(**{f"panel_{pid}_geom": traitlets.Unicode("{}").tag(sync=True)})
             self._geom_rev[pid] = 0
-            self._geom_hash[pid] = None
+            self._geom_last[pid] = None
         self._plots_map[pid] = plot
         self._axes_map[pid]  = ax
         self._push(pid)
@@ -281,16 +280,17 @@ class Figure(anywidget.AnyWidget):
         geom_keys = getattr(plot, "_GEOM_KEYS", None)
         gname = f"panel_{panel_id}_geom"
         if geom_keys and self.has_trait(gname):
-            # Split heavy geometry into its own channel; only re-send it when
-            # its content actually changes (hash compare), and reference it
-            # from the light view payload by revision so JS reuses its cache.
+            # Split heavy geometry into its own channel.  Detect change by
+            # comparing the geom values themselves (the b64 strings / LUT
+            # lists) against the last-sent snapshot — a reference/equality
+            # check that avoids re-serialising hundreds of KB on every
+            # view-only frame.  Only on a real change do we serialise the
+            # geom blob, bump the revision, and write the geom trait.
             geom = {k: state.pop(k) for k in geom_keys if k in state}
-            gblob = json.dumps(geom, sort_keys=True)
-            ghash = hashlib.md5(gblob.encode()).hexdigest()
-            if ghash != self._geom_hash.get(panel_id):
-                self._geom_hash[panel_id] = ghash
+            if geom != self._geom_last.get(panel_id):
+                self._geom_last[panel_id] = geom
                 self._geom_rev[panel_id] = self._geom_rev.get(panel_id, 0) + 1
-                setattr(self, gname, gblob)
+                setattr(self, gname, json.dumps(geom, sort_keys=True))
             state["_geom_rev"] = self._geom_rev.get(panel_id, 0)
             setattr(self, tname, json.dumps(state))
         else:
