@@ -10,7 +10,7 @@ from anyplotlib.markers import MarkerRegistry, MarkerGroup
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,
     CrosshairWidget, PolygonWidget, LabelWidget,
-    VLineWidget, HLineWidget, RangeWidget,
+    VLineWidget, HLineWidget, RangeWidget, PlaneWidget,
 )
 
 # ── Global help flag ──────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ __all__ = [
     "MarkerRegistry", "MarkerGroup",
     "Widget", "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget",
-    "VLineWidget", "HLineWidget", "RangeWidget",
+    "VLineWidget", "HLineWidget", "RangeWidget", "PlaneWidget",
     "show_help", "get_color_cycle",
     "embed",
 ]

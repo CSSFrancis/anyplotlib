@@ -188,9 +188,55 @@ inverses of the blit geometry.
 
 ---
 
-## 3D drawing (line 1833)
+## 3D drawing (line ~1840)
 Orthographic projection; geometry b64-decoded and cached.  `draw3d` sorts
 triangles, draws axes with per-axis `_drawTex` labels (`x/y/z_label_size`).
+
+- **Camera** (`_rot3`): turntable with matplotlib azim/elev semantics —
+  azimuth spins about the DATA z-axis, elevation tilts toward the viewer.
+  Faces unit vector v when `el = asin(vz)`, `az = atan2(vx, -vy)`.
+- **Scatter colours**: `st.point_colors_b64` (uint8 RGB triplets) gives
+  per-point colours; empty string falls back to `st.color`.
+- **Highlight**: `st.highlight = {x,y,z,color,size}` draws an emphasised
+  ringed dot on top of everything (semi-transparent on the far side).
+- **Reference sphere**: `st.sphere = {radius,color,alpha,wireframe}` draws a
+  shaded silhouette disk + lat/long wireframe behind the geometry; far-side
+  wireframe segments and scatter points are dimmed.
+- **Voxels** (`geom_type 'voxels'`): shaded translucent cubes at the vertex
+  centres.  `st.voxel_size`, `st.voxel_alpha`, `st.voxel_slice_alpha`.
+  Performance design (budget ~3–6 µs/cube, ≤ ~20k cubes interactive):
+  cube-corner screen offsets + face visibility computed once per frame;
+  per-(colour, emphasis) sprites blitted with integer-snapped `drawImage`
+  (≤256 unique colours; falls back to path fills above); typed-array
+  projection + depth-sort cached per (geometry generation, view, panel
+  size) so camera-static redraws (plane drags) only re-blit.  Benchmarks:
+  `test_bench_voxels_orbit` / `test_bench_voxels_reblit`.
+- **Echo guard**: `_attachEvents3d` writes interaction state via
+  `_writeState()` (sets `p._selfWrite`), and the panel-json listener skips
+  self-writes — without this every drag frame paid a second
+  JSON.parse + full redraw.
+- **WebGPU path** (progressive enhancement, additive): scatter points
+  (`_GPU_POINT_WGSL`) and voxels (`_GPU_VOXEL_WGSL`) render instanced on the
+  GPU when available and above threshold (`GPU_POINT_THRESHOLD` 20k /
+  `GPU_VOXEL_THRESHOLD` 8k); `gpu_mode` ∈ auto/always/off.  `gpuCanvas` sits
+  below `plotCanvas`; decorations always draw on the 2D `plotCanvas` over a
+  transparent background.  `_gpuMatrix` reproduces the canvas projection
+  EXACTLY (verify numerically — the y-coefficients are NOT negated: canvas
+  screen-y-down and NDC-y-up cancel).  Voxel slice emphasis + per-face shade
+  are uniforms, so plane drags are a uniform write.  Every failure path
+  (no `navigator.gpu`, null adapter, device lost, draw throw) sets
+  `p._gpu='unavailable'` and the Canvas2D path renders unchanged.  **Testing:
+  use offscreen-texture readback (`copyTextureToBuffer`), NOT screenshots —
+  the WebGPU swapchain doesn't snapshot reliably under automation.**
+- **Plane widgets** (`st.overlay_widgets`, type `'plane'`): translucent
+  draggable slice selectors.  `draw3d` caches screen quads + the axis screen
+  direction on `p._3dPlanes`; `_attachEvents3d` hit-tests them on mousedown
+  (plane drag wins over orbit) and drags along the normal.  Voxels within
+  half a voxel of a plane render at `voxel_slice_alpha`.  NOTE: during drags
+  re-resolve widgets by id in `p.state` — object references go stale because
+  the model echo replaces `p.state` on every `save_changes()`.
+- `st.data_bounds` may be fixed from Python (`bounds=` kwarg) so geometry
+  normalisation stays origin-true (unit-sphere direction vectors).
 
 ## Events
 - `_emitEvent(panelId, eventType, widgetId, extraData)` (line 2031) writes

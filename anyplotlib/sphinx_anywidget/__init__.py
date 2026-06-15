@@ -108,14 +108,28 @@ def _build_pyodide_wheel(app):
     (static_dir / "anywidget_config.js").write_text(config_js, encoding="utf-8")
 
     # If a stable wheel was already placed here (e.g. by the CI ``uv build``
-    # step that runs before sphinx-build), reuse it rather than deleting it
-    # and trying to rebuild — pip may not be available in a uv-managed venv.
+    # step that runs before sphinx-build), reuse it — but only when it is
+    # newer than every source file, otherwise the ⚡ interactive mode would
+    # run stale code.
     normalised = _re.sub(r"[-.]", "_", pkg)
     wheels_dir = static_dir / "wheels"
     stable = wheels_dir / f"{normalised}-0.0.0-py3-none-any.whl"
     if stable.exists():
-        print(f"[sphinx_anywidget] wheel already present → {stable}")
-        return
+        project_root = _find_project_root(conf_dir)
+        pkg_dir = project_root / pkg
+        newest_src = 0.0
+        if pkg_dir.is_dir():
+            newest_src = max(
+                (f.stat().st_mtime for f in pkg_dir.rglob("*")
+                 if f.suffix in (".py", ".js", ".css") and "tests" not in f.parts),
+                default=0.0,
+            )
+        if stable.stat().st_mtime >= newest_src:
+            # ASCII only: Windows consoles (cp1252) can't print '→'
+            print(f"[sphinx_anywidget] wheel up to date -> {stable}")
+            return
+        print("[sphinx_anywidget] wheel older than source -> rebuilding")
+        stable.unlink()
 
     from anyplotlib.sphinx_anywidget._wheel_builder import build_wheel
     project_root = _find_project_root(conf_dir)

@@ -6,6 +6,7 @@ Top-level Figure widget (the single anywidget.AnyWidget subclass).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import pathlib
 import time
@@ -116,6 +117,8 @@ class Figure(anywidget.AnyWidget):
         self._insets_map: dict = {}
         self._hspace: float | None = None
         self._wspace: float | None = None
+        self._batching: bool = False
+        self._batch_dirty: set = set()
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -241,14 +244,58 @@ class Figure(anywidget.AnyWidget):
         self._push_layout()
 
     def _push(self, panel_id: str) -> None:
-        """Serialise one panel and write to its trait."""
+        """Serialise one panel and write to its trait.
+
+        Inside a :meth:`batch` block, pushes are coalesced: each panel is
+        recorded as dirty and serialised + sent exactly once when the block
+        exits, no matter how many mutations touched it.  This collapses the
+        many per-frame pushes of a linked-view update (set_data + set_title +
+        widget moves on the same panel) into one serialise/transfer per panel
+        — the dominant cost over a Pyodide comm boundary.
+        """
         plot = self._plots_map.get(panel_id)
         if plot is None:
+            return
+        if self._batching:
+            self._batch_dirty.add(panel_id)
             return
         tname = f"panel_{panel_id}_json"
         if not self.has_trait(tname):
             return
         setattr(self, tname, json.dumps(plot.to_state_dict()))
+
+    @contextlib.contextmanager
+    def batch(self):
+        """Coalesce all panel pushes within the block into one push per panel.
+
+        Use around multi-panel updates (e.g. a linked-view crosshair handler)
+        so a single mouse event produces one serialise + transfer per panel
+        instead of one per mutation — a large win under Pyodide / remote
+        kernels where every push crosses a comm boundary.
+
+        ::
+
+            with fig.batch():
+                v_xz.set_data(slice_xz)
+                v_yz.set_data(slice_yz)
+                cross.set(cx=..., cy=...)
+        """
+        if self._batching:          # already batching — nest transparently
+            yield
+            return
+        self._batching = True
+        self._batch_dirty = set()
+        try:
+            yield
+        finally:
+            self._batching = False
+            dirty, self._batch_dirty = self._batch_dirty, set()
+            # One push per dirty panel — no matter how many mutations touched
+            # it during the block.  hold_trait_notifications coalesces the
+            # underlying comm traffic into a single sync.
+            with self.hold_trait_notifications():
+                for pid in dirty:
+                    self._push(pid)
 
     # ── layout ────────────────────────────────────────────────────────────────
     def _compute_cell_sizes(self) -> dict:
@@ -424,6 +471,12 @@ class Figure(anywidget.AnyWidget):
         if plot is None:
             return
 
+        # GPU activation status echo (WebGPU path) — not a user event.
+        if event_type == "gpu_status":
+            if hasattr(plot, "_set_gpu_active"):
+                plot._set_gpu_active(bool(msg.get("gpu_active", False)))
+            return
+
         source = None
         if widget_id and hasattr(plot, "_widgets"):
             widget = plot._widgets.get(widget_id)
@@ -463,6 +516,21 @@ class Figure(anywidget.AnyWidget):
                    "widget_id": widget_id}
         payload.update(fields)
         self.event_json = json.dumps(payload)
+
+    def _push_panel_fields(self, panel_id: str, fields: dict) -> None:
+        """Apply a small set of changed *fields* to a panel, then push once.
+
+        The fields are merged into the panel's ``_state`` and the panel is
+        pushed via the normal trait channel (authoritative for Jupyter,
+        snapshots, and the Pyodide bridge alike).  Inside a :meth:`batch`
+        block the push is coalesced, so many such field updates across many
+        panels collapse to one serialise + transfer per panel per frame —
+        the dominant per-frame cost over a comm boundary.
+        """
+        plot = self._plots_map.get(panel_id)
+        if plot is not None:
+            plot._state.update(fields)
+        self._push(panel_id)
 
     # ── helpers ───────────────────────────────────────────────────────────────
     def get_axes(self) -> list:

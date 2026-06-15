@@ -78,6 +78,7 @@ def build_wheel(
         for old in wheels_dir.glob(f"{normalised}*.whl"):
             old.unlink(missing_ok=True)
         new_wheels[-1].rename(stable)
-    print(f"[sphinx_anywidget] wheel → {stable}")
+    # ASCII only: Windows consoles (cp1252) can't print '→' during builds
+    print(f"[sphinx_anywidget] wheel -> {stable}")
     return stable
 

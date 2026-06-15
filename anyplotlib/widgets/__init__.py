@@ -7,10 +7,12 @@ from anyplotlib.widgets._widgets2d import (
 from anyplotlib.widgets._widgets1d import (
     VLineWidget, HLineWidget, RangeWidget, PointWidget,
 )
+from anyplotlib.widgets._widgets3d import PlaneWidget
 
 __all__ = [
     "Widget",
     "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget",
     "VLineWidget", "HLineWidget", "RangeWidget", "PointWidget",
+    "PlaneWidget",
 ]
