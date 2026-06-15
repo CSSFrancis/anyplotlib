@@ -119,6 +119,11 @@ class Figure(anywidget.AnyWidget):
         self._wspace: float | None = None
         self._batching: bool = False
         self._batch_dirty: set = set()
+        # Geometry-channel bookkeeping (per panel id): a monotonic revision
+        # and the last geometry dict sent, so geometry is re-transmitted only
+        # when its values genuinely change.
+        self._geom_rev: dict = {}
+        self._geom_last: dict = {}
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -238,6 +243,14 @@ class Figure(anywidget.AnyWidget):
         pid = plot._id
         if not self.has_trait(f"panel_{pid}_json"):
             self.add_traits(**{f"panel_{pid}_json": traitlets.Unicode("{}").tag(sync=True)})
+        # Plots that declare _GEOM_KEYS get a second trait carrying only the
+        # heavy geometry, re-sent only when that geometry changes.  The light
+        # view trait then references it by revision so JS reuses the cached
+        # decode across view-only updates (highlight, camera, planes).
+        if getattr(plot, "_GEOM_KEYS", None) and not self.has_trait(f"panel_{pid}_geom"):
+            self.add_traits(**{f"panel_{pid}_geom": traitlets.Unicode("{}").tag(sync=True)})
+            self._geom_rev[pid] = 0
+            self._geom_last[pid] = None
         self._plots_map[pid] = plot
         self._axes_map[pid]  = ax
         self._push(pid)
@@ -262,7 +275,26 @@ class Figure(anywidget.AnyWidget):
         tname = f"panel_{panel_id}_json"
         if not self.has_trait(tname):
             return
-        setattr(self, tname, json.dumps(plot.to_state_dict()))
+
+        state = plot.to_state_dict()
+        geom_keys = getattr(plot, "_GEOM_KEYS", None)
+        gname = f"panel_{panel_id}_geom"
+        if geom_keys and self.has_trait(gname):
+            # Split heavy geometry into its own channel.  Detect change by
+            # comparing the geom values themselves (the b64 strings / LUT
+            # lists) against the last-sent snapshot — a reference/equality
+            # check that avoids re-serialising hundreds of KB on every
+            # view-only frame.  Only on a real change do we serialise the
+            # geom blob, bump the revision, and write the geom trait.
+            geom = {k: state.pop(k) for k in geom_keys if k in state}
+            if geom != self._geom_last.get(panel_id):
+                self._geom_last[panel_id] = geom
+                self._geom_rev[panel_id] = self._geom_rev.get(panel_id, 0) + 1
+                setattr(self, gname, json.dumps(geom, sort_keys=True))
+            state["_geom_rev"] = self._geom_rev.get(panel_id, 0)
+            setattr(self, tname, json.dumps(state))
+        else:
+            setattr(self, tname, json.dumps(state))
 
     @contextlib.contextmanager
     def batch(self):

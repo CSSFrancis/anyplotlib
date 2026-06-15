@@ -339,6 +339,30 @@ function render({ model, el }) {
     }
   }
 
+  // Geometry channel: heavy keys (vertices/image/colormap) travel in a
+  // separate panel_<id>_geom trait, re-sent only when they change.  The light
+  // view payload carries _geom_rev; we cache the decoded geom per panel and
+  // splice it into the state before drawing, so view-only updates (highlight,
+  // camera, planes) never re-parse or re-transmit geometry.
+  function _applyGeom(p2, state) {
+    if (state._geom_rev === undefined) return state;   // panel has no geom channel
+    // Splice the last-decoded geometry into the view state.  The geom trait
+    // is sent before (or with) the first view payload and only re-sent on
+    // change, so the cache is the authoritative geometry for every frame;
+    // _geom_rev is carried for diagnostics / future invalidation but we
+    // always apply the cache when present (never drop geometry on a rev skew).
+    if (p2._geomCache) Object.assign(state, p2._geomCache);
+    return state;
+  }
+
+  // Parse the geom trait into the per-panel cache.
+  function _loadGeom(p2, raw, rev) {
+    try {
+      p2._geomCache = JSON.parse(raw || '{}');
+      p2._geomRev = rev;
+    } catch (_) {}
+  }
+
   // Factory: returns a debounced commit function.
   // onCommit is called once per animation frame after the last request.
   function _makeCommitter(onCommit) {
@@ -831,6 +855,20 @@ function render({ model, el }) {
     _resizePanelDOM(id, pw, ph);
     _attachPanelEvents(p);
 
+    // Geometry channel (only when this panel declared one on the Python side).
+    const _geomTrait = `panel_${id}_geom`;
+    const _hasGeom = model.get(_geomTrait) !== undefined;
+    if (_hasGeom) {
+      model.on(`change:${_geomTrait}`, () => {
+        const p2 = panels.get(id);
+        if (!p2) return;
+        const rev = (p2.state && p2.state._geom_rev !== undefined)
+          ? p2.state._geom_rev : ((p2._geomRev || 0) + 1);
+        _loadGeom(p2, model.get(_geomTrait), rev);
+        if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+      });
+    }
+
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
@@ -841,6 +879,7 @@ function render({ model, el }) {
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
         _preserveView(p2, newState);
+        _applyGeom(p2, newState);
         p2.state = newState;
       }
       catch(_) { return; }
@@ -848,7 +887,11 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    try { p.state = JSON.parse(model.get(`panel_${id}_json`)); } catch(_) {}
+    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    try {
+      p.state = JSON.parse(model.get(`panel_${id}_json`));
+      _applyGeom(p, p.state);
+    } catch(_) {}
     _redrawPanel(p);
   }
 
@@ -946,6 +989,20 @@ function render({ model, el }) {
     });
 
 
+    // Geometry channel (only when this panel declared one on the Python side).
+    const _geomTrait = `panel_${id}_geom`;
+    const _hasGeom = model.get(_geomTrait) !== undefined;
+    if (_hasGeom) {
+      model.on(`change:${_geomTrait}`, () => {
+        const p2 = panels.get(id);
+        if (!p2) return;
+        const rev = (p2.state && p2.state._geom_rev !== undefined)
+          ? p2.state._geom_rev : ((p2._geomRev || 0) + 1);
+        _loadGeom(p2, model.get(_geomTrait), rev);
+        if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+      });
+    }
+
     model.on(`change:panel_${id}_json`, () => {
       const p2 = panels.get(id);
       if (!p2) return;
@@ -956,6 +1013,7 @@ function render({ model, el }) {
       try {
         const newState = JSON.parse(model.get(`panel_${id}_json`));
         _preserveView(p2, newState);
+        _applyGeom(p2, newState);
         p2.state = newState;
       }
       catch(_) { return; }
@@ -963,7 +1021,11 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    try { p.state = JSON.parse(model.get(`panel_${id}_json`)); } catch(_) {}
+    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    try {
+      p.state = JSON.parse(model.get(`panel_${id}_json`));
+      _applyGeom(p, p.state);
+    } catch(_) {}
     _redrawPanel(p);
   }
 
@@ -1644,10 +1706,19 @@ function render({ model, el }) {
       const padT = p._padT || PAD_T;   // strip grows with title_size > 11
       p.titleCtx.clearRect(0, 0, tw, padT);
       if (title2d) {
+        // Clamp the drawn size so even the tallest glyphs (caps, descenders,
+        // TeX superscripts) fit the strip WITH clear top/bottom margin on
+        // every platform.  Font hinting varies — macOS Chromium renders ~1px
+        // taller than Windows at the same px — so a strip-tight title was
+        // clipped at row 0 on macOS CI.  Reserve ~4px total vertical margin;
+        // padT grows for large/TeX titles (see _padT) so this only bites the
+        // 12px default strip, capping an 11px title to ~8px — a sub-pixel
+        // change well within the visual-regression tolerance.
+        const px = Math.min(st.title_size || 11, padT - 4);
         p.titleCtx.fillStyle = theme.tickText;
         p.titleCtx.textBaseline = 'middle';
         _drawTex(p.titleCtx, title2d, tw / 2, padT / 2,
-                 st.title_size || 11, { align: 'center', weight: 'bold' });
+                 px, { align: 'center', weight: 'bold' });
       }
     }
   }
