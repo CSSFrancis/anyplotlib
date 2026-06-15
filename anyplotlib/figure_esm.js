@@ -346,12 +346,12 @@ function render({ model, el }) {
   // camera, planes) never re-parse or re-transmit geometry.
   function _applyGeom(p2, state) {
     if (state._geom_rev === undefined) return state;   // panel has no geom channel
-    if (p2._geomCache && p2._geomRev === state._geom_rev) {
-      Object.assign(state, p2._geomCache);
-    } else if (p2._geomCache) {
-      // Stale/missing rev — keep last known geometry rather than dropping it.
-      Object.assign(state, p2._geomCache);
-    }
+    // Splice the last-decoded geometry into the view state.  The geom trait
+    // is sent before (or with) the first view payload and only re-sent on
+    // change, so the cache is the authoritative geometry for every frame;
+    // _geom_rev is carried for diagnostics / future invalidation but we
+    // always apply the cache when present (never drop geometry on a rev skew).
+    if (p2._geomCache) Object.assign(state, p2._geomCache);
     return state;
   }
 
