@@ -329,7 +329,15 @@ class Plot3D(_BasePlot):
         self._push()
 
     def to_state_dict(self) -> dict:
-        return dict(self._state)
+        # Always serialise the live overlay widgets, so *every* push path
+        # (full _push, targeted _push_fields, batched) carries the current
+        # plane positions.  Without this, a view-only push (set_highlight /
+        # set_view) re-serialises a stale overlay_widgets snapshot and clobbers
+        # an in-progress plane drag in JS — the "snap-back" symptom.
+        d = dict(self._state)
+        if self._widgets:
+            d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        return d
 
     # ------------------------------------------------------------------
     @property

@@ -156,3 +156,44 @@ class TestVoxelRendering:
         moved = js_position()
         assert abs(moved - 3) > 0.5, (
             f"plane did not move on drag (position still {moved})")
+
+
+class TestPlaneDragNoSnapBack:
+    """Regression: a view-only push (set_highlight / set_view) must NOT clobber
+    a plane widget's live position — the "snap-back" symptom."""
+
+    def _voxels_with_plane(self):
+        fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+        g = np.arange(0, 8, dtype=float)
+        zz, yy, xx = np.meshgrid(g, g, g, indexing="ij")
+        v = ax.voxels(xx.ravel(), yy.ravel(), zz.ravel(), bounds=((0, 7),) * 3)
+        pw = v.add_widget("plane", axis="z", position=4)
+        return fig, v, pw
+
+    def test_to_state_dict_reflects_live_widget(self):
+        fig, v, pw = self._voxels_with_plane()
+        pw.set(position=2.7)
+        st = v.to_state_dict()
+        z = next(w["position"] for w in st["overlay_widgets"]
+                 if w["type"] == "plane" and w["axis"] == "z")
+        assert z == 2.7, f"to_state_dict serialised a stale plane position: {z}"
+
+    def test_set_highlight_preserves_plane_position(self):
+        fig, v, pw = self._voxels_with_plane()
+        pw.set(position=2.7)                 # simulate a mid-drag float position
+        v.set_highlight(1, 2, 3)             # view-only push on the same panel
+        import json
+        st = json.loads(getattr(fig, f"panel_{v._id}_json"))
+        z = next(w["position"] for w in st["overlay_widgets"]
+                 if w["type"] == "plane" and w["axis"] == "z")
+        assert z == 2.7, f"set_highlight snapped the plane back to {z} (want 2.7)"
+
+    def test_set_view_preserves_plane_position(self):
+        fig, v, pw = self._voxels_with_plane()
+        pw.set(position=5.3)
+        v.set_view(azimuth=10, elevation=20)
+        import json
+        st = json.loads(getattr(fig, f"panel_{v._id}_json"))
+        z = next(w["position"] for w in st["overlay_widgets"]
+                 if w["type"] == "plane" and w["axis"] == "z")
+        assert z == 5.3, f"set_view snapped the plane back to {z} (want 5.3)"
