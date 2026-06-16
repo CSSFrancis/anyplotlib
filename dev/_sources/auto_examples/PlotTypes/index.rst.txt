@@ -19,6 +19,23 @@ A collection of short examples showing different plot types.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Axis labels, titles, and the colorbar label accept an optional fontsize (in CSS pixels) and support a small TeX subset inside $...$ for scientific notation — superscripts, subscripts, Greek letters, and common symbols — rendered directly on the canvas with no MathJax dependency:">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_label_formatting_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_label_formatting`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Label Sizes and Scientific (TeX) Formatting</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view.">
 
 .. only:: html
@@ -163,6 +180,7 @@ A collection of short examples showing different plot types.
 .. toctree::
    :hidden:
 
+   /auto_examples/PlotTypes/plot_label_formatting
    /auto_examples/PlotTypes/plot_3d
    /auto_examples/PlotTypes/plot_pcolormesh
    /auto_examples/PlotTypes/plot_spectra1d

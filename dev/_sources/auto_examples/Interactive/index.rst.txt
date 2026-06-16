@@ -74,6 +74,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="An EBSD-style orientation explorer for a synthetic polycrystal:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_ipf_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_ipf_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inverse Pole Figure (IPF) Explorer</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel.">
 
 .. only:: html
@@ -159,6 +176,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="An orthoslice viewer for a synthetic 3-D polycrystal (voxel grain map), in the style of EBSD/tomography volume browsers:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_voxel_grain_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_voxel_grain_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3-D Voxel Grain Explorer</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="A synthetic (256, 256, 300) EDS datacube — one 300-channel spectrum per scan position.  Four rectangular ROIs overlay the total-counts image (HAADF proxy).  Entering an ROI sums all spectra within the rectangle (spatial sum over every scan position in the box) and displays the result in the top-right panel.  Draggable coloured range widgets on the spectrum define the integration window for each element; each bar height is the channel sum of the ROI spectrum within that window.">
 
 .. only:: html
@@ -191,6 +225,23 @@ interactions to live Python computations.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A 3 × 3 grid of synthetic images, each independently segmented by flood-fill.  Pass 8 or 9 images as images_flat; the grid always has 3 columns and enough rows to fit them all (last cell left blank when 8 images are supplied).">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_segment_by_contrast_advanced_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_segment_by_contrast_advanced`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Advanced Interactive Contrast Segmentation (3 × 3 Grid)</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -204,11 +255,14 @@ interactions to live Python computations.
    /auto_examples/Interactive/plot_point_widget
    /auto_examples/Interactive/plot_key_bindings
    /auto_examples/Interactive/plot_threshold_explorer
+   /auto_examples/Interactive/plot_ipf_explorer
    /auto_examples/Interactive/plot_interactive_fft
    /auto_examples/Interactive/plot_eels_explorer
    /auto_examples/Interactive/plot_3d_spectral_viewer
    /auto_examples/Interactive/plot_particle_picker
    /auto_examples/Interactive/plot_segment_by_contrast
+   /auto_examples/Interactive/plot_voxel_grain_explorer
    /auto_examples/Interactive/plot_spectra_roi_inspector
    /auto_examples/Interactive/plot_interactive_fitting
+   /auto_examples/Interactive/plot_segment_by_contrast_advanced
 

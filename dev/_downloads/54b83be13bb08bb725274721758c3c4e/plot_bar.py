@@ -11,7 +11,7 @@ Demonstrate :meth:`~anyplotlib.Axes.bar` with:
 * Live data updates via :meth:`~anyplotlib.PlotBar.set_data`
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 rng = np.random.default_rng(7)
 
@@ -23,7 +23,7 @@ months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
 sales = np.array([42, 55, 48, 63, 71, 68, 74, 81, 66, 59, 52, 78],
                  dtype=float)
 
-fig1, ax1 = vw.subplots(1, 1, figsize=(640, 340))
+fig1, ax1 = apl.subplots(1, 1, figsize=(640, 340))
 bar1 = ax1.bar(
     months,           # x  — category strings become x_labels automatically
     sales,            # height
@@ -50,7 +50,7 @@ palette = [
     "#26c6da", "#26a69a", "#66bb6a", "#d4e157", "#ffa726",
 ]
 
-fig2, ax2 = vw.subplots(1, 1, figsize=(540, 400))
+fig2, ax2 = apl.subplots(1, 1, figsize=(540, 400))
 bar2 = ax2.bar(
     categories,
     scores,
@@ -79,7 +79,7 @@ q_data = np.array([
     [68, 83, 77],   # Jun
 ], dtype=float)     # shape (6, 3) → 6 categories, 3 groups
 
-fig3, ax3 = vw.subplots(1, 1, figsize=(680, 340))
+fig3, ax3 = apl.subplots(1, 1, figsize=(680, 340))
 bar3 = ax3.bar(
     quarters,
     q_data,
@@ -102,7 +102,7 @@ fig3
 log_labels = ["A", "B", "C", "D", "E"]
 log_vals   = np.array([1, 10, 100, 1_000, 10_000], dtype=float)
 
-fig4, ax4 = vw.subplots(1, 1, figsize=(500, 340))
+fig4, ax4 = apl.subplots(1, 1, figsize=(500, 340))
 bar4 = ax4.bar(
     log_labels,
     log_vals,
@@ -125,7 +125,7 @@ q2 = np.array([58, 61, 70, 75, 69, 83, 90, 88, 77, 64, 71, 95], dtype=float)
 all_months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-fig5, (ax_left, ax_right) = vw.subplots(1, 2, figsize=(820, 320))
+fig5, (ax_left, ax_right) = apl.subplots(1, 2, figsize=(820, 320))
 bar_left = ax_left.bar(
     all_months, q1, width=0.6,
     color="#4fc3f7", show_values=False, y_units="Q1 sales",

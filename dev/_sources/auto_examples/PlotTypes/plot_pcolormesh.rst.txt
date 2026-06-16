@@ -35,7 +35,7 @@ each cell can have a different width/height in data coordinates.
 .. code-block:: Python
 
     import numpy as np
-    import anyplotlib as vw
+    import anyplotlib as apl
 
     rng = np.random.default_rng(42)
 
@@ -59,7 +59,7 @@ each cell can have a different width/height in data coordinates.
                                [y_centres[-1] + (y_centres[-1] - y_centres[-2]) / 2]])
 
     # ── Plot ──────────────────────────────────────────────────────────────────────
-    fig, ax = vw.subplots(1, 1, figsize=(560, 460))
+    fig, ax = apl.subplots(1, 1, figsize=(560, 460))
     mesh = ax.pcolormesh(data, x_edges=x_edges, y_edges=y_edges, units="arb.")
     mesh.set_colormap("viridis")
     fig
@@ -140,7 +140,7 @@ Add line-segment markers
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 2.092 seconds)
+   **Total running time of the script:** (0 minutes 2.082 seconds)
 
 
 .. _sphx_glr_download_auto_examples_PlotTypes_plot_pcolormesh.py:

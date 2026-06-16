@@ -16,13 +16,13 @@ Four separate figures are shown:
    primary line; demonstrates post-construction setters.
 """
 import numpy as np
-import anyplotlib as vw
+import anyplotlib as apl
 
 t256 = np.linspace(0.0, 2.0 * np.pi, 256)   # dense — good for dashes / alpha
 t24  = np.linspace(0.0, 2.0 * np.pi,  24)   # sparse — makes markers visible
 
 # ── 1. Linestyles ─────────────────────────────────────────────────────────────
-fig1, ax1 = vw.subplots(1, 1, figsize=(580, 300))
+fig1, ax1 = apl.subplots(1, 1, figsize=(580, 300))
 
 plot1 = ax1.plot(np.sin(t256),         color="#4fc3f7", linewidth=2,
                  linestyle="solid",    label="solid")
@@ -49,7 +49,7 @@ fig1
 # The shorthands work on both :meth:`~anyplotlib.Axes.plot`
 # and :meth:`~anyplotlib.Plot1D.add_line`:
 
-fig2a, ax2a = vw.subplots(1, 1, figsize=(440, 220))
+fig2a, ax2a = apl.subplots(1, 1, figsize=(440, 220))
 p = ax2a.plot(np.sin(t256), ls="-",  color="#4fc3f7", label='ls="-"')
 p.add_line(np.sin(t256) + 0.8, ls="--", color="#ff7043", label='ls="--"')
 p.add_line(np.sin(t256) + 1.6, ls=":",  color="#aed581", label='ls=":"')
@@ -62,7 +62,7 @@ fig2a
 # overlapping curves show through each other — useful for comparing signals
 # that share the same amplitude range.
 
-fig2, ax2 = vw.subplots(1, 1, figsize=(580, 300))
+fig2, ax2 = apl.subplots(1, 1, figsize=(580, 300))
 
 plot2 = ax2.plot(np.sin(t256), color="#4fc3f7", alpha=0.4, linewidth=3,
                  label="sin  α=0.4")
@@ -100,7 +100,7 @@ SYMBOLS = [
     ("x", "#ef9a9a"),
 ]
 
-fig3, ax3 = vw.subplots(1, 1, figsize=(580, 380))
+fig3, ax3 = apl.subplots(1, 1, figsize=(580, 380))
 
 plot3 = ax3.plot(
     np.sin(t24) + (0 - 3) * 0.9,
@@ -124,7 +124,7 @@ fig3
 # All three style parameters can be combined freely on the same line or on
 # separate overlay lines.
 
-fig4, ax4 = vw.subplots(1, 1, figsize=(580, 300))
+fig4, ax4 = apl.subplots(1, 1, figsize=(580, 300))
 
 # Dense solid primary line
 plot4 = ax4.plot(np.sin(t256), color="#4fc3f7", linewidth=2,
@@ -145,7 +145,7 @@ fig4
 # mutate ``_state`` and push the change to the canvas immediately — no
 # need to recreate the panel.
 
-fig5, ax5 = vw.subplots(1, 1, figsize=(440, 220))
+fig5, ax5 = apl.subplots(1, 1, figsize=(440, 220))
 plot5 = ax5.plot(np.sin(t256), color="#4fc3f7", linewidth=1.5)
 
 # Change style via setters

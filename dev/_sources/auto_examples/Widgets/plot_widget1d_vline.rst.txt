@@ -42,12 +42,12 @@ Drag the line left or right to change the selected x position.
 .. code-block:: Python
 
     import numpy as np
-    import anyplotlib as vw
+    import anyplotlib as apl
 
     x      = np.linspace(0, 4 * np.pi, 512)
     signal = np.sin(x)
 
-    fig, ax = vw.subplots(1, 1, figsize=(560, 300))
+    fig, ax = apl.subplots(1, 1, figsize=(560, 300))
     v = ax.plot(signal, axes=[x], units="rad")
 
     v.add_vline_widget(x=np.pi, color="#e040fb")
@@ -57,7 +57,7 @@ Drag the line left or right to change the selected x position.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.648 seconds)
+   **Total running time of the script:** (0 minutes 0.684 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Widgets_plot_widget1d_vline.py:

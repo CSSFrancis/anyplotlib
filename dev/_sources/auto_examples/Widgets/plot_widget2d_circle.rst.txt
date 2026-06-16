@@ -42,14 +42,14 @@ Add it with :meth:`~anyplotlib.plot2d.Plot2D.add_widget` using
 .. code-block:: Python
 
     import numpy as np
-    import anyplotlib as vw
+    import anyplotlib as apl
 
     rng  = np.random.default_rng(0)
     data = rng.standard_normal((128, 128)).cumsum(0).cumsum(1)
     data = (data - data.min()) / (data.max() - data.min())
     xy   = np.linspace(0, 10, 128)
 
-    fig, ax = vw.subplots(1, 1, figsize=(460, 460))
+    fig, ax = apl.subplots(1, 1, figsize=(460, 460))
     v = ax.imshow(data, axes=[xy, xy], units="nm")
 
     v.add_widget("circle", color="#e040fb", cx=64, cy=64, r=20)
@@ -59,7 +59,7 @@ Add it with :meth:`~anyplotlib.plot2d.Plot2D.add_widget` using
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.710 seconds)
+   **Total running time of the script:** (0 minutes 0.700 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Widgets_plot_widget2d_circle.py:

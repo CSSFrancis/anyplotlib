@@ -30,12 +30,12 @@ Use ``markers["vlines"]["name"].set(...)`` to update them live.
 .. code-block:: Python
 
     import numpy as np
-    import anyplotlib as vw
+    import anyplotlib as apl
 
     x      = np.linspace(0, 4 * np.pi, 512)
     signal = np.sin(x)
 
-    fig, ax = vw.subplots(1, 1, figsize=(560, 300))
+    fig, ax = apl.subplots(1, 1, figsize=(560, 300))
     v = ax.plot(signal, axes=[x], units="rad")
 
     v.add_vlines([np.pi, 2 * np.pi, 3 * np.pi], name="pi_mult",
@@ -85,7 +85,7 @@ Live update
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.389 seconds)
+   **Total running time of the script:** (0 minutes 1.368 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Markers_plot_vertical_lines.py:
