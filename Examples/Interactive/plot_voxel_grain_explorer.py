@@ -93,7 +93,8 @@ ax_yz  = fig.add_subplot(gs[0, 2])
 ax_vol = fig.add_subplot(gs[1, 0])
 ax_ipf = fig.add_subplot(gs[1, 1:3])
 
-ix, iy, iz = N // 2, N // 2, N // 2                       # current voxel
+ix, iy, iz = N // 2, N // 2, N // 2                       # integer slice indices
+fx, fy, fz = float(ix), float(iy), float(iz)              # smooth highlight pos
 
 px = [np.arange(N)] * 2                                   # pixel axes → gutters
 
@@ -163,15 +164,18 @@ def update(source: str) -> None:
         v_xz.set_title(f"XZ slice — y={iy}")
         v_yz.set_title(f"YZ slice — x={ix}")
 
-        # 3-D slice-selector planes follow (skipped for the one being dragged)
+        # 3-D slice-selector planes follow at the SMOOTH position (skipped for
+        # the one being dragged, so its own live position isn't overwritten).
         if source != "px":
-            pw_yz.set(position=ix)
+            pw_yz.set(position=fx)
         if source != "py":
-            pw_xz.set(position=iy)
+            pw_xz.set(position=fy)
         if source != "pz":
-            pw_xy.set(position=iz)
+            pw_xy.set(position=fz)
 
-        v_vol.set_highlight(ix, iy, iz, color="#ffffff", size=7)
+        # Highlight tracks the SMOOTH plane positions (fx,fy,fz) so the marker
+        # glides with the planes instead of jumping by whole voxels.
+        v_vol.set_highlight(fx, fy, fz, color="#ffffff", size=7)
 
         g = int(gid[iz, iy, ix])
         v_ipf.set_highlight(*reduced[g], color="#ffffff", size=8)
@@ -181,61 +185,73 @@ def update(source: str) -> None:
         _busy[0] = False
 
 
-def _clip(v):
-    return int(np.clip(round(v), 0, N - 1))
+def _clipf(v):
+    """Clamp a float position to the volume range (kept smooth for the marker)."""
+    return float(np.clip(v, 0.0, N - 1))
+
+
+def _i(v):
+    """Round a float position to the nearest integer slice index."""
+    return int(round(v))
 
 
 @cw_xy.add_event_handler("pointer_move")
 def _moved_xy(event):
-    global ix, iy
+    global ix, iy, fx, fy
     if _busy[0]:
         return
-    ix, iy = _clip(cw_xy.cx), _clip(cw_xy.cy)
+    fx, fy = _clipf(cw_xy.cx), _clipf(cw_xy.cy)
+    ix, iy = _i(fx), _i(fy)
     update("xy")
 
 
 @cw_xz.add_event_handler("pointer_move")
 def _moved_xz(event):
-    global ix, iz
+    global ix, iz, fx, fz
     if _busy[0]:
         return
-    ix, iz = _clip(cw_xz.cx), _clip(cw_xz.cy)
+    fx, fz = _clipf(cw_xz.cx), _clipf(cw_xz.cy)
+    ix, iz = _i(fx), _i(fz)
     update("xz")
 
 
 @cw_yz.add_event_handler("pointer_move")
 def _moved_yz(event):
-    global iy, iz
+    global iy, iz, fy, fz
     if _busy[0]:
         return
-    iy, iz = _clip(cw_yz.cx), _clip(cw_yz.cy)
+    fy, fz = _clipf(cw_yz.cx), _clipf(cw_yz.cy)
+    iy, iz = _i(fy), _i(fz)
     update("yz")
 
 
 @pw_yz.add_event_handler("pointer_move")
 def _plane_x(event):
-    global ix
+    global ix, fx
     if _busy[0]:
         return
-    ix = _clip(pw_yz.position)
+    fx = _clipf(pw_yz.position)
+    ix = _i(fx)
     update("px")
 
 
 @pw_xz.add_event_handler("pointer_move")
 def _plane_y(event):
-    global iy
+    global iy, fy
     if _busy[0]:
         return
-    iy = _clip(pw_xz.position)
+    fy = _clipf(pw_xz.position)
+    iy = _i(fy)
     update("py")
 
 
 @pw_xy.add_event_handler("pointer_move")
 def _plane_z(event):
-    global iz
+    global iz, fz
     if _busy[0]:
         return
-    iz = _clip(pw_xy.position)
+    fz = _clipf(pw_xy.position)
+    iz = _i(fz)
     update("pz")
 
 
