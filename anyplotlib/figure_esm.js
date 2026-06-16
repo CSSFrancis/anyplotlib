@@ -1946,7 +1946,13 @@ function render({ model, el }) {
   // GPU; draw3d draws them over a transparent plotCanvas when GPU is active.
   // ═══════════════════════════════════════════════════════════════════════
   const GPU_POINT_THRESHOLD = 20000;
-  const GPU_VOXEL_THRESHOLD = 8000;   // cubes cost ~6× a point on canvas
+  // The Canvas2D voxel renderer is depth-sorted, sprite-cached and verified by
+  // visual-regression tests; it comfortably handles ~20k cubes.  The WebGPU
+  // voxel path is a Phase-1 prototype that is NOT hardware-verified in CI
+  // (headless Chromium exposes no WebGPU adapter), so only hand volumes to it
+  // once they genuinely exceed the canvas budget.  This keeps mid-size cases
+  // such as the orthoslice grain explorer (~8k slab cubes) on the proven path.
+  const GPU_VOXEL_THRESHOLD = 20000;
   let _gpuDevicePromise = null;   // module singleton: Promise<GPUDevice|null>
 
   function _gpuDevice() {
@@ -2145,8 +2151,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       },
       fragment: { module, entryPoint: 'fs',
                   targets: [{ format: fmt, blend: isVox ? blend : undefined }] },
-      primitive: { topology: 'triangle-list',
-                   cullMode: isVox ? 'back' : 'none' },
+      // No back-face culling for voxels: the MVP swaps rows (r0,r2,r1) and
+      // negates depth, so cube winding can't be relied on to match GL's
+      // front-face rule — culling 'back' would drop the wrong faces and leave
+      // a sparse, see-through volume (cubes appearing to "float"/vanish at
+      // large counts).  Translucent cubes need every face drawn anyway, and
+      // the depth test handles occlusion, so render all faces.
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
       depthStencil: { format: 'depth24plus',
                       // Translucent voxels: test depth but don't write it, so
                       // blending isn't order-killed; opaque points write depth.
@@ -2166,7 +2177,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   function _gpuUploadGeometry(p) {
     const g = p._gpuObj, st = p.state, device = g.device;
-    const key = st.vertices_b64 || '';
+    // Key on BOTH geometry and colours: the orthoslice explorer recolours
+    // voxels via set_point_colors with the vertex set unchanged, so caching
+    // on vertices_b64 alone would reuse a stale colour buffer.
+    const key = (st.vertices_b64 || '') + '|' + (st.point_colors_b64 || '');
     if (g.geomKey === key && g.posBuf) return;
     g.geomKey = key;
     if (g.posBuf) g.posBuf.destroy();
