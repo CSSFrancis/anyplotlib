@@ -32,6 +32,16 @@ class TestVoxelsState:
         v = _voxels(colors=colors)
         assert v._state["point_colors_b64"] != ""
 
+    def test_set_point_colors_after_construction(self):
+        """The orthoslice explorer re-cuts slab voxels each drag via
+        set_data + set_point_colors, so voxels must accept post-hoc
+        per-voxel colours (not just at construction)."""
+        v = _voxels()
+        v.set_point_colors(np.zeros((512, 3), dtype=np.uint8))
+        assert v._state["point_colors_b64"] != ""
+        v.set_point_colors(None)
+        assert v._state["point_colors_b64"] == ""
+
     def test_set_voxel_alpha(self):
         v = _voxels()
         v.set_voxel_alpha(0.1, slice_alpha=0.8)
