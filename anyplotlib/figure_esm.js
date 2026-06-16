@@ -2376,8 +2376,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     p._gpuObj = null;
   }
 
-  function draw3d(p) {
+  function draw3d(p, _retry) {
     const st = p.state; if (!st) return;
+    if (!_retry) p._gpuFellBack = false;   // per-render re-entry guard reset
     _recordFrame(p);
     const { pw, ph, plotCtx: ctx } = p;
 
@@ -2508,8 +2509,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } catch (e) {
         console.warn('[anyplotlib] GPU draw failed — falling back:', e);
         p._gpu = 'unavailable'; gpuActive = false;
-        p.gpuCanvas.style.display = 'none';
+        if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
         p.plotCanvas.style.background = theme.bgPlot;   // restore opaque bg
+        _gpuDisposePanel(p);
+        // The current frame already cleared plotCanvas and took GPU-only
+        // branches (proj == null etc.), so the axes/decorations for THIS frame
+        // are half-built.  Rather than limp through, re-render the whole panel
+        // once from the top on the canvas path — self-healing without needing
+        // a user resize.  (Safari's experimental WebGPU can throw mid-draw or
+        // lose the device after working for a while; this recovers cleanly.)
+        if (!p._gpuFellBack) {
+          p._gpuFellBack = true;
+          ctx.fillStyle = theme.bgPlot; ctx.fillRect(0, 0, pw, ph);
+          draw3d(p, true);   // re-render once on the canvas path
+          return;
+        }
         ctx.fillStyle = theme.bgPlot; ctx.fillRect(0, 0, pw, ph);
       }
     }

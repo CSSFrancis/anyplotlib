@@ -168,3 +168,73 @@ class TestVoxelGpuFallback:
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.wait_for_timeout(400)
         assert not errors, f"GPU voxel fallback raised errors: {errors}"
+
+    def test_gpu_draw_failure_self_heals(self, interact_page, _pw_browser):
+        """A GPU device that ACTIVATES then throws mid-draw (e.g. Safari's
+        experimental WebGPU losing the device) must self-heal: the panel
+        re-renders on the canvas path in the same frame — voxels AND axes —
+        without the user needing to resize, and the plotCanvas background is
+        restored to opaque (not left transparent over a dead gpuCanvas).
+        """
+        import pathlib, tempfile
+        from anyplotlib.tests.conftest import _build_interact_html
+
+        colors = np.tile([255, 60, 60], (512, 1)).astype(np.uint8)
+        v = _voxels(colors=colors, alpha=0.5, gpu="always")   # axes ON
+        html = _build_interact_html(v._fig)
+        with tempfile.NamedTemporaryFile(
+                suffix=".html", mode="w", encoding="utf-8", delete=False) as fh:
+            fh.write(html)
+            tmp = pathlib.Path(fh.name)
+
+        # Fake navigator.gpu: adapter+device resolve (GPU ACTIVATES, plotCanvas
+        # goes transparent), but the first command encoder throws — the exact
+        # "worked beautifully then broke" Safari signature.
+        fake_gpu = """
+        () => {
+          const tex = () => ({ createView:()=>({}), destroy:()=>{} });
+          const buf = () => ({ destroy:()=>{} });
+          const dev = {
+            lost: new Promise(()=>{}),
+            createShaderModule:()=>({}), createBuffer:()=>buf(),
+            createBindGroupLayout:()=>({}), createPipelineLayout:()=>({}),
+            createBindGroup:()=>({}), createTexture:()=>tex(),
+            createRenderPipeline:()=>({ getBindGroupLayout:()=>({}) }),
+            createCommandEncoder:()=>{ throw new Error('SIMULATED mid-draw GPU failure'); },
+            queue:{ writeBuffer:()=>{}, submit:()=>{}, readTexture:()=>new Uint8Array(4) },
+          };
+          navigator.gpu = {
+            getPreferredCanvasFormat:()=>'bgra8unorm',
+            requestAdapter: async ()=>({ info:{}, requestDevice: async ()=>dev }),
+          };
+        }"""
+        page = _pw_browser.new_page()
+        page.set_viewport_size({"width": 400, "height": 400})
+        page.add_init_script(fake_gpu)
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        try:
+            page.goto(tmp.as_uri())
+            page.wait_for_function("() => window._aplReady === true", timeout=15000)
+            page.wait_for_timeout(600)
+            res = page.evaluate("""() => {
+                const cs = [...document.querySelectorAll('canvas')];
+                const plot = cs.find(x => x.style.zIndex === '1');
+                const gpu  = cs.find(x => x.style.zIndex === '0');
+                const d = plot.getContext('2d').getImageData(0,0,plot.width,plot.height).data;
+                let red = 0;
+                for (let i = 0; i < d.length; i += 4)
+                    if (d[i] > 150 && d[i+1] < 130 && d[i+2] < 130) red++;
+                return { plotBg: plot.style.background,
+                         gpuDisp: gpu ? gpu.style.display : null, red };
+            }""")
+        finally:
+            page.close()
+            tmp.unlink(missing_ok=True)
+
+        assert not errors, f"mid-draw GPU failure leaked errors: {errors}"
+        assert res["gpuDisp"] == "none", "dead gpuCanvas must be hidden"
+        assert res["plotBg"] and res["plotBg"] != "transparent", \
+            f"plotCanvas bg must be restored to opaque, got {res['plotBg']!r}"
+        assert res["red"] > 500, \
+            f"panel did not self-heal onto canvas (no voxels): {res}"
