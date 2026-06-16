@@ -215,6 +215,16 @@ triangles, draws axes with per-axis `_drawTex` labels (`x/y/z_label_size`).
   `_writeState()` (sets `p._selfWrite`), and the panel-json listener skips
   self-writes — without this every drag frame paid a second
   JSON.parse + full redraw.
+- **Touch bridge** (`_attachTouch`, called from `_attachPanelEvents` for
+  every panel kind): translates touch gestures into the *existing* mouse /
+  wheel handlers via real `MouseEvent` / `WheelEvent` dispatch — 1-finger →
+  mousedown/move/up, 2-finger pinch → wheel (anchored at the gesture
+  midpoint via `p.mouseX/Y`), double-tap → dblclick.  `move`/`up` go to
+  `document` (handlers listen there for off-canvas drags); `down`/`wheel`/
+  `dblclick` go to the overlay canvas.  Overlay canvases set
+  `touch-action:none` so the browser yields gestures to the plot.  No
+  handler rewrites — a working mouse interaction is automatically a working
+  touch one.
 - **Geometry channel** (perf): plots that declare `_GEOM_KEYS` on the Python
   side (Plot2D, Plot3D) split heavy keys (`vertices_b64`, `image_b64`,
   `colormap_data`, …) into a second `panel_<id>_geom` trait, re-sent only
