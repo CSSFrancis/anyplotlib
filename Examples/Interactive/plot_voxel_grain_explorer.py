@@ -70,14 +70,39 @@ rgb /= rgb.max(axis=1, keepdims=True) + 1e-12
 grain_rgb_u8 = (rgb * 255).astype(np.uint8)               # (N_GRAINS, 3)
 
 # ── 3. Voxels for the 3-D volume view ───────────────────────────────────────
-# Render a uniform subsample of the volume as translucent cubes (a step-3
-# grid gives 16³ ≈ 4k cubes — chunky enough to read, snappy to orbit).
-step = 3
-vz, vy, vx = np.mgrid[0:N:step, 0:N:step, 0:N:step]
-vox = np.column_stack([vz.ravel(), vy.ravel(), vx.ravel()])   # (M, 3) (z,y,x)
-if len(vox) > 4000:
-    vox = vox[rng.choice(len(vox), 4000, replace=False)]
-vox_colors = grain_rgb_u8[gid[vox[:, 0], vox[:, 1], vox[:, 2]]]
+# Rather than a sparse random subsample of the whole volume (where the
+# highlight marker floats in empty space because almost no cube sits at the
+# selected voxel), render the voxels that actually lie ON the three slice
+# planes.  This anchors the highlight exactly where the slices intersect,
+# shows real slice contents in 3-D, and scales: the on-plane count is
+# ~3·(N/step)² regardless of N, so it stays fast even for a 256³ volume.
+VSTEP = max(1, N // 48)        # in-plane downsample → ~48² cubes per plane
+
+# Voxel cube size in data units.  A touch larger than VSTEP so the three
+# slabs read as solid sheets rather than a dotted grid.
+VOXSIZE = float(VSTEP) * 1.3
+
+
+def slice_voxels(ix, iy, iz):
+    """Voxel centres + colours lying on the x=ix, y=iy, z=iz planes."""
+    s = VSTEP
+    rng_ax = np.arange(0, N, s)
+    parts = []
+    # z = iz plane  (vary x, y)
+    yy2, xx2 = np.meshgrid(rng_ax, rng_ax, indexing="ij")
+    parts.append(np.column_stack([xx2.ravel(), yy2.ravel(),
+                                  np.full(xx2.size, iz)]))
+    # y = iy plane  (vary x, z)
+    zz2, xx2 = np.meshgrid(rng_ax, rng_ax, indexing="ij")
+    parts.append(np.column_stack([xx2.ravel(), np.full(xx2.size, iy),
+                                  zz2.ravel()]))
+    # x = ix plane  (vary y, z)
+    zz2, yy2 = np.meshgrid(rng_ax, rng_ax, indexing="ij")
+    parts.append(np.column_stack([np.full(yy2.size, ix), yy2.ravel(),
+                                  zz2.ravel()]))
+    pts = np.vstack(parts)                                   # (M, 3) as (x,y,z)
+    cols = grain_rgb_u8[gid[pts[:, 2], pts[:, 1], pts[:, 0]]]  # gid[z,y,x]
+    return pts, cols
 
 # ── 4. Figure: 3 slices on top, volume + IPF below ──────────────────────────
 gs  = apl.GridSpec(2, 3)
@@ -109,9 +134,10 @@ cw_xy = v_xy.add_widget("crosshair", cx=ix, cy=iy, color="#ffffff")
 cw_xz = v_xz.add_widget("crosshair", cx=ix, cy=iz, color="#ffffff")
 cw_yz = v_yz.add_widget("crosshair", cx=iy, cy=iz, color="#ffffff")
 
+_vpts, _vcols = slice_voxels(ix, iy, iz)
 v_vol = ax_vol.voxels(
-    vox[:, 2], vox[:, 1], vox[:, 0], colors=vox_colors,
-    size=float(step), alpha=0.10,
+    _vpts[:, 0], _vpts[:, 1], _vpts[:, 2], colors=_vcols,
+    size=VOXSIZE, alpha=0.55,
     x_label="x", y_label="y", z_label="z",
     bounds=((0, N - 1),) * 3, zoom=1.1,
 )
@@ -172,6 +198,12 @@ def update(source: str) -> None:
             pw_xz.set(position=fy)
         if source != "pz":
             pw_xy.set(position=fz)
+
+        # Re-cut the 3-D slab voxels to the new slice indices so the volume
+        # view shows the actual slice contents (bounded ~3·(N/VSTEP)² voxels).
+        _p, _c = slice_voxels(ix, iy, iz)
+        v_vol.set_data(_p[:, 0], _p[:, 1], _p[:, 2])
+        v_vol.set_point_colors(_c)
 
         # Highlight tracks the SMOOTH plane positions (fx,fy,fz) so the marker
         # glides with the planes instead of jumping by whole voxels.

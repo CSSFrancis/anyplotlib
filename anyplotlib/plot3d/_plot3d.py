@@ -425,17 +425,18 @@ class Plot3D(_BasePlot):
         self._push()
 
     def set_point_colors(self, colors) -> None:
-        """Set (or clear) per-point colours on a scatter panel.
+        """Set (or clear) per-point colours on a scatter or voxels panel.
 
         Parameters
         ----------
         colors : list of "#rrggbb" strings, (N, 3) array, or None
-            One colour per point.  Floats are interpreted as 0–1 (or 0–255
-            when the max exceeds 1).  ``None`` reverts to the single
-            ``color`` for all points.
+            One colour per point / voxel.  Floats are interpreted as 0–1 (or
+            0–255 when the max exceeds 1).  ``None`` reverts to the single
+            ``color`` for all elements.
         """
-        if self._state["geom_type"] != "scatter":
-            raise ValueError("per-point colors are only supported for scatter")
+        if self._state["geom_type"] not in ("scatter", "voxels"):
+            raise ValueError(
+                "per-point colors are only supported for scatter/voxels")
         if colors is None:
             self._state["point_colors_b64"] = ""
         else:
