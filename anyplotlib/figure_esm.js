@@ -694,7 +694,7 @@ function render({ model, el }) {
         `position:absolute;display:block;border-radius:2px;background:${theme.bgCanvas};`;
       overlayCanvas = document.createElement('canvas');
       overlayCanvas.style.cssText =
-        'position:absolute;z-index:5;cursor:default;pointer-events:all;outline:none;';
+        'position:absolute;z-index:5;cursor:default;pointer-events:all;outline:none;touch-action:none;';
       overlayCanvas.tabIndex = 0;
       markersCanvas = document.createElement('canvas');
       markersCanvas.style.cssText = 'position:absolute;pointer-events:none;z-index:6;';
@@ -750,7 +750,7 @@ function render({ model, el }) {
       stack3dGpuCanvas = gpuCanvas;
       overlayCanvas = document.createElement('canvas');
       overlayCanvas.style.cssText =
-        'position:absolute;top:0;left:0;z-index:5;pointer-events:all;outline:none;';
+        'position:absolute;top:0;left:0;z-index:5;pointer-events:all;outline:none;touch-action:none;';
       wrap3.appendChild(overlayCanvas);
       markersCanvas = document.createElement('canvas');
       markersCanvas.style.cssText =
@@ -774,7 +774,7 @@ function render({ model, el }) {
       outerContainer.appendChild(wrap);
       overlayCanvas = document.createElement('canvas');
       overlayCanvas.style.cssText =
-        'position:absolute;top:0;left:0;z-index:5;cursor:crosshair;pointer-events:all;';
+        'position:absolute;top:0;left:0;z-index:5;cursor:crosshair;pointer-events:all;touch-action:none;';
       wrap.appendChild(overlayCanvas);
       markersCanvas = document.createElement('canvas');
       markersCanvas.style.cssText =
@@ -3920,12 +3920,134 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     return null;
   }
 
+  // ── touch input bridge ────────────────────────────────────────────────────
+  // Touch devices (iPad / iPhone) emit touch* events, not mouse* — but every
+  // panel handler is written against mouse events.  Rather than rewrite ~20
+  // handlers per kind, we translate touch gestures into the synthetic mouse /
+  // wheel events those handlers already understand, attached once per panel:
+  //
+  //   1 finger  drag   → mousedown / mousemove / mouseup  (pan, orbit, drag a
+  //                       widget / ROI / marker / plane — whatever's under it)
+  //   2 fingers pinch  → wheel (zoom), centred on the gesture midpoint
+  //   double-tap       → dblclick → the panel's double_click event (picking /
+  //                       app callbacks), exactly as a mouse double-click
+  //
+  // A synthetic event carries exactly the fields the handlers read:
+  // clientX/Y, button, buttons, the modifier flags (always false for touch),
+  // and a no-op preventDefault.  document-level mousemove/up listeners in the
+  // handlers receive the synthetic move/up too, so drags that start on the
+  // canvas and continue off it work just like a mouse.
+  // Dispatch a real MouseEvent so it reaches every listener (including the
+  // document-level mousemove/mouseup the handlers use for off-canvas drags).
+  // Native MouseEvent carries clientX/Y, button, buttons and false modifiers —
+  // exactly what _clientPos / _pointerFields / _modifiers read.
+  function _dispatchMouse(target, type, clientX, clientY) {
+    target.dispatchEvent(new MouseEvent(type, {
+      clientX, clientY, button: 0,
+      buttons: type === 'mouseup' ? 0 : 1,
+      bubbles: true, cancelable: true, view: window,
+    }));
+  }
+
+  // Dispatch a real WheelEvent (pinch → zoom).  dir = -1 zoom in, +1 zoom out
+  // (matches the handlers' deltaY sign convention).
+  function _dispatchWheel(target, clientX, clientY, dir) {
+    target.dispatchEvent(new WheelEvent('wheel', {
+      clientX, clientY, deltaY: dir * 100, deltaX: 0,
+      bubbles: true, cancelable: true, view: window,
+    }));
+  }
+
+  function _attachTouch(p) {
+    const oc = p.overlayCanvas;
+    if (!oc || oc._touchBridged) return;
+    oc._touchBridged = true;
+
+    let mode = null;            // null | 'drag' | 'pinch'
+    let pinchStartDist = 0;
+    let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+
+    const dist = (t0, t1) =>
+      Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+    const mid = (t0, t1) => ({
+      x: (t0.clientX + t1.clientX) / 2, y: (t0.clientY + t1.clientY) / 2 });
+
+    oc.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        mode = 'drag';
+        const t = e.touches[0];
+        _dispatchMouse(oc, 'mousedown', t.clientX, t.clientY);
+        e.preventDefault();
+      } else if (e.touches.length === 2) {
+        // Switching into a pinch — end any single-finger drag cleanly first.
+        if (mode === 'drag') {
+          const t = e.touches[0];
+          _dispatchMouse(document, 'mouseup', t.clientX, t.clientY);
+        }
+        mode = 'pinch';
+        pinchStartDist = dist(e.touches[0], e.touches[1]);
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    oc.addEventListener('touchmove', (e) => {
+      if (mode === 'drag' && e.touches.length >= 1) {
+        const t = e.touches[0];
+        _dispatchMouse(document, 'mousemove', t.clientX, t.clientY);
+        e.preventDefault();
+      } else if (mode === 'pinch' && e.touches.length >= 2) {
+        const d = dist(e.touches[0], e.touches[1]);
+        const m = mid(e.touches[0], e.touches[1]);
+        // Quantise into wheel steps; spread (d>start) zooms IN (deltaY<0).
+        const ratio = d / (pinchStartDist || d);
+        if (Math.abs(ratio - 1) > 0.02) {
+          // Update mouse position so wheel-zoom anchors at the pinch centre.
+          const { mx, my } = _clientPos({ clientX: m.x, clientY: m.y },
+                                        oc, p.pw, p.ph);
+          p.mouseX = mx; p.mouseY = my;
+          _dispatchWheel(oc, m.x, m.y, ratio > 1 ? -1 : 1);
+          pinchStartDist = d;   // incremental — each move is one small step
+        }
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    const endTouch = (e) => {
+      if (mode === 'drag') {
+        const t = (e.changedTouches && e.changedTouches[0]) || { clientX: 0, clientY: 0 };
+        _dispatchMouse(document, 'mouseup', t.clientX, t.clientY);
+        // Double-tap detection (only for a tap, not a drag-release): a quick
+        // second tap near the first fires dblclick → reset view.
+        const now = performance.now();
+        if (now - lastTapTime < 300 &&
+            Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 30) {
+          _dispatchMouse(oc, 'dblclick', t.clientX, t.clientY);
+          lastTapTime = 0;
+        } else {
+          lastTapTime = now; lastTapX = t.clientX; lastTapY = t.clientY;
+        }
+      }
+      // If fingers remain (pinch→1 finger), restart a drag from the survivor.
+      if (e.touches && e.touches.length === 1) {
+        mode = 'drag';
+        const t = e.touches[0];
+        _dispatchMouse(oc, 'mousedown', t.clientX, t.clientY);
+      } else if (!e.touches || e.touches.length === 0) {
+        mode = null;
+      }
+      if (e.cancelable) e.preventDefault();
+    };
+    oc.addEventListener('touchend', endTouch, { passive: false });
+    oc.addEventListener('touchcancel', endTouch, { passive: false });
+  }
+
   // ── panel-level event handlers ───────────────────────────────────────────
   function _attachPanelEvents(p) {
     if (p.kind === '2d')  _attachEvents2d(p);
     else if (p.kind === '3d')  _attachEvents3d(p);
     else if (p.kind === 'bar') _attachEventsBar(p);
     else                       _attachEvents1d(p);
+    _attachTouch(p);   // touch bridge — translates gestures to mouse/wheel
   }
 
   function _canvasToImg2d(px, py, st, pw, ph) {
