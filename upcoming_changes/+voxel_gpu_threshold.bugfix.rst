@@ -1,9 +1,11 @@
-Fixed large voxel volumes (e.g. a 256³ grain explorer) rendering as a sparse
-scatter of "floating" cubes instead of solid slice slabs.  The Phase-1 WebGPU
-voxel path is not hardware-verified in CI (headless Chromium exposes no WebGPU
-adapter) and could leave a see-through volume on real GPUs; the auto threshold
-for handing voxels to the GPU was raised so mid-size volumes stay on the
-depth-sorted, visual-regression-tested Canvas2D path.  The GPU voxel path also
-no longer back-face culls (cube winding isn't guaranteed under the projection's
-row-swap, which dropped faces) and now keys its colour buffer on the colours,
+Fixed large voxel volumes (e.g. a 256³ grain explorer) rendering "empty" —
+only the plane widgets and highlight marker visible, with no cubes — in
+WebGPU-enabled browsers such as PyCharm's embedded JCEF.  The WebGPU voxel
+path draws cubes on a ``gpuCanvas`` beneath the ``plotCanvas`` that carries
+the axes/planes/highlight; activating the GPU path cleared the plotCanvas
+bitmap but left its opaque CSS ``background``, so the element painted over
+every GPU-drawn voxel.  The plotCanvas background is now set transparent
+while the GPU path is active (and restored on fallback / device loss).  The
+voxel shader itself was verified correct on real hardware (NVIDIA TITAN X via
+native wgpu).  The GPU geometry cache also keys on ``point_colors_b64`` now,
 so ``set_point_colors`` recolours voxels live.
