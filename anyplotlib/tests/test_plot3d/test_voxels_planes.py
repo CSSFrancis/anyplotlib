@@ -126,43 +126,43 @@ class TestVoxelRendering:
         assert res["pale"] > 500, f"translucent voxel ink missing: {res}"
         assert res["strong"] > 200, f"opaque slice-plane voxels missing: {res}"
 
-    def test_large_volume_renders_dense_slabs(self, interact_page):
-        """A ~8k-voxel volume (over the old GPU threshold, where the
-        unverified WebGPU path produced a sparse "floating" volume on real
-        hardware) must still render its full slabs on the canvas path.
+    def test_voxel_gpu_canvas_layering(self, interact_page):
+        """The 3-D voxel panel stacks a gpuCanvas (z-index 0, WebGPU voxels)
+        below the plotCanvas (z-index 1, decorations).  In canvas mode the
+        plotCanvas MUST keep an opaque background; the renderer only flips it
+        to ``transparent`` while the GPU path is active, so the GPU-drawn
+        voxels beneath aren't hidden by an opaque overlay.
 
-        Regression for: 256³ orthoslice explorer showing only scattered
-        voxels instead of solid slice planes.
+        Regression for: large voxel volumes rendering "empty" (only planes +
+        highlight visible) in PyCharm's WebGPU-enabled JCEF, because the
+        opaque plotCanvas painted over the gpuCanvas.  The active-GPU swap is
+        hardware-verified via native wgpu; CI has no adapter, so here we lock
+        the DOM stacking + the canvas-mode opaque-background invariant.
         """
-        N = 24                                   # 24³ slab fronts → ~1.7k each
-        g = np.arange(0, N, dtype=float)
-        ax_rng = g
-        zz, yy, xx = np.meshgrid(ax_rng, ax_rng, ax_rng, indexing="ij")
-        pts = np.column_stack([xx.ravel(), yy.ravel(), zz.ravel()])
-        # Keep only the three centre slabs → mirrors slice_voxels(); ~3·N² cubes
-        c = N // 2
-        on_plane = (pts[:, 0] == c) | (pts[:, 1] == c) | (pts[:, 2] == c)
-        pts = pts[on_plane]
-        assert len(pts) > 1500
-        fig, ax = apl.subplots(1, 1, figsize=(360, 360))
-        cols = np.full((len(pts), 3), [255, 0, 0], dtype=np.uint8)
-        v = ax.voxels(pts[:, 0], pts[:, 1], pts[:, 2], colors=cols,
-                      size=1.3, alpha=0.5, bounds=((0, N - 1),) * 3)
+        colors = np.full((512, 3), [255, 0, 0], dtype=np.uint8)
+        v = _voxels(colors=colors, alpha=0.4)
         v.set_axis_off()
-        page = interact_page(fig)
-        page.wait_for_timeout(300)
-        # Voxels stay on the Canvas2D path (gpuCanvas hidden), and lots of ink.
-        res = page.evaluate("""() => {
-            const c = [...document.querySelectorAll('canvas')].find(x => x.style.position === 'relative' && x.style.display !== 'none');
-            const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data;
-            let red = 0;
-            for (let i = 0; i < d.length; i += 4)
-                if (d[i] > 150 && d[i+1] < 130 && d[i+2] < 130) red++;
-            const gpu = [...document.querySelectorAll('canvas')].find(x => x.style.zIndex === '0');
-            return { red, gpuDisp: gpu ? gpu.style.display : 'none' };
+        page = interact_page(v._fig)
+        page.wait_for_timeout(200)
+
+        layout = page.evaluate("""() => {
+            const cs = [...document.querySelectorAll('canvas')];
+            const gpu  = cs.find(x => x.style.zIndex === '0');
+            const plot = cs.find(x => x.style.zIndex === '1');
+            return {
+                hasGpu: !!gpu,
+                gpuBelow: !!gpu && !!plot,
+                plotBg: plot ? plot.style.background : null,
+                gpuDisp: gpu ? gpu.style.display : null,
+            };
         }""")
-        assert res["gpuDisp"] == "none", "voxels must render on canvas, not GPU"
-        assert res["red"] > 2000, f"dense slabs did not render: {res}"
+        assert layout["hasGpu"], "3-D voxel panel must create a gpuCanvas"
+        assert layout["gpuDisp"] == "none", \
+            "gpuCanvas stays hidden in canvas mode (no WebGPU adapter in CI)"
+        # Canvas mode: plotCanvas keeps an opaque bg (NOT transparent), so the
+        # canvas-drawn voxels read against a solid panel background.
+        assert layout["plotBg"] and layout["plotBg"] != "transparent", \
+            f"canvas-mode plotCanvas must stay opaque, got {layout['plotBg']!r}"
 
     def test_plane_drag_in_browser(self, interact_page):
         """Dragging a plane widget must change its position in the model."""

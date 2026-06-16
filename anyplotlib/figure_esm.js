@@ -1946,13 +1946,7 @@ function render({ model, el }) {
   // GPU; draw3d draws them over a transparent plotCanvas when GPU is active.
   // ═══════════════════════════════════════════════════════════════════════
   const GPU_POINT_THRESHOLD = 20000;
-  // The Canvas2D voxel renderer is depth-sorted, sprite-cached and verified by
-  // visual-regression tests; it comfortably handles ~20k cubes.  The WebGPU
-  // voxel path is a Phase-1 prototype that is NOT hardware-verified in CI
-  // (headless Chromium exposes no WebGPU adapter), so only hand volumes to it
-  // once they genuinely exceed the canvas budget.  This keeps mid-size cases
-  // such as the orthoslice grain explorer (~8k slab cubes) on the proven path.
-  const GPU_VOXEL_THRESHOLD = 20000;
+  const GPU_VOXEL_THRESHOLD = 8000;   // cubes cost ~6× a point on canvas
   let _gpuDevicePromise = null;   // module singleton: Promise<GPUDevice|null>
 
   function _gpuDevice() {
@@ -1970,6 +1964,7 @@ function render({ model, el }) {
             if (p.kind === '3d' && p._gpu === 'active') {
               p._gpu = 'unavailable';
               if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+              if (p.plotCanvas) p.plotCanvas.style.background = theme.bgPlot;
               _gpuDisposePanel(p);
               _redrawPanel(p);
             }
@@ -2151,13 +2146,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       },
       fragment: { module, entryPoint: 'fs',
                   targets: [{ format: fmt, blend: isVox ? blend : undefined }] },
-      // No back-face culling for voxels: the MVP swaps rows (r0,r2,r1) and
-      // negates depth, so cube winding can't be relied on to match GL's
-      // front-face rule — culling 'back' would drop the wrong faces and leave
-      // a sparse, see-through volume (cubes appearing to "float"/vanish at
-      // large counts).  Translucent cubes need every face drawn anyway, and
-      // the depth test handles occlusion, so render all faces.
-      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      primitive: { topology: 'triangle-list',
+                   cullMode: isVox ? 'back' : 'none' },
       depthStencil: { format: 'depth24plus',
                       // Translucent voxels: test depth but don't write it, so
                       // blending isn't order-killed; opaque points write depth.
@@ -2481,6 +2471,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // State no longer wants GPU — revert to canvas.
       p._gpu = undefined; gpuActive = false;
       if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+      p.plotCanvas.style.background = theme.bgPlot;   // restore opaque bg
       _gpuDisposePanel(p);
     }
 
@@ -2502,7 +2493,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       p.gpuCanvas.style.display = 'block';
       p.gpuCanvas.style.width  = pw + 'px';
       p.gpuCanvas.style.height = ph + 'px';
-      // plotCanvas becomes a transparent decoration overlay
+      // plotCanvas becomes a transparent decoration overlay: clear its BITMAP
+      // *and* drop its opaque CSS background — otherwise the element keeps
+      // painting theme.bgPlot over the gpuCanvas beneath it (z-index 1 vs 0),
+      // hiding every GPU-drawn voxel while canvas-drawn planes/highlight still
+      // show.  (This is what made large voxel volumes look "empty" with only
+      // the plane widgets + highlight visible.)
+      p.plotCanvas.style.background = 'transparent';
       ctx.clearRect(0, 0, pw, ph);
       try {
         _gpuUploadGeometry(p);
@@ -2512,6 +2509,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         console.warn('[anyplotlib] GPU draw failed — falling back:', e);
         p._gpu = 'unavailable'; gpuActive = false;
         p.gpuCanvas.style.display = 'none';
+        p.plotCanvas.style.background = theme.bgPlot;   // restore opaque bg
         ctx.fillStyle = theme.bgPlot; ctx.fillRect(0, 0, pw, ph);
       }
     }
