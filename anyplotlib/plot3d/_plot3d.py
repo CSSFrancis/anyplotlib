@@ -329,7 +329,15 @@ class Plot3D(_BasePlot):
         self._push()
 
     def to_state_dict(self) -> dict:
-        return dict(self._state)
+        # Always serialise the live overlay widgets, so *every* push path
+        # (full _push, targeted _push_fields, batched) carries the current
+        # plane positions.  Without this, a view-only push (set_highlight /
+        # set_view) re-serialises a stale overlay_widgets snapshot and clobbers
+        # an in-progress plane drag in JS — the "snap-back" symptom.
+        d = dict(self._state)
+        if self._widgets:
+            d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        return d
 
     # ------------------------------------------------------------------
     @property
@@ -417,17 +425,18 @@ class Plot3D(_BasePlot):
         self._push()
 
     def set_point_colors(self, colors) -> None:
-        """Set (or clear) per-point colours on a scatter panel.
+        """Set (or clear) per-point colours on a scatter or voxels panel.
 
         Parameters
         ----------
         colors : list of "#rrggbb" strings, (N, 3) array, or None
-            One colour per point.  Floats are interpreted as 0–1 (or 0–255
-            when the max exceeds 1).  ``None`` reverts to the single
-            ``color`` for all points.
+            One colour per point / voxel.  Floats are interpreted as 0–1 (or
+            0–255 when the max exceeds 1).  ``None`` reverts to the single
+            ``color`` for all elements.
         """
-        if self._state["geom_type"] != "scatter":
-            raise ValueError("per-point colors are only supported for scatter")
+        if self._state["geom_type"] not in ("scatter", "voxels"):
+            raise ValueError(
+                "per-point colors are only supported for scatter/voxels")
         if colors is None:
             self._state["point_colors_b64"] = ""
         else:
