@@ -272,7 +272,7 @@ A side-by-side viewer for a 3-D ``(y, x, energy)`` dataset.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.770 seconds)
+   **Total running time of the script:** (0 minutes 0.804 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Interactive_plot_3d_spectral_viewer.py:

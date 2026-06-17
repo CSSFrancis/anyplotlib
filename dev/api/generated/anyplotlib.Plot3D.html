@@ -780,12 +780,12 @@ the panel’s geometry — important for large voxel/scatter panels.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Plot3D.set_point_colors">
 <span class="sig-name descname"><span class="pre">set_point_colors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D.set_point_colors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot3D.set_point_colors" title="Link to this definition">#</a></dt>
-<dd><p>Set (or clear) per-point colours on a scatter panel.</p>
+<dd><p>Set (or clear) per-point colours on a scatter or voxels panel.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>colors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><em>&quot;#rrggbb&quot; strings</em><em>, </em><em>(</em><em>N</em><em>, </em><em>3</em><em>) </em><em>array</em><em>, or </em><em>None</em>) – One colour per point.  Floats are interpreted as 0–1 (or 0–255
-when the max exceeds 1).  <code class="docutils literal notranslate"><span class="pre">None</span></code> reverts to the single
-<code class="docutils literal notranslate"><span class="pre">color</span></code> for all points.</p>
+<dd class="field-odd"><p><strong>colors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><em>&quot;#rrggbb&quot; strings</em><em>, </em><em>(</em><em>N</em><em>, </em><em>3</em><em>) </em><em>array</em><em>, or </em><em>None</em>) – One colour per point / voxel.  Floats are interpreted as 0–1 (or
+0–255 when the max exceeds 1).  <code class="docutils literal notranslate"><span class="pre">None</span></code> reverts to the single
+<code class="docutils literal notranslate"><span class="pre">color</span></code> for all elements.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>

@@ -176,23 +176,6 @@ interactions to live Python computations.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="An orthoslice viewer for a synthetic 3-D polycrystal (voxel grain map), in the style of EBSD/tomography volume browsers:">
-
-.. only:: html
-
-  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_voxel_grain_explorer_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/Interactive/plot_voxel_grain_explorer`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">3-D Voxel Grain Explorer</div>
-    </div>
-
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="A synthetic (256, 256, 300) EDS datacube — one 300-channel spectrum per scan position.  Four rectangular ROIs overlay the total-counts image (HAADF proxy).  Entering an ROI sums all spectra within the rectangle (spatial sum over every scan position in the box) and displays the result in the top-right panel.  Draggable coloured range widgets on the spectrum define the integration window for each element; each bar height is the channel sum of the ROI spectrum within that window.">
 
 .. only:: html
@@ -205,6 +188,23 @@ interactions to live Python computations.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">ROI-to-spectrum inspector for a 3-D EDS hyperspectral dataset.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="An orthoslice viewer for a synthetic 3-D polycrystal (voxel grain map), in the style of EBSD/tomography volume browsers:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_voxel_grain_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_voxel_grain_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3-D Voxel Grain Explorer</div>
     </div>
 
 
@@ -261,8 +261,8 @@ interactions to live Python computations.
    /auto_examples/Interactive/plot_3d_spectral_viewer
    /auto_examples/Interactive/plot_particle_picker
    /auto_examples/Interactive/plot_segment_by_contrast
-   /auto_examples/Interactive/plot_voxel_grain_explorer
    /auto_examples/Interactive/plot_spectra_roi_inspector
+   /auto_examples/Interactive/plot_voxel_grain_explorer
    /auto_examples/Interactive/plot_interactive_fitting
    /auto_examples/Interactive/plot_segment_by_contrast_advanced
 

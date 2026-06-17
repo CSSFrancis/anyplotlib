@@ -780,7 +780,15 @@
 <div class="viewcode-block" id="Plot3D.to_state_dict">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.to_state_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span></div>
+        <span class="c1"># Always serialise the live overlay widgets, so *every* push path</span>
+        <span class="c1"># (full _push, targeted _push_fields, batched) carries the current</span>
+        <span class="c1"># plane positions.  Without this, a view-only push (set_highlight /</span>
+        <span class="c1"># set_view) re-serialises a stale overlay_widgets snapshot and clobbers</span>
+        <span class="c1"># an in-progress plane drag in JS — the &quot;snap-back&quot; symptom.</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;overlay_widgets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="k">return</span> <span class="n">d</span></div>
 
 
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -904,17 +912,18 @@
 <div class="viewcode-block" id="Plot3D.set_point_colors">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_point_colors">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_point_colors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set (or clear) per-point colours on a scatter panel.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set (or clear) per-point colours on a scatter or voxels panel.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        colors : list of &quot;#rrggbb&quot; strings, (N, 3) array, or None</span>
-<span class="sd">            One colour per point.  Floats are interpreted as 0–1 (or 0–255</span>
-<span class="sd">            when the max exceeds 1).  ``None`` reverts to the single</span>
-<span class="sd">            ``color`` for all points.</span>
+<span class="sd">            One colour per point / voxel.  Floats are interpreted as 0–1 (or</span>
+<span class="sd">            0–255 when the max exceeds 1).  ``None`` reverts to the single</span>
+<span class="sd">            ``color`` for all elements.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;geom_type&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;scatter&quot;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;per-point colors are only supported for scatter&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;geom_type&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;scatter&quot;</span><span class="p">,</span> <span class="s2">&quot;voxels&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;per-point colors are only supported for scatter/voxels&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;point_colors_b64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="k">else</span><span class="p">:</span>

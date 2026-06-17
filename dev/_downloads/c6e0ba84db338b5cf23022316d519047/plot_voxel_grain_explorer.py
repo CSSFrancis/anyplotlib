@@ -70,14 +70,39 @@ rgb /= rgb.max(axis=1, keepdims=True) + 1e-12
 grain_rgb_u8 = (rgb * 255).astype(np.uint8)               # (N_GRAINS, 3)
 
 # ── 3. Voxels for the 3-D volume view ───────────────────────────────────────
-# Render a uniform subsample of the volume as translucent cubes (a step-3
-# grid gives 16³ ≈ 4k cubes — chunky enough to read, snappy to orbit).
-step = 3
-vz, vy, vx = np.mgrid[0:N:step, 0:N:step, 0:N:step]
-vox = np.column_stack([vz.ravel(), vy.ravel(), vx.ravel()])   # (M, 3) (z,y,x)
-if len(vox) > 4000:
-    vox = vox[rng.choice(len(vox), 4000, replace=False)]
-vox_colors = grain_rgb_u8[gid[vox[:, 0], vox[:, 1], vox[:, 2]]]
+# Rather than a sparse random subsample of the whole volume (where the
+# highlight marker floats in empty space because almost no cube sits at the
+# selected voxel), render the voxels that actually lie ON the three slice
+# planes.  This anchors the highlight exactly where the slices intersect,
+# shows real slice contents in 3-D, and scales: the on-plane count is
+# ~3·(N/step)² regardless of N, so it stays fast even for a 256³ volume.
+VSTEP = max(1, N // 48)        # in-plane downsample → ~48² cubes per plane
+
+# Voxel cube size in data units.  A touch larger than VSTEP so the three
+# slabs read as solid sheets rather than a dotted grid.
+VOXSIZE = float(VSTEP) * 1.3
+
+
+def slice_voxels(ix, iy, iz):
+    """Voxel centres + colours lying on the x=ix, y=iy, z=iz planes."""
+    s = VSTEP
+    rng_ax = np.arange(0, N, s)
+    parts = []
+    # z = iz plane  (vary x, y)
+    yy2, xx2 = np.meshgrid(rng_ax, rng_ax, indexing="ij")
+    parts.append(np.column_stack([xx2.ravel(), yy2.ravel(),
+                                  np.full(xx2.size, iz)]))
+    # y = iy plane  (vary x, z)
+    zz2, xx2 = np.meshgrid(rng_ax, rng_ax, indexing="ij")
+    parts.append(np.column_stack([xx2.ravel(), np.full(xx2.size, iy),
+                                  zz2.ravel()]))
+    # x = ix plane  (vary y, z)
+    zz2, yy2 = np.meshgrid(rng_ax, rng_ax, indexing="ij")
+    parts.append(np.column_stack([np.full(yy2.size, ix), yy2.ravel(),
+                                  zz2.ravel()]))
+    pts = np.vstack(parts)                                   # (M, 3) as (x,y,z)
+    cols = grain_rgb_u8[gid[pts[:, 2], pts[:, 1], pts[:, 0]]]  # gid[z,y,x]
+    return pts, cols
 
 # ── 4. Figure: 3 slices on top, volume + IPF below ──────────────────────────
 gs  = apl.GridSpec(2, 3)
@@ -93,7 +118,8 @@ ax_yz  = fig.add_subplot(gs[0, 2])
 ax_vol = fig.add_subplot(gs[1, 0])
 ax_ipf = fig.add_subplot(gs[1, 1:3])
 
-ix, iy, iz = N // 2, N // 2, N // 2                       # current voxel
+ix, iy, iz = N // 2, N // 2, N // 2                       # integer slice indices
+fx, fy, fz = float(ix), float(iy), float(iz)              # smooth highlight pos
 
 px = [np.arange(N)] * 2                                   # pixel axes → gutters
 
@@ -108,9 +134,10 @@ cw_xy = v_xy.add_widget("crosshair", cx=ix, cy=iy, color="#ffffff")
 cw_xz = v_xz.add_widget("crosshair", cx=ix, cy=iz, color="#ffffff")
 cw_yz = v_yz.add_widget("crosshair", cx=iy, cy=iz, color="#ffffff")
 
+_vpts, _vcols = slice_voxels(ix, iy, iz)
 v_vol = ax_vol.voxels(
-    vox[:, 2], vox[:, 1], vox[:, 0], colors=vox_colors,
-    size=float(step), alpha=0.10,
+    _vpts[:, 0], _vpts[:, 1], _vpts[:, 2], colors=_vcols,
+    size=VOXSIZE, alpha=0.55,
     x_label="x", y_label="y", z_label="z",
     bounds=((0, N - 1),) * 3, zoom=1.1,
 )
@@ -163,15 +190,24 @@ def update(source: str) -> None:
         v_xz.set_title(f"XZ slice — y={iy}")
         v_yz.set_title(f"YZ slice — x={ix}")
 
-        # 3-D slice-selector planes follow (skipped for the one being dragged)
+        # 3-D slice-selector planes follow at the SMOOTH position (skipped for
+        # the one being dragged, so its own live position isn't overwritten).
         if source != "px":
-            pw_yz.set(position=ix)
+            pw_yz.set(position=fx)
         if source != "py":
-            pw_xz.set(position=iy)
+            pw_xz.set(position=fy)
         if source != "pz":
-            pw_xy.set(position=iz)
+            pw_xy.set(position=fz)
 
-        v_vol.set_highlight(ix, iy, iz, color="#ffffff", size=7)
+        # Re-cut the 3-D slab voxels to the new slice indices so the volume
+        # view shows the actual slice contents (bounded ~3·(N/VSTEP)² voxels).
+        _p, _c = slice_voxels(ix, iy, iz)
+        v_vol.set_data(_p[:, 0], _p[:, 1], _p[:, 2])
+        v_vol.set_point_colors(_c)
+
+        # Highlight tracks the SMOOTH plane positions (fx,fy,fz) so the marker
+        # glides with the planes instead of jumping by whole voxels.
+        v_vol.set_highlight(fx, fy, fz, color="#ffffff", size=7)
 
         g = int(gid[iz, iy, ix])
         v_ipf.set_highlight(*reduced[g], color="#ffffff", size=8)
@@ -181,61 +217,73 @@ def update(source: str) -> None:
         _busy[0] = False
 
 
-def _clip(v):
-    return int(np.clip(round(v), 0, N - 1))
+def _clipf(v):
+    """Clamp a float position to the volume range (kept smooth for the marker)."""
+    return float(np.clip(v, 0.0, N - 1))
+
+
+def _i(v):
+    """Round a float position to the nearest integer slice index."""
+    return int(round(v))
 
 
 @cw_xy.add_event_handler("pointer_move")
 def _moved_xy(event):
-    global ix, iy
+    global ix, iy, fx, fy
     if _busy[0]:
         return
-    ix, iy = _clip(cw_xy.cx), _clip(cw_xy.cy)
+    fx, fy = _clipf(cw_xy.cx), _clipf(cw_xy.cy)
+    ix, iy = _i(fx), _i(fy)
     update("xy")
 
 
 @cw_xz.add_event_handler("pointer_move")
 def _moved_xz(event):
-    global ix, iz
+    global ix, iz, fx, fz
     if _busy[0]:
         return
-    ix, iz = _clip(cw_xz.cx), _clip(cw_xz.cy)
+    fx, fz = _clipf(cw_xz.cx), _clipf(cw_xz.cy)
+    ix, iz = _i(fx), _i(fz)
     update("xz")
 
 
 @cw_yz.add_event_handler("pointer_move")
 def _moved_yz(event):
-    global iy, iz
+    global iy, iz, fy, fz
     if _busy[0]:
         return
-    iy, iz = _clip(cw_yz.cx), _clip(cw_yz.cy)
+    fy, fz = _clipf(cw_yz.cx), _clipf(cw_yz.cy)
+    iy, iz = _i(fy), _i(fz)
     update("yz")
 
 
 @pw_yz.add_event_handler("pointer_move")
 def _plane_x(event):
-    global ix
+    global ix, fx
     if _busy[0]:
         return
-    ix = _clip(pw_yz.position)
+    fx = _clipf(pw_yz.position)
+    ix = _i(fx)
     update("px")
 
 
 @pw_xz.add_event_handler("pointer_move")
 def _plane_y(event):
-    global iy
+    global iy, fy
     if _busy[0]:
         return
-    iy = _clip(pw_xz.position)
+    fy = _clipf(pw_xz.position)
+    iy = _i(fy)
     update("py")
 
 
 @pw_xy.add_event_handler("pointer_move")
 def _plane_z(event):
-    global iz
+    global iz, fz
     if _busy[0]:
         return
-    iz = _clip(pw_xy.position)
+    fz = _clipf(pw_xy.position)
+    iz = _i(fz)
     update("pz")
 
 
