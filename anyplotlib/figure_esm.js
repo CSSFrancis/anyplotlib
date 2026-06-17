@@ -1964,6 +1964,7 @@ function render({ model, el }) {
             if (p.kind === '3d' && p._gpu === 'active') {
               p._gpu = 'unavailable';
               if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+              if (p.plotCanvas) p.plotCanvas.style.background = theme.bgPlot;
               _gpuDisposePanel(p);
               _redrawPanel(p);
             }
@@ -2166,7 +2167,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   function _gpuUploadGeometry(p) {
     const g = p._gpuObj, st = p.state, device = g.device;
-    const key = st.vertices_b64 || '';
+    // Key on BOTH geometry and colours: the orthoslice explorer recolours
+    // voxels via set_point_colors with the vertex set unchanged, so caching
+    // on vertices_b64 alone would reuse a stale colour buffer.
+    const key = (st.vertices_b64 || '') + '|' + (st.point_colors_b64 || '');
     if (g.geomKey === key && g.posBuf) return;
     g.geomKey = key;
     if (g.posBuf) g.posBuf.destroy();
@@ -2372,8 +2376,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     p._gpuObj = null;
   }
 
-  function draw3d(p) {
+  function draw3d(p, _retry) {
     const st = p.state; if (!st) return;
+    if (!_retry) p._gpuFellBack = false;   // per-render re-entry guard reset
     _recordFrame(p);
     const { pw, ph, plotCtx: ctx } = p;
 
@@ -2467,6 +2472,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // State no longer wants GPU — revert to canvas.
       p._gpu = undefined; gpuActive = false;
       if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+      p.plotCanvas.style.background = theme.bgPlot;   // restore opaque bg
       _gpuDisposePanel(p);
     }
 
@@ -2488,7 +2494,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       p.gpuCanvas.style.display = 'block';
       p.gpuCanvas.style.width  = pw + 'px';
       p.gpuCanvas.style.height = ph + 'px';
-      // plotCanvas becomes a transparent decoration overlay
+      // plotCanvas becomes a transparent decoration overlay: clear its BITMAP
+      // *and* drop its opaque CSS background — otherwise the element keeps
+      // painting theme.bgPlot over the gpuCanvas beneath it (z-index 1 vs 0),
+      // hiding every GPU-drawn voxel while canvas-drawn planes/highlight still
+      // show.  (This is what made large voxel volumes look "empty" with only
+      // the plane widgets + highlight visible.)
+      p.plotCanvas.style.background = 'transparent';
       ctx.clearRect(0, 0, pw, ph);
       try {
         _gpuUploadGeometry(p);
@@ -2497,7 +2509,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } catch (e) {
         console.warn('[anyplotlib] GPU draw failed — falling back:', e);
         p._gpu = 'unavailable'; gpuActive = false;
-        p.gpuCanvas.style.display = 'none';
+        if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+        p.plotCanvas.style.background = theme.bgPlot;   // restore opaque bg
+        _gpuDisposePanel(p);
+        // The current frame already cleared plotCanvas and took GPU-only
+        // branches (proj == null etc.), so the axes/decorations for THIS frame
+        // are half-built.  Rather than limp through, re-render the whole panel
+        // once from the top on the canvas path — self-healing without needing
+        // a user resize.  (Safari's experimental WebGPU can throw mid-draw or
+        // lose the device after working for a while; this recovers cleanly.)
+        if (!p._gpuFellBack) {
+          p._gpuFellBack = true;
+          ctx.fillStyle = theme.bgPlot; ctx.fillRect(0, 0, pw, ph);
+          draw3d(p, true);   // re-render once on the canvas path
+          return;
+        }
         ctx.fillStyle = theme.bgPlot; ctx.fillRect(0, 0, pw, ph);
       }
     }
