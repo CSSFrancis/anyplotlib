@@ -127,7 +127,7 @@ Python-side state can also be set programmatically::
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.767 seconds)
+   **Total running time of the script:** (0 minutes 0.683 seconds)
 
 
 .. _sphx_glr_download_auto_examples_PlotTypes_plot_inset.py:
