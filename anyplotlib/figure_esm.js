@@ -3683,11 +3683,17 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       mkCtx.save();mkCtx.strokeStyle=ec;mkCtx.fillStyle=ec;mkCtx.lineWidth=dlw;
 
       if(type==='points'){
+        // Per-point face/edge colours (matplotlib scatter c=[...]): fill_color
+        // and/or color may be arrays parallel to offsets.
+        const _fcArr = Array.isArray(fch) ? fch : null;
+        const _ecArr = Array.isArray(ec)  ? ec  : null;
         for(let i=0;i<ms.offsets.length;i++){
           const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
           const sz=Math.max(1,ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5);
           mkCtx.beginPath();mkCtx.arc(px,py,sz,0,Math.PI*2);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcArr?_fcArr[i%_fcArr.length]:fch;
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecArr[i%_ecArr.length];
           mkCtx.stroke();
         }
       } else if(type==='vlines'){

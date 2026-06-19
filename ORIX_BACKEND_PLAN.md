@@ -51,11 +51,14 @@ proves the data→pixel plumbing. Touches `markers.py` (wire) + `figure_esm.js`
 a lightweight `Plot2DCoords` (or extend `Plot2D` to allow `data_bounds` without an
 image) reusing the Stage-1 transform.
 
-**Stage 3 — orix adapter.**
-A thin shim (in anyplotlib `contrib/` or a separate `orix-anyplotlib`) that
-reproduces `StereographicPlot` / IPF-key / pole-figure using anyplotlib + the
-orix `projections` math: `vector2xy` → Stage-2 axis. Optionally a
-`Vector3d.scatter(backend="anyplotlib")` hook upstream in orix.
+**Stage 3 — orix targets anyplotlib (lives in ORIX, not here).**
+The stereographic projection + IPF / pole-figure plotting **belongs in orix** and
+already exists there (`StereographicProjection`, `StereographicPlot`,
+`IPFColorKeyTSL`). anyplotlib stays domain-agnostic — it must NOT know about
+stereographic projections. The integration is an **orix-side** change: refactor
+orix's plotting to draw through a backend (matplotlib OR anyplotlib's `axes2d`
+surface) — `vector2xy` (orix) → `PlotXY.scatter/plot/fill/text` (anyplotlib).
+anyplotlib's only job is to be a complete-enough generic 2-D backend.
 
 ## Align with matplotlib's model
 
@@ -114,8 +117,10 @@ labels in data coords).
    equal on x and y — matplotlib `apply_aspect`). Honour `state["aspect"]` in the
    1-D coordinate setup.
 
-**Then Stage 3 (orix adapter):** `StereographicProjection.vector2xy` →
-`PlotXY`; reproduce `IPFColorKeyTSL.plot` / stereographic / pole figures.
+**Then the orix side (in the orix repo, not here):** the stereographic / IPF /
+pole-figure plotting STAYS in orix; refactor it to draw through a backend so
+`vector2xy` (orix) feeds `PlotXY.scatter/plot/fill/text` (anyplotlib). anyplotlib
+stays generic — finishing (1) + (2) makes it a complete-enough backend.
 
 ## Recommendation
 
