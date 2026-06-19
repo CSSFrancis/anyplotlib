@@ -3,3 +3,6 @@ Added :meth:`Axes.axes2d` / :class:`PlotXY` — a blank **data-coordinate
 ``xlim``/``ylim`` (+ ``aspect="equal"``) and draw ``scatter``/``plot``/``fill``/
 ``text`` as collection-style artists in data coords — the surface needed for
 stereographic / IPF / pole-figure plots (e.g. an orix plotting backend).
+``scatter(c=[...])`` honours per-point face/edge colours, and ``aspect="equal"``
+applies matplotlib's ``apply_aspect`` in the renderer (the panel box is shrunk
+and centred so one data unit spans equal pixels on x and y).

@@ -73,3 +73,41 @@ def test_render_is_chromatic(take_screenshot):
     rgb = arr[..., :3].astype(int)
     spread = int((rgb.max(axis=2) - rgb.min(axis=2)).max())
     assert spread > 60                       # genuinely coloured, not greyscale
+
+
+def _red_bbox(arr):
+    """(x0, x1, y0, y1) bounding box of red-ish pixels, or None."""
+    rgb = arr[..., :3].astype(int)
+    mask = (rgb[..., 0] > 150) & (rgb[..., 1] < 90) & (rgb[..., 2] < 90)
+    ys, xs = np.where(mask)
+    if xs.size == 0:
+        return None
+    return int(xs.min()), int(xs.max()), int(ys.min()), int(ys.max())
+
+
+def test_aspect_equal_renders_square(take_screenshot):
+    """Equal x & y spans drawn into a WIDE (2:1) panel: ``aspect="equal"`` must
+    apply matplotlib's ``apply_aspect`` — shrink + centre the data box to a
+    square (one data unit equal px on x & y), NOT stretch it to the panel."""
+    fig, ax = apl.subplots(figsize=(640, 320))
+    xy = ax.axes2d(xlim=(0, 1), ylim=(0, 1), aspect="equal")
+    xy.fill([0, 1, 0], [0, 0, 1], facecolor="#ff0000", edgecolor="#ff0000", alpha=1.0)
+
+    bb = _red_bbox(take_screenshot(fig))
+    assert bb is not None
+    w, h = bb[1] - bb[0], bb[3] - bb[2]
+    assert 0.8 < (w / h) < 1.25               # ~square, not stretched 2:1
+
+
+def test_aspect_auto_fills_panel(take_screenshot):
+    """Without ``aspect="equal"`` the same triangle stretches to fill the wide
+    panel (the data box follows the panel aspect) — the contrast that proves the
+    equal-aspect step is actually doing something."""
+    fig, ax = apl.subplots(figsize=(640, 320))
+    xy = ax.axes2d(xlim=(0, 1), ylim=(0, 1))          # aspect None → fill panel
+    xy.fill([0, 1, 0], [0, 0, 1], facecolor="#ff0000", edgecolor="#ff0000", alpha=1.0)
+
+    bb = _red_bbox(take_screenshot(fig))
+    assert bb is not None
+    w, h = bb[1] - bb[0], bb[3] - bb[2]
+    assert (w / h) > 1.4                       # stretched wide (panel is 2:1)

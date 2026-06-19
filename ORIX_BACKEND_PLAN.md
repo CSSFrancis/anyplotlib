@@ -107,15 +107,17 @@ change. `set_xlim`/`set_ylim`/`set_aspect`. Tests in `tests/test_plotxy/`
 (5 pass incl. a chromium render); demo = a native IPF triangle (fill + scatter +
 labels in data coords).
 
-**Two renderer gaps the demo exposed (next):**
-1. **Per-point scatter colours.** `drawMarkers1d` `points` fills with a single
-   `fill_color`, not per-offset `facecolors` — so `scatter(c=[...])` renders one
-   colour (the IPF colour-key gradient needs per-point). Add per-point
-   `facecolors`/`sizes` to the 1-D points path (matplotlib `PathCollection`).
-2. **`aspect="equal"`.** Currently looks right only when `figsize`/limits already
-   match; the renderer must apply aspect (shrink the panel rect so a data unit is
-   equal on x and y — matplotlib `apply_aspect`). Honour `state["aspect"]` in the
-   1-D coordinate setup.
+**Two renderer gaps the demo exposed — both now CLOSED:**
+1. **Per-point scatter colours — DONE.** `drawMarkers1d` `points` now reads
+   per-offset `facecolors`/`color` arrays (matplotlib `PathCollection`), so
+   `scatter(c=[...])` renders the IPF colour-key gradient.
+2. **`aspect="equal"` — DONE.** `_plotRect1d(p)` applies matplotlib
+   `apply_aspect`: when `state.aspect==='equal'` it shrinks + centres the panel
+   box so one data unit spans equal pixels on x and y. Baked into the shared rect
+   helper, so draw / markers / overlay / hit-test all use the identical adjusted
+   box (matplotlib's transData derives from the axes box). A wide-panel IPF
+   triangle now renders undistorted (`tests/test_plotxy`:
+   `test_aspect_equal_renders_square` vs `test_aspect_auto_fills_panel`).
 
 **Then the orix side (in the orix repo, not here):** the stereographic / IPF /
 pole-figure plotting STAYS in orix; refactor it to draw through a backend so
