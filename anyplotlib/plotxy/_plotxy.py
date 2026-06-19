@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from anyplotlib._utils import _build_colormap_lut
 from anyplotlib.plot1d._plot1d import Plot1D
 
 
@@ -112,3 +113,61 @@ class PlotXY(Plot1D):
         """Data-coord text → a ``Text``-style group (one label)."""
         return self.add_texts([[float(x), float(y)]], [str(s)], name=name,
                               color=color, fontsize=fontsize)
+
+    def pcolormesh(self, x, y, c, *, cmap="viridis", vmin=None, vmax=None,
+                   edgecolor=None, alpha=1.0, name=None):
+        """Data-coord quad mesh — matplotlib ``pcolormesh``.
+
+        ``x``/``y`` are the ``(N+1, M+1)`` cell-corner grids and ``c`` the
+        ``(N, M)`` field: either a scalar array (mapped through *cmap* between
+        *vmin*/*vmax*) or an array of CSS colour strings. Masked / non-finite
+        cells are skipped — so an ``orix`` pole-density histogram (masked
+        outside the fundamental sector) clips itself to the sector. Drawn as
+        one polygon ``MarkerGroup`` with per-cell face colours (a
+        ``PathCollection``); the edges default to the face colour for a
+        seamless heatmap.
+        """
+        x = np.asarray(x, float)
+        y = np.asarray(y, float)
+        cm = np.ma.asarray(c)
+        nr, nc = cm.shape
+        mask = np.ma.getmaskarray(cm)
+
+        if cm.dtype.kind in "fiub":               # scalar field → LUT
+            vals = np.ma.filled(cm.astype(float), np.nan)
+            finite = vals[np.isfinite(vals)]
+            lo = float(vmin) if vmin is not None else (
+                float(finite.min()) if finite.size else 0.0)
+            hi = float(vmax) if vmax is not None else (
+                float(finite.max()) if finite.size else 1.0)
+            lut = _build_colormap_lut(cmap)
+            span = (hi - lo) or 1.0
+
+            def _color(i, j):
+                v = vals[i, j]
+                if not np.isfinite(v):
+                    return None
+                t = min(1.0, max(0.0, (v - lo) / span))
+                r, g, b = lut[int(round(t * 255))]
+                return f"#{r:02x}{g:02x}{b:02x}"
+        else:                                     # already colour strings
+            def _color(i, j):
+                return None if mask[i, j] else str(cm[i, j])
+
+        verts, faces = [], []
+        for i in range(nr):
+            for j in range(nc):
+                if mask[i, j]:
+                    continue
+                col = _color(i, j)
+                if col is None:
+                    continue
+                verts.append([[x[i, j],     y[i, j]],
+                              [x[i + 1, j], y[i + 1, j]],
+                              [x[i + 1, j + 1], y[i + 1, j + 1]],
+                              [x[i, j + 1], y[i, j + 1]]])
+                faces.append(col)
+
+        edges = faces if edgecolor is None else edgecolor
+        return self.add_polygons(verts, name=name, facecolors=faces,
+                                 edgecolors=edges, alpha=alpha, linewidths=0.5)

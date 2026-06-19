@@ -3760,6 +3760,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           mkCtx.restore();
         }
       } else if(type==='polygons'){
+        // Per-polygon face/edge colours (matplotlib PathCollection / pcolormesh):
+        // fill_color and/or color may be arrays parallel to vertices_list.
+        const _fcArr = Array.isArray(fch) ? fch : null;
+        const _ecArr = Array.isArray(ec)  ? ec  : null;
         for(let i=0;i<(ms.vertices_list||[]).length;i++){
           const verts=ms.vertices_list[i];
           if(!verts||verts.length<2) continue;
@@ -3770,7 +3774,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
             mkCtx.lineTo(px,py);
           }
           mkCtx.closePath();
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcArr?_fcArr[i%_fcArr.length]:fch;
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecArr[i%_ecArr.length];
           mkCtx.stroke();
         }
       } else if(type==='arrows'){

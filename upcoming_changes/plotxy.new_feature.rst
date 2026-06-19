@@ -6,3 +6,6 @@ stereographic / IPF / pole-figure plots (e.g. an orix plotting backend).
 ``scatter(c=[...])`` honours per-point face/edge colours, and ``aspect="equal"``
 applies matplotlib's ``apply_aspect`` in the renderer (the panel box is shrunk
 and centred so one data unit spans equal pixels on x and y).
+:meth:`PlotXY.pcolormesh` draws a data-coord quad mesh (per-cell colours via a
+polygon ``PathCollection``); masked / non-finite cells are skipped, so an
+``orix`` pole-density histogram renders natively as an IPF density heatmap.
