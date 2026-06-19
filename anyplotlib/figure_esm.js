@@ -3212,7 +3212,26 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   // ── 1D drawing ───────────────────────────────────────────────────────────
 
-  function _plotRect1d(pw,ph){return{x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-PAD_R),h:Math.max(1,ph-PAD_T-PAD_B)};}
+  // Panel rect for a 1-D / coordinate (PlotXY) axis. When state.aspect==='equal'
+  // we apply matplotlib's apply_aspect(): shrink + centre the box so one data
+  // unit spans equal pixels on x and y (an IPF triangle etc. must not stretch).
+  // Baked in here so EVERY consumer (draw1d / markers / overlay / hit-test) uses
+  // the identical box — matplotlib's transData derives from the adjusted axes box.
+  function _plotRect1d(p){
+    const pw=p.pw, ph=p.ph, st=p.state;
+    const r={x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-PAD_R),h:Math.max(1,ph-PAD_T-PAD_B)};
+    if(!st || st.aspect!=='equal') return r;
+    const xArr=p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
+    const x0=st.view_x0||0, x1=st.view_x1||1;
+    let xspan=1;
+    if(xArr && xArr.length>=2) xspan=Math.abs(_axisFracToVal(xArr,x1)-_axisFracToVal(xArr,x0))||1;
+    let dMin=st.data_min, dMax=st.data_max;
+    if(st.y_range && st.y_range.length===2){ dMin=st.y_range[0]; dMax=st.y_range[1]; }
+    const yspan=Math.abs((dMax!=null?dMax:1)-(dMin!=null?dMin:0))||1;
+    const s=Math.min(r.w/xspan, r.h/yspan);
+    const nw=s*xspan, nh=s*yspan;
+    return {x:r.x+(r.w-nw)/2, y:r.y+(r.h-nh)/2, w:nw, h:nh};
+  }
 
   // _xToFrac1d / _fracToX1d are identical to _axisValToFrac / _axisFracToVal
   // (defined at the top of this file) — callers use those shared functions.
@@ -3223,7 +3242,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const st=p.state; if(!st) return;
     _recordFrame(p);
     const {pw,ph,plotCtx:ctx} = p;
-    const r=_plotRect1d(pw,ph);
+    const r=_plotRect1d(p);
 
     // ── decode + cache b64 arrays (keyed by b64 string; free on re-render) ──
     const xKey = st.x_axis_b64 || '';
@@ -3561,7 +3580,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   function drawOverlay1d(p) {
     const st=p.state; if(!st) return;
     const {pw,ph,ovCtx} = p;
-    const r=_plotRect1d(pw,ph);
+    const r=_plotRect1d(p);
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
     const dMin=st.data_min, dMax=st.data_max;
@@ -3631,7 +3650,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   function drawMarkers1d(p, hoverState) {
     const st=p.state; if(!st) return;
     const {pw,ph,mkCtx} = p;
-    const r=_plotRect1d(pw,ph);
+    const r=_plotRect1d(p);
     // Use cached decoded arrays from draw1d; fall back to inline decode if needed.
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const yData = p._1dDArr || (st.data_b64 ? _decodeF64(st.data_b64) : (st.data||[]));
@@ -3787,7 +3806,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // lineId: null = primary line, string = extra-line id.
   function _lineHitTest1d(mx, my, p) {
     const st = p.state; if (!st) return null;
-    const r = _plotRect1d(p.pw, p.ph);
+    const r = _plotRect1d(p);
     if (mx < r.x || mx > r.x+r.w || my < r.y || my > r.y+r.h) return null;
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0 = st.view_x0||0, x1 = st.view_x1||1;
@@ -3905,7 +3924,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   function _markerHitTest1d(mx, my, p) {
     const st=p.state; if(!st) return null;
-    const r=_plotRect1d(p.pw,p.ph);
+    const r=_plotRect1d(p);
     // Use cached decoded array from draw1d; fall back to inline decode if needed.
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
@@ -4383,7 +4402,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     overlayCanvas.addEventListener('wheel',(e)=>{
       e.preventDefault();
       const st=p.state; if(!st) return;
-      const r=_plotRect1d(p.pw,p.ph);
+      const r=_plotRect1d(p);
       const {mx}=_clientPos(e,overlayCanvas,p.pw,p.ph);
       const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
       const x0=st.view_x0, x1=st.view_x1, span=x1-x0;
@@ -4423,7 +4442,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
       if(!p.isPanning) return;
       const st=p.state; if(!st) return;
-      const r=_plotRect1d(p.pw,p.ph);
+      const r=_plotRect1d(p);
       const {mx:cmx}=_clientPos(e,overlayCanvas,p.pw,p.ph);
       const dx=(cmx-panStart.mx)/(r.w||1);
       const span=panStart.x1-panStart.x0;
@@ -4469,7 +4488,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Built-in: r=reset view. All keys are forwarded to Python unconditionally.
     overlayCanvas.addEventListener('keydown',(e)=>{
       const st=p.state; if(!st) return;
-      const r=_plotRect1d(p.pw,p.ph);
+      const r=_plotRect1d(p);
       const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
       const frac=_canvasXToFrac1d(p.mouseX,st.view_x0,st.view_x1,r);
       const physX=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
@@ -4500,7 +4519,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const st=p.state;if(!st)return;
       const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
       p.mouseX=mx; p.mouseY=my;
-      const r=_plotRect1d(p.pw,p.ph);
+      const r=_plotRect1d(p);
       if(mx<r.x||mx>r.x+r.w||my<r.y||my>r.y+r.h){
         p.statusBar.style.display='none';tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers1d(p,null);}
@@ -4551,7 +4570,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const st=p.state;
       let xdata=null;
       if(st){
-        const r=_plotRect1d(p.pw,p.ph);
+        const r=_plotRect1d(p);
         const xArr=p._1dXArr||(st.x_axis_b64?_decodeF64(st.x_axis_b64):(st.x_axis||[]));
         const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
         xdata=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
@@ -4739,7 +4758,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   function _ovHitTest1d(mx,my,p){
     const st=p.state;if(!st)return null;
-    const r=_plotRect1d(p.pw,p.ph);
+    const r=_plotRect1d(p);
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0,x1=st.view_x1||1;
     const widgets=st.overlay_widgets||[];
@@ -4790,7 +4809,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   function _doDrag1d(e,p){
     const st=p.state;if(!st)return;
-    const r=_plotRect1d(p.pw,p.ph);
+    const r=_plotRect1d(p);
     const {mx,my:py}=_clientPos(e,p.overlayCanvas,p.pw,p.ph);
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0,x1=st.view_x1||1;
@@ -5139,7 +5158,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const st = p.state; if (!st) return;
     _recordFrame(p);
     const { pw, ph, plotCtx: ctx } = p;
-    const r = _plotRect1d(pw, ph);
+    const r = _plotRect1d(p);
 
     ctx.clearRect(0, 0, pw, ph);
     ctx.fillStyle = theme.bg;     ctx.fillRect(0, 0, pw, ph);
@@ -5518,7 +5537,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     function _barHit(mx, my) {
       const st = p.state;
       if (!st || !st.values || !st.values.length) return null;
-      const r  = _plotRect1d(p.pw, p.ph);
+      const r  = _plotRect1d(p);
       if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) return null;
       const g  = _barGeom(st, r);
       const LC = g.LC;
@@ -5609,7 +5628,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           ? String(st.x_labels[idx])
           : fmtVal((st.x_centers||[])[idx] ?? idx);
         const gLabel = (st.group_labels||[])[gi];
-        const gm  = _barGeom(st, _plotRect1d(p.pw, p.ph));
+        const gm  = _barGeom(st, _plotRect1d(p));
         const val = gm.getVal(idx, gi);
         const tip = (st.groups > 1 && gLabel)
           ? `${gLabel} | ${label}: ${fmtVal(val)}`
@@ -5647,7 +5666,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         return;
       }
       const { slot: idx, group: gi } = hit;
-      const gm  = _barGeom(st, _plotRect1d(p.pw, p.ph));
+      const gm  = _barGeom(st, _plotRect1d(p));
       const val = gm.getVal(idx, gi);
       _emitEvent(p.id, 'pointer_down', null, {
         bar_index:   idx,
