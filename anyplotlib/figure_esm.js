@@ -3261,6 +3261,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const x0=st.view_x0||0, x1=st.view_x1||1;
     let dMin=st.data_min, dMax=st.data_max;
     if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
+    // Cache the linear y bounds so the dblclick handler inverts event y → data y
+    // using exactly what was drawn (for a PlotXY coordinate axis the y range is
+    // y_range, not the hidden zero-curve's data_min/max).
+    p._1dDMin=dMin; p._1dDMax=dMax;
     const units=st.units||'', yUnits=st.y_units||'';
 
     const isLog = st.yscale === 'log';
@@ -4588,14 +4592,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     overlayCanvas.addEventListener('dblclick',(e)=>{
       const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
       const st=p.state;
-      let xdata=null;
+      let xdata=null, ydata=null;
       if(st){
         const r=_plotRect1d(p);
         const xArr=p._1dXArr||(st.x_axis_b64?_decodeF64(st.x_axis_b64):(st.x_axis||[]));
         const frac=_canvasXToFrac1d(mx,st.view_x0,st.view_x1,r);
         xdata=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
+        // ydata: invert the linear y transform. Prefer the bounds draw1d cached
+        // (exactly what was rendered) — for a coordinate axis (PlotXY) data_min
+        // may be the zero-curve's range, so y_range / the cache is authoritative.
+        let dMin=(p._1dDMin!=null?p._1dDMin:st.data_min), dMax=(p._1dDMax!=null?p._1dDMax:st.data_max);
+        if(dMin==null && st.y_range && st.y_range.length===2){ dMin=st.y_range[0]; dMax=st.y_range[1]; }
+        if(dMin!=null && dMax!=null) ydata=dMin+((r.y+r.h-my)/(r.h||1))*(dMax-dMin);
       }
-      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,xdata});
+      _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,xdata,ydata});
     });
     overlayCanvas.addEventListener('wheel',(e)=>{
       _emitEvent(p.id,'wheel',null,{
