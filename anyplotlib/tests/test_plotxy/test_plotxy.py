@@ -58,6 +58,30 @@ def test_scatter_returns_collection_with_offsets():
     assert pts["n"] == 3
 
 
+def test_double_click_reports_data_coords(interact_page):
+    """A ``double_click`` on a coordinate (PlotXY) panel reports ``xdata``/``ydata``
+    in DATA coords (like the 2-D image path) — needed for a data-coord pick such
+    as the IPF-refine mask. Clicking panel-centre ⇒ centre of the x/y range."""
+    from anyplotlib.tests.test_interactive._event_test_utils import (
+        _collect_events, _get_events, _plot_center_page,
+    )
+    fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+    ax.axes2d(xlim=(0, 10), ylim=(0, 20), aspect="equal")
+    page = interact_page(fig)
+    _collect_events(page)
+
+    px, py = _plot_center_page(400, 300)
+    page.mouse.dblclick(px, py)
+    page.wait_for_timeout(100)
+
+    evs = _get_events(page, "double_click")
+    assert evs, "expected a double_click event"
+    e = evs[-1]
+    assert e.get("xdata") is not None and e.get("ydata") is not None
+    assert abs(e["xdata"] - 5.0) < 1.5         # centre of x range (0, 10)
+    assert abs(e["ydata"] - 10.0) < 3.0        # centre of y range (0, 20)
+
+
 def test_render_is_chromatic(take_screenshot):
     """End-to-end: a filled triangle + coloured scatter + labels in data coords
     must actually draw (canvas is chromatic, not blank)."""
