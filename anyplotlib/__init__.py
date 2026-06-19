@@ -4,6 +4,7 @@ from anyplotlib.plot1d import Plot1D, PlotBar
 from anyplotlib.plot1d._plot1d import Line1D
 from anyplotlib.plot2d import Plot2D, PlotMesh
 from anyplotlib.plot3d import Plot3D
+from anyplotlib.plotxy import PlotXY
 from anyplotlib.callbacks import CallbackRegistry, Event
 from anyplotlib import embed
 from anyplotlib.markers import MarkerRegistry, MarkerGroup
