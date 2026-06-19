@@ -1234,7 +1234,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                      facecolors=None, edgecolors="#ff0000",
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
-                     labels=None, label=None,
+                     labels=None, label=None, clip_path=None,
                      transform: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add polygon markers defined by explicit vertex lists.
 
@@ -1259,6 +1259,10 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Per-polygon tooltip labels.
         label : str, optional
             Collection-level tooltip label.
+        clip_path : array-like, shape (K, 2), optional
+            Data-coordinate polygon the group is clipped to (matplotlib
+            ``set_clip_path``) — e.g. a curved sector boundary so a mesh's edge
+            cells don't overflow it. ``None`` = no clip.
 
         Returns
         -------
@@ -1269,7 +1273,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 linewidths=linewidths, alpha=alpha,
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
-                                labels=labels, label=label,
+                                labels=labels, label=label, clip_path=clip_path,
                                 transform=transform)
 
     def add_texts(self, offsets, texts, name=None, *,

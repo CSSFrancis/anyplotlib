@@ -115,7 +115,7 @@ class PlotXY(Plot1D):
                               color=color, fontsize=fontsize)
 
     def pcolormesh(self, x, y, c, *, cmap="viridis", vmin=None, vmax=None,
-                   edgecolor=None, alpha=1.0, name=None):
+                   edgecolor=None, alpha=1.0, clip_path=None, name=None):
         """Data-coord quad mesh — matplotlib ``pcolormesh``.
 
         ``x``/``y`` are the ``(N+1, M+1)`` cell-corner grids and ``c`` the
@@ -126,6 +126,10 @@ class PlotXY(Plot1D):
         one polygon ``MarkerGroup`` with per-cell face colours (a
         ``PathCollection``); the edges default to the face colour for a
         seamless heatmap.
+
+        ``clip_path`` is an optional ``(K, 2)`` data-coord polygon the mesh is
+        clipped to (matplotlib ``set_clip_path``) — pass the curved sector
+        boundary so the edge cells don't overflow it.
         """
         x = np.asarray(x, float)
         y = np.asarray(y, float)
@@ -170,4 +174,5 @@ class PlotXY(Plot1D):
 
         edges = faces if edgecolor is None else edgecolor
         return self.add_polygons(verts, name=name, facecolors=faces,
-                                 edgecolors=edges, alpha=alpha, linewidths=0.5)
+                                 edgecolors=edges, alpha=alpha, linewidths=0.5,
+                                 clip_path=clip_path)
