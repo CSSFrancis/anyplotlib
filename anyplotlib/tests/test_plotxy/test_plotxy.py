@@ -99,6 +99,48 @@ def test_aspect_equal_renders_square(take_screenshot):
     assert 0.8 < (w / h) < 1.25               # ~square, not stretched 2:1
 
 
+def test_pcolormesh_builds_polygon_mesh():
+    """``pcolormesh`` → one polygons collection, one quad per (N, M) cell;
+    masked / non-finite cells are dropped (so an orix sector histogram clips
+    itself to the fundamental sector)."""
+    fig, ax = apl.subplots()
+    xy = ax.axes2d()
+    xe = np.linspace(0, 1, 4)            # 3 columns of cells
+    ye = np.linspace(0, 1, 3)            # 2 rows of cells
+    X, Y = np.meshgrid(xe, ye, indexing="ij")        # (4, 3) corners
+    field = np.arange(3 * 2).reshape(3, 2).astype(float)   # (3, 2) cells
+    xy.pcolormesh(X, Y, field)
+    poly = next(g for g in xy.to_state_dict()["markers"] if g["type"] == "polygons")
+    assert len(poly["vertices_list"]) == 6                 # 3*2 cells
+    assert isinstance(poly["fill_color"], list)            # per-cell colours
+    assert len(poly["fill_color"]) == 6
+
+    masked = np.ma.array(field, mask=[[True, False], [False, False], [False, False]])
+    xy2 = ax.axes2d()
+    xy2.pcolormesh(X, Y, masked)
+    poly2 = next(g for g in xy2.to_state_dict()["markers"] if g["type"] == "polygons")
+    assert len(poly2["vertices_list"]) == 5                # one cell masked out
+
+
+def test_pcolormesh_renders_gradient(take_screenshot):
+    """A scalar field drawn as a data-coord quad mesh (matplotlib ``pcolormesh``)
+    must render many distinct colormap colours — the primitive an IPF / pole
+    density heatmap needs."""
+    fig, ax = apl.subplots(figsize=(320, 300))
+    xy = ax.axes2d(xlim=(0, 1), ylim=(0, 1), aspect="equal")
+    n = 16
+    xe = ye = np.linspace(0, 1, n + 1)
+    X, Y = np.meshgrid(xe, ye, indexing="ij")
+    gx, gy = np.meshgrid(np.linspace(0, 1, n), np.linspace(0, 1, n), indexing="ij")
+    xy.pcolormesh(X, Y, gx + gy, cmap="viridis")          # smooth ramp
+
+    arr = take_screenshot(fig)
+    rgb = arr[..., :3].astype(int)
+    assert int((rgb.max(2) - rgb.min(2)).max()) > 60       # chromatic
+    cols = {tuple(c) for c in rgb.reshape(-1, 3)[::29]}
+    assert len(cols) > 20                                  # a gradient, not flat
+
+
 def test_aspect_auto_fills_panel(take_screenshot):
     """Without ``aspect="equal"`` the same triangle stretches to fill the wide
     panel (the data box follows the panel aspect) — the contrast that proves the
