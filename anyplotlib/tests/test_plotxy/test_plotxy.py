@@ -141,6 +141,34 @@ def test_pcolormesh_renders_gradient(take_screenshot):
     assert len(cols) > 20                                  # a gradient, not flat
 
 
+def _red_pixel_count(arr):
+    rgb = arr[..., :3].astype(int)
+    return int(((rgb[..., 0] > 150) & (rgb[..., 1] < 90) & (rgb[..., 2] < 90)).sum())
+
+
+def test_pcolormesh_clip_path_clips_mesh(take_screenshot):
+    """``clip_path`` (matplotlib set_clip_path): a full square mesh clipped to a
+    lower-left triangle draws only ~half the cells — the primitive that keeps an
+    IPF density mesh inside the curved fundamental-sector boundary."""
+    n = 18
+    xe = ye = np.linspace(0, 1, n + 1)
+    X, Y = np.meshgrid(xe, ye, indexing="ij")
+    field = np.full((n, n), "#ff0000", dtype=object)     # every cell pure red
+
+    fig, ax = apl.subplots(figsize=(300, 300))
+    xy = ax.axes2d(xlim=(0, 1), ylim=(0, 1), aspect="equal")
+    xy.pcolormesh(X, Y, field)                            # full square
+    full = _red_pixel_count(take_screenshot(fig))
+
+    fig2, ax2 = apl.subplots(figsize=(300, 300))
+    xy2 = ax2.axes2d(xlim=(0, 1), ylim=(0, 1), aspect="equal")
+    xy2.pcolormesh(X, Y, field, clip_path=[[0, 0], [1, 0], [0, 1]])   # lower-left ½
+    clipped = _red_pixel_count(take_screenshot(fig2))
+
+    assert clipped > 0                              # mesh still drawn
+    assert clipped < 0.7 * full                     # ~half clipped away (triangle)
+
+
 def test_aspect_auto_fills_panel(take_screenshot):
     """Without ``aspect="equal"`` the same triangle stretches to fill the wide
     panel (the data box follows the panel aspect) — the contrast that proves the

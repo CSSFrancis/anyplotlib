@@ -278,6 +278,11 @@ class MarkerGroup:
                 "color":        d.get("edgecolors", d.get("color", "#ff0000")),
                 "linewidth":    float(d.get("linewidths", 1.5)),
             }
+            cp = d.get("clip_path")
+            if cp is not None:
+                cp_arr = np.asarray(cp, dtype=float)
+                if cp_arr.ndim == 2 and cp_arr.shape[1] == 2 and len(cp_arr) >= 3:
+                    wire["clip_path"] = cp_arr.tolist()
             _apply_fill_color(wire, d)
 
         elif t == "texts":

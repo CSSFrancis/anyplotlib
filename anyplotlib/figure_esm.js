@@ -3701,6 +3701,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
       mkCtx.save();mkCtx.strokeStyle=ec;mkCtx.fillStyle=ec;mkCtx.lineWidth=dlw;
 
+      // Optional clip path (matplotlib set_clip_path): a data-coord polygon the
+      // group is clipped to — e.g. a pcolormesh mesh clipped to a curved
+      // fundamental-sector boundary so edge cells don't stick out. Scoped to this
+      // set's save()/restore().
+      if(ms.clip_path && ms.clip_path.length>=3){
+        const _cp0= tfm==='data' ? _offToCanvas(ms.clip_path[0]) : _tc2d(ms.clip_path[0][0],ms.clip_path[0][1]);
+        mkCtx.beginPath();mkCtx.moveTo(_cp0[0],_cp0[1]);
+        for(let k=1;k<ms.clip_path.length;k++){
+          const _cp= tfm==='data' ? _offToCanvas(ms.clip_path[k]) : _tc2d(ms.clip_path[k][0],ms.clip_path[k][1]);
+          mkCtx.lineTo(_cp[0],_cp[1]);
+        }
+        mkCtx.closePath();mkCtx.clip();
+      }
+
       if(type==='points'){
         // Per-point face/edge colours (matplotlib scatter c=[...]): fill_color
         // and/or color may be arrays parallel to offsets.
