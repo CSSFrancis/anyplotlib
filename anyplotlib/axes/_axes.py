@@ -360,6 +360,31 @@ class Axes:
         kwargs.setdefault("yscale", "log")
         return self.plot(data, axes=axes, **kwargs)
 
+    def axes2d(self, *, xlim=(0.0, 1.0), ylim=(0.0, 1.0), aspect=None,
+               units: str = "", y_units: str = "") -> "PlotXY":   # noqa: F821
+        """Attach a blank **data-coordinate 2-D axis** (`PlotXY`).
+
+        Unlike :meth:`plot` (a curve over a monotonic x-axis), this is a
+        coordinate canvas: set ``xlim`` / ``ylim`` (+ optional ``aspect="equal"``)
+        and draw :meth:`~anyplotlib.plotxy.PlotXY.scatter` / ``plot`` / ``fill`` /
+        ``text`` as collection-style artists in data coordinates — matplotlib's
+        ``transData`` + ``PathCollection`` model. Suits stereographic / IPF /
+        pole-figure style plots.
+
+        Examples
+        --------
+        >>> import anyplotlib as apl
+        >>> fig, ax = apl.subplots()
+        >>> xy = ax.axes2d(xlim=(-1, 1), ylim=(-1, 1), aspect="equal")
+        >>> xy.fill([0, 1, 0.5], [0, 0, 0.9], facecolor="#eee")   # triangle
+        >>> xy.scatter([0.3], [0.3], c="#f00", s=10)
+        >>> xy.text(0.5, 0.95, r"$[111]$")
+        """
+        from anyplotlib.plotxy import PlotXY
+        plot = PlotXY(xlim=xlim, ylim=ylim, aspect=aspect, units=units, y_units=y_units)
+        self._attach(plot)
+        return plot
+
     def bar(self, x, height=None, width: float = 0.8, bottom: float = 0.0, *,
             align: str = "center",
             color: str = "#4fc3f7",
