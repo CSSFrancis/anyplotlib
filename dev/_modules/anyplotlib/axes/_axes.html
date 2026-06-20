@@ -821,6 +821,34 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="Axes.axes2d">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Axes.html#anyplotlib.axes.Axes.axes2d">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">axes2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">aspect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">y_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PlotXY&quot;</span><span class="p">:</span>   <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attach a blank **data-coordinate 2-D axis** (`PlotXY`).</span>
+
+<span class="sd">        Unlike :meth:`plot` (a curve over a monotonic x-axis), this is a</span>
+<span class="sd">        coordinate canvas: set ``xlim`` / ``ylim`` (+ optional ``aspect=&quot;equal&quot;``)</span>
+<span class="sd">        and draw :meth:`~anyplotlib.plotxy.PlotXY.scatter` / ``plot`` / ``fill`` /</span>
+<span class="sd">        ``text`` as collection-style artists in data coordinates — matplotlib&#39;s</span>
+<span class="sd">        ``transData`` + ``PathCollection`` model. Suits stereographic / IPF /</span>
+<span class="sd">        pole-figure style plots.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import anyplotlib as apl</span>
+<span class="sd">        &gt;&gt;&gt; fig, ax = apl.subplots()</span>
+<span class="sd">        &gt;&gt;&gt; xy = ax.axes2d(xlim=(-1, 1), ylim=(-1, 1), aspect=&quot;equal&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; xy.fill([0, 1, 0.5], [0, 0, 0.9], facecolor=&quot;#eee&quot;)   # triangle</span>
+<span class="sd">        &gt;&gt;&gt; xy.scatter([0.3], [0.3], c=&quot;#f00&quot;, s=10)</span>
+<span class="sd">        &gt;&gt;&gt; xy.text(0.5, 0.95, r&quot;$[111]$&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plotxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlotXY</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="n">PlotXY</span><span class="p">(</span><span class="n">xlim</span><span class="o">=</span><span class="n">xlim</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="n">ylim</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="n">aspect</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">y_units</span><span class="o">=</span><span class="n">y_units</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attach</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">plot</span></div>
+
+
 <div class="viewcode-block" id="Axes.bar">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Axes.html#anyplotlib.axes.Axes.bar">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">bottom</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
