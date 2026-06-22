@@ -628,11 +628,19 @@
 <div class="viewcode-block" id="Plot2D.set_data">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-               <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+               <span class="n">x_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">clim</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the image data.</span>
 
 <span class="sd">        The ``origin`` supplied at construction is automatically re-applied</span>
 <span class="sd">        so the new data is displayed with the same orientation.</span>
+
+<span class="sd">        ``clim`` — optional ``(vmin, vmax)`` display range applied in the SAME</span>
+<span class="sd">        push as the new data.  Without it the caller must follow with a separate</span>
+<span class="sd">        ``set_clim``, which pushes a SECOND time: the first push shows the image</span>
+<span class="sd">        stretched over its full data range (wrong contrast) and the second</span>
+<span class="sd">        corrects it, producing a one-frame flash on every update.  Passing</span>
+<span class="sd">        ``clim`` here makes data + contrast a single atomic frame (no flash).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="n">is_rgb</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
@@ -670,12 +678,19 @@
         <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">units</span>
 
+        <span class="c1"># Apply a caller-supplied display range in the SAME push (no flash).</span>
+        <span class="n">disp_min</span><span class="p">,</span> <span class="n">disp_max</span> <span class="o">=</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
+        <span class="k">if</span> <span class="n">clim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_rgb</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">disp_min</span><span class="p">,</span> <span class="n">disp_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">clim</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">clim</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+                <span class="n">disp_min</span><span class="p">,</span> <span class="n">disp_max</span> <span class="o">=</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
         <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">_encode_bytes</span><span class="p">(</span><span class="n">img_u8</span><span class="p">),</span>
             <span class="s2">&quot;image_width&quot;</span><span class="p">:</span>  <span class="n">w</span><span class="p">,</span>
             <span class="s2">&quot;image_height&quot;</span><span class="p">:</span> <span class="n">h</span><span class="p">,</span>
-            <span class="s2">&quot;display_min&quot;</span><span class="p">:</span>  <span class="n">vmin</span><span class="p">,</span>
-            <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>  <span class="n">vmax</span><span class="p">,</span>
+            <span class="s2">&quot;display_min&quot;</span><span class="p">:</span>  <span class="n">disp_min</span><span class="p">,</span>
+            <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>  <span class="n">disp_max</span><span class="p">,</span>
             <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>      <span class="n">vmin</span><span class="p">,</span>
             <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>      <span class="n">vmax</span><span class="p">,</span>
         <span class="p">}</span>
