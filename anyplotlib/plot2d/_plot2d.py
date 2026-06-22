@@ -186,11 +186,19 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         return arr
 
     def set_data(self, data: np.ndarray,
-               x_axis=None, y_axis=None, units: str | None = None) -> None:
+               x_axis=None, y_axis=None, units: str | None = None,
+               clim: tuple | None = None) -> None:
         """Replace the image data.
 
         The ``origin`` supplied at construction is automatically re-applied
         so the new data is displayed with the same orientation.
+
+        ``clim`` — optional ``(vmin, vmax)`` display range applied in the SAME
+        push as the new data.  Without it the caller must follow with a separate
+        ``set_clim``, which pushes a SECOND time: the first push shows the image
+        stretched over its full data range (wrong contrast) and the second
+        corrects it, producing a one-frame flash on every update.  Passing
+        ``clim`` here makes data + contrast a single atomic frame (no flash).
         """
         data = np.asarray(data)
         is_rgb = data.ndim == 3 and data.shape[2] in (3, 4)
@@ -228,12 +236,19 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if units is not None:
             self._state["units"] = units
 
+        # Apply a caller-supplied display range in the SAME push (no flash).
+        disp_min, disp_max = vmin, vmax
+        if clim is not None and not is_rgb:
+            try:
+                disp_min, disp_max = float(clim[0]), float(clim[1])
+            except (TypeError, ValueError, IndexError):
+                disp_min, disp_max = vmin, vmax
         fields = {
             "image_b64":    self._encode_bytes(img_u8),
             "image_width":  w,
             "image_height": h,
-            "display_min":  vmin,
-            "display_max":  vmax,
+            "display_min":  disp_min,
+            "display_max":  disp_max,
             "raw_min":      vmin,
             "raw_max":      vmax,
         }

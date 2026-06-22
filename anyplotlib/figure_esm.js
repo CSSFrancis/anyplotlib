@@ -63,10 +63,13 @@ function render({ model, el }) {
     if(a===0) return '0';
     if(a>=1e4) return v.toExponential(1);
     if(a>=100) return v.toFixed(0);
-    if(a>=1)   return v.toFixed(2);
-    if(a>=1e-2)return v.toFixed(4);
+    // Strip trailing zeros so a "nice" value reads compactly (2.00 → 2,
+    // 0.2500 → 0.25) instead of overflowing labels/scale bar with dead digits.
+    if(a>=1)   return stripZeros(v.toFixed(2));
+    if(a>=1e-2)return stripZeros(v.toFixed(4));
     return v.toExponential(1);
   }
+  function stripZeros(s){ return s.indexOf('.')<0 ? s : s.replace(/\.?0+$/,''); }
   function _axisValToFrac(arr,val) {
     if(arr.length<2) return 0;
     const n=arr.length, asc=arr[n-1]>=arr[0];
