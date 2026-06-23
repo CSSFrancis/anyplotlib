@@ -21,7 +21,7 @@ from anyplotlib.widgets import (
     RangeWidget as _RangeWidget,
     PointWidget as _PointWidget,
 )
-from anyplotlib._utils import _norm_linestyle, _arr_to_b64
+from anyplotlib._utils import _norm_linestyle, _arr_to_b64, _to_rgba_u8
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +326,22 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             new_extra.append(ex2)
         d["extra_lines"]    = new_extra
         d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
-        d["markers"]         = self.markers.to_wire_list()
+        markers = self.markers.to_wire_list()
+        # Hoist any raster image bytes into the deduped geometry channel so a
+        # view-only push never re-serialises the (potentially large) RGBA blob.
+        # The lightweight marker dict keeps only id + extent/clip_path/transform;
+        # JS re-joins them via st.raster_geom[id] (see _applyGeom / draw1d).
+        raster_geom: dict = {}
+        for ms in markers:
+            if ms.get("type") == "raster" and "image_b64" in ms:
+                raster_geom[ms["id"]] = {
+                    "image_b64":    ms.pop("image_b64"),
+                    "image_width":  ms["image_width"],
+                    "image_height": ms["image_height"],
+                }
+        if raster_geom:
+            d["raster_geom"] = raster_geom
+        d["markers"] = markers
         return d
 
     @property
@@ -1274,6 +1289,49 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label, clip_path=clip_path,
+                                transform=transform)
+
+    def add_raster(self, rgba, *, extent, name=None, clip_path=None,
+                   smooth: bool = False,
+                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
+        """Add an RGBA image drawn between data-coordinate ``extent`` corners.
+
+        A single-``drawImage`` raster — the fast path for a dense regular grid
+        (e.g. an orientation-density heatmap) that would otherwise be thousands
+        of individual polygons.  The image bytes travel on the deduped geometry
+        channel, so re-aiming the view never re-transmits them.
+
+        Parameters
+        ----------
+        rgba : array-like, shape (H, W, 3|4)
+            Image data.  Coerced to uint8 RGBA via the usual rules (floats in
+            0–1 scaled ×255, missing alpha → 255).  Alpha 0 = transparent cell.
+        extent : (x0, x1, y0, y1)
+            Data-coordinate bounding box the image is stretched across.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        clip_path : array-like, shape (K, 2), optional
+            Data-coordinate polygon the image is clipped to (matplotlib
+            ``set_clip_path``) — e.g. a curved fundamental-sector boundary.
+            ``None`` = no clip.
+        smooth : bool, optional
+            If ``True``, the image is bilinearly interpolated when stretched
+            (a smooth heat field).  Default ``False`` keeps crisp
+            nearest-neighbour cells (matplotlib ``interpolation="nearest"``).
+
+        Returns
+        -------
+        MarkerGroup
+        """
+        import base64
+        rgba_u8 = _to_rgba_u8(np.asarray(rgba))
+        h, w = rgba_u8.shape[:2]
+        image_b64 = base64.b64encode(
+            np.ascontiguousarray(rgba_u8).tobytes()).decode("ascii")
+        return self._add_marker("raster", name, image_b64=image_b64,
+                                image_width=int(w), image_height=int(h),
+                                extent=tuple(float(v) for v in extent),
+                                clip_path=clip_path, smooth=bool(smooth),
                                 transform=transform)
 
     def add_texts(self, offsets, texts, name=None, *,

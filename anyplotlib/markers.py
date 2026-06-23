@@ -335,6 +335,27 @@ class MarkerGroup:
                 "linewidth": float(d.get("linewidths", 1.5)),
             }
 
+        elif t == "raster":
+            # A single RGBA image drawn between data-coord ``extent`` corners.
+            # ``image_b64`` is the heavy payload — Plot1D.to_state_dict hoists it
+            # into the deduped geometry channel so it is sent once, not per frame.
+            ext = [float(v) for v in d["extent"]]
+            wire = {
+                "id":           group_id,
+                "name":         self._name,
+                "type":         "raster",
+                "image_b64":    d["image_b64"],
+                "image_width":  int(d["image_width"]),
+                "image_height": int(d["image_height"]),
+                "extent":       ext,
+                "smooth":       bool(d.get("smooth", False)),
+            }
+            cp = d.get("clip_path")
+            if cp is not None:
+                cp_arr = np.asarray(cp, dtype=float)
+                if cp_arr.ndim == 2 and cp_arr.shape[1] == 2 and len(cp_arr) >= 3:
+                    wire["clip_path"] = cp_arr.tolist()
+
         else:
             raise ValueError(f"Unknown marker type: {t!r}")
 
@@ -536,7 +557,7 @@ class MarkerRegistry:
     })
     _KNOWN_1D = frozenset({
         "points", "vlines", "hlines", "lines", "rectangles",
-        "ellipses", "polygons", "texts", "arrows", "squares",
+        "ellipses", "polygons", "texts", "arrows", "squares", "raster",
     })
     # pcolormesh panels only support points (circles) and line segments
     _KNOWN_MESH = frozenset({"circles", "lines"})

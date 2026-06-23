@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~4,640 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~6,000 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -69,6 +69,14 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | **1D drawing**: `draw1d` | 2177 |
 | `drawOverlay1d` / `drawMarkers1d` | 2516 / 2586 |
 | Marker hit-test `_markerHitTest2d` | 2787 |
+
+> **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
+> branch that blits a single RGBA image across data-coord `extent` (the fast
+> path for dense `PlotXY.pcolormesh` heatmaps). The image bytes ride the geom
+> channel as `st.raster_geom[id]` (Python `Plot1D._GEOM_KEYS`), so view-only
+> redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
+> the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
+> clips it to a curved sector.
 | Panel event dispatch `_attachPanelEvents` | 2905 |
 | 2D events `_attachEvents2d` | 2928 |
 | 1D events `_attachEvents1d` | 3201 |
