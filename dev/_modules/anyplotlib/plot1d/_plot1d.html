@@ -456,7 +456,7 @@
     <span class="n">RangeWidget</span> <span class="k">as</span> <span class="n">_RangeWidget</span><span class="p">,</span>
     <span class="n">PointWidget</span> <span class="k">as</span> <span class="n">_PointWidget</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_norm_linestyle</span><span class="p">,</span> <span class="n">_arr_to_b64</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_norm_linestyle</span><span class="p">,</span> <span class="n">_arr_to_b64</span><span class="p">,</span> <span class="n">_to_rgba_u8</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -765,7 +765,22 @@
             <span class="n">new_extra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex2</span><span class="p">)</span>
         <span class="n">d</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">new_extra</span>
         <span class="n">d</span><span class="p">[</span><span class="s2">&quot;overlay_widgets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
-        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;markers&quot;</span><span class="p">]</span>         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">to_wire_list</span><span class="p">()</span>
+        <span class="n">markers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">to_wire_list</span><span class="p">()</span>
+        <span class="c1"># Hoist any raster image bytes into the deduped geometry channel so a</span>
+        <span class="c1"># view-only push never re-serialises the (potentially large) RGBA blob.</span>
+        <span class="c1"># The lightweight marker dict keeps only id + extent/clip_path/transform;</span>
+        <span class="c1"># JS re-joins them via st.raster_geom[id] (see _applyGeom / draw1d).</span>
+        <span class="n">raster_geom</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">markers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ms</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;raster&quot;</span> <span class="ow">and</span> <span class="s2">&quot;image_b64&quot;</span> <span class="ow">in</span> <span class="n">ms</span><span class="p">:</span>
+                <span class="n">raster_geom</span><span class="p">[</span><span class="n">ms</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span>    <span class="n">ms</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;image_b64&quot;</span><span class="p">),</span>
+                    <span class="s2">&quot;image_width&quot;</span><span class="p">:</span>  <span class="n">ms</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;image_height&quot;</span><span class="p">:</span> <span class="n">ms</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">],</span>
+                <span class="p">}</span>
+        <span class="k">if</span> <span class="n">raster_geom</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;raster_geom&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">raster_geom</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;markers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">markers</span>
         <span class="k">return</span> <span class="n">d</span></div>
 
 
@@ -1821,6 +1836,52 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">clip_path</span><span class="o">=</span><span class="n">clip_path</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.add_raster">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.add_raster">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_raster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rgba</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">extent</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clip_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">smooth</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an RGBA image drawn between data-coordinate ``extent`` corners.</span>
+
+<span class="sd">        A single-``drawImage`` raster — the fast path for a dense regular grid</span>
+<span class="sd">        (e.g. an orientation-density heatmap) that would otherwise be thousands</span>
+<span class="sd">        of individual polygons.  The image bytes travel on the deduped geometry</span>
+<span class="sd">        channel, so re-aiming the view never re-transmits them.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        rgba : array-like, shape (H, W, 3|4)</span>
+<span class="sd">            Image data.  Coerced to uint8 RGBA via the usual rules (floats in</span>
+<span class="sd">            0–1 scaled ×255, missing alpha → 255).  Alpha 0 = transparent cell.</span>
+<span class="sd">        extent : (x0, x1, y0, y1)</span>
+<span class="sd">            Data-coordinate bounding box the image is stretched across.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        clip_path : array-like, shape (K, 2), optional</span>
+<span class="sd">            Data-coordinate polygon the image is clipped to (matplotlib</span>
+<span class="sd">            ``set_clip_path``) — e.g. a curved fundamental-sector boundary.</span>
+<span class="sd">            ``None`` = no clip.</span>
+<span class="sd">        smooth : bool, optional</span>
+<span class="sd">            If ``True``, the image is bilinearly interpolated when stretched</span>
+<span class="sd">            (a smooth heat field).  Default ``False`` keeps crisp</span>
+<span class="sd">            nearest-neighbour cells (matplotlib ``interpolation=&quot;nearest&quot;``).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+        <span class="n">rgba_u8</span> <span class="o">=</span> <span class="n">_to_rgba_u8</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rgba</span><span class="p">))</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">rgba_u8</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">image_b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">rgba_u8</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;raster&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">image_b64</span><span class="o">=</span><span class="n">image_b64</span><span class="p">,</span>
+                                <span class="n">image_width</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">image_height</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">),</span>
+                                <span class="n">extent</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">extent</span><span class="p">),</span>
+                                <span class="n">clip_path</span><span class="o">=</span><span class="n">clip_path</span><span class="p">,</span> <span class="n">smooth</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">smooth</span><span class="p">),</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
 
 

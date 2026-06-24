@@ -193,6 +193,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="An EBSD-style orientation explorer pairing a map with a density IPF:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_ipf_density_map_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_ipf_density_map`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inverse Pole Figure (IPF) Density Map</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="An orthoslice viewer for a synthetic 3-D polycrystal (voxel grain map), in the style of EBSD/tomography volume browsers:">
 
 .. only:: html
@@ -262,6 +279,7 @@ interactions to live Python computations.
    /auto_examples/Interactive/plot_particle_picker
    /auto_examples/Interactive/plot_segment_by_contrast
    /auto_examples/Interactive/plot_spectra_roi_inspector
+   /auto_examples/Interactive/plot_ipf_density_map
    /auto_examples/Interactive/plot_voxel_grain_explorer
    /auto_examples/Interactive/plot_interactive_fitting
    /auto_examples/Interactive/plot_segment_by_contrast_advanced
