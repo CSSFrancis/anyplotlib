@@ -3800,6 +3800,41 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           if(_ecArr) mkCtx.strokeStyle=_ecArr[i%_ecArr.length];
           mkCtx.stroke();
         }
+      } else if(type==='raster'){
+        // A single RGBA image stretched across data-coord `extent`. Heavy bytes
+        // ride the geom channel (st.raster_geom[id]); fall back to inline. The
+        // decoded OffscreenCanvas is cached on the set so view-only redraws blit
+        // without re-decoding. The clip block above already scoped any sector.
+        const rg = (st.raster_geom && st.raster_geom[ms.id]) || ms;
+        const b64 = rg.image_b64 || '';
+        const iw = rg.image_width|0, ih = rg.image_height|0;
+        if(b64 && iw>0 && ih>0){
+          if(ms._rasterKey!==b64 || !ms._rasterBmp){
+            try{
+              const bin=atob(b64);
+              const bytes=new Uint8ClampedArray(bin.length);
+              for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+              const imgData=new ImageData(bytes, iw, ih);
+              const oc=new OffscreenCanvas(iw,ih);
+              oc.getContext('2d').putImageData(imgData,0,0);
+              ms._rasterBmp=oc; ms._rasterKey=b64;
+            }catch(_){ ms._rasterBmp=null; }
+          }
+          const ext=ms.extent||[0,1,0,1];
+          const [ax2,ay2]= tfm==='data' ? _offToCanvas([ext[0],ext[2]]) : _tc2d(ext[0],ext[2]);
+          const [bx2,by2]= tfm==='data' ? _offToCanvas([ext[1],ext[3]]) : _tc2d(ext[1],ext[3]);
+          if(ms._rasterBmp){
+            mkCtx.save();
+            // Nearest-neighbour by default (crisp cells); smoothing bilinearly
+            // interpolates for a smooth heat field (ms.smooth === true).
+            mkCtx.imageSmoothingEnabled = ms.smooth === true;
+            if(ms.smooth === true) mkCtx.imageSmoothingQuality = 'high';
+            mkCtx.drawImage(ms._rasterBmp, 0,0,iw,ih,
+              Math.min(ax2,bx2), Math.min(ay2,by2),
+              Math.abs(bx2-ax2), Math.abs(by2-ay2));
+            mkCtx.restore();
+          }
+        }
       } else if(type==='arrows'){
         const HL=8;
         for(let i=0;i<ms.offsets.length;i++){

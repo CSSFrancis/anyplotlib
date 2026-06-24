@@ -276,6 +276,44 @@ def test_bench_pcolormesh(n, bench_page, update_benchmarks, ignore_hardware):
                      ignore_hardware=ignore_hardware)
 
 
+_RASTER_SIZES = [128, 256]
+
+
+@pytest.mark.parametrize("n", _RASTER_SIZES, ids=[f"{n}x{n}" for n in _RASTER_SIZES])
+def test_bench_pcolormesh_raster(n, bench_page, update_benchmarks, ignore_hardware):
+    """Render-time benchmark: PlotXY.pcolormesh {n}×{n} regular grid (raster).
+
+    Exercises the raster fast path (one stretched RGBA image) on a data-coord
+    PlotXY axis, clipped to a polygon — the IPF-density-heatmap hot path.  A
+    view-only field is nudged each frame so the panel redraws (blitting the
+    cached raster) without re-decoding it.
+    """
+    rng = np.random.default_rng(7)
+    xe = np.linspace(0.0, 1.0, n + 1)
+    ye = np.linspace(0.0, 1.0, n + 1)
+    X, Y = np.meshgrid(xe, ye)
+    Z = rng.uniform(size=(n, n)).astype(np.float32)
+    sector = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]
+
+    fig, ax = apl.subplots(1, 1, figsize=(480, 480))
+    plot = ax.axes2d(xlim=(0.0, 1.0), ylim=(0.0, 1.0))
+    plot.pcolormesh(X, Y, Z, cmap="viridis", clip_path=sector)
+    panel_id = plot._id
+
+    page = bench_page(fig)
+
+    timing = _run_bench(
+        page, panel_id,
+        perturb_field="view_x0",
+        perturb_delta=1e-4,
+        n_warmup=3,
+        n_samples=15,
+    )
+
+    _check_or_update(f"js_pcolormesh_raster_{n}x{n}", timing, update_benchmarks,
+                     ignore_hardware=ignore_hardware)
+
+
 # ── 3D surface benchmark ──────────────────────────────────────────────────────
 
 def test_bench_plot3d(bench_page, update_benchmarks, ignore_hardware):
