@@ -1,0 +1,6 @@
+﻿anyplotlib.subplots
+===================
+
+.. currentmodule:: anyplotlib
+
+.. autofunction:: subplots
