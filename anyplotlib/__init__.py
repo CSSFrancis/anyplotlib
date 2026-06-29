@@ -1,3 +1,10 @@
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    __version__ = _pkg_version("anyplotlib")
+except PackageNotFoundError:  # not installed (e.g. source tree on sys.path)
+    __version__ = "0.0.0+unknown"
+
 from anyplotlib.figure import Figure, GridSpec, SubplotSpec, subplots
 from anyplotlib.axes import Axes, InsetAxes
 from anyplotlib.plot1d import Plot1D, PlotBar
@@ -42,4 +49,5 @@ __all__ = [
     "VLineWidget", "HLineWidget", "RangeWidget", "PlaneWidget",
     "show_help", "get_color_cycle",
     "embed",
+    "__version__",
 ]

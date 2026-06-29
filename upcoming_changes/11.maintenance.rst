@@ -1,2 +1,0 @@
-Refactored the test suite. Moved to a new directory, combined like
-tests into single files, added a couple new tests and removed some redundant tests.
