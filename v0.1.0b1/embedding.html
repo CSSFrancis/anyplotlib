@@ -1,0 +1,955 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Embedding outside Jupyter &#8212; anyplotlib 0.1.0b1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/anywidget_overlay.css?v=a271c467" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=6a9e09cd" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="_static/documentation_options.js?v=e4e59774"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="_static/anywidget_config.js?v=cd5adc06"></script>
+    <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="_static/anywidget_bridge.js?v=a2d47ea1"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'embedding';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/v0.1.0b1/embedding.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api/index.html" />
+    <link rel="prev" title="Event System" href="events.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Embedding outside Jupyter</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="embedding-outside-jupyter">
+<h1>Embedding outside Jupyter<a class="headerlink" href="#embedding-outside-jupyter" title="Link to this heading">#</a></h1>
+<p>anyplotlib figures do not require Jupyter, ipywidgets, or the anywidget
+runtime.  The renderer is a single self-contained ES module
+(<code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code>) that draws from a plain JSON state dict, so a figure can
+live anywhere a browser engine runs: an <strong>Electron</strong> app, a Tauri/webview
+app, an MDI-style multi-window workspace, a kiosk dashboard, or a static
+web page.</p>
+<p>There are three levels of integration, from zero-Python-at-runtime to a
+fully live Python backend.</p>
+<section id="level-1-self-contained-html-no-python-at-view-time">
+<h2>Level 1 — self-contained HTML (no Python at view time)<a class="headerlink" href="#level-1-self-contained-html-no-python-at-view-time" title="Link to this heading">#</a></h2>
+<p>Export the figure as a single HTML file with the renderer and all data
+inlined:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="mi">500</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;frame.npy&quot;</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">save_html</span><span class="p">(</span><span class="s2">&quot;plot.html&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Load it in an Electron window — that’s the whole integration:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">const</span> <span class="p">{</span> <span class="n">BrowserWindow</span> <span class="p">}</span> <span class="o">=</span> <span class="n">require</span><span class="p">(</span><span class="s1">&#39;electron&#39;</span><span class="p">);</span>
+<span class="n">const</span> <span class="n">win</span> <span class="o">=</span> <span class="n">new</span> <span class="n">BrowserWindow</span><span class="p">({</span> <span class="n">width</span><span class="p">:</span> <span class="mi">840</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="mi">560</span> <span class="p">});</span>
+<span class="n">win</span><span class="o">.</span><span class="n">loadFile</span><span class="p">(</span><span class="s1">&#39;plot.html&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Pan, zoom, overlay widgets, markers, and keyboard shortcuts all work;
+Python callbacks (obviously) do not.  <code class="docutils literal notranslate"><span class="pre">fig.to_html()</span></code> returns the same
+page as a string if you want to serve or template it yourself.</p>
+</section>
+<section id="level-2-js-driven-your-app-owns-the-data">
+<h2>Level 2 — JS-driven: your app owns the data<a class="headerlink" href="#level-2-js-driven-your-app-owns-the-data" title="Link to this heading">#</a></h2>
+<p>Bundle <code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code> into your app (<code class="docutils literal notranslate"><span class="pre">anyplotlib.embed.esm_path()</span></code>
+tells you where to copy it from) and mount figures directly from
+JavaScript:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">mount</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;./figure_esm.js&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">mount</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;plot-host&#39;</span><span class="p">),</span><span class="w"> </span><span class="nx">state</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">onEvent</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">ev</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// every interaction event: pointer_down/up/move, wheel, key_down …</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">ev</span><span class="p">.</span><span class="nx">event_type</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;pointer_down&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;clicked data coords&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">ev</span><span class="p">.</span><span class="nx">xdata</span><span class="p">,</span><span class="w"> </span><span class="nx">ev</span><span class="p">.</span><span class="nx">ydata</span><span class="p">);</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="p">});</span>
+
+<span class="c1">// Live updates — replace one panel&#39;s state and it re-renders:</span>
+<span class="nx">handle</span><span class="p">.</span><span class="nx">setPanelState</span><span class="p">(</span><span class="nx">panelId</span><span class="p">,</span><span class="w"> </span><span class="nx">newPanelState</span><span class="p">);</span>
+<span class="nx">handle</span><span class="p">.</span><span class="nx">resize</span><span class="p">(</span><span class="mf">900</span><span class="p">,</span><span class="w"> </span><span class="mf">600</span><span class="p">);</span>
+<span class="nx">handle</span><span class="p">.</span><span class="nx">dispose</span><span class="p">();</span><span class="w">          </span><span class="c1">// remove the figure&#39;s DOM</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">state</span></code> is the figure-state dict.  Generate it from Python once (at build
+time or via a one-shot script):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.embed</span><span class="w"> </span><span class="kn">import</span> <span class="n">figure_state</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plot</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">template_data</span><span class="p">)</span>
+<span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">figure_state</span><span class="p">(</span><span class="n">fig</span><span class="p">),</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;figure_state.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;panel id:&quot;</span><span class="p">,</span> <span class="n">plot</span><span class="o">.</span><span class="n">_id</span><span class="p">)</span>   <span class="c1"># key for setPanelState</span>
+</pre></div>
+</div>
+<p>Each <code class="docutils literal notranslate"><span class="pre">mount()</span></code> call is fully independent — mount as many figures as you
+like into separate containers in one window.  This is the natural fit for
+<strong>MDI sub-windows</strong>: give every sub-window its own host <code class="docutils literal notranslate"><span class="pre">&lt;div&gt;</span></code> (or
+<code class="docutils literal notranslate"><span class="pre">&lt;webview&gt;</span></code>/iframe for hard isolation) and call <code class="docutils literal notranslate"><span class="pre">mount</span></code> per window.
+Call <code class="docutils literal notranslate"><span class="pre">handle.resize(w,</span> <span class="pre">h)</span></code> from your sub-window’s resize hook.</p>
+</section>
+<section id="level-3-live-python-backend-full-callback-support">
+<h2>Level 3 — live Python backend (full callback support)<a class="headerlink" href="#level-3-live-python-backend-full-callback-support" title="Link to this heading">#</a></h2>
+<p>Run Python next to your app (a sidecar process exposing a local WebSocket
+is the common Electron pattern) and keep figures <em>fully</em> interactive —
+<code class="docutils literal notranslate"><span class="pre">&#64;plot.add_event_handler(...)</span></code> callbacks fire exactly as in Jupyter.</p>
+<p><a class="reference internal" href="#anyplotlib.embed.FigureBridge" title="anyplotlib.embed.FigureBridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">anyplotlib.embed.FigureBridge</span></code></a> is transport-agnostic: you supply
+the pipe, it supplies the <code class="docutils literal notranslate"><span class="pre">(key,</span> <span class="pre">value)</span></code> protocol.</p>
+<p><strong>Python sidecar</strong> (here with the <code class="docutils literal notranslate"><span class="pre">websockets</span></code> package):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">websockets</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.embed</span><span class="w"> </span><span class="kn">import</span> <span class="n">FigureBridge</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">700</span><span class="p">,</span> <span class="mi">450</span><span class="p">))</span>
+<span class="n">plot</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span>
+<span class="n">cross</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">serve</span><span class="p">(</span><span class="n">ws</span><span class="p">):</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_running_loop</span><span class="p">()</span>
+    <span class="n">bridge</span> <span class="o">=</span> <span class="n">FigureBridge</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">send</span><span class="o">=</span><span class="k">lambda</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span>
+        <span class="n">loop</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">ws</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">}))))</span>
+    <span class="k">await</span> <span class="n">ws</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;snapshot&quot;</span><span class="p">:</span> <span class="n">bridge</span><span class="o">.</span><span class="n">snapshot</span><span class="p">()}))</span>
+
+    <span class="nd">@cross</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>     <span class="c1"># fires from Electron!</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">follow</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;crosshair at&quot;</span><span class="p">,</span> <span class="n">cross</span><span class="o">.</span><span class="n">cx</span><span class="p">,</span> <span class="n">cross</span><span class="o">.</span><span class="n">cy</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">ws</span><span class="p">:</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="n">bridge</span><span class="o">.</span><span class="n">receive</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">],</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">])</span>     <span class="c1"># JS → Python</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">websockets</span><span class="o">.</span><span class="n">serve</span><span class="p">(</span><span class="n">serve</span><span class="p">,</span> <span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">8765</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><strong>Electron renderer</strong>:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">mount</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;./figure_esm.js&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">ws</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">WebSocket</span><span class="p">(</span><span class="s1">&#39;ws://localhost:8765&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+
+<span class="nx">ws</span><span class="p">.</span><span class="nx">onmessage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">msg</span><span class="p">.</span><span class="nx">data</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">snapshot</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">mount</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;plot-host&#39;</span><span class="p">),</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">snapshot</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// forward every JS-side write (events, view changes) to Python</span>
+<span class="w">      </span><span class="nx">onSync</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">ws</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="p">})),</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">handle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">handle</span><span class="p">.</span><span class="nx">applyUpdate</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span><span class="w">   </span><span class="c1">// Python → JS, echo-free</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>Any Python-side mutation — <code class="docutils literal notranslate"><span class="pre">plot.set_data(...)</span></code>, markers, titles, layout
+changes — streams to the window automatically; drags, clicks, and keys
+stream back into your Python callbacks.  Echo is suppressed in both
+directions by the bridge and <code class="docutils literal notranslate"><span class="pre">applyUpdate</span></code>.</p>
+</section>
+<section id="module-anyplotlib.embed">
+<span id="api-reference"></span><h2>API reference<a class="headerlink" href="#module-anyplotlib.embed" title="Link to this heading">#</a></h2>
+<section id="embed-py">
+<h3>embed.py<a class="headerlink" href="#embed-py" title="Link to this heading">#</a></h3>
+<p>Use anyplotlib figures <strong>outside Jupyter</strong> — in Electron apps, MDI
+sub-windows, kiosk dashboards, or any plain web page.  No kernel, no
+ipywidgets, no anywidget runtime in the page.</p>
+<section id="three-levels-of-integration">
+<h4>Three levels of integration<a class="headerlink" href="#three-levels-of-integration" title="Link to this heading">#</a></h4>
+<p><strong>1. Static / self-contained (no Python at runtime)</strong> — export a fully
+self-contained HTML page (renderer + data inlined) and load it anywhere a
+browser engine runs, e.g. an Electron <code class="docutils literal notranslate"><span class="pre">BrowserWindow</span></code> or <code class="docutils literal notranslate"><span class="pre">&lt;webview&gt;</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">save_html</span><span class="p">(</span><span class="s2">&quot;plot.html&quot;</span><span class="p">)</span>          <span class="c1"># win.loadFile(&#39;plot.html&#39;)</span>
+</pre></div>
+</div>
+<p>All client-side interactivity (pan, zoom, widgets, markers) works; Python
+callbacks obviously do not.</p>
+<p><strong>2. JS-driven (your app owns the data)</strong> — ship <code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code> with your
+app and mount figures from JavaScript using the exported <code class="docutils literal notranslate"><span class="pre">mount()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="p">{</span> <span class="n">mount</span> <span class="p">}</span> <span class="kn">from</span><span class="w"> </span><span class="s1">&#39;./figure_esm.js&#39;</span><span class="p">;</span>
+<span class="n">const</span> <span class="n">handle</span> <span class="o">=</span> <span class="n">mount</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="p">{</span> <span class="n">onEvent</span><span class="p">:</span> <span class="n">ev</span> <span class="o">=&gt;</span> <span class="o">...</span> <span class="p">});</span>
+<span class="n">handle</span><span class="o">.</span><span class="n">setPanelState</span><span class="p">(</span><span class="n">panelId</span><span class="p">,</span> <span class="n">newPanelState</span><span class="p">);</span>   <span class="o">//</span> <span class="n">live</span> <span class="n">updates</span>
+<span class="n">handle</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">);</span>  <span class="n">handle</span><span class="o">.</span><span class="n">dispose</span><span class="p">();</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">state</span></code> is the JSON dict produced by <a class="reference internal" href="#anyplotlib.embed.figure_state" title="anyplotlib.embed.figure_state"><code class="xref py py-func docutils literal notranslate"><span class="pre">figure_state()</span></code></a> — generate it
+once from Python (build time, or a one-shot script) or construct it in JS.
+Each <code class="docutils literal notranslate"><span class="pre">mount()</span></code> is fully self-contained, so one window can host many
+figures (MDI-style) by mounting into separate containers.</p>
+<p><strong>3. Live Python backend</strong> — run Python alongside your app (sidecar process,
+local WebSocket server, …) and keep figures fully interactive with Python
+callbacks via <a class="reference internal" href="#anyplotlib.embed.FigureBridge" title="anyplotlib.embed.FigureBridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">FigureBridge</span></code></a>, which is transport-agnostic:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Python side (e.g. behind a websocket)</span>
+<span class="n">bridge</span> <span class="o">=</span> <span class="n">FigureBridge</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">send</span><span class="o">=</span><span class="k">lambda</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">ws</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
+    <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">})))</span>
+<span class="n">ws</span><span class="o">.</span><span class="n">on_message</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">bridge</span><span class="o">.</span><span class="n">receive</span><span class="p">(</span><span class="o">**</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="p">))</span>
+
+<span class="o">//</span> <span class="n">JS</span> <span class="n">side</span>
+<span class="n">const</span> <span class="n">handle</span> <span class="o">=</span> <span class="n">mount</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="p">{</span>
+  <span class="n">onSync</span><span class="p">:</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="n">ws</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">JSON</span><span class="o">.</span><span class="n">stringify</span><span class="p">({</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">})),</span>
+<span class="p">});</span>
+<span class="n">ws</span><span class="o">.</span><span class="n">onmessage</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="n">const</span> <span class="n">u</span> <span class="o">=</span> <span class="n">JSON</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">data</span><span class="p">);</span>
+                        <span class="n">handle</span><span class="o">.</span><span class="n">applyUpdate</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">value</span><span class="p">);</span> <span class="p">};</span>
+</pre></div>
+</div>
+<p>See <code class="docutils literal notranslate"><span class="pre">docs/embedding.rst</span></code> for a complete Electron walkthrough.</p>
+</section>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="anyplotlib.embed.figure_state">
+<span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">figure_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#figure_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.figure_state" title="Link to this definition">#</a></dt>
+<dd><p>Return the figure’s full serialised state as a plain JSON-safe dict.</p>
+<p>The dict contains every synced trait — <code class="docutils literal notranslate"><span class="pre">layout_json</span></code>, <code class="docutils literal notranslate"><span class="pre">fig_width</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fig_height</span></code>, <code class="docutils literal notranslate"><span class="pre">event_json</span></code>, and one <code class="docutils literal notranslate"><span class="pre">panel_&lt;id&gt;_json</span></code> entry per
+panel — and is exactly what the JS <code class="docutils literal notranslate"><span class="pre">mount(el,</span> <span class="pre">state)</span></code> entry point
+expects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fig</strong> (<a class="reference internal" href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><em>Figure</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="anyplotlib.embed.to_html">
+<span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">to_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">resizable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#to_html"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.to_html" title="Link to this definition">#</a></dt>
+<dd><p>Return a fully self-contained HTML page rendering <em>fig</em>.</p>
+<p>The page inlines the renderer and all figure data; it needs no network,
+kernel, or Python at view time.  Client-side interactivity (pan, zoom,
+overlay widgets) is preserved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<a class="reference internal" href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><em>Figure</em></a>)</p></li>
+<li><p><strong>resizable</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Keep the figure’s drag-to-resize handle.  Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="anyplotlib.embed.save_html">
+<span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">save_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">resizable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#save_html"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.save_html" title="Link to this definition">#</a></dt>
+<dd><p>Write <a class="reference internal" href="#anyplotlib.embed.to_html" title="anyplotlib.embed.to_html"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_html()</span></code></a> output to <em>path</em> and return it as a <code class="docutils literal notranslate"><span class="pre">Path</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>resizable</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="anyplotlib.embed.esm_path">
+<span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">esm_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#esm_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.esm_path" title="Link to this definition">#</a></dt>
+<dd><p>Return the path to <code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code> for bundling into a JS app.</p>
+<p>Copy (or import) this file into your Electron / web build; it exports
+<code class="docutils literal notranslate"><span class="pre">mount</span></code> and <code class="docutils literal notranslate"><span class="pre">createLocalModel</span></code> alongside the anywidget <code class="docutils literal notranslate"><span class="pre">render</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="anyplotlib.embed.FigureBridge">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">FigureBridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">send</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#FigureBridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.FigureBridge" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Transport-agnostic two-way sync between a live <code class="docutils literal notranslate"><span class="pre">Figure</span></code> and a
+remote JS view mounted with <code class="docutils literal notranslate"><span class="pre">mount(el,</span> <span class="pre">state,</span> <span class="pre">{onSync})</span></code>.</p>
+<p>You supply the pipe (WebSocket, Electron IPC via a sidecar, stdio, …);
+the bridge supplies the protocol: plain <code class="docutils literal notranslate"><span class="pre">(key,</span> <span class="pre">value)</span></code> pairs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<a class="reference internal" href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><em>Figure</em></a>) – The live figure.  All Python-side mutations (<code class="docutils literal notranslate"><span class="pre">plot.set_data(...)</span></code>,
+marker/widget updates, layout changes) are forwarded automatically.</p></li>
+<li><p><strong>send</strong> (<em>callable</em><em>(</em><em>key: str</em><em>, </em><a class="reference internal" href="api/generated/anyplotlib.Event.html#anyplotlib.Event.value" title="anyplotlib.Event.value"><em>value</em></a><em>) </em><em>-&gt; None</em>) – Called for every outbound state change.  Wire it to your transport.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p><strong>Python → JS</strong>: any synced trait change triggers <code class="docutils literal notranslate"><span class="pre">send(key,</span> <span class="pre">value)</span></code>;
+deliver it to <code class="docutils literal notranslate"><span class="pre">handle.applyUpdate(key,</span> <span class="pre">value)</span></code> in JS.</p></li>
+<li><p><strong>JS → Python</strong>: deliver each JS <code class="docutils literal notranslate"><span class="pre">onSync(key,</span> <span class="pre">value)</span></code> message to
+<a class="reference internal" href="#anyplotlib.embed.FigureBridge.receive" title="anyplotlib.embed.FigureBridge.receive"><code class="xref py py-meth docutils literal notranslate"><span class="pre">receive()</span></code></a>.  Interaction events (<code class="docutils literal notranslate"><span class="pre">event_json</span></code>) are dispatched to
+the figure’s callback registries exactly as in Jupyter, so
+<code class="docutils literal notranslate"><span class="pre">&#64;plot.add_event_handler(...)</span></code> handlers fire unchanged.</p></li>
+<li><p>Echo is suppressed in both directions.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.embed.FigureBridge.snapshot">
+<span class="sig-name descname"><span class="pre">snapshot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#FigureBridge.snapshot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.FigureBridge.snapshot" title="Link to this definition">#</a></dt>
+<dd><p>Full state dict for the initial <code class="docutils literal notranslate"><span class="pre">mount()</span></code> on the JS side.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.embed.FigureBridge.receive">
+<span class="sig-name descname"><span class="pre">receive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#FigureBridge.receive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.FigureBridge.receive" title="Link to this definition">#</a></dt>
+<dd><p>Apply one inbound <code class="docutils literal notranslate"><span class="pre">(key,</span> <span class="pre">value)</span></code> message from the JS view.</p>
+<p><code class="docutils literal notranslate"><span class="pre">event_json</span></code> messages are dispatched to plot/widget callbacks;
+other keys (e.g. a panel’s view state after a JS-side 3D rotate)
+are stored on the figure without echoing back.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.embed.FigureBridge.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#FigureBridge.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.FigureBridge.close" title="Link to this definition">#</a></dt>
+<dd><p>Stop forwarding (unobserve the figure).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="js-handle-reference">
+<h3>JS handle reference<a class="headerlink" href="#js-handle-reference" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">mount(el,</span> <span class="pre">state,</span> <span class="pre">opts)</span> <span class="pre">→</span> <span class="pre">handle</span></code></p>
+<div class="pst-scrollable-table-container"><table class="table">
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">handle.setPanelState(id,</span> <span class="pre">st)</span></code></p></td>
+<td><p>Replace one panel’s state (dict or JSON
+string) and re-render it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">handle.set(key,</span> <span class="pre">value)</span></code></p></td>
+<td><p>Raw model write + sync flush.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">handle.get(key)</span></code></p></td>
+<td><p>Read any model key.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">handle.applyUpdate(key,</span> <span class="pre">v)</span></code></p></td>
+<td><p>Apply a Python-originated update without
+echoing it back through <code class="docutils literal notranslate"><span class="pre">onSync</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">handle.resize(w,</span> <span class="pre">h)</span></code></p></td>
+<td><p>Resize the figure (CSS pixels).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">handle.dispose()</span></code></p></td>
+<td><p>Remove the figure’s DOM and listeners.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">handle.model</span></code></p></td>
+<td><p>The underlying local model (advanced).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">opts.onEvent(ev)</span></code> receives parsed interaction events (the same payloads
+Python’s <a class="reference internal" href="api/generated/anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a> carries); <code class="docutils literal notranslate"><span class="pre">opts.onSync(key,</span> <span class="pre">value)</span></code>
+receives every outbound model write for bridging to Python.</p>
+</section>
+</section>
+<section id="notes-and-caveats">
+<h2>Notes and caveats<a class="headerlink" href="#notes-and-caveats" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>The state dict is the <strong>wire format</strong>, not a stable public schema — treat
+panel-state internals as opaque where you can, and prefer regenerating
+states from Python when upgrading anyplotlib versions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dispose()</span></code> removes the figure’s DOM; for hard teardown of all
+window-level listeners, host each figure in its own iframe/webview and
+drop the frame (this is also the most robust MDI isolation).</p></li>
+<li><p>One renderer file, no build step: <code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code> has no imports, so it
+works with any bundler or directly as a <code class="docutils literal notranslate"><span class="pre">&lt;script</span> <span class="pre">type=&quot;module&quot;&gt;</span></code>.</p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="events.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Event System</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="api/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">API Reference</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#level-1-self-contained-html-no-python-at-view-time">Level 1 — self-contained HTML (no Python at view time)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#level-2-js-driven-your-app-owns-the-data">Level 2 — JS-driven: your app owns the data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#level-3-live-python-backend-full-callback-support">Level 3 — live Python backend (full callback support)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-anyplotlib.embed">API reference</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#embed-py">embed.py</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#three-levels-of-integration">Three levels of integration</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.figure_state"><code class="docutils literal notranslate"><span class="pre">figure_state()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.to_html"><code class="docutils literal notranslate"><span class="pre">to_html()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.save_html"><code class="docutils literal notranslate"><span class="pre">save_html()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.esm_path"><code class="docutils literal notranslate"><span class="pre">esm_path()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.FigureBridge"><code class="docutils literal notranslate"><span class="pre">FigureBridge</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.FigureBridge.snapshot"><code class="docutils literal notranslate"><span class="pre">FigureBridge.snapshot()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.FigureBridge.receive"><code class="docutils literal notranslate"><span class="pre">FigureBridge.receive()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.FigureBridge.close"><code class="docutils literal notranslate"><span class="pre">FigureBridge.close()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#js-handle-reference">JS handle reference</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#notes-and-caveats">Notes and caveats</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/embedding.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
