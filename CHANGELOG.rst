@@ -26,13 +26,15 @@ New Features
   and supporting all plot types (:meth:`~anyplotlib.Axes.imshow`,
   :meth:`~anyplotlib.Axes.plot`, :meth:`~anyplotlib.Axes.pcolormesh`, etc.)
   as well as interactive minimise, maximise, and restore states. (`#6 <https://github.com/CSSFrancis/anyplotlib/pull/6>`_)
-- * Added ``anyplotlib.sphinx_anywidget`` Sphinx extension for interactive,
-    Pyodide-powered figures in documentation (``.. anywidget-figure::`` directive,
-    automatic wheel building, Sphinx Gallery integration).
+- Added ``anyplotlib.sphinx_anywidget`` Sphinx extension for interactive,
+  Pyodide-powered figures in documentation (``.. anywidget-figure::`` directive,
+  automatic wheel building, Sphinx Gallery integration), plus several supporting
+  improvements (`#9 <https://github.com/CSSFrancis/anyplotlib/pull/9>`_):
+
   * Improved widget–parent page postMessage communication bridge.
   * Made colormap LUT construction more robust against unknown colormap names.
   * Subplot panels now use deterministic IDs.
-  * Added end-to-end test for the Playwright thumbnail scraper. (`#9 <https://github.com/CSSFrancis/anyplotlib/pull/9>`_)
+  * Added an end-to-end test for the Playwright thumbnail scraper.
 - 3-D ``scatter3d`` and ``voxels`` now render on the GPU via WebGPU when
   available, as a transparent progressive enhancement: a ``gpu="auto"`` kwarg
   (default) uses instanced WebGPU rendering above ~20k points / ~8k voxels and
