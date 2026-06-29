@@ -13,7 +13,7 @@ exclude = [
 
 [project]
 name = "anyplotlib"
-version = "0.1.0"
+version = "0.1.0b1"
 description = "A plotting library using python, javascript and anywidget for performant in browser plotting."
 readme = "README.md"
 license = { text = "MIT" }

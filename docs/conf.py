@@ -17,7 +17,7 @@ from _sg_html_scraper import ViewerScraper  # noqa: E402
 project = "anyplotlib"
 copyright = "2026, anyplotlib contributors"
 author = "anyplotlib contributors"
-release = "0.1.0"
+release = "0.1.0b1"
 
 # When built in CI the workflow sets DOCS_VERSION to the tag name (e.g.
 # "v0.1.0") or "dev".  Fall back to "dev" for local builds.
