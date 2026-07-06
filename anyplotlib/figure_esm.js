@@ -358,10 +358,18 @@ function render({ model, el }) {
     return state;
   }
 
-  // Parse the geom trait into the per-panel cache.
+  // Parse the geom trait into the per-panel cache. PRESERVES any binary pixel
+  // bytes (`*_bytes`, delivered on the companion trait) — the slimmed geom JSON
+  // carries only the LUT/flags now, and it may arrive AFTER the binary frame, so
+  // replacing the cache wholesale would drop the pixels. Re-splice them.
   function _loadGeom(p2, raw, rev) {
     try {
-      p2._geomCache = JSON.parse(raw || '{}');
+      const prev = p2._geomCache || {};
+      const next = JSON.parse(raw || '{}');
+      for (const k in prev) {
+        if (k.endsWith('_bytes') && next[k] === undefined) next[k] = prev[k];
+      }
+      p2._geomCache = next;
       p2._geomRev = rev;
     } catch (_) {}
   }
@@ -889,6 +897,20 @@ function render({ model, el }) {
         _loadGeom(p2, model.get(_geomTrait), rev);
         if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
       });
+      // Binary transport: raw pixel bytes for this panel arrive on a companion
+      // trait `panel_<id>_geom::<pixelKey>` (a Uint8Array). Merge them into the
+      // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
+      // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
+      // the small LUT/flags), so pixels + LUT converge in the cache.
+      for (const pixelKey of ['image_b64', 'overlay_mask_b64']) {
+        model.on(`change:${_geomTrait}::${pixelKey}`, () => {
+          const p2 = panels.get(id);
+          if (!p2) return;
+          if (!p2._geomCache) p2._geomCache = {};
+          p2._geomCache[pixelKey + '_bytes'] = model.get(`${_geomTrait}::${pixelKey}`);
+          if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+        });
+      }
     }
 
     model.on(`change:panel_${id}_json`, () => {
@@ -1023,6 +1045,20 @@ function render({ model, el }) {
         _loadGeom(p2, model.get(_geomTrait), rev);
         if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
       });
+      // Binary transport: raw pixel bytes for this panel arrive on a companion
+      // trait `panel_<id>_geom::<pixelKey>` (a Uint8Array). Merge them into the
+      // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
+      // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
+      // the small LUT/flags), so pixels + LUT converge in the cache.
+      for (const pixelKey of ['image_b64', 'overlay_mask_b64']) {
+        model.on(`change:${_geomTrait}::${pixelKey}`, () => {
+          const p2 = panels.get(id);
+          if (!p2) return;
+          if (!p2._geomCache) p2._geomCache = {};
+          p2._geomCache[pixelKey + '_bytes'] = model.get(`${_geomTrait}::${pixelKey}`);
+          if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+        });
+      }
     }
 
     model.on(`change:panel_${id}_json`, () => {
@@ -1382,11 +1418,12 @@ function render({ model, el }) {
     const imgW = p.imgW || Math.max(1, pw - PAD_L - PAD_R);
     const imgH = p.imgH || Math.max(1, ph - PAD_T - PAD_B);
 
-    // Decode base64 image bytes
-    const b64=st.image_b64||'';
+    // Image bytes: prefer the binary trait (image_bytes, no atob) over base64.
+    const _img = _imageBytes(st);
+    const b64 = _img.key;                    // cache identity (b64 string or bin token)
     const iw=st.image_width, ih=st.image_height;
 
-    if(!b64||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
+    if(!_img.bytes||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
 
     const isRgb=!!st.is_rgb;   // bytes are RGBA (4/px) — no LUT applies
     const lk=isRgb?'__rgb__':_lutKey(st);
@@ -1429,12 +1466,8 @@ function render({ model, el }) {
     if(!needRebuild && blitCache.bitmap){
       _blit2d(blitCache.bitmap, st, imgW, imgH, ctx);
     } else {
-      let bytes;
-      try {
-        const bin=atob(b64);
-        bytes=new Uint8Array(bin.length);
-        for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-      } catch(_){return;}
+      const bytes = _img.bytes;
+      if (!bytes) return;
       const imgData=new ImageData(iw,ih);
       if(isRgb){
         imgData.data.set(bytes.subarray(0, iw*ih*4));
@@ -2105,7 +2138,9 @@ function render({ model, el }) {
     const mode = st.gpu_mode || 'auto';
     if (mode === 'off') return false;
     if (st.is_rgb) return false;                 // no LUT → nothing to accelerate
-    if (!st.image_b64 || !st.image_width || !st.image_height) return false;
+    // Pixels present as base64 (image_b64) OR binary bytes (image_b64_bytes).
+    if ((!st.image_b64 && !st.image_b64_bytes)
+        || !st.image_width || !st.image_height) return false;
     // ZOOM/PAN is now honoured by the shader (the quad's clip rect + uv sub-region
     // mirror _blit2d, so the GPU image stays registered with the overlays and
     // UPSAMPLES real texels on zoom-in), so we no longer fall back on zoom. See
@@ -2324,23 +2359,51 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
                   bytesKey: null, bindGroup: null };
   }
 
+  // Raw single-channel pixel bytes for the current image state. Prefers the
+  // BINARY bytes `image_b64_bytes` (a Uint8Array spliced into the state from the
+  // geomCache by the binary transport — no atob) over `image_b64` (base64, needs
+  // decoding). Returns {bytes, key} where `key` is a cheap identity for the
+  // "unchanged → skip re-upload" check.
+  function _imageBytes(st) {
+    const raw = st.image_b64_bytes;
+    if (raw && (raw instanceof Uint8Array || raw.byteLength !== undefined)) {
+      const u8 = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+      // Cache identity: with no base64 string to key on, derive a cheap content
+      // fingerprint (length + a few sampled bytes) so two DIFFERENT same-length
+      // frames don't collide and wrongly skip the re-upload.
+      let key = st.image_b64;
+      if (!key) {
+        const n = u8.length;
+        const s0 = u8[0] || 0, s1 = u8[(n >> 2) | 0] || 0;
+        const s2 = u8[(n >> 1) | 0] || 0, s3 = u8[n - 1] || 0;
+        key = `bin:${n}:${s0},${s1},${s2},${s3}`;
+      }
+      return { bytes: u8, key };
+    }
+    const b64 = st.image_b64 || '';
+    if (!b64) return { bytes: null, key: '' };
+    try {
+      const bin = atob(b64);
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return { bytes: u8, key: b64 };
+    } catch (_) { return { bytes: null, key: '' }; }
+  }
+
   // Upload the image bytes to an R8 texture (creating/resizing as needed) and the
   // LUT to a 256×1 RGBA texture (only when either changed). Returns false if the
   // bytes couldn't be decoded (caller falls back to Canvas2D).
   function _gpuUploadImage(p, st) {
     const g = p._gpuImg, device = g.device;
     const iw = st.image_width, ih = st.image_height;
-    // Decode base64 → Uint8Array (single channel, iw*ih bytes).
-    let bytes;
-    if (st.image_b64 === g.bytesKey && g.tex && g.texW === iw && g.texH === ih) {
+    const img = _imageBytes(st);
+    let bytes = img.bytes;
+    if (img.key === g.bytesKey && g.tex && g.texW === iw && g.texH === ih) {
       // Same image bytes already resident — skip the (expensive) re-upload. A
       // colormap/clim change is handled below by rebuilding the LUT texture.
+      bytes = undefined;
     } else {
-      try {
-        const bin = atob(st.image_b64);
-        bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      } catch (_) { return false; }
+      if (!bytes) return false;
       if (bytes.length < iw * ih) return false;
       if (!g.tex || g.texW !== iw || g.texH !== ih) {
         if (g.tex) g.tex.destroy();
@@ -2361,7 +2424,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       device.queue.writeTexture(
         { texture: g.tex }, src, { bytesPerRow: bpr, rowsPerImage: ih },
         [iw, ih, 1]);
-      g.bytesKey = st.image_b64;
+      g.bytesKey = img.key;
       g.bindGroup = null;   // texture changed → rebuild bind group
     }
     // LUT (256×1 RGBA). st.colormap_data is [[r,g,b], ...]×256 (0..255).

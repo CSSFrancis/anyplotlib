@@ -207,11 +207,51 @@ import(blobUrl).then(mod => {{
 
 // ── Inbound state updates from parent-page Pyodide ───────────────────────────
 window.addEventListener('message', (e) => {{
-  if (!e.data || e.data.type !== 'awi_state') return;
-  _fromParent = true;
-  model.set(e.data.key, e.data.value);
-  model.save_changes();
-  _fromParent = false;
+  if (!e.data) return;
+  if (e.data.type === 'awi_state') {{
+    _fromParent = true;
+    const _t0 = performance.now();
+    model.set(e.data.key, e.data.value);
+    model.save_changes();
+    if (e.data.key === 'image_b64') {{
+      try {{
+        globalThis.__apl_paint_ms = performance.now() - _t0;
+        globalThis.__apl_paint_n = (globalThis.__apl_paint_n || 0) + 1;
+        globalThis.__apl_paint_kind = 'base64';
+      }} catch (_) {{}}
+    }}
+    _fromParent = false;
+    return;
+  }}
+  // Binary image frame (raw pixels, no base64). Set the bytes under a parallel
+  // `<key>_bytes` trait (a Uint8Array) that the draw path uses directly — no atob.
+  // We also bump the base64 key to a short token so listeners keyed on it still
+  // fire, without carrying the (large) base64 string.
+  if (e.data.type === 'awi_state_binary') {{
+    _fromParent = true;
+    const _t0 = performance.now();
+    const hdr = e.data.header || {{}};
+    const bytes = e.data.buffer instanceof Uint8Array
+      ? e.data.buffer : new Uint8Array(e.data.buffer);
+    // The pixels belong INSIDE a panel geom trait (hdr.geom = panel_<pid>_geom).
+    // Deliver them under "<geom_trait>::<pixelKey>" so the ESM merges the bytes
+    // into that panel's geomCache. A bare pixel key (no geom) falls back to a
+    // top-level "<key>_bytes" trait.
+    if (hdr.geom) {{
+      model.set(hdr.geom + '::' + e.data.key, bytes);
+    }} else {{
+      model.set(e.data.key + '_bytes', bytes);
+    }}
+    model.save_changes();                            // triggers the paint synchronously
+    // Paint-latency telemetry (message receipt → draw done) for the binary path.
+    try {{
+      globalThis.__apl_paint_ms = performance.now() - _t0;
+      globalThis.__apl_paint_n = (globalThis.__apl_paint_n || 0) + 1;
+      globalThis.__apl_paint_kind = 'binary';
+    }} catch (_) {{}}
+    _fromParent = false;
+    return;
+  }}
 }});
 </script>
 </body>
