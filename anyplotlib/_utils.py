@@ -6,6 +6,8 @@ Shared low-level utilities used across plot subpackages.
 
 from __future__ import annotations
 
+import functools
+
 import numpy as np
 
 _LINESTYLE_ALIASES: dict[str, str] = {
@@ -115,8 +117,14 @@ _CMAP_ALIASES: dict[str, str] = {
 }
 
 
+@functools.lru_cache(maxsize=64)
 def _build_colormap_lut(name: str) -> list:
     """Return a 256-entry ``[[r, g, b], ...]`` LUT for the named colormap.
+
+    CACHED (lru_cache) — it's a pure function of ``name`` but costs ~100 ms
+    (colorcet lookup + 256 hex parses), and it was being rebuilt on EVERY frame of
+    a movie scrub even though the colormap doesn't change. The returned list is
+    treated as read-only by callers (they JSON-serialise it); do NOT mutate it.
 
     Priority order:
 
