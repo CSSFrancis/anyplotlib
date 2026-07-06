@@ -2387,6 +2387,50 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
   }
 
+  // Test hook: render an active 2-D image panel into an OFFSCREEN RGBA texture
+  // (not the live swapchain, which reads black under automation) and copy it back
+  // to CPU. Returns {w,h,px:[[r,g,b],...]} on an NxN sample grid so a test can
+  // verify the shader-LUT actually produced the expected colormapped output.
+  async function _gpuReadbackImage(panelId, N) {
+    N = N || 24;
+    const p = panels.get(panelId);
+    if (!p || p._gpu !== 'active' || !p._gpuImg) return null;
+    const g = p._gpuImg, device = g.device, st = p.state;
+    if (!_gpuUploadImage(p, st)) return null;
+    // Uniform (clim), same math as _gpuDraw2dImage.
+    const rmin = st.raw_min, rmax = st.raw_max;
+    const dmin = (st.display_min ?? rmin), dmax = (st.display_max ?? rmax);
+    const rspan = Math.max((rmax - rmin), 1e-12);
+    device.queue.writeBuffer(g.uniformBuf, 0, new Float32Array([
+      ((dmin - rmin) / rspan) * 255.0, ((dmax - rmin) / rspan) * 255.0, 0, 0]));
+    // Offscreen target at NxN (a coarse but faithful downscale via the sampler).
+    const tex = device.createTexture({
+      size: [N, N, 1], format: g.fmt,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC });
+    const enc = device.createCommandEncoder();
+    const pass = enc.beginRenderPass({
+      colorAttachments: [{ view: tex.createView(), loadOp: 'clear',
+        storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 1 } }] });
+    pass.setPipeline(g.pipeline); pass.setBindGroup(0, g.bindGroup); pass.draw(6); pass.end();
+    const bpr = Math.ceil(N * 4 / 256) * 256;
+    const buf = device.createBuffer({
+      size: bpr * N, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    enc.copyTextureToBuffer({ texture: tex }, { buffer: buf, bytesPerRow: bpr }, [N, N, 1]);
+    device.queue.submit([enc.finish()]);
+    await buf.mapAsync(GPUMapMode.READ);
+    const data = new Uint8Array(buf.getMappedRange()).slice();
+    buf.unmap(); buf.destroy(); tex.destroy();
+    const isBgra = g.fmt.startsWith('bgra');
+    const px = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const o = r * bpr + c * 4;
+      px.push(isBgra ? [data[o+2], data[o+1], data[o]]
+                     : [data[o], data[o+1], data[o+2]]);
+    }
+    return { w: N, h: N, px };
+  }
+  try { globalThis.__apl_gpuReadback = _gpuReadbackImage; } catch (_) {}
+
   function _gpuInitPanel(p, device, geom) {
     const fmt = navigator.gpu.getPreferredCanvasFormat();
     const ctx = p.gpuCanvas.getContext('webgpu');
