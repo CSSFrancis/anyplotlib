@@ -167,6 +167,23 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                       allowed=MarkerRegistry._KNOWN_2D)
         self.callbacks = CallbackRegistry()
         self._widgets: dict[str, Widget] = {}
+        # Set True once the JS side reports the WebGPU image path activated for
+        # this panel (via the gpu_status event → _set_gpu_active). Reflects the
+        # actual render path, not just the requested gpu_mode.
+        self._gpu_active: bool = False
+
+    @property
+    def gpu_active(self) -> bool:
+        """True when this image is being rendered by the WebGPU path (reported by
+        JS after the device resolves and the panel flips to GPU). ``False`` on the
+        Canvas2D path (small image, gpu=False, no GPU, or a GPU failure/fallback)."""
+        return self._gpu_active
+
+    def _set_gpu_active(self, active: bool) -> None:
+        """Internal: called from the Figure's gpu_status event dispatch."""
+        self._gpu_active = bool(active)
+        # Keep the state echo in sync for save_html snapshots / introspection.
+        self._state["gpu_active"] = self._gpu_active
 
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
