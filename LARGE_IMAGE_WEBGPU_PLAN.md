@@ -1,7 +1,38 @@
 # Large-image WebGPU 2D rendering + binary transport — scoping document
 
-Status: **planned** (2026-07-05). Branch: `feat/webgpu-2d-images`.
-Owner: @CSSFrancis
+Status: **Phase 0 + core Phase 1/2 DONE, hardware-verified** (2026-07-06). Branch:
+`feat/webgpu-2d-images`. Owner: @CSSFrancis
+
+## DONE (verified on an NVIDIA Pascal GPU via the SpyDE Electron consumer)
+- **WebGPU 2-D image render path**: a `gpuCanvas` below `plotCanvas`; the normalized
+  uint8 frame → R8 texture, the 256-entry colormap → a 256×1 RGBA LUT texture, a
+  fullscreen-quad WGSL fragment shader re-stretches by clim (dmin/dmax uniform) and
+  samples the LUT. Replaces the 64M-iteration Canvas2D atob+LUT loop with one GPU draw.
+- **Reuses the 3D contract**: the `_gpuDevice()` singleton, first-frame-canvas-then-
+  async-swap, `device.lost` → permanent Canvas2D fallback (extended to 2-D panels).
+- **API**: `imshow(..., gpu="auto"|True|False)` → `gpu_mode`; `GPU_IMAGE_THRESHOLD`
+  (~1 Mpx) auto-gate; `plot.gpu_active` echo via the `gpu_status` event.
+- **Fallback intact**: RGB images, sub-threshold images, `gpu=False`, and no-device
+  all render on Canvas2D (anyplotlib suite green; the DOM keeps `plotCanvas` first so
+  `querySelector('canvas')` still resolves the image canvas).
+- **Verification**: `__apl_gpuReadback` renders the active panel to an OFFSCREEN
+  texture (the live swapchain reads black under automation) and copies it to CPU —
+  the shader-LUT output is min 0 / max 255 / 96% non-black / correct cmap values on
+  a real 4k movie frame. Movie scrub + playback re-upload the texture per frame and
+  stay correct (5/5 scrub moves, 6 distinct played frames).
+
+## DEFERRED (documented; not blockers now)
+- **Mipmaps** (smooth downscale-on-zoom): the sampler uses `minFilter:'linear'`
+  without a mip chain. Marginal here because LOD already caps the uploaded texture
+  near display size; matters for deep zoom-out. Needs an R8 render-based mip chain.
+- **Binary pixel transport** (base64-in-JSON → binary buffer): the Phase-0 headline,
+  but LOD decimation already cut the shipped payload ~35× (≤1536 px, ~2 MB not
+  ~85 MB) and the GPU shader removed the render cost, so this is now an incremental
+  transport optimization spanning Jupyter/Pyodide/standalone/Electron — do it with
+  the multi-environment verification it needs.
+
+Prerequisite reading: `WEBGPU_PLAN.md` (the 3D points/voxels WebGPU path this extends),
+`anyplotlib/FIGURE_ESM.md` (the `figure_esm.js` section map), `AGENTS.md` (repo conventions).
 Prerequisite reading: `WEBGPU_PLAN.md` (the 3D points/voxels WebGPU path this extends),
 `anyplotlib/FIGURE_ESM.md` (the `figure_esm.js` section map), `AGENTS.md` (repo conventions).
 
