@@ -693,14 +693,16 @@ function render({ model, el }) {
       plotWrap.style.cssText = `position:relative;display:inline-block;vertical-align:top;line-height:0;` +
         `width:${pw}px;height:${ph}px;overflow:visible;flex-shrink:0;`;
 
-      // gpuCanvas (WebGPU image) sits BELOW plotCanvas; the image raster draws
-      // here when GPU mode is active, while plotCanvas keeps drawing all
+      // gpuCanvas (WebGPU image) draws the image raster BELOW plotCanvas (via
+      // z-index 0) when GPU mode is active, while plotCanvas keeps drawing all
       // decorations (axes/colorbar/scale-bar/mask/markers) over a now-transparent
-      // background. Hidden until/unless the GPU image path activates. z-index 0.
+      // background. Hidden until/unless the GPU image path activates. It is
+      // appended AFTER plotCanvas (below) so DOM order keeps plotCanvas first —
+      // callers/tests that grab `querySelector('canvas')` still get the image
+      // canvas; z-index (not DOM order) controls the visual stacking.
       var gpu2d = document.createElement('canvas');
       gpu2d.style.cssText =
         `position:absolute;top:0;left:0;display:none;border-radius:2px;z-index:0;`;
-      plotWrap.appendChild(gpu2d);
       stack2dGpuCanvas = gpu2d;
 
       plotCanvas = document.createElement('canvas');
@@ -734,6 +736,7 @@ function render({ model, el }) {
       titleCanvas.style.cssText = `position:absolute;pointer-events:none;z-index:8;background:transparent;display:none;`;
 
       plotWrap.appendChild(plotCanvas);
+      plotWrap.appendChild(gpu2d);      // below plotCanvas via z-index, after in DOM
       plotWrap.appendChild(overlayCanvas);
       plotWrap.appendChild(markersCanvas);
       plotWrap.appendChild(yAxisCanvas);
