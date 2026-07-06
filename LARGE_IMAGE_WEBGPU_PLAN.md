@@ -15,11 +15,21 @@ Status: **Phase 0 + core Phase 1/2 DONE, hardware-verified** (2026-07-06). Branc
 - **Fallback intact**: RGB images, sub-threshold images, `gpu=False`, and no-device
   all render on Canvas2D (anyplotlib suite green; the DOM keeps `plotCanvas` first so
   `querySelector('canvas')` still resolves the image canvas).
+- **Correctness (review-hardened)**: the shader is a plain IDENTITY LUT lookup —
+  `_buildLut32` already bakes clim + scale_mode into the LUT, so the shader must NOT
+  re-apply the window (an earlier version double-applied clim; correct only at
+  full-range, wrong for any narrowed contrast/log/symlog — fixed). A zoomed/panned
+  view falls back to Canvas2D so the base image stays registered with the axes/
+  overlays (the GPU quad is full-extent). Nearest sampling on both textures matches
+  Canvas2D's `imageSmoothingEnabled=false` pixel-for-pixel.
 - **Verification**: `__apl_gpuReadback` renders the active panel to an OFFSCREEN
-  texture (the live swapchain reads black under automation) and copies it to CPU —
-  the shader-LUT output is min 0 / max 255 / 96% non-black / correct cmap values on
-  a real 4k movie frame. Movie scrub + playback re-upload the texture per frame and
-  stay correct (5/5 scrub moves, 6 distinct played frames).
+  texture (the live swapchain reads black under automation) and copies it to CPU.
+  On a real 4k movie frame: min 0 / max 255 / 96% non-black / correct gray values.
+  A **narrowed clim [0.3,0.7]** matches the numpy windowed-colormap to meanDiff
+  0.65/255 (regression guard for the double-apply bug; `tests/_gpu_clim_check.cjs`).
+  Movie scrub + playback re-upload the texture per frame and stay correct (5/5
+  scrub, 5 distinct played frames). GPU resources are freed on panel close / figure
+  dispose / device loss (no leak on repeated large-image open/close).
 
 ## DEFERRED (documented; not blockers now)
 - **Mipmaps** (smooth downscale-on-zoom): the sampler uses `minFilter:'linear'`
