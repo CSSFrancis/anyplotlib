@@ -1403,7 +1403,7 @@ function render({ model, el }) {
         iw: st.image_width, ih: st.image_height, active: false }; } catch (_) {}
     let _gpuPainted = false;
     if (_gpuWanted2d(st) && p._gpu === 'active' && p._gpuImg) {
-      if (_gpuDraw2dImage(p, st)) {
+      if (_gpuDraw2dImage(p, st, imgW, imgH)) {
         if (p.gpuCanvas.style.display === 'none') p.gpuCanvas.style.display = 'block';
         // plotCanvas holds only decorations now → transparent, cleared each frame.
         p.plotCanvas.style.background = 'transparent';
@@ -2255,6 +2255,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // view is unzoomed/uncentred (see _gpuWanted2d); a zoomed/panned view falls
   // back to Canvas2D so the base image stays registered with the axes/overlays.
   const _GPU_IMAGE_WGSL = `
+// rect = the image's fit-rect in CLIP space (x0,y0,x1,y1), so the quad occupies
+// exactly the letterboxed/aspect-preserved area the Canvas2D path + all overlays
+// (mask, markers, scale bar) use. Outside it the canvas clear colour shows as the
+// letterbox bars, matching _blit2d.
+struct U { rect : vec4<f32>, };
+@group(0) @binding(0) var<uniform> u : U;
 @group(0) @binding(1) var img  : texture_2d<f32>;
 @group(0) @binding(2) var lut  : texture_2d<f32>;
 @group(0) @binding(3) var samp : sampler;
@@ -2264,18 +2270,20 @@ struct VsOut {
   @location(0) uv        : vec2<f32>,
 };
 
-// Fullscreen triangle-pair covering clip space; uv 0..1 with v flipped so the
-// image draws top-row-first (imshow convention) like the Canvas2D putImageData.
-const P = array<vec2<f32>, 6>(
-  vec2(-1.0,-1.0), vec2(1.0,-1.0), vec2(-1.0,1.0),
-  vec2(-1.0, 1.0), vec2(1.0,-1.0), vec2( 1.0,1.0));
+// Unit quad in 0..1; mapped into the clip-space fit-rect below. uv has v flipped
+// so the image draws top-row-first (imshow convention) like putImageData.
+const Q = array<vec2<f32>, 6>(
+  vec2(0.0,0.0), vec2(1.0,0.0), vec2(0.0,1.0),
+  vec2(0.0,1.0), vec2(1.0,0.0), vec2(1.0,1.0));
 
 @vertex
 fn vs(@builtin(vertex_index) vi : u32) -> VsOut {
   var out : VsOut;
-  let p = P[vi];
-  out.pos = vec4<f32>(p, 0.0, 1.0);
-  out.uv  = vec2<f32>(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5);
+  let q = Q[vi];                         // 0..1 across the image
+  let x = mix(u.rect.x, u.rect.z, q.x);  // lerp into clip-space fit-rect
+  let y = mix(u.rect.y, u.rect.w, q.y);
+  out.pos = vec4<f32>(x, y, 0.0, 1.0);
+  out.uv  = vec2<f32>(q.x, 1.0 - q.y);   // top-row-first
   return out;
 }
 
@@ -2306,7 +2314,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // GPU output is a pixel-faithful match of the reference.
     const samp = device.createSampler({
       magFilter: 'nearest', minFilter: 'nearest', mipmapFilter: 'nearest' });
-    p._gpuImg = { device, ctx, fmt, pipeline, samp,
+    // Uniform holds the image's fit-rect in clip space (vec4) so the quad occupies
+    // the same letterboxed area the Canvas2D path + overlays use (16 B, rounded up).
+    const uniformBuf = device.createBuffer({
+      size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    p._gpuImg = { device, ctx, fmt, pipeline, samp, uniformBuf,
                   tex: null, texW: 0, texH: 0, lutTex: null, lutKey: null,
                   bytesKey: null, bindGroup: null };
   }
@@ -2320,8 +2332,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Decode base64 → Uint8Array (single channel, iw*ih bytes).
     let bytes;
     if (st.image_b64 === g.bytesKey && g.tex && g.texW === iw && g.texH === ih) {
-      // Same image already resident — skip the (expensive) re-upload; only the
-      // clim uniform may have changed, handled by the caller.
+      // Same image bytes already resident — skip the (expensive) re-upload. A
+      // colormap/clim change is handled below by rebuilding the LUT texture.
     } else {
       try {
         const bin = atob(st.image_b64);
@@ -2378,6 +2390,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       g.bindGroup = device.createBindGroup({
         layout: g.pipeline.getBindGroupLayout(0),
         entries: [
+          { binding: 0, resource: { buffer: g.uniformBuf } },
           { binding: 1, resource: g.tex.createView() },
           { binding: 2, resource: g.lutTex.createView() },
           { binding: 3, resource: g.samp },
@@ -2387,20 +2400,41 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     return true;
   }
 
+  // The image's aspect-preserved fit-rect in CLIP space (matches _imgFitRect used
+  // by the Canvas2D blit + all overlays), so the GPU quad occupies exactly the
+  // same letterboxed area — no stretch, no detach from axes/mask/markers. imgW/imgH
+  // is the gpuCanvas area in CSS px; the fit-rect is centred within it.
+  function _imageFitRectClip(st, imgW, imgH) {
+    const fr = _imgFitRect(st.image_width, st.image_height, imgW, imgH);
+    // Canvas px (y down, origin top-left) → clip space (y up, -1..1).
+    const x0 = (fr.x / imgW) * 2 - 1;
+    const x1 = ((fr.x + fr.w) / imgW) * 2 - 1;
+    const y0 = 1 - ((fr.y + fr.h) / imgH) * 2;   // bottom edge (lower clip y)
+    const y1 = 1 - (fr.y / imgH) * 2;            // top edge (upper clip y)
+    return new Float32Array([x0, y0, x1, y1]);
+  }
+
   // Draw the image on the GPU canvas. Returns false on any failure so the caller
   // reverts to Canvas2D for this frame. No clim uniform: the LUT already bakes in
   // the display window + scale_mode (see _GPU_IMAGE_WGSL) — the shader is a plain
   // identity lookup.
-  function _gpuDraw2dImage(p, st) {
+  function _gpuDraw2dImage(p, st, imgW, imgH) {
     const g = p._gpuImg;
     try {
       if (!_gpuUploadImage(p, st)) return false;
       const device = g.device;
+      // Position the quad at the image's aspect-preserved fit-rect (clip space),
+      // so it lines up with the Canvas2D blit + all overlays.
+      device.queue.writeBuffer(g.uniformBuf, 0,
+        _imageFitRectClip(st, imgW, imgH));
+      // Clear to the canvas background so the letterbox bars match the Canvas2D
+      // path (which leaves the plotCanvas bg showing outside the fit-rect).
+      const bg = _clearRgba(theme.bgCanvas);
       const enc = device.createCommandEncoder();
       const view = g.ctx.getCurrentTexture().createView();
       const pass = enc.beginRenderPass({
         colorAttachments: [{ view, loadOp: 'clear', storeOp: 'store',
-          clearValue: { r: 0, g: 0, b: 0, a: 1 } }] });
+          clearValue: bg }] });
       pass.setPipeline(g.pipeline);
       pass.setBindGroup(0, g.bindGroup);
       pass.draw(6);
@@ -2413,6 +2447,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
   }
 
+  // '#rrggbb' → {r,g,b,a} floats 0..1 for a WebGPU clearValue.
+  function _clearRgba(hex) {
+    const h = (hex || '#000000').replace('#', '');
+    const n = parseInt(h.length === 3
+      ? h.split('').map(c => c + c).join('') : h, 16);
+    return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255,
+             b: (n & 255) / 255, a: 1 };
+  }
+
   // Test hook: render an active 2-D image panel into an OFFSCREEN RGBA texture
   // (not the live swapchain, which reads black under automation) and copy it back
   // to CPU. Returns {w,h,px:[[r,g,b],...]} on an NxN sample grid so a test can
@@ -2423,7 +2466,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (!p || p._gpu !== 'active' || !p._gpuImg) return null;
     const g = p._gpuImg, device = g.device, st = p.state;
     if (!_gpuUploadImage(p, st)) return null;
-    // No uniform: the shader is a plain LUT identity lookup (clim baked into LUT).
+    // Fill the whole NxN readback target (rect = full clip space) so the readback
+    // samples the entire image regardless of its aspect ratio — the shader is a
+    // plain LUT identity lookup (clim baked into LUT), so this reads the true
+    // colormapped output.
+    device.queue.writeBuffer(g.uniformBuf, 0,
+      new Float32Array([-1, -1, 1, 1]));
     // Offscreen target at NxN (a coarse but faithful downscale via the sampler).
     const tex = device.createTexture({
       size: [N, N, 1], format: g.fmt,
@@ -2720,6 +2768,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     try {
       g.tex && g.tex.destroy();
       g.lutTex && g.lutTex.destroy();
+      g.uniformBuf && g.uniformBuf.destroy();
     } catch (_) {}
     p._gpuImg = null;
   }
