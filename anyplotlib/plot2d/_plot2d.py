@@ -40,7 +40,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                  cmap: str | None = None,
                  vmin: float | None = None,
                  vmax: float | None = None,
-                 origin: str = "upper"):
+                 origin: str = "upper",
+                 gpu: "str | bool" = "auto"):
         self._id:  str = ""       # assigned by Axes._attach
         self._fig: object = None  # assigned by Axes._attach
 
@@ -106,10 +107,18 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         scale_x = float(abs(x_axis[-1] - x_axis[0]) / max(w - 1, 1)) if len(x_axis) >= 2 else 1.0
         scale_y = float(abs(y_axis[-1] - y_axis[0]) / max(h - 1, 1)) if len(y_axis) >= 2 else 1.0
 
+        # WebGPU image path: "auto" (GPU above ~1 Mpx), True (force attempt),
+        # False/"off" (never). Maps to the JS gpu_mode gate.
+        _gpu_mode = ("always" if gpu is True
+                     else "off" if gpu in (False, "off")
+                     else "auto")
+
         self._state: dict = {
             "kind":              "2d",
             "is_mesh":           False,
             "is_rgb":            self._is_rgb,
+            "gpu_mode":          _gpu_mode,
+            "gpu_active":        False,
             "has_axes":          x_axis_given or y_axis_given,
             "image_b64":         self._encode_bytes(img_u8),
             "image_width":       w,

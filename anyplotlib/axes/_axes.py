@@ -39,7 +39,8 @@ class Axes:
                cmap: str | None = None,
                vmin: float | None = None,
                vmax: float | None = None,
-               origin: str = "upper") -> "Plot2D":
+               origin: str = "upper",
+               gpu: "str | bool" = "auto") -> "Plot2D":
         """Attach a 2-D image to this axes cell.
 
         Parameters
@@ -74,7 +75,7 @@ class Axes:
         x_axis = axes[0] if axes and len(axes) > 0 else None
         y_axis = axes[1] if axes and len(axes) > 1 else None
         plot = Plot2D(data, x_axis=x_axis, y_axis=y_axis, units=units,
-                      cmap=cmap, vmin=vmin, vmax=vmax, origin=origin)
+                      cmap=cmap, vmin=vmin, vmax=vmax, origin=origin, gpu=gpu)
         self._attach(plot)
         return plot
 

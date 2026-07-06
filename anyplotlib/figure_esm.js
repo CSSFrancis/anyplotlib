@@ -686,15 +686,26 @@ function render({ model, el }) {
     let cbCanvas=null, cbCtx=null, plotWrap=null, wrapNode=null;
     let titleCanvas=null;
     let stack3dGpuCanvas=null;   // WebGPU geometry canvas (3D only)
+    let stack2dGpuCanvas=null;   // WebGPU image canvas (2D large-image path)
 
     if (kind === '2d') {
       plotWrap = document.createElement('div');
       plotWrap.style.cssText = `position:relative;display:inline-block;vertical-align:top;line-height:0;` +
         `width:${pw}px;height:${ph}px;overflow:visible;flex-shrink:0;`;
 
+      // gpuCanvas (WebGPU image) sits BELOW plotCanvas; the image raster draws
+      // here when GPU mode is active, while plotCanvas keeps drawing all
+      // decorations (axes/colorbar/scale-bar/mask/markers) over a now-transparent
+      // background. Hidden until/unless the GPU image path activates. z-index 0.
+      var gpu2d = document.createElement('canvas');
+      gpu2d.style.cssText =
+        `position:absolute;top:0;left:0;display:none;border-radius:2px;z-index:0;`;
+      plotWrap.appendChild(gpu2d);
+      stack2dGpuCanvas = gpu2d;
+
       plotCanvas = document.createElement('canvas');
       plotCanvas.style.cssText =
-        `position:absolute;display:block;border-radius:2px;background:${theme.bgCanvas};`;
+        `position:absolute;display:block;border-radius:2px;background:${theme.bgCanvas};z-index:1;`;
       overlayCanvas = document.createElement('canvas');
       overlayCanvas.style.cssText =
         'position:absolute;z-index:5;cursor:default;pointer-events:all;outline:none;touch-action:none;';
@@ -795,7 +806,7 @@ function render({ model, el }) {
     return { plotCanvas, overlayCanvas, markersCanvas, statusBar,
              xAxisCanvas, yAxisCanvas, scaleBar,
              cbCanvas, cbCtx, plotWrap, wrapNode, titleCanvas,
-             gpuCanvas: stack3dGpuCanvas };
+             gpuCanvas: stack3dGpuCanvas || stack2dGpuCanvas };
   }
 
   function _createPanelDOM(id, kind, pw, ph, spec) {
@@ -1118,7 +1129,8 @@ function render({ model, el }) {
     function _sz(c, ctx, w, h) {
       c.style.width=w+'px'; c.style.height=h+'px';
       c.width=w*dpr; c.height=h*dpr;
-      ctx.setTransform(dpr,0,0,dpr,0,0);
+      // ctx is null for a WebGPU canvas (no 2D context to transform).
+      if (ctx) ctx.setTransform(dpr,0,0,dpr,0,0);
     }
 
     if (p.kind === '2d') {
@@ -1172,6 +1184,15 @@ function render({ model, el }) {
       p.plotCanvas.style.left = imgX + 'px';
       p.plotCanvas.style.top  = imgY + 'px';
       _sz(p.plotCanvas, p.plotCtx, imgW, imgH);
+
+      // The 2D WebGPU image canvas (if present) sits under plotCanvas and matches
+      // the image area exactly. _sz sets CSS size + dpr backing; the WebGPU
+      // context reconfigures to this size on the next GPU draw.
+      if (p.gpuCanvas) {
+        p.gpuCanvas.style.left = imgX + 'px';
+        p.gpuCanvas.style.top  = imgY + 'px';
+        _sz(p.gpuCanvas, null, imgW, imgH);
+      }
 
       // Overlay and markers match the image canvas exactly
       p.overlayCanvas.style.left = imgX + 'px';
@@ -1361,6 +1382,36 @@ function render({ model, el }) {
 
     const isRgb=!!st.is_rgb;   // bytes are RGBA (4/px) — no LUT applies
     const lk=isRgb?'__rgb__':_lutKey(st);
+
+    // ── WebGPU image path (large scalar images) ─────────────────────────────
+    // If the GPU path is active for this panel, draw the image raster on the
+    // gpuCanvas (shader-LUT colormap on a texture) and CLEAR the plotCanvas image
+    // area so the 2D decorations below (axes/colorbar/scale bar/mask/markers)
+    // composite over the GPU image. Any failure reverts to the Canvas2D blit for
+    // this frame (and the panel is marked unavailable on hard errors).
+    // Test/diagnostic hook: record what the GPU path decided this frame.
+    try { (globalThis.__apl_gpu2d ||= {})[p.id] =
+      { wanted: _gpuWanted2d(st), gpu: p._gpu, hasImg: !!p._gpuImg,
+        iw: st.image_width, ih: st.image_height, active: false }; } catch (_) {}
+    let _gpuPainted = false;
+    if (_gpuWanted2d(st) && p._gpu === 'active' && p._gpuImg) {
+      if (_gpuDraw2dImage(p, st)) {
+        if (p.gpuCanvas.style.display === 'none') p.gpuCanvas.style.display = 'block';
+        // plotCanvas holds only decorations now → transparent, cleared each frame.
+        p.plotCanvas.style.background = 'transparent';
+        ctx.clearRect(0, 0, imgW, imgH);
+        _gpuPainted = true;
+        try { globalThis.__apl_gpu2d[p.id].active = true; } catch (_) {}
+      }
+    } else if (p.gpuCanvas && p.gpuCanvas.style.display !== 'none'
+               && (!_gpuWanted2d(st) || p._gpu !== 'active')) {
+      // GPU no longer wanted/active (e.g. shrank below threshold, RGB image, or
+      // device lost) → hide the GPU layer and restore the opaque plot canvas.
+      p.gpuCanvas.style.display = 'none';
+      p.plotCanvas.style.background = theme.bgCanvas;
+    }
+
+    if (!_gpuPainted) {
     const needRebuild = b64!==blitCache.bytesKey || lk!==blitCache.lutKey
                      || !blitCache.bitmap || blitCache.w!==iw || blitCache.h!==ih;
     if(!needRebuild && blitCache.bitmap){
@@ -1385,6 +1436,21 @@ function render({ model, el }) {
       blitCache.bitmap=oc; blitCache.bytesKey=b64; blitCache.lutKey=lk;
       blitCache.w=iw; blitCache.h=ih;
       _blit2d(oc, st, imgW, imgH, ctx);
+    }
+    }
+
+    // Kick off async GPU activation if wanted but not yet tried (first frame is
+    // always Canvas2D; the device resolves, the panel builds its pipeline, and a
+    // redraw flips to GPU). Mirrors the 3D path's async-init contract.
+    if (_gpuWanted2d(st) && p.gpuCanvas && p._gpu === undefined) {
+      p._gpu = 'pending';
+      _gpuDevice().then((device) => {
+        if (!device) { p._gpu = 'unavailable'; return; }
+        try { _gpuInitImagePanel(p, device); p._gpu = 'active'; _reportGpu(p); }
+        catch (e) { p._gpu = 'unavailable';
+                    console.warn('[anyplotlib] GPU image init failed:', e); }
+        _redrawPanel(p);
+      });
     }
 
     // ── Overlay mask compositing ─────────────────────────────────────────────
@@ -1950,6 +2016,10 @@ function render({ model, el }) {
   // ═══════════════════════════════════════════════════════════════════════
   const GPU_POINT_THRESHOLD = 20000;
   const GPU_VOXEL_THRESHOLD = 8000;   // cubes cost ~6× a point on canvas
+  // A 2-D scalar image goes to the GPU (shader-LUT colormap on a texture) above
+  // this many pixels — below it the Canvas2D atob+LUT loop is already instant.
+  // ~1 megapixel: a 1024² image and up (a large in-situ movie frame is 16-64 Mpx).
+  const GPU_IMAGE_THRESHOLD = 1 << 20;
   let _gpuDevicePromise = null;   // module singleton: Promise<GPUDevice|null>
 
   function _gpuDevice() {
@@ -1969,6 +2039,13 @@ function render({ model, el }) {
               if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
               if (p.plotCanvas) p.plotCanvas.style.background = theme.bgPlot;
               _gpuDisposePanel(p);
+              _redrawPanel(p);
+            } else if (p.kind === '2d' && p._gpu === 'active') {
+              // 2-D image panel: revert to the Canvas2D blit path.
+              p._gpu = 'unavailable';
+              if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+              if (p.plotCanvas) p.plotCanvas.style.background = theme.bgCanvas;
+              p._gpuImg = null;
               _redrawPanel(p);
             }
           }
@@ -1992,7 +2069,7 @@ function render({ model, el }) {
     } catch (_) {}
   }
 
-  // Should this panel try the GPU path for its current state?
+  // Should this 3-D panel try the GPU path for its current state?
   function _gpuWanted(st) {
     if (typeof navigator === 'undefined' || !navigator.gpu) return false;
     const mode = st.gpu_mode || 'auto';
@@ -2002,6 +2079,19 @@ function render({ model, el }) {
     if (mode === 'always') return true;
     const thr = geom === 'voxels' ? GPU_VOXEL_THRESHOLD : GPU_POINT_THRESHOLD;
     return (st.vertices_count || 0) > thr;
+  }
+
+  // Should this 2-D image panel take the WebGPU texture path? Scalar (LUT) images
+  // only — RGB(A) images stay on Canvas2D (they need no colormap and are rare/
+  // small). Gated by megapixels above GPU_IMAGE_THRESHOLD unless gpu_mode forces.
+  function _gpuWanted2d(st) {
+    if (typeof navigator === 'undefined' || !navigator.gpu) return false;
+    const mode = st.gpu_mode || 'auto';
+    if (mode === 'off') return false;
+    if (st.is_rgb) return false;                 // no LUT → nothing to accelerate
+    if (!st.image_b64 || !st.image_width || !st.image_height) return false;
+    if (mode === 'always') return true;
+    return (st.image_width * st.image_height) >= GPU_IMAGE_THRESHOLD;
   }
 
   const _GPU_POINT_WGSL = `
@@ -2119,6 +2209,183 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   return vec4<f32>(in.color.rgb, in.alpha);
 }
 `;
+
+  // ── 2-D large-image WebGPU path ────────────────────────────────────────────
+  // A fullscreen textured quad samples the normalized uint8 image (an R8 texture,
+  // the same bytes the Canvas2D path decodes), re-stretches it by the display
+  // window (clim, expressed as 0..255 uint8 bounds → dmin/dmax uniform), and maps
+  // through the 256-entry colormap LUT (a 256×1 RGBA texture). This replaces the
+  // 64-million-iteration JS atob+LUT loop with one GPU draw; a mipmapped,
+  // linear-filtered sampler gives smooth downscale-on-zoom for free.
+  const _GPU_IMAGE_WGSL = `
+struct U { dmin : f32, dmax : f32, _p0 : f32, _p1 : f32, };
+@group(0) @binding(0) var<uniform> u : U;
+@group(0) @binding(1) var img  : texture_2d<f32>;
+@group(0) @binding(2) var lut  : texture_2d<f32>;
+@group(0) @binding(3) var samp : sampler;
+
+struct VsOut {
+  @builtin(position) pos : vec4<f32>,
+  @location(0) uv        : vec2<f32>,
+};
+
+// Fullscreen triangle-pair covering clip space; uv 0..1 with v flipped so the
+// image draws top-row-first (imshow convention) like the Canvas2D putImageData.
+const P = array<vec2<f32>, 6>(
+  vec2(-1.0,-1.0), vec2(1.0,-1.0), vec2(-1.0,1.0),
+  vec2(-1.0, 1.0), vec2(1.0,-1.0), vec2( 1.0,1.0));
+
+@vertex
+fn vs(@builtin(vertex_index) vi : u32) -> VsOut {
+  var out : VsOut;
+  let p = P[vi];
+  out.pos = vec4<f32>(p, 0.0, 1.0);
+  out.uv  = vec2<f32>(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5);
+  return out;
+}
+
+@fragment
+fn fs(in : VsOut) -> @location(0) vec4<f32> {
+  // R8 texture is unorm (0..1); the stored value is the frame normalized to
+  // 0..255. Re-stretch by the display window (dmin/dmax, in the same 0..255
+  // units) then look up the LUT. Clamp keeps out-of-window values at the ends.
+  let raw = textureSampleLevel(img, samp, in.uv, 0.0).r * 255.0;
+  let span = max(u.dmax - u.dmin, 1e-6);
+  let t = clamp((raw - u.dmin) / span, 0.0, 1.0);
+  return textureSample(lut, samp, vec2<f32>(t, 0.5));
+}
+`;
+
+  function _gpuInitImagePanel(p, device) {
+    const fmt = navigator.gpu.getPreferredCanvasFormat();
+    const ctx = p.gpuCanvas.getContext('webgpu');
+    ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
+    const module = device.createShaderModule({ code: _GPU_IMAGE_WGSL });
+    const pipeline = device.createRenderPipeline({
+      layout: 'auto',
+      vertex:   { module, entryPoint: 'vs' },
+      fragment: { module, entryPoint: 'fs', targets: [{ format: fmt }] },
+      primitive:{ topology: 'triangle-list' },
+    });
+    const uniformBuf = device.createBuffer({
+      size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    const samp = device.createSampler({
+      magFilter: 'nearest', minFilter: 'linear', mipmapFilter: 'linear' });
+    p._gpuImg = { device, ctx, fmt, pipeline, uniformBuf, samp,
+                  tex: null, texW: 0, texH: 0, lutTex: null, lutKey: null,
+                  bytesKey: null, bindGroup: null };
+  }
+
+  // Upload the image bytes to an R8 texture (creating/resizing as needed) and the
+  // LUT to a 256×1 RGBA texture (only when either changed). Returns false if the
+  // bytes couldn't be decoded (caller falls back to Canvas2D).
+  function _gpuUploadImage(p, st) {
+    const g = p._gpuImg, device = g.device;
+    const iw = st.image_width, ih = st.image_height;
+    // Decode base64 → Uint8Array (single channel, iw*ih bytes).
+    let bytes;
+    if (st.image_b64 === g.bytesKey && g.tex && g.texW === iw && g.texH === ih) {
+      // Same image already resident — skip the (expensive) re-upload; only the
+      // clim uniform may have changed, handled by the caller.
+    } else {
+      try {
+        const bin = atob(st.image_b64);
+        bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      } catch (_) { return false; }
+      if (bytes.length < iw * ih) return false;
+      if (!g.tex || g.texW !== iw || g.texH !== ih) {
+        if (g.tex) g.tex.destroy();
+        g.tex = device.createTexture({
+          size: [iw, ih, 1], format: 'r8unorm',
+          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST |
+                 GPUTextureUsage.RENDER_ATTACHMENT });
+        g.texW = iw; g.texH = ih;
+      }
+      // bytesPerRow must be a multiple of 256 for writeTexture; R8 = 1 B/px, so
+      // pad each row up to the next 256 boundary.
+      const bpr = Math.ceil(iw / 256) * 256;
+      let src = bytes;
+      if (bpr !== iw) {
+        src = new Uint8Array(bpr * ih);
+        for (let r = 0; r < ih; r++) src.set(bytes.subarray(r * iw, r * iw + iw), r * bpr);
+      }
+      device.queue.writeTexture(
+        { texture: g.tex }, src, { bytesPerRow: bpr, rowsPerImage: ih },
+        [iw, ih, 1]);
+      g.bytesKey = st.image_b64;
+      g.bindGroup = null;   // texture changed → rebuild bind group
+    }
+    // LUT (256×1 RGBA). st.colormap_data is [[r,g,b], ...]×256 (0..255).
+    const lutKey = _lutKey(st);
+    if (lutKey !== g.lutKey || !g.lutTex) {
+      const lut = _buildLut32(st);           // Uint32Array(256), 0xAABBGGRR
+      const rgba = new Uint8Array(256 * 4);
+      for (let i = 0; i < 256; i++) {
+        const v = lut[i];
+        rgba[i*4]   = v & 0xff;
+        rgba[i*4+1] = (v >> 8) & 0xff;
+        rgba[i*4+2] = (v >> 16) & 0xff;
+        rgba[i*4+3] = 255;
+      }
+      if (!g.lutTex) {
+        g.lutTex = device.createTexture({
+          size: [256, 1, 1], format: 'rgba8unorm',
+          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+      }
+      device.queue.writeTexture(
+        { texture: g.lutTex }, rgba, { bytesPerRow: 256 * 4, rowsPerImage: 1 },
+        [256, 1, 1]);
+      g.lutKey = lutKey;
+      g.bindGroup = null;
+    }
+    if (!g.bindGroup) {
+      g.bindGroup = device.createBindGroup({
+        layout: g.pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: g.uniformBuf } },
+          { binding: 1, resource: g.tex.createView() },
+          { binding: 2, resource: g.lutTex.createView() },
+          { binding: 3, resource: g.samp },
+        ],
+      });
+    }
+    return true;
+  }
+
+  // Draw the image on the GPU canvas. Returns false on any failure so the caller
+  // reverts to Canvas2D for this frame.
+  function _gpuDraw2dImage(p, st) {
+    const g = p._gpuImg;
+    try {
+      if (!_gpuUploadImage(p, st)) return false;
+      const device = g.device;
+      // clim in the SAME 0..255 uint8 units the texture holds. display_min/max
+      // are in the ORIGINAL data range; map them to the 0..255 normalized range
+      // via raw_min/raw_max (the frame's own min/max used to normalize to uint8).
+      const rmin = st.raw_min, rmax = st.raw_max;
+      const dmin = (st.display_min ?? rmin), dmax = (st.display_max ?? rmax);
+      const rspan = Math.max((rmax - rmin), 1e-12);
+      const u0 = ((dmin - rmin) / rspan) * 255.0;
+      const u1 = ((dmax - rmin) / rspan) * 255.0;
+      device.queue.writeBuffer(g.uniformBuf, 0,
+        new Float32Array([u0, u1, 0, 0]));
+      const enc = device.createCommandEncoder();
+      const view = g.ctx.getCurrentTexture().createView();
+      const pass = enc.beginRenderPass({
+        colorAttachments: [{ view, loadOp: 'clear', storeOp: 'store',
+          clearValue: { r: 0, g: 0, b: 0, a: 1 } }] });
+      pass.setPipeline(g.pipeline);
+      pass.setBindGroup(0, g.bindGroup);
+      pass.draw(6);
+      pass.end();
+      device.queue.submit([enc.finish()]);
+      return true;
+    } catch (e) {
+      console.warn('[anyplotlib] GPU image draw failed — canvas fallback:', e);
+      return false;
+    }
+  }
 
   function _gpuInitPanel(p, device, geom) {
     const fmt = navigator.gpu.getPreferredCanvasFormat();
@@ -5969,6 +6236,8 @@ export function createLocalModel(initialState) {
 //   opts.onEvent(ev)        — parsed interaction events (pointer/key/wheel …)
 //   opts.onSync(key, value) — raw outbound model writes, for a Python bridge
 export function mount(el, state, opts) {
+  // Diagnostic marker: proves THIS (WebGPU-2D) build of figure_esm.js is loaded.
+  try { globalThis.__apl_build = 'webgpu-2d'; } catch (_) {}
   const o = opts || {};
   const model = createLocalModel(state);
   if (o.onSync) model._setSyncHandler(o.onSync);
