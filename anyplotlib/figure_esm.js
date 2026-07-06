@@ -2106,16 +2106,10 @@ function render({ model, el }) {
     if (mode === 'off') return false;
     if (st.is_rgb) return false;                 // no LUT → nothing to accelerate
     if (!st.image_b64 || !st.image_width || !st.image_height) return false;
-    // ZOOM/PAN: the GPU quad draws the FULL image extent, unzoomed. The overlays
-    // (axes, scale bar, mask, markers) on plotCanvas DO honor zoom/center, so a
-    // GPU base image would detach from them when zoomed/panned. Fall back to
-    // Canvas2D (fast on a static view) whenever the view is not the default
-    // full-extent one, so the base image stays registered with the decorations.
-    const zoom = (st.zoom == null) ? 1.0 : st.zoom;
-    const cx = (st.center_x == null) ? 0.5 : st.center_x;
-    const cy = (st.center_y == null) ? 0.5 : st.center_y;
-    if (Math.abs(zoom - 1.0) > 1e-6 ||
-        Math.abs(cx - 0.5) > 1e-6 || Math.abs(cy - 0.5) > 1e-6) return false;
+    // ZOOM/PAN is now honoured by the shader (the quad's clip rect + uv sub-region
+    // mirror _blit2d, so the GPU image stays registered with the overlays and
+    // UPSAMPLES real texels on zoom-in), so we no longer fall back on zoom. See
+    // _imageDrawUniform.
     if (mode === 'always') return true;
     return (st.image_width * st.image_height) >= GPU_IMAGE_THRESHOLD;
   }
@@ -2255,11 +2249,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // view is unzoomed/uncentred (see _gpuWanted2d); a zoomed/panned view falls
   // back to Canvas2D so the base image stays registered with the axes/overlays.
   const _GPU_IMAGE_WGSL = `
-// rect = the image's fit-rect in CLIP space (x0,y0,x1,y1), so the quad occupies
-// exactly the letterboxed/aspect-preserved area the Canvas2D path + all overlays
-// (mask, markers, scale bar) use. Outside it the canvas clear colour shows as the
-// letterbox bars, matching _blit2d.
-struct U { rect : vec4<f32>, };
+// rect   = the on-screen quad in CLIP space (x0,y0,x1,y1). For zoom<=1 this is the
+//          fit-rect shrunk by zoom (centred); for zoom>=1 it's the full fit-rect.
+// uvrect = the texture sub-region to sample (u0,v0,u1,v1), in 0..1. For zoom>=1
+//          this is the zoomed-in window of the image (a small region stretched over
+//          the fit-rect, nearest sampling UPSAMPLES real texels); for zoom<=1 it's
+//          the whole texture (0,0,1,1). Together they reproduce _blit2d's zoom/pan
+//          exactly, so the GPU image stays registered with the axes/overlays at any
+//          zoom. Outside the rect the clear colour shows as the letterbox bars.
+struct U { rect : vec4<f32>, uvrect : vec4<f32>, };
 @group(0) @binding(0) var<uniform> u : U;
 @group(0) @binding(1) var img  : texture_2d<f32>;
 @group(0) @binding(2) var lut  : texture_2d<f32>;
@@ -2270,8 +2268,7 @@ struct VsOut {
   @location(0) uv        : vec2<f32>,
 };
 
-// Unit quad in 0..1; mapped into the clip-space fit-rect below. uv has v flipped
-// so the image draws top-row-first (imshow convention) like putImageData.
+// Unit quad in 0..1; mapped into the clip-space rect + the uv sub-region below.
 const Q = array<vec2<f32>, 6>(
   vec2(0.0,0.0), vec2(1.0,0.0), vec2(0.0,1.0),
   vec2(0.0,1.0), vec2(1.0,0.0), vec2(1.0,1.0));
@@ -2279,11 +2276,14 @@ const Q = array<vec2<f32>, 6>(
 @vertex
 fn vs(@builtin(vertex_index) vi : u32) -> VsOut {
   var out : VsOut;
-  let q = Q[vi];                         // 0..1 across the image
-  let x = mix(u.rect.x, u.rect.z, q.x);  // lerp into clip-space fit-rect
+  let q = Q[vi];                              // 0..1 across the drawn quad
+  let x = mix(u.rect.x, u.rect.z, q.x);       // lerp into clip-space rect
   let y = mix(u.rect.y, u.rect.w, q.y);
   out.pos = vec4<f32>(x, y, 0.0, 1.0);
-  out.uv  = vec2<f32>(q.x, 1.0 - q.y);   // top-row-first
+  // Sample the uv sub-region; v flipped so the image draws top-row-first (imshow).
+  let uu = mix(u.uvrect.x, u.uvrect.z, q.x);
+  let vv = mix(u.uvrect.y, u.uvrect.w, q.y);
+  out.uv  = vec2<f32>(uu, 1.0 - vv);
   return out;
 }
 
@@ -2314,10 +2314,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // GPU output is a pixel-faithful match of the reference.
     const samp = device.createSampler({
       magFilter: 'nearest', minFilter: 'nearest', mipmapFilter: 'nearest' });
-    // Uniform holds the image's fit-rect in clip space (vec4) so the quad occupies
-    // the same letterboxed area the Canvas2D path + overlays use (16 B, rounded up).
+    // Uniform holds the clip-space quad rect + the texture uv sub-region (two
+    // vec4 = 32 B) so the quad matches the fit-rect AND zoom/pan of the Canvas2D
+    // path + overlays.
     const uniformBuf = device.createBuffer({
-      size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
     p._gpuImg = { device, ctx, fmt, pipeline, samp, uniformBuf,
                   tex: null, texW: 0, texH: 0, lutTex: null, lutKey: null,
                   bytesKey: null, bindGroup: null };
@@ -2400,18 +2401,38 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     return true;
   }
 
-  // The image's aspect-preserved fit-rect in CLIP space (matches _imgFitRect used
-  // by the Canvas2D blit + all overlays), so the GPU quad occupies exactly the
-  // same letterboxed area — no stretch, no detach from axes/mask/markers. imgW/imgH
-  // is the gpuCanvas area in CSS px; the fit-rect is centred within it.
-  function _imageFitRectClip(st, imgW, imgH) {
+  // Compute the GPU uniform: the on-screen quad in CLIP space + the texture uv
+  // sub-region to sample, honouring zoom/center EXACTLY like the Canvas2D _blit2d
+  // (so the GPU image stays registered with the axes/overlays at any zoom, and a
+  // zoom-in UPSAMPLES real texels via nearest sampling). Returns 8 floats:
+  // [rx0,ry0,rx1,ry1, u0,v0,u1,v1]. imgW/imgH = the gpuCanvas area in CSS px.
+  function _imageDrawUniform(st, imgW, imgH) {
     const fr = _imgFitRect(st.image_width, st.image_height, imgW, imgH);
-    // Canvas px (y down, origin top-left) → clip space (y up, -1..1).
-    const x0 = (fr.x / imgW) * 2 - 1;
-    const x1 = ((fr.x + fr.w) / imgW) * 2 - 1;
-    const y0 = 1 - ((fr.y + fr.h) / imgH) * 2;   // bottom edge (lower clip y)
-    const y1 = 1 - (fr.y / imgH) * 2;            // top edge (upper clip y)
-    return new Float32Array([x0, y0, x1, y1]);
+    const iw = st.image_width, ih = st.image_height;
+    const zoom = st.zoom || 1.0;
+    const cx = (st.center_x == null ? 0.5 : st.center_x);
+    const cy = (st.center_y == null ? 0.5 : st.center_y);
+    // Screen rect (px, y-down) and uv sub-region (0..1), mirroring _blit2d.
+    let dx = fr.x, dy = fr.y, dw = fr.w, dh = fr.h;   // dest rect in px
+    let u0 = 0, v0 = 0, u1 = 1, v1 = 1;               // full texture
+    if (zoom >= 1.0) {
+      // Zoomed in: sample a window of the image over the full fit-rect.
+      const visW = iw / zoom, visH = ih / zoom;
+      const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+      const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+      u0 = srcX / iw; u1 = (srcX + visW) / iw;
+      v0 = srcY / ih; v1 = (srcY + visH) / ih;
+    } else {
+      // Zoomed out: shrink the dest rect proportionally, keep centred.
+      dw = fr.w * zoom; dh = fr.h * zoom;
+      dx = fr.x + (fr.w - dw) / 2; dy = fr.y + (fr.h - dh) / 2;
+    }
+    // Dest px (y-down, origin top-left) → clip space (y-up, -1..1).
+    const rx0 = (dx / imgW) * 2 - 1;
+    const rx1 = ((dx + dw) / imgW) * 2 - 1;
+    const ry0 = 1 - ((dy + dh) / imgH) * 2;   // bottom edge (lower clip y)
+    const ry1 = 1 - (dy / imgH) * 2;          // top edge (upper clip y)
+    return new Float32Array([rx0, ry0, rx1, ry1, u0, v0, u1, v1]);
   }
 
   // Draw the image on the GPU canvas. Returns false on any failure so the caller
@@ -2423,10 +2444,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     try {
       if (!_gpuUploadImage(p, st)) return false;
       const device = g.device;
-      // Position the quad at the image's aspect-preserved fit-rect (clip space),
-      // so it lines up with the Canvas2D blit + all overlays.
+      // Position the quad at the fit-rect + honour zoom/pan (clip rect + uv
+      // sub-region), so it lines up with the Canvas2D blit + all overlays and
+      // upsamples on zoom-in.
       device.queue.writeBuffer(g.uniformBuf, 0,
-        _imageFitRectClip(st, imgW, imgH));
+        _imageDrawUniform(st, imgW, imgH));
       // Clear to the canvas background so the letterbox bars match the Canvas2D
       // path (which leaves the plotCanvas bg showing outside the fit-rect).
       const bg = _clearRgba(theme.bgCanvas);
@@ -2466,12 +2488,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (!p || p._gpu !== 'active' || !p._gpuImg) return null;
     const g = p._gpuImg, device = g.device, st = p.state;
     if (!_gpuUploadImage(p, st)) return null;
-    // Fill the whole NxN readback target (rect = full clip space) so the readback
-    // samples the entire image regardless of its aspect ratio — the shader is a
-    // plain LUT identity lookup (clim baked into LUT), so this reads the true
-    // colormapped output.
+    // Fill the whole NxN readback target (rect = full clip space) sampling the
+    // FULL texture (uv 0..1) so the readback reads the entire image regardless of
+    // aspect or the live zoom — the shader is a plain LUT identity lookup (clim
+    // baked into LUT), so this reads the true colormapped output.
     device.queue.writeBuffer(g.uniformBuf, 0,
-      new Float32Array([-1, -1, 1, 1]));
+      new Float32Array([-1, -1, 1, 1, 0, 0, 1, 1]));
     // Offscreen target at NxN (a coarse but faithful downscale via the sampler).
     const tex = device.createTexture({
       size: [N, N, 1], format: g.fmt,
