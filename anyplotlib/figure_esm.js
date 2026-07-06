@@ -666,7 +666,12 @@ function render({ model, el }) {
     }
 
     for (const [id, p] of panels) {
-      if (!seen.has(id)) { p.cell.remove(); panels.delete(id); }
+      if (!seen.has(id)) {
+        // Free GPU resources before dropping the panel (2D image textures +
+        // 3D geometry buffers), else they leak on re-layout / panel close.
+        try { _gpuDisposeImagePanel(p); _gpuDisposePanel(p); } catch (_) {}
+        p.cell.remove(); panels.delete(id);
+      }
     }
 
     // Update insetsContainer size and reposition all insets
@@ -1408,10 +1413,14 @@ function render({ model, el }) {
       }
     } else if (p.gpuCanvas && p.gpuCanvas.style.display !== 'none'
                && (!_gpuWanted2d(st) || p._gpu !== 'active')) {
-      // GPU no longer wanted/active (e.g. shrank below threshold, RGB image, or
-      // device lost) → hide the GPU layer and restore the opaque plot canvas.
+      // GPU not painting this frame (shrank below threshold, RGB image, a
+      // zoom/pan, or device lost) → hide the GPU layer, restore the opaque plot
+      // canvas. gpu_active (capability) is echoed only on PERMANENT loss (the
+      // device-lost handler); a transient zoom/shrink is reversible so the flag
+      // stays as-is rather than flapping per frame.
       p.gpuCanvas.style.display = 'none';
       p.plotCanvas.style.background = theme.bgCanvas;
+      try { globalThis.__apl_gpu2d[p.id].active = false; } catch (_) {}
     }
 
     if (!_gpuPainted) {
@@ -1448,7 +1457,9 @@ function render({ model, el }) {
     if (_gpuWanted2d(st) && p.gpuCanvas && p._gpu === undefined) {
       p._gpu = 'pending';
       _gpuDevice().then((device) => {
-        if (!device) { p._gpu = 'unavailable'; return; }
+        // The panel may have been removed while the device promise was pending
+        // (guard like the 3D path) — don't init/report/draw on a detached panel.
+        if (!device || !panels.has(p.id)) { p._gpu = 'unavailable'; return; }
         try { _gpuInitImagePanel(p, device); p._gpu = 'active'; _reportGpu(p); }
         catch (e) { p._gpu = 'unavailable';
                     console.warn('[anyplotlib] GPU image init failed:', e); }
@@ -2044,11 +2055,13 @@ function render({ model, el }) {
               _gpuDisposePanel(p);
               _redrawPanel(p);
             } else if (p.kind === '2d' && p._gpu === 'active') {
-              // 2-D image panel: revert to the Canvas2D blit path.
+              // 2-D image panel: revert to the Canvas2D blit path + free GPU
+              // resources, and echo the fallback so plot.gpu_active goes False.
               p._gpu = 'unavailable';
               if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
               if (p.plotCanvas) p.plotCanvas.style.background = theme.bgCanvas;
-              p._gpuImg = null;
+              _gpuDisposeImagePanel(p);
+              _reportGpu(p);
               _redrawPanel(p);
             }
           }
@@ -2093,6 +2106,16 @@ function render({ model, el }) {
     if (mode === 'off') return false;
     if (st.is_rgb) return false;                 // no LUT → nothing to accelerate
     if (!st.image_b64 || !st.image_width || !st.image_height) return false;
+    // ZOOM/PAN: the GPU quad draws the FULL image extent, unzoomed. The overlays
+    // (axes, scale bar, mask, markers) on plotCanvas DO honor zoom/center, so a
+    // GPU base image would detach from them when zoomed/panned. Fall back to
+    // Canvas2D (fast on a static view) whenever the view is not the default
+    // full-extent one, so the base image stays registered with the decorations.
+    const zoom = (st.zoom == null) ? 1.0 : st.zoom;
+    const cx = (st.center_x == null) ? 0.5 : st.center_x;
+    const cy = (st.center_y == null) ? 0.5 : st.center_y;
+    if (Math.abs(zoom - 1.0) > 1e-6 ||
+        Math.abs(cx - 0.5) > 1e-6 || Math.abs(cy - 0.5) > 1e-6) return false;
     if (mode === 'always') return true;
     return (st.image_width * st.image_height) >= GPU_IMAGE_THRESHOLD;
   }
@@ -2215,14 +2238,23 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   // ── 2-D large-image WebGPU path ────────────────────────────────────────────
   // A fullscreen textured quad samples the normalized uint8 image (an R8 texture,
-  // the same bytes the Canvas2D path decodes), re-stretches it by the display
-  // window (clim, expressed as 0..255 uint8 bounds → dmin/dmax uniform), and maps
-  // through the 256-entry colormap LUT (a 256×1 RGBA texture). This replaces the
-  // 64-million-iteration JS atob+LUT loop with one GPU draw; a mipmapped,
-  // linear-filtered sampler gives smooth downscale-on-zoom for free.
+  // the same bytes the Canvas2D path decodes) and maps each pixel through the
+  // 256-entry colormap LUT (a 256×1 RGBA texture). This replaces the 64-million-
+  // iteration JS atob+LUT loop with one GPU draw.
+  //
+  // CRITICAL: the LUT is built by _buildLut32, which ALREADY bakes the display
+  // window (clim) AND the scale_mode (linear/log/symlog) into a direct
+  // "pixel value → final colour" map: lut[raw] = final colour. The Canvas2D path
+  // uses it as a plain lookup (out32[i] = lut[bytes[i]]). So the shader must be an
+  // IDENTITY lookup — index the LUT by raw/255 and NOTHING else. (A previous
+  // version re-applied dmin/dmax in the shader on top of the already-windowed LUT,
+  // double-applying the contrast — correct only at full-range clim, wrong for any
+  // narrowed window or log/symlog. Do NOT reintroduce a clim uniform here.)
+  //
+  // The quad is fullscreen with NO zoom/pan: the GPU path is used only when the
+  // view is unzoomed/uncentred (see _gpuWanted2d); a zoomed/panned view falls
+  // back to Canvas2D so the base image stays registered with the axes/overlays.
   const _GPU_IMAGE_WGSL = `
-struct U { dmin : f32, dmax : f32, _p0 : f32, _p1 : f32, };
-@group(0) @binding(0) var<uniform> u : U;
 @group(0) @binding(1) var img  : texture_2d<f32>;
 @group(0) @binding(2) var lut  : texture_2d<f32>;
 @group(0) @binding(3) var samp : sampler;
@@ -2249,13 +2281,12 @@ fn vs(@builtin(vertex_index) vi : u32) -> VsOut {
 
 @fragment
 fn fs(in : VsOut) -> @location(0) vec4<f32> {
-  // R8 texture is unorm (0..1); the stored value is the frame normalized to
-  // 0..255. Re-stretch by the display window (dmin/dmax, in the same 0..255
-  // units) then look up the LUT. Clamp keeps out-of-window values at the ends.
-  let raw = textureSampleLevel(img, samp, in.uv, 0.0).r * 255.0;
-  let span = max(u.dmax - u.dmin, 1e-6);
-  let t = clamp((raw - u.dmin) / span, 0.0, 1.0);
-  return textureSample(lut, samp, vec2<f32>(t, 0.5));
+  // R8 unorm (0..1) = the frame value already normalized to the 0..255 index the
+  // LUT is keyed on. Direct identity lookup — the LUT holds the final colour
+  // (clim + scale_mode baked in). Nearest sampling on img (no interpolation of
+  // raw values); the LUT is sampled at the texel centre.
+  let raw = textureSampleLevel(img, samp, in.uv, 0.0).r;   // 0..1 == index/255
+  return textureSampleLevel(lut, samp, vec2<f32>(raw, 0.5), 0.0);
 }
 `;
 
@@ -2270,11 +2301,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       fragment: { module, entryPoint: 'fs', targets: [{ format: fmt }] },
       primitive:{ topology: 'triangle-list' },
     });
-    const uniformBuf = device.createBuffer({
-      size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    // NEAREST on both textures matches the Canvas2D path's imageSmoothingEnabled=
+    // false (no interpolation of raw values or between LUT colour entries), so the
+    // GPU output is a pixel-faithful match of the reference.
     const samp = device.createSampler({
-      magFilter: 'nearest', minFilter: 'linear', mipmapFilter: 'linear' });
-    p._gpuImg = { device, ctx, fmt, pipeline, uniformBuf, samp,
+      magFilter: 'nearest', minFilter: 'nearest', mipmapFilter: 'nearest' });
+    p._gpuImg = { device, ctx, fmt, pipeline, samp,
                   tex: null, texW: 0, texH: 0, lutTex: null, lutKey: null,
                   bytesKey: null, bindGroup: null };
   }
@@ -2346,7 +2378,6 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       g.bindGroup = device.createBindGroup({
         layout: g.pipeline.getBindGroupLayout(0),
         entries: [
-          { binding: 0, resource: { buffer: g.uniformBuf } },
           { binding: 1, resource: g.tex.createView() },
           { binding: 2, resource: g.lutTex.createView() },
           { binding: 3, resource: g.samp },
@@ -2357,22 +2388,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   }
 
   // Draw the image on the GPU canvas. Returns false on any failure so the caller
-  // reverts to Canvas2D for this frame.
+  // reverts to Canvas2D for this frame. No clim uniform: the LUT already bakes in
+  // the display window + scale_mode (see _GPU_IMAGE_WGSL) — the shader is a plain
+  // identity lookup.
   function _gpuDraw2dImage(p, st) {
     const g = p._gpuImg;
     try {
       if (!_gpuUploadImage(p, st)) return false;
       const device = g.device;
-      // clim in the SAME 0..255 uint8 units the texture holds. display_min/max
-      // are in the ORIGINAL data range; map them to the 0..255 normalized range
-      // via raw_min/raw_max (the frame's own min/max used to normalize to uint8).
-      const rmin = st.raw_min, rmax = st.raw_max;
-      const dmin = (st.display_min ?? rmin), dmax = (st.display_max ?? rmax);
-      const rspan = Math.max((rmax - rmin), 1e-12);
-      const u0 = ((dmin - rmin) / rspan) * 255.0;
-      const u1 = ((dmax - rmin) / rspan) * 255.0;
-      device.queue.writeBuffer(g.uniformBuf, 0,
-        new Float32Array([u0, u1, 0, 0]));
       const enc = device.createCommandEncoder();
       const view = g.ctx.getCurrentTexture().createView();
       const pass = enc.beginRenderPass({
@@ -2400,12 +2423,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (!p || p._gpu !== 'active' || !p._gpuImg) return null;
     const g = p._gpuImg, device = g.device, st = p.state;
     if (!_gpuUploadImage(p, st)) return null;
-    // Uniform (clim), same math as _gpuDraw2dImage.
-    const rmin = st.raw_min, rmax = st.raw_max;
-    const dmin = (st.display_min ?? rmin), dmax = (st.display_max ?? rmax);
-    const rspan = Math.max((rmax - rmin), 1e-12);
-    device.queue.writeBuffer(g.uniformBuf, 0, new Float32Array([
-      ((dmin - rmin) / rspan) * 255.0, ((dmax - rmin) / rspan) * 255.0, 0, 0]));
+    // No uniform: the shader is a plain LUT identity lookup (clim baked into LUT).
     // Offscreen target at NxN (a coarse but faithful downscale via the sampler).
     const tex = device.createTexture({
       size: [N, N, 1], format: g.fmt,
@@ -2691,6 +2709,19 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       g.uniformBuf && g.uniformBuf.destroy();
     } catch (_) {}
     p._gpuObj = null;
+  }
+
+  // Free the 2-D image GPU resources (R8 image texture can be tens of MB). Call on
+  // panel removal / figure dispose / device loss so repeatedly opening + closing
+  // large-image panels (an in-situ movie viewer) doesn't leak GPU memory.
+  function _gpuDisposeImagePanel(p) {
+    const g = p._gpuImg;
+    if (!g) return;
+    try {
+      g.tex && g.tex.destroy();
+      g.lutTex && g.lutTex.destroy();
+    } catch (_) {}
+    p._gpuImg = null;
   }
 
   function draw3d(p, _retry) {
@@ -6316,7 +6347,13 @@ export function mount(el, state, opts) {
     // Remove the figure's DOM.  (Window-level listeners registered by the
     // renderer are inert once the DOM is gone; for complete cleanup, discard
     // the containing element or iframe.)
-    dispose() { model.off(); el.replaceChildren(); },
+    dispose() {
+      // Free GPU resources for every panel before tearing down the DOM.
+      try { for (const p of panels.values()) {
+        _gpuDisposeImagePanel(p); _gpuDisposePanel(p);
+      } } catch (_) {}
+      model.off(); el.replaceChildren();
+    },
   };
 }
 
