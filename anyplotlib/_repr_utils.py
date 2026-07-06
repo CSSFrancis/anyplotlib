@@ -233,15 +233,13 @@ window.addEventListener('message', (e) => {{
     const hdr = e.data.header || {{}};
     const bytes = e.data.buffer instanceof Uint8Array
       ? e.data.buffer : new Uint8Array(e.data.buffer);
-    // The pixels belong INSIDE a panel geom trait (hdr.geom = panel_<pid>_geom).
-    // Deliver them under "<geom_trait>::<pixelKey>" so the ESM merges the bytes
-    // into that panel's geomCache. A bare pixel key (no geom) falls back to a
-    // top-level "<key>_bytes" trait.
-    if (hdr.geom) {{
-      model.set(hdr.geom + '::' + e.data.key, bytes);
-    }} else {{
-      model.set(e.data.key + '_bytes', bytes);
-    }}
+    // Stash the raw bytes in a global side-table (the anywidget model does NOT
+    // round-trip a Uint8Array set on an ad-hoc trait — model.get returns
+    // undefined), then bump a small TOKEN trait to fire the ESM's change: event,
+    // which reads the bytes from the side-table. Key = "<geom_trait>::<pixelKey>".
+    const slot = (hdr.geom ? hdr.geom : 'fig') + '::' + e.data.key;
+    (globalThis.__apl_pixbytes || (globalThis.__apl_pixbytes = {{}}))[slot] = bytes;
+    model.set(slot, (bytes ? bytes.length : 0) + ':' + (globalThis.__apl_paint_n || 0));
     model.save_changes();                            // triggers the paint synchronously
     // Paint-latency telemetry (message receipt → draw done) for the binary path.
     try {{

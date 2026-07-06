@@ -28,7 +28,6 @@ _figures: dict[str, object] = {}   # fig_id -> Figure
 _BINARY_TRANSPORT = os.environ.get("APL_BINARY_TRANSPORT") == "1"
 # State keys whose value is a base64 pixel string worth sending as binary.
 _BINARY_KEYS = frozenset({"image_b64", "overlay_mask_b64"})
-_BIN_LOGGED = False
 
 
 def _route_change(fig_id: str, name: str, value) -> None:
@@ -148,21 +147,11 @@ def emit_binary(fig_id: str, key: str, header: dict, payload: bytes) -> None:
         emit({"type": "state_update", "fig_id": fig_id, "key": key,
               "value": base64.b64encode(payload).decode()})
         return
-    # One-line diagnostic to stderr so a test can confirm the binary path is live
-    # (gated: first frame only, avoids per-frame noise).
-    global _BIN_LOGGED
-    if not _BIN_LOGGED:
-        _BIN_LOGGED = True
-        try:
-            sys.stderr.write(
-                f"[apl] binary transport active: PLOTBIN {key} "
-                f"{len(payload)} bytes\n")
-            sys.stderr.flush()
-        except Exception:
-            pass
+    # NOTE: a host that redirects sys.stdout (e.g. SpyDE points sys.stdout at
+    # stderr to keep the protocol channel clean) MUST patch emit_binary to write
+    # to its real protocol stdout — otherwise these bytes go to the wrong stream.
     # Flush the TEXT stream first so any pending PLOTAPP: line is on the wire
-    # before this binary frame — the host demuxes a single ordered byte stream, so
-    # text and binary must not reorder across the two buffers.
+    # before this binary frame — the host demuxes a single ordered byte stream.
     sys.stdout.flush()
     buf.write(frame)
     buf.flush()

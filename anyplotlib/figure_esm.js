@@ -903,11 +903,15 @@ function render({ model, el }) {
       // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
       // the small LUT/flags), so pixels + LUT converge in the cache.
       for (const pixelKey of ['image_b64', 'overlay_mask_b64']) {
-        model.on(`change:${_geomTrait}::${pixelKey}`, () => {
+        const slot = `${_geomTrait}::${pixelKey}`;
+        model.on(`change:${slot}`, () => {
           const p2 = panels.get(id);
           if (!p2) return;
           if (!p2._geomCache) p2._geomCache = {};
-          p2._geomCache[pixelKey + '_bytes'] = model.get(`${_geomTrait}::${pixelKey}`);
+          // Bytes come from the global side-table (the model can't carry a
+          // Uint8Array), keyed by the same slot the token trait carries.
+          const b = (globalThis.__apl_pixbytes || {})[slot];
+          p2._geomCache[pixelKey + '_bytes'] = b;
           if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
         });
       }
@@ -1051,11 +1055,15 @@ function render({ model, el }) {
       // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
       // the small LUT/flags), so pixels + LUT converge in the cache.
       for (const pixelKey of ['image_b64', 'overlay_mask_b64']) {
-        model.on(`change:${_geomTrait}::${pixelKey}`, () => {
+        const slot = `${_geomTrait}::${pixelKey}`;
+        model.on(`change:${slot}`, () => {
           const p2 = panels.get(id);
           if (!p2) return;
           if (!p2._geomCache) p2._geomCache = {};
-          p2._geomCache[pixelKey + '_bytes'] = model.get(`${_geomTrait}::${pixelKey}`);
+          // Bytes come from the global side-table (the model can't carry a
+          // Uint8Array), keyed by the same slot the token trait carries.
+          const b = (globalThis.__apl_pixbytes || {})[slot];
+          p2._geomCache[pixelKey + '_bytes'] = b;
           if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
         });
       }
