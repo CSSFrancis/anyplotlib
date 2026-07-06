@@ -2522,6 +2522,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   }
   try { globalThis.__apl_gpuReadback = _gpuReadbackImage; } catch (_) {}
 
+  // Test hook: set zoom/center on a 2-D image panel and redraw, so an automated
+  // test can verify the GPU path stays active + upsamples when zoomed (mirrors the
+  // wheel handler, without a synthetic wheel event).
+  try {
+    globalThis.__apl_setZoom = function (panelId, zoom, cx, cy) {
+      const p = panels.get(panelId);
+      if (!p || !p.state) return false;
+      p.state.zoom = zoom;
+      if (cx != null) p.state.center_x = cx;
+      if (cy != null) p.state.center_y = cy;
+      try { draw2d(p); } catch (_) {}
+      return true;
+    };
+  } catch (_) {}
+
   function _gpuInitPanel(p, device, geom) {
     const fmt = navigator.gpu.getPreferredCanvasFormat();
     const ctx = p.gpuCanvas.getContext('webgpu');
