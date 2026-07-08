@@ -36,7 +36,12 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
-from anyplotlib.tests._png_utils import decode_png, encode_png, compare_arrays
+from anyplotlib.tests._png_utils import (
+    decode_png,
+    encode_png,
+    compare_arrays,
+    compare_arrays_exact,
+)
 
 BASELINES = pathlib.Path(__file__).parent.parent / "baselines"
 
@@ -62,6 +67,37 @@ def _check(name: str, arr: np.ndarray, update: bool) -> None:
     expected = decode_png(path.read_bytes())
     ok, msg = compare_arrays(arr, expected)
     assert ok, f"Visual regression [{name}]: {msg}"
+
+
+def _check_exact_pair(name: str, a: np.ndarray, b: np.ndarray) -> None:
+    """Assert two screenshots are strictly identical (no tolerance)."""
+    ok, msg = compare_arrays_exact(a, b)
+    assert ok, f"Tile parity [{name}] failed: {msg}"
+
+
+def _make_imshow_scene(scene: str, *, tile: bool):
+    """Build one of the existing imshow baseline scenes with tile mode control."""
+    if scene == "gradient":
+        fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+        data = np.linspace(0.0, 1.0, 64 * 64, dtype=np.float32).reshape(64, 64)
+        ax.imshow(data, tile=tile, gpu=False)
+        return fig, "imshow_gradient"
+
+    if scene == "checkerboard":
+        fig, ax = apl.subplots(1, 1, figsize=(256, 256))
+        board = np.indices((32, 32)).sum(axis=0) % 2
+        ax.imshow(board.astype(np.float32), tile=tile, gpu=False)
+        return fig, "imshow_checkerboard"
+
+    if scene == "viridis":
+        fig, ax = apl.subplots(1, 1, figsize=(320, 256))
+        rng = np.random.default_rng(0)
+        data = rng.uniform(0.0, 1.0, (48, 64)).astype(np.float32)
+        plot = ax.imshow(data, tile=tile, gpu=False)
+        plot.set_colormap("viridis")
+        return fig, "imshow_viridis"
+
+    raise ValueError(f"Unknown scene: {scene}")
 
 
 # ---------------------------------------------------------------------------
@@ -340,4 +376,27 @@ class TestVisual:
         p.set_axis_off()
         arr = take_screenshot(fig)
         _check("imshow_axis_off", arr, update_baselines)
+
+
+class TestTileParityVisual:
+    """Tile backend must match non-tile rendering for baseline imshow scenes."""
+
+    @pytest.mark.parametrize("scene", ["gradient", "checkerboard", "viridis"])
+    def test_imshow_tile_matches_plain_and_baseline(
+        self,
+        scene,
+        take_screenshot,
+        update_baselines,
+    ):
+        fig_plain, baseline = _make_imshow_scene(scene, tile=False)
+        fig_tile, _ = _make_imshow_scene(scene, tile=True)
+        arr_plain = take_screenshot(fig_plain)
+        arr_tile = take_screenshot(fig_tile)
+
+        # Strict parity check first: catches subtle backend divergences.
+        _check_exact_pair(f"{baseline}_tile_vs_plain", arr_tile, arr_plain)
+
+        # Existing goldens remain the source of truth for scene correctness.
+        _check(baseline, arr_plain, update_baselines)
+
 

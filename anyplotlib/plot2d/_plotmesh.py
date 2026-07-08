@@ -92,7 +92,7 @@ class PlotMesh(Plot2D):
         self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
 
         self._state.update({
-            "image_b64":      self._encode_bytes(img_u8),
+            "image_b64":      self._encode_pixels("image_b64", img_u8),
             "image_width":    cols,
             "image_height":   rows,
             "x_axis":         xe.tolist(),

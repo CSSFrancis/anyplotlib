@@ -12,6 +12,18 @@ function render({ model, el }) {
   // This guarantees pixel-perfect alignment of all panels in a row/column.
   const PAD_L=58, PAD_R=12, PAD_T=12, PAD_B=42;
 
+  // Tile-mode render diagnostics. ON when globalThis.__apl_tiledbg is truthy —
+  // default it ON during this debug session so the render decision is visible in the
+  // Electron renderer console WITHOUT opening devtools (electron-vite tees renderer
+  // console to the terminal). Turn off with globalThis.__apl_tiledbg=false. Logs the
+  // per-frame render decision (which texture/passes drew, detail region, contrast) so
+  // a "why is it blurry / white / flashing" question has real numbers.
+  if (globalThis.__apl_tiledbg === undefined) globalThis.__apl_tiledbg = true;
+  function _tiledbg(tag, msg) {
+    if (!globalThis.__apl_tiledbg) return;
+    try { console.warn(`[TILEDBG-JS:${tag}] ${msg}`); } catch (_) {}
+  }
+
   // ── theme ────────────────────────────────────────────────────────────────
   function _isDarkBg(node) {
     while (node && node !== document.body) {
@@ -356,6 +368,32 @@ function render({ model, el }) {
     // always apply the cache when present (never drop geometry on a rev skew).
     if (p2._geomCache) Object.assign(state, p2._geomCache);
     return state;
+  }
+
+  // Serialise a panel's VIEW state for the light `panel_<id>_json` trait,
+  // EXCLUDING the heavy geometry keys that `_applyGeom` splices in from the
+  // cache (`image_b64`, `colormap_data`, `*_b64`, and their binary `*_bytes`
+  // companions).  The interaction handlers (wheel/pan/orbit) write the view
+  // state back on every mouse tick; without this strip they re-serialise —
+  // and re-transmit — the full frame each tick.  For the BINARY path that is
+  // `JSON.stringify` of a Uint8Array → a `{"0":..,"1":..}` object with one
+  // key per byte (millions of entries), which stalls zoom on large images.
+  // Python's `_push` already keeps geometry off this trait; the echo-back
+  // listener re-splices geom from `_geomCache`, so dropping it here is safe
+  // (the geometry is never actually lost — only kept out of the light path).
+  function _viewStateJson(p2) {
+    const st = p2.state;
+    if (!st) return '{}';
+    const geom = p2._geomCache;
+    if (!geom) return JSON.stringify(st);
+    // Fast path: shallow-clone without the cached geom keys (and their
+    // `_bytes` variants).  Object.keys(geom) is exactly what _applyGeom
+    // merged in, so this auto-tracks any future geom key with no hardcoded
+    // list to drift out of sync with the Python-side _GEOM_KEYS.
+    const skip = new Set(Object.keys(geom));
+    const view = {};
+    for (const k in st) { if (!skip.has(k)) view[k] = st[k]; }
+    return JSON.stringify(view);
   }
 
   // Parse the geom trait into the per-panel cache. PRESERVES any binary pixel
@@ -902,7 +940,7 @@ function render({ model, el }) {
       // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
       // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
       // the small LUT/flags), so pixels + LUT converge in the cache.
-      for (const pixelKey of ['image_b64', 'overlay_mask_b64']) {
+      for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
         const slot = `${_geomTrait}::${pixelKey}`;
         model.on(`change:${slot}`, () => {
           const p2 = panels.get(id);
@@ -1054,7 +1092,7 @@ function render({ model, el }) {
       // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
       // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
       // the small LUT/flags), so pixels + LUT converge in the cache.
-      for (const pixelKey of ['image_b64', 'overlay_mask_b64']) {
+      for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
         const slot = `${_geomTrait}::${pixelKey}`;
         model.on(`change:${slot}`, () => {
           const p2 = panels.get(id);
@@ -1392,7 +1430,31 @@ function render({ model, el }) {
     return _imgFitRect(st.image_width, st.image_height, pw, ph).s * st.zoom;
   }
 
-  function _blit2d(bitmap, st, pw, ph, ctx) {
+  // Build (and cache on the panel) the Canvas2D bitmap for the detail tile —
+  // LUT-colormapped like the base. Returns null if no tile. Cached by the tile's
+  // content key so it rebuilds only when the tile or LUT changes.
+  function _detailBitmap(p, st) {
+    if (st.is_rgb) return null;
+    const d = _detailBytes(st);
+    if (!d.bytes || !st.detail_width || !st.detail_height) return null;
+    const dw = st.detail_width, dh = st.detail_height;
+    const lk = _lutKey(st);
+    const cache = (p._detailBlit ||= {});
+    if (cache.bitmap && cache.key === d.key && cache.lutKey === lk
+        && cache.w === dw && cache.h === dh) return cache.bitmap;
+    if (d.bytes.length < dw * dh) return null;
+    const imgData = new ImageData(dw, dh);
+    const lut = _buildLut32(st);
+    const out32 = new Uint32Array(imgData.data.buffer);
+    for (let i = 0; i < dw * dh; i++) out32[i] = lut[d.bytes[i]];
+    const oc = new OffscreenCanvas(dw, dh);
+    oc.getContext('2d').putImageData(imgData, 0, 0);
+    cache.bitmap = oc; cache.key = d.key; cache.lutKey = lk;
+    cache.w = dw; cache.h = dh;
+    return oc;
+  }
+
+  function _blit2d(bitmap, st, pw, ph, ctx, detailBitmap) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
     const iw = st.image_width, ih = st.image_height;
@@ -1400,17 +1462,45 @@ function render({ model, el }) {
     ctx.fillStyle = theme.bgCanvas;
     ctx.fillRect(0, 0, pw, ph);
     ctx.imageSmoothingEnabled = false;
+    // Detail tile FULLY covers the view → blit the hi-res TILE over the fit-rect
+    // (crisp native pixels), mirroring the GPU _detailUV path.
+    const det = detailBitmap ? _detailUV(st) : null;
+    if (det) {
+      const dw = detailBitmap.width, dh = detailBitmap.height;
+      const sx = det.u0 * dw, sy = det.v0 * dh;
+      const sw = (det.u1 - det.u0) * dw, sh = (det.v1 - det.v0) * dh;
+      ctx.drawImage(detailBitmap, sx, sy, sw, sh, x, y, w, h);
+      return;
+    }
+    // Base pass (overview or full frame) — always drawn first.
     if (zoom >= 1.0) {
-      // Zoomed in: show a portion of the image filling the fit-rect.
+      // Zoomed in: show a portion of the image filling the fit-rect. The visible
+      // window is in LOGICAL px; scale it to the bitmap's OWN texels (the base may
+      // be a smaller overview: bitmap.width may be < image_width).
+      const bw = bitmap.width, bh = bitmap.height;
+      const kx = bw / iw, ky = bh / ih;   // logical→bitmap texel scale
       const visW = iw / zoom, visH = ih / zoom;
       const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
       const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
-      ctx.drawImage(bitmap, srcX, srcY, visW, visH, x, y, w, h);
+      ctx.drawImage(bitmap, srcX * kx, srcY * ky, visW * kx, visH * ky, x, y, w, h);
     } else {
-      // Zoomed out: shrink the fit-rect proportionally, keep it centred.
+      // Zoomed out: shrink the fit-rect proportionally, keep it centred. Source is
+      // the whole bitmap (overview or full).
       const dstW = w * zoom, dstH = h * zoom;
-      ctx.drawImage(bitmap, 0, 0, iw, ih,
+      ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height,
         x + (w - dstW) / 2, y + (h - dstH) / 2, dstW, dstH);
+    }
+    // Detail OVERLAY pass: when a detail tile exists but no longer FULLY covers the
+    // view (a zoom-OUT or pan just enlarged/moved the window past the old region),
+    // draw the still-valid crisp tile ON TOP of the base over its own screen rect.
+    // Without this the render snaps entirely to the blurry base the instant the
+    // window exceeds the region, then flashes back to crisp when the wider tile
+    // lands ~90 ms later — the jarring zoom-out flash. Compositing keeps the centre
+    // crisp during that gap; the new tile fills the margins when it arrives.
+    const ov = detailBitmap ? _detailOverlayRect(st, x, y, w, h) : null;
+    if (ov) {
+      ctx.drawImage(detailBitmap, 0, 0, detailBitmap.width, detailBitmap.height,
+        ov.dx, ov.dy, ov.dw, ov.dh);
     }
   }
 
@@ -1429,7 +1519,11 @@ function render({ model, el }) {
     // Image bytes: prefer the binary trait (image_bytes, no atob) over base64.
     const _img = _imageBytes(st);
     const b64 = _img.key;                    // cache identity (b64 string or bin token)
-    const iw=st.image_width, ih=st.image_height;
+    // The base bitmap is built at the OVERVIEW texel size (base_width/height in tile
+    // mode; else the full image). _blit2d then draws it over the fit-rect using the
+    // LOGICAL image_width/height for the zoom math, so the overview scales to the
+    // full extent (lower-res until a detail tile covers the view).
+    const iw=st.base_width||st.image_width, ih=st.base_height||st.image_height;
 
     if(!_img.bytes||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
 
@@ -1455,6 +1549,9 @@ function render({ model, el }) {
         ctx.clearRect(0, 0, imgW, imgH);
         _gpuPainted = true;
         try { globalThis.__apl_gpu2d[p.id].active = true; } catch (_) {}
+      } else {
+        _tiledbg('path', `panel=${p.id} GPU draw returned FALSE → Canvas2D fallback ` +
+          `(tile_enabled=${st.tile_enabled})`);
       }
     } else if (p.gpuCanvas && p.gpuCanvas.style.display !== 'none'
                && (!_gpuWanted2d(st) || p._gpu !== 'active')) {
@@ -1469,10 +1566,18 @@ function render({ model, el }) {
     }
 
     if (!_gpuPainted) {
+    if (globalThis.__apl_tiledbg && st.tile_enabled) {
+      const reg = st.detail_region || [];
+      const uv = _detailUV(st);
+      _tiledbg('canvas', `panel=${p.id} CANVAS2D blit (NOT gpu) ` +
+        `zoom=${(st.zoom||1).toFixed(2)} base[${st.base_width}x${st.base_height}] ` +
+        `image[${st.image_width}x${st.image_height}] detail_region=[${reg.join(',')}] ` +
+        `detailUV=${uv?'COVERS':'partial/none'} hasDetailBmp=${!!_detailBitmap(p, st)}`);
+    }
     const needRebuild = b64!==blitCache.bytesKey || lk!==blitCache.lutKey
                      || !blitCache.bitmap || blitCache.w!==iw || blitCache.h!==ih;
     if(!needRebuild && blitCache.bitmap){
-      _blit2d(blitCache.bitmap, st, imgW, imgH, ctx);
+      _blit2d(blitCache.bitmap, st, imgW, imgH, ctx, _detailBitmap(p, st));
     } else {
       const bytes = _img.bytes;
       if (!bytes) return;
@@ -1488,7 +1593,7 @@ function render({ model, el }) {
       oc.getContext('2d').putImageData(imgData,0,0);
       blitCache.bitmap=oc; blitCache.bytesKey=b64; blitCache.lutKey=lk;
       blitCache.w=iw; blitCache.h=ih;
-      _blit2d(oc, st, imgW, imgH, ctx);
+      _blit2d(oc, st, imgW, imgH, ctx, _detailBitmap(p, st));
     }
     }
 
@@ -1506,6 +1611,15 @@ function render({ model, el }) {
                     console.warn('[anyplotlib] GPU image init failed:', e); }
         _redrawPanel(p);
       });
+    }
+
+    // Tile mode: once the panel has a real on-screen size, emit ONE view_changed so
+    // the Python tile consumer can size the overview / initial tile to the actual
+    // panel px (imgW/imgH are only known after the first layout). Fires immediately
+    // (not debounced) so the first crisp tile appears without a user gesture.
+    if (st.tile_enabled && !p._didInitialView && p.imgW > 0 && p.imgH > 0) {
+      p._didInitialView = true;
+      _emitViewChanged(p, true);
     }
 
     // ── Overlay mask compositing ─────────────────────────────────────────────
@@ -2362,9 +2476,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // path + overlays.
     const uniformBuf = device.createBuffer({
       size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    p._gpuImg = { device, ctx, fmt, pipeline, samp, uniformBuf,
+    // Second uniform for the DETAIL overlay pass (its own screen rect + uv), so the
+    // crisp tile can be stitched OVER the upsampled overview base in one frame
+    // (base fills the margin, tile fills the padded FOV — no zoom-out flash).
+    const uniformBuf2 = device.createBuffer({
+      size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    p._gpuImg = { device, ctx, fmt, pipeline, samp, uniformBuf, uniformBuf2,
                   tex: null, texW: 0, texH: 0, lutTex: null, lutKey: null,
-                  bytesKey: null, bindGroup: null };
+                  bytesKey: null, bindGroup: null,
+                  // Detail texture slot (kept resident alongside the base).
+                  dtex: null, dtexW: 0, dtexH: 0, dbytesKey: null, dbindGroup: null };
   }
 
   // Raw single-channel pixel bytes for the current image state. Prefers the
@@ -2398,66 +2519,110 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     } catch (_) { return { bytes: null, key: '' }; }
   }
 
-  // Upload the image bytes to an R8 texture (creating/resizing as needed) and the
-  // LUT to a 256×1 RGBA texture (only when either changed). Returns false if the
-  // bytes couldn't be decoded (caller falls back to Canvas2D).
+  // Detail-tile bytes (binary `detail_b64_bytes` or base64 `detail_b64`), keyed so a
+  // new tile re-uploads. Prefix the key with 'detail:' so it never collides with a
+  // base-image key of the same length (they share the one GPU texture slot).
+  function _detailBytes(st) {
+    const raw = st.detail_b64_bytes;
+    if (raw && (raw instanceof Uint8Array || raw.byteLength !== undefined)) {
+      const u8 = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+      const reg = st.detail_region || [];
+      // Key on detail_seq (a monotonic counter bumped by Python's set_detail on EVERY
+      // push), NOT just length+region. A live movie scrub while zoomed in re-samples
+      // the SAME region every frame → identical length + region, so a length/region
+      // key would match every frame and the GPU/Canvas dedup would SKIP the re-upload
+      // — the display freezes on the first frame ("won't update when zoomed in").
+      // detail_seq guarantees a distinct key per pushed tile.
+      const seq = st.detail_seq || 0;
+      return { bytes: u8, key: `detail:${seq}:${u8.length}:${reg.join(',')}` };
+    }
+    const b64 = st.detail_b64 || '';
+    if (!b64) return { bytes: null, key: '' };
+    try {
+      const bin = atob(b64);
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return { bytes: u8, key: `detail:${b64}` };
+    } catch (_) { return { bytes: null, key: '' }; }
+  }
+
+  // Write single-channel R8 bytes into a device texture, (re)creating it if the size
+  // changed. Returns the (possibly new) texture, or null if bytes are missing/short.
+  function _gpuWriteR8(device, tex, texWH, iw, ih, bytes) {
+    if (!bytes) return null;
+    if (bytes.length < iw * ih) return null;
+    if (!tex || texWH.w !== iw || texWH.h !== ih) {
+      if (tex) tex.destroy();
+      tex = device.createTexture({
+        size: [iw, ih, 1], format: 'r8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST |
+               GPUTextureUsage.RENDER_ATTACHMENT });
+      texWH.w = iw; texWH.h = ih;
+    }
+    // bytesPerRow must be a multiple of 256 for writeTexture; R8 = 1 B/px, so pad
+    // each row up to the next 256 boundary.
+    const bpr = Math.ceil(iw / 256) * 256;
+    let src = bytes;
+    if (bpr !== iw) {
+      src = new Uint8Array(bpr * ih);
+      for (let r = 0; r < ih; r++) src.set(bytes.subarray(r * iw, r * iw + iw), r * bpr);
+    }
+    device.queue.writeTexture(
+      { texture: tex }, src, { bytesPerRow: bpr, rowsPerImage: ih }, [iw, ih, 1]);
+    return tex;
+  }
+
+  // Ensure the shared LUT texture is current for st. Returns false only if it can't
+  // be built. Sets g.lutTex; invalidates both bind groups when the LUT changes.
+  function _gpuEnsureLut(g, st) {
+    const device = g.device;
+    const lutKey = _lutKey(st);
+    if (lutKey === g.lutKey && g.lutTex) return true;
+    const lut = _buildLut32(st);             // Uint32Array(256), 0xAABBGGRR
+    const rgba = new Uint8Array(256 * 4);
+    for (let i = 0; i < 256; i++) {
+      const v = lut[i];
+      rgba[i*4]   = v & 0xff;
+      rgba[i*4+1] = (v >> 8) & 0xff;
+      rgba[i*4+2] = (v >> 16) & 0xff;
+      rgba[i*4+3] = 255;
+    }
+    if (!g.lutTex) {
+      g.lutTex = device.createTexture({
+        size: [256, 1, 1], format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+    }
+    device.queue.writeTexture(
+      { texture: g.lutTex }, rgba, { bytesPerRow: 256 * 4, rowsPerImage: 1 },
+      [256, 1, 1]);
+    g.lutKey = lutKey;
+    g.bindGroup = null; g.dbindGroup = null;   // LUT changed → both groups rebuild
+    return true;
+  }
+
+  // Upload the BASE (overview/full) image bytes + the LUT. Returns false if the base
+  // bytes couldn't be decoded (caller falls back to Canvas2D). The detail tile is
+  // uploaded separately (_gpuUploadDetail) into its own slot for the overlay pass —
+  // base and detail are STITCHED in one frame, not swapped, so a zoom-out shows the
+  // crisp padded tile over an upsampled-overview margin (no flash).
   function _gpuUploadImage(p, st) {
     const g = p._gpuImg, device = g.device;
-    const iw = st.image_width, ih = st.image_height;
+    // The BASE texture is an OVERVIEW in tile mode: its real texel dims are
+    // base_width/height (0 → full image_width/height). The shader samples UV as a
+    // fraction 0..1 of the texture, so a smaller overview still maps over the full
+    // logical extent — lower-res until the detail tile covers the view.
+    const iw = st.base_width || st.image_width;
+    const ih = st.base_height || st.image_height;
     const img = _imageBytes(st);
-    let bytes = img.bytes;
-    if (img.key === g.bytesKey && g.tex && g.texW === iw && g.texH === ih) {
-      // Same image bytes already resident — skip the (expensive) re-upload. A
-      // colormap/clim change is handled below by rebuilding the LUT texture.
-      bytes = undefined;
-    } else {
-      if (!bytes) return false;
-      if (bytes.length < iw * ih) return false;
-      if (!g.tex || g.texW !== iw || g.texH !== ih) {
-        if (g.tex) g.tex.destroy();
-        g.tex = device.createTexture({
-          size: [iw, ih, 1], format: 'r8unorm',
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST |
-                 GPUTextureUsage.RENDER_ATTACHMENT });
-        g.texW = iw; g.texH = ih;
-      }
-      // bytesPerRow must be a multiple of 256 for writeTexture; R8 = 1 B/px, so
-      // pad each row up to the next 256 boundary.
-      const bpr = Math.ceil(iw / 256) * 256;
-      let src = bytes;
-      if (bpr !== iw) {
-        src = new Uint8Array(bpr * ih);
-        for (let r = 0; r < ih; r++) src.set(bytes.subarray(r * iw, r * iw + iw), r * bpr);
-      }
-      device.queue.writeTexture(
-        { texture: g.tex }, src, { bytesPerRow: bpr, rowsPerImage: ih },
-        [iw, ih, 1]);
+    if (img.key !== g.bytesKey || !g.tex || g.texW !== iw || g.texH !== ih) {
+      const texWH = { w: g.texW, h: g.texH };
+      const tex = _gpuWriteR8(device, g.tex, texWH, iw, ih, img.bytes);
+      if (!tex) return false;
+      g.tex = tex; g.texW = texWH.w; g.texH = texWH.h;
       g.bytesKey = img.key;
       g.bindGroup = null;   // texture changed → rebuild bind group
     }
-    // LUT (256×1 RGBA). st.colormap_data is [[r,g,b], ...]×256 (0..255).
-    const lutKey = _lutKey(st);
-    if (lutKey !== g.lutKey || !g.lutTex) {
-      const lut = _buildLut32(st);           // Uint32Array(256), 0xAABBGGRR
-      const rgba = new Uint8Array(256 * 4);
-      for (let i = 0; i < 256; i++) {
-        const v = lut[i];
-        rgba[i*4]   = v & 0xff;
-        rgba[i*4+1] = (v >> 8) & 0xff;
-        rgba[i*4+2] = (v >> 16) & 0xff;
-        rgba[i*4+3] = 255;
-      }
-      if (!g.lutTex) {
-        g.lutTex = device.createTexture({
-          size: [256, 1, 1], format: 'rgba8unorm',
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
-      }
-      device.queue.writeTexture(
-        { texture: g.lutTex }, rgba, { bytesPerRow: 256 * 4, rowsPerImage: 1 },
-        [256, 1, 1]);
-      g.lutKey = lutKey;
-      g.bindGroup = null;
-    }
+    if (!_gpuEnsureLut(g, st)) return false;
     if (!g.bindGroup) {
       g.bindGroup = device.createBindGroup({
         layout: g.pipeline.getBindGroupLayout(0),
@@ -2472,18 +2637,147 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     return true;
   }
 
+  // Upload the DETAIL tile into its own slot (g.dtex) + build g.dbindGroup bound to
+  // uniformBuf2. Returns true if a detail tile is resident & ready to draw, false if
+  // there's none (or its bytes couldn't be decoded → skip the overlay pass). Assumes
+  // _gpuUploadImage already ran this frame (LUT is current).
+  function _gpuUploadDetail(p, st) {
+    const g = p._gpuImg, device = g.device;
+    const reg = st.detail_region;
+    if (!_hasDetail(st) || !reg || reg.length !== 4
+        || !st.detail_width || !st.detail_height) return false;
+    const iw = st.detail_width, ih = st.detail_height;
+    const img = _detailBytes(st);
+    if (img.key !== g.dbytesKey || !g.dtex || g.dtexW !== iw || g.dtexH !== ih) {
+      const texWH = { w: g.dtexW, h: g.dtexH };
+      const tex = _gpuWriteR8(device, g.dtex, texWH, iw, ih, img.bytes);
+      if (!tex) return false;
+      g.dtex = tex; g.dtexW = texWH.w; g.dtexH = texWH.h;
+      g.dbytesKey = img.key;
+      g.dbindGroup = null;
+    }
+    if (!g.dtex) return false;
+    if (!g.dbindGroup) {
+      g.dbindGroup = device.createBindGroup({
+        layout: g.pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: g.uniformBuf2 } },
+          { binding: 1, resource: g.dtex.createView() },
+          { binding: 2, resource: g.lutTex.createView() },
+          { binding: 3, resource: g.samp },
+        ],
+      });
+    }
+    return true;
+  }
+
   // Compute the GPU uniform: the on-screen quad in CLIP space + the texture uv
   // sub-region to sample, honouring zoom/center EXACTLY like the Canvas2D _blit2d
   // (so the GPU image stays registered with the axes/overlays at any zoom, and a
   // zoom-in UPSAMPLES real texels via nearest sampling). Returns 8 floats:
   // [rx0,ry0,rx1,ry1, u0,v0,u1,v1]. imgW/imgH = the gpuCanvas area in CSS px.
+  // The visible image-pixel window [srcX, srcX+visW]×[srcY, srcY+visH] for the
+  // current zoom/center, in BASE image pixels (zoom>=1). Mirrors _imageDrawUniform.
+  function _visibleWindow(st) {
+    const iw = st.image_width, ih = st.image_height;
+    const zoom = st.zoom || 1.0;
+    if (zoom < 1.0) return { srcX: 0, srcY: 0, visW: iw, visH: ih };
+    const cx = (st.center_x == null ? 0.5 : st.center_x);
+    const cy = (st.center_y == null ? 0.5 : st.center_y);
+    const visW = iw / zoom, visH = ih / zoom;
+    const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+    const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+    return { srcX, srcY, visW, visH };
+  }
+
+  // Is the detail tile active AND does it fully cover the current visible window?
+  // If so, return the tile-relative UV of that window (so the shader samples the
+  // hi-res tile); otherwise null (sample the base texture). Requires the whole
+  // visible window inside detail_region so a zoom-in shows only crisp tile texels.
+  // True when a detail tile is present, regardless of transport: base64 path leaves
+  // the string in st.detail_b64; the BINARY path strips detail_b64 out of the geom
+  // and ships bytes on the companion trait (spliced into st.detail_b64_bytes). Gating
+  // on detail_b64 alone made the binary path NEVER show the detail tile — only the
+  // blurry overview — because the string is absent under binary transport.
+  function _hasDetail(st) {
+    if (st.detail_b64) return true;
+    const b = st.detail_b64_bytes;
+    return !!(b && (b instanceof Uint8Array || b.byteLength !== undefined) && b.length);
+  }
+
+  function _detailUV(st) {
+    const reg = st.detail_region;
+    if (!_hasDetail(st) || !reg || reg.length !== 4) return null;
+    const [tx0, tx1, ty0, ty1] = reg;
+    const tw = tx1 - tx0, th = ty1 - ty0;
+    if (!(tw > 0) || !(th > 0)) return null;
+    const w = _visibleWindow(st);
+    if (w.srcX < tx0 - 0.5 || w.srcX + w.visW > tx1 + 0.5 ||
+        w.srcY < ty0 - 0.5 || w.srcY + w.visH > ty1 + 0.5) return null;
+    return {
+      u0: (w.srcX - tx0) / tw, u1: (w.srcX + w.visW - tx0) / tw,
+      v0: (w.srcY - ty0) / th, v1: (w.srcY + w.visH - ty0) / th,
+    };
+  }
+
+  // The screen rect (within the fit-rect fx,fy,fw,fh) where the detail tile's
+  // logical region maps at the current zoom/center — for compositing the still-
+  // valid crisp tile OVER the base when it no longer FULLY covers the view (a
+  // zoom-out/pan that outgrew the region). Returns null when: no tile; the tile
+  // already fully covers (the _detailUV branch draws it full-screen instead); or
+  // the region is entirely off-screen (nothing to overlay). This is what removes
+  // the zoom-out flash — the centre stays crisp until the wider tile lands.
+  function _detailOverlayRect(st, fx, fy, fw, fh) {
+    const reg = st.detail_region;
+    if (!_hasDetail(st) || !reg || reg.length !== 4) return null;
+    if (_detailUV(st)) return null;                 // fully covered → drawn elsewhere
+    const zoom = st.zoom || 1.0;
+    // At/below zoom 1 the whole image is visible and the overview base is
+    // authoritative — don't float a stale crisp patch over it. The overlay is a
+    // zoom-IN / transition aid (it prevents the zoom-OUT flash WHILE still
+    // magnified); the live loop clears the tile below VIEW_ZOOM_MIN anyway, so this
+    // only additionally guards a manually-set tile at zoom<=1.
+    if (zoom <= 1.0) return null;
+    const [tx0, tx1, ty0, ty1] = reg;
+    if (!(tx1 > tx0) || !(ty1 > ty0)) return null;
+    const iw = st.image_width, ih = st.image_height;
+    // Logical→screen mapping identical to the zoom>=1 base blit (windowed), so the
+    // overlaid tile registers exactly over the base.
+    const cx = (st.center_x == null ? 0.5 : st.center_x);
+    const cy = (st.center_y == null ? 0.5 : st.center_y);
+    const visW = iw / zoom, visH = ih / zoom;
+    const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+    const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+    const mapX = (lx) => fx + ((lx - srcX) / visW) * fw;
+    const mapY = (ly) => fy + ((ly - srcY) / visH) * fh;
+    const dx = mapX(tx0), dx1 = mapX(tx1);
+    const dy = mapY(ty0), dy1 = mapY(ty1);
+    const dw = dx1 - dx, dh = dy1 - dy;
+    if (!(dw > 0.5) || !(dh > 0.5)) return null;
+    // Fully outside the fit-rect → nothing to show.
+    if (dx1 <= fx || dx >= fx + fw || dy1 <= fy || dy >= fy + fh) return null;
+    return { dx, dy, dw, dh };
+  }
+
+  // Pack a screen dest rect (px, y-down) + uv sub-region (0..1) into the 8-float
+  // clip-space uniform the shader expects. Shared by the base + detail passes.
+  function _drawUniform(dx, dy, dw, dh, u0, v0, u1, v1, imgW, imgH) {
+    const rx0 = (dx / imgW) * 2 - 1;
+    const rx1 = ((dx + dw) / imgW) * 2 - 1;
+    const ry0 = 1 - ((dy + dh) / imgH) * 2;   // bottom edge (lower clip y)
+    const ry1 = 1 - (dy / imgH) * 2;          // top edge (upper clip y)
+    return new Float32Array([rx0, ry0, rx1, ry1, u0, v0, u1, v1]);
+  }
+
+  // Uniform for the BASE pass: the overview/full frame over the fit-rect honouring
+  // zoom/pan (NOT the detail — that's a separate overlay pass now, so the base
+  // always fills the whole view and the crisp tile stitches on top).
   function _imageDrawUniform(st, imgW, imgH) {
     const fr = _imgFitRect(st.image_width, st.image_height, imgW, imgH);
     const iw = st.image_width, ih = st.image_height;
     const zoom = st.zoom || 1.0;
     const cx = (st.center_x == null ? 0.5 : st.center_x);
     const cy = (st.center_y == null ? 0.5 : st.center_y);
-    // Screen rect (px, y-down) and uv sub-region (0..1), mirroring _blit2d.
     let dx = fr.x, dy = fr.y, dw = fr.w, dh = fr.h;   // dest rect in px
     let u0 = 0, v0 = 0, u1 = 1, v1 = 1;               // full texture
     if (zoom >= 1.0) {
@@ -2498,12 +2792,29 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       dw = fr.w * zoom; dh = fr.h * zoom;
       dx = fr.x + (fr.w - dw) / 2; dy = fr.y + (fr.h - dh) / 2;
     }
-    // Dest px (y-down, origin top-left) → clip space (y-up, -1..1).
-    const rx0 = (dx / imgW) * 2 - 1;
-    const rx1 = ((dx + dw) / imgW) * 2 - 1;
-    const ry0 = 1 - ((dy + dh) / imgH) * 2;   // bottom edge (lower clip y)
-    const ry1 = 1 - (dy / imgH) * 2;          // top edge (upper clip y)
-    return new Float32Array([rx0, ry0, rx1, ry1, u0, v0, u1, v1]);
+    return _drawUniform(dx, dy, dw, dh, u0, v0, u1, v1, imgW, imgH);
+  }
+
+  // Uniform for the DETAIL overlay pass. Two cases:
+  //  • fully covers (_detailUV): draw the tile over the WHOLE fit-rect, sampling the
+  //    tile-relative UV of the visible window (crisp zoom-in) — hides the base.
+  //  • partial (_detailOverlayRect): draw the tile at its own screen rect over the
+  //    base (crisp centre + overview margin on a zoom-out, no flash).
+  // Returns null when there's no detail tile to overlay.
+  function _detailDrawUniform(st, imgW, imgH) {
+    const fr = _imgFitRect(st.image_width, st.image_height, imgW, imgH);
+    const det = _detailUV(st);
+    if (det) {
+      return _drawUniform(fr.x, fr.y, fr.w, fr.h,
+                          det.u0, det.v0, det.u1, det.v1, imgW, imgH);
+    }
+    const ov = _detailOverlayRect(st, fr.x, fr.y, fr.w, fr.h);
+    if (ov) {
+      // The whole tile texture maps to its region rect (uv 0..1); the shader clips
+      // to the dest rect, so the margin outside stays the base.
+      return _drawUniform(ov.dx, ov.dy, ov.dw, ov.dh, 0, 0, 1, 1, imgW, imgH);
+    }
+    return null;
   }
 
   // Draw the image on the GPU canvas. Returns false on any failure so the caller
@@ -2513,13 +2824,33 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   function _gpuDraw2dImage(p, st, imgW, imgH) {
     const g = p._gpuImg;
     try {
-      if (!_gpuUploadImage(p, st)) return false;
+      if (!_gpuUploadImage(p, st)) { _tiledbg('gpu', 'base upload FAILED → canvas fallback'); return false; }
       const device = g.device;
-      // Position the quad at the fit-rect + honour zoom/pan (clip rect + uv
-      // sub-region), so it lines up with the Canvas2D blit + all overlays and
-      // upsamples on zoom-in.
-      device.queue.writeBuffer(g.uniformBuf, 0,
-        _imageDrawUniform(st, imgW, imgH));
+      // BASE pass: the overview/full frame over the fit-rect, honouring zoom/pan, so
+      // it lines up with the Canvas2D blit + overlays. Always drawn — the crisp tile
+      // stitches on top, and the base shows through any margin the tile doesn't cover.
+      device.queue.writeBuffer(g.uniformBuf, 0, _imageDrawUniform(st, imgW, imgH));
+      // DETAIL pass (optional): the hi-res tile over its screen rect (full fit-rect
+      // when it covers the view; its own padded-FOV rect on a zoom-out). Prepared
+      // BEFORE the encoder so a decode failure just skips the overlay (base still
+      // draws) rather than aborting the whole frame to the Canvas2D fallback.
+      let drawDetail = false;
+      const du = _detailDrawUniform(st, imgW, imgH);
+      const _detUpload = du ? _gpuUploadDetail(p, st) : false;
+      if (du && _detUpload) {
+        device.queue.writeBuffer(g.uniformBuf2, 0, du);
+        drawDetail = true;
+      }
+      if (globalThis.__apl_tiledbg) {
+        const reg = st.detail_region || [];
+        const uv = _detailUV(st);
+        _tiledbg('gpu', `DRAW zoom=${(st.zoom||1).toFixed(2)} ` +
+          `center=(${(st.center_x||0.5).toFixed(3)},${(st.center_y||0.5).toFixed(3)}) ` +
+          `base[${st.base_width}x${st.base_height}] image[${st.image_width}x${st.image_height}] ` +
+          `detail_region=[${reg.join(',')}] detailUV=${uv?'COVERS(full)':'partial/none'} ` +
+          `drawDetail=${drawDetail} detUpload=${_detUpload} ` +
+          `display=(${st.display_min},${st.display_max})`);
+      }
       // Clear to the canvas background so the letterbox bars match the Canvas2D
       // path (which leaves the plotCanvas bg showing outside the fit-rect).
       const bg = _clearRgba(theme.bgCanvas);
@@ -2531,7 +2862,18 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       pass.setPipeline(g.pipeline);
       pass.setBindGroup(0, g.bindGroup);
       pass.draw(6);
-      pass.end();
+      if (drawDetail) {
+        // Second pass on the SAME target, loadOp:'load' to keep the base underneath.
+        pass.end();
+        const pass2 = enc.beginRenderPass({
+          colorAttachments: [{ view, loadOp: 'load', storeOp: 'store' }] });
+        pass2.setPipeline(g.pipeline);
+        pass2.setBindGroup(0, g.dbindGroup);
+        pass2.draw(6);
+        pass2.end();
+      } else {
+        pass.end();
+      }
       device.queue.submit([enc.finish()]);
       return true;
     } catch (e) {
@@ -2603,9 +2945,42 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       p.state.zoom = zoom;
       if (cx != null) p.state.center_x = cx;
       if (cy != null) p.state.center_y = cy;
+      const _t0 = performance.now();
       try { draw2d(p); } catch (_) {}
-      return true;
+      const _tDraw = performance.now() - _t0;
+      // Compare the wheel handler's post-draw serialise: the OLD cost
+      // (JSON.stringify of the whole geom-polluted state) vs the NEW cost
+      // (_viewStateJson, geom stripped). On the binary path the old cost is a
+      // Uint8Array → {"0":..} stringify (millions of keys); the new one is tiny.
+      const _t1 = performance.now();
+      let _slen = 0;
+      try { _slen = JSON.stringify(p.state).length; } catch (_) { _slen = -1; }
+      const _tStringify = performance.now() - _t1;
+      const _t2 = performance.now();
+      let _vlen = 0;
+      try { _vlen = _viewStateJson(p).length; } catch (_) { _vlen = -1; }
+      const _tView = performance.now() - _t2;
+      globalThis.__apl_zoom_dbg = { draw: _tDraw,
+        stringify: _tStringify, len: _slen,           // OLD (full state)
+        viewStringify: _tView, viewLen: _vlen,        // NEW (geom stripped)
+        hasBytes: !!(p.state && p.state.image_b64_bytes),
+        b64len: (p.state && p.state.image_b64 && p.state.image_b64.length) || 0 };
+      return _tDraw;   // draw2d ms (a zoom-only redraw)
     };
+    // Test hook: return the EXACT string the interaction handlers now write to
+    // the light `panel_<id>_json` trait (geometry stripped). Lets a test assert
+    // the heavy geom keys never leak into the per-tick view write.
+    globalThis.__apl_viewStateJson = function (panelId) {
+      const p = panels.get(panelId);
+      if (!p) return null;
+      try { return _viewStateJson(p); } catch (_) { return null; }
+    };
+    // Tile debug: __apl_tileDebug(true) then pan/zoom, then __apl_tileDump() to read
+    // the ring buffer of detail-tile decisions (detailUV vs FALLBACK->base) + the
+    // window/region/uv so we can see exactly where a pan snaps or inverts.
+    globalThis.__apl_tileDebug = function (on) { globalThis.__APL_TILE_DEBUG = !!on;
+      if (on) globalThis.__apl_tileDbg = []; return globalThis.__APL_TILE_DEBUG; };
+    globalThis.__apl_tileDump = function () { return globalThis.__apl_tileDbg || []; };
   } catch (_) {}
 
   function _gpuInitPanel(p, device, geom) {
@@ -2875,8 +3250,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (!g) return;
     try {
       g.tex && g.tex.destroy();
+      g.dtex && g.dtex.destroy();
       g.lutTex && g.lutTex.destroy();
       g.uniformBuf && g.uniformBuf.destroy();
+      g.uniformBuf2 && g.uniformBuf2.destroy();
     } catch (_) {}
     p._gpuImg = null;
   }
@@ -3517,6 +3894,30 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     model.save_changes();
   }
 
+  // Debounced 'view_changed' event: fires to Python after zoom/pan SETTLES (~90 ms
+  // idle) with the current view rect, so a viewport-LOD consumer can fetch a hi-res
+  // detail tile for exactly the visible region (see Plot2D.set_detail). Debounced so
+  // a fast wheel/drag doesn't flood Python — only the final resting view is sent.
+  const _viewChangeTimers = {};
+  function _emitViewChanged(p, immediate) {
+    const st = p.state; if (!st) return;
+    const send = () => {
+      _viewChangeTimers[p.id] = null;
+      const s = p.state; if (!s) return;
+      const dpr = window.devicePixelRatio || 1;
+      _emitEvent(p.id, 'view_changed', null, {
+        zoom: s.zoom, center_x: s.center_x, center_y: s.center_y,
+        image_width: s.image_width, image_height: s.image_height,
+        // Panel device px → the tile consumer sizes the tile to what fits on screen.
+        display_width: Math.round((p.imgW || 0) * dpr),
+        display_height: Math.round((p.imgH || 0) * dpr),
+      });
+    };
+    if (_viewChangeTimers[p.id]) clearTimeout(_viewChangeTimers[p.id]);
+    if (immediate) { send(); return; }
+    _viewChangeTimers[p.id] = setTimeout(send, 90);
+  }
+
   function _modifiers(e) {
     const mods = [];
     if (e.ctrlKey)  mods.push("ctrl");
@@ -3546,7 +3947,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // panel listener echo — see the _selfWrite guard in _createPanelDOM.
     function _writeState() {
       p._selfWrite = true;
-      try { model.set(`panel_${p.id}_json`, JSON.stringify(p.state)); }
+      try { model.set(`panel_${p.id}_json`, _viewStateJson(p)); }
       finally { p._selfWrite = false; }
     }
 
@@ -4694,22 +5095,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       e.preventDefault();
       const st=p.state; if(!st) return;
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
-      const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
-      // Image point under cursor before zoom change
-      const [anchorX,anchorY]=_canvasToImg2d(mx,my,st,imgW,imgH);
-      const curZ=st.zoom, newZ=Math.max(0.75,Math.min(100,curZ*(e.deltaY>0?0.9:1.1)));
-      st.zoom=newZ;
-      // Reposition center so the same image point stays under the cursor
-      const iw=st.image_width, ih=st.image_height;
-      const fr=_imgFitRect(iw,ih,imgW,imgH);
-      const newVisW=iw/newZ, newVisH=ih/newZ;
-      const newSrcX=anchorX-(mx-fr.x)/fr.w*newVisW;
-      const newSrcY=anchorY-(my-fr.y)/fr.h*newVisH;
-      st.center_x=Math.max(0,Math.min(1,(newSrcX+newVisW/2)/iw));
-      st.center_y=Math.max(0,Math.min(1,(newSrcY+newVisH/2)/ih));
+      const newZ=Math.max(0.75,Math.min(100,st.zoom*(e.deltaY>0?0.9:1.1)));
+      if(!st.tile_enabled){
+        // NON-tiled image: anchor the zoom on the cursor (the image point under the
+        // cursor stays put) — there's no detail-tile fetch to disagree with it.
+        const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
+        const [anchorX,anchorY]=_canvasToImg2d(mx,my,st,imgW,imgH);
+        st.zoom=newZ;
+        const iw=st.image_width, ih=st.image_height;
+        const fr=_imgFitRect(iw,ih,imgW,imgH);
+        const newVisW=iw/newZ, newVisH=ih/newZ;
+        const newSrcX=anchorX-(mx-fr.x)/fr.w*newVisW;
+        const newSrcY=anchorY-(my-fr.y)/fr.h*newVisH;
+        st.center_x=Math.max(0,Math.min(1,(newSrcX+newVisW/2)/iw));
+        st.center_y=Math.max(0,Math.min(1,(newSrcY+newVisH/2)/ih));
+      } else {
+        // TILE mode: zoom about the CURRENT CENTER, not the cursor. Cursor-anchored
+        // zoom looked right DURING the wheel (base blit re-anchored to the cursor),
+        // but when the debounced detail-tile fetch landed it re-derived the visible
+        // window from center_x/center_y — a different anchor — so the image visibly
+        // JUMPED. Center-zoom makes the base blit + detail tile agree at every zoom.
+        st.zoom=newZ;
+      }
       draw2d(p);
       _propagateZoom2d(p);
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
+      _emitViewChanged(p);   // debounced → fetch a hi-res detail tile on zoom settle
       _scheduleCommit();
     },{passive:false});
 
@@ -4758,7 +5169,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/z));
       draw2d(p);
       _propagateZoom2d(p);
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
       _scheduleCommit(); e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
@@ -4768,7 +5179,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
         const _did=_dw.id||null;
         p.ovDrag2d=null; overlayCanvas.style.cursor='default';
-        model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+        model.set(`panel_${p.id}_json`, _viewStateJson(p));
         _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
         return;
       }
@@ -4808,8 +5219,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // ── Normal pan settle ───────────────────────────────────────────────────
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/st.zoom));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/st.zoom));
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
       _emitEvent(p.id,'pointer_up',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom,..._pointerFields(e),button:e.button});
+      _emitViewChanged(p);   // pan settled → refresh the detail tile for the new view
       model.save_changes();
     });
 
@@ -4923,20 +5335,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const key=e.key.toLowerCase();
       if(key==='r'){
         st.zoom=1; st.center_x=0.5; st.center_y=0.5;
-        draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        draw2d(p); model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       } else if(key==='c'){
         st.show_colorbar=!st.show_colorbar;
         draw2d(p);
-        model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       } else if(key==='l'){
         st.scale_mode=st.scale_mode==='log'?'linear':'log';
-        draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        draw2d(p); model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       } else if(key==='s'){
         st.scale_mode=st.scale_mode==='symlog'?'linear':'symlog';
-        draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        draw2d(p); model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       }
     });
@@ -4977,7 +5389,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       st.view_x0=nx0;st.view_x1=nx1;
       draw1d(p);
       _propagateView1d(p);
-      model.set(`panel_${p.id}_json`,JSON.stringify(st));
+      model.set(`panel_${p.id}_json`,_viewStateJson(p));
       _scheduleCommit();
     },{passive:false});
 
@@ -5014,7 +5426,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if(nx0<0){nx0=0;nx1=span;}if(nx1>1){nx1=1;nx0=1-span;}
       st.view_x0=nx0;st.view_x1=nx1;
       draw1d(p);_propagateView1d(p);
-      model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
+      model.set(`panel_${p.id}_json`,_viewStateJson(p));_scheduleCommit();e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
       settled.clear();
@@ -5025,7 +5437,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
         const _did=_dw.id||null;
         p.ovDrag=null; overlayCanvas.style.cursor='crosshair';
-        model.set(`panel_${p.id}_json`,JSON.stringify(p.state));
+        model.set(`panel_${p.id}_json`,_viewStateJson(p));
         _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
       }
       if(p.isPanning){
@@ -5064,7 +5476,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         x:p.mouseX ?? 0, y:p.mouseY ?? 0,
         xdata:physX,
       });
-      if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.stopPropagation();e.preventDefault();}
+      if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,_viewStateJson(p));model.save_changes();e.stopPropagation();e.preventDefault();}
     });
     overlayCanvas.addEventListener('keyup',(e)=>{
       _emitEvent(p.id,'key_up',null,{
@@ -5319,7 +5731,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
 
     drawOverlay2d(p);
-    model.set(`panel_${p.id}_json`, JSON.stringify(st));
+    model.set(`panel_${p.id}_json`, _viewStateJson(p));
     model.save_changes();
     e.preventDefault();
   }
@@ -5404,7 +5816,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       w.y=st.data_max-((clampY-r.y)/(r.h||1))*(st.data_max-st.data_min);
     }
     drawOverlay1d(p);
-    model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();
+    model.set(`panel_${p.id}_json`,_viewStateJson(p));model.save_changes();
     e.preventDefault();
   }
 
@@ -5425,7 +5837,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           if(axis==='x'||axis==='both'){tp.state.zoom=st.zoom;tp.state.center_x=st.center_x;}
           if(axis==='y'||axis==='both'){tp.state.center_y=st.center_y;}
           _redrawPanel(tp);
-          model.set(`panel_${pid}_json`,JSON.stringify(tp.state));
+          model.set(`panel_${pid}_json`,_viewStateJson(tp));
         }
       }
     }
@@ -5443,7 +5855,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           const tp=panels.get(pid); if(!tp||!tp.state) continue;
           tp.state.view_x0=st.view_x0; tp.state.view_x1=st.view_x1;
           _redrawPanel(tp);
-          model.set(`panel_${pid}_json`,JSON.stringify(tp.state));
+          model.set(`panel_${pid}_json`,_viewStateJson(tp));
         }
       }
     }
@@ -6166,7 +6578,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const _did = _dw.id || null;
       p.ovDrag = null;
       overlayCanvas.style.cursor = 'default';
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
       _emitEvent(p.id, 'pointer_up', _did, {..._dw, ..._pointerFields(e), button: e.button});
       _scheduleCommit();
     });

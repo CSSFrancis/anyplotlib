@@ -6,8 +6,19 @@ plot2d/_plot2d.py
 
 from __future__ import annotations
 
+import logging
+import os
 import numpy as np
 from typing import Callable
+
+# Tile-mode diagnostics. WARNING level so it reaches stderr / the SpyDE Log panel
+# without turning on DEBUG. Grep the app log for "[TILEDBG]".
+_TLOG = logging.getLogger("anyplotlib.tile")
+
+# Set APL_TILE_DEBUG=1 to log each tiled zoom/pan decision (region fetched) to the
+# backend logger — reads to the terminal so a snap/inverted-pan can be diagnosed
+# without the browser console. Off by default (zero cost).
+_TILE_DEBUG = os.environ.get("APL_TILE_DEBUG") == "1"
 
 from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
@@ -18,6 +29,18 @@ from anyplotlib.widgets import (
     CrosshairWidget, PolygonWidget, LabelWidget,
 )
 from anyplotlib._utils import _normalize_image, _build_colormap_lut, _to_rgba_u8
+
+
+def _binary_transport_active() -> bool:
+    """True when the Electron binary pixel transport is enabled.
+
+    Reads ``APL_BINARY_TRANSPORT`` from the ENVIRONMENT fresh each call (not a
+    cached module global) so it tracks the live setting — and so a test that
+    toggles the env var is honoured without a stale reloaded-module flag leaking
+    across tests. Only SpyDE / the Electron host sets it; every other host
+    (Jupyter / Pyodide / standalone / ``save_html``) leaves it unset → base64."""
+    import os
+    return os.environ.get("APL_BINARY_TRANSPORT") == "1"
 
 
 class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
@@ -32,16 +55,36 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     """
 
     #: Heavy state keys routed to the geometry channel (see Figure._push).
-    #: ``colormap_data`` is large and only changes on set_colormap.
-    _GEOM_KEYS = frozenset({"image_b64", "colormap_data", "overlay_mask_b64"})
+    #: ``colormap_data`` is large and only changes on set_colormap. ``detail_b64``
+    #: (the zoom detail tile) MUST be here: it's a large pixel blob, and only geom-
+    #: channel keys are eligible for the PLOTBIN binary route in _route_change — if it
+    #: rode the light view trait instead, its "\x00bin:" token would never be resolved
+    #: to bytes and the crisp zoom tile would never render (only the overview shows).
+    _GEOM_KEYS = frozenset({"image_b64", "colormap_data", "overlay_mask_b64",
+                            "detail_b64"})
 
-    def __init__(self, data: np.ndarray,
+    # Logical image bigger than this (either side) uses the tile backend under
+    # tile="auto": it sends a downsampled OVERVIEW as the base + streams a hi-res
+    # detail tile of the visible region on zoom/pan, instead of the whole frame.
+    TILE_THRESHOLD = 1024
+    OVERVIEW_MAX = 1024        # initial overview edge (refined to panel px on first view)
+    VIEW_OVERFETCH = 2.0       # sample 2× the visible area (a full extra viewport of
+                               # padding) so casual zoom-out/pan stays on the crisp tile
+                               # and the overview only shows past that padded FOV
+    VIEW_ZOOM_MIN = 1.05       # below this the overview base is enough (no tile)
+    RANGE_SAMPLE_MAX = 2048    # subsample edge for the tile display-range probe (native
+                               # pixels → true extremes, so a zoom tile doesn't blow out)
+
+    def __init__(self, data,
                  x_axis=None, y_axis=None, units: str = "px",
                  cmap: str | None = None,
                  vmin: float | None = None,
                  vmax: float | None = None,
                  origin: str = "upper",
-                 gpu: "str | bool" = "auto"):
+                 gpu: "str | bool" = "auto",
+                 tile: "str | bool" = "auto",
+                 integration_method: str = "mean",
+                 tile_backend=None):
         self._id:  str = ""       # assigned by Axes._attach
         self._fig: object = None  # assigned by Axes._attach
 
@@ -51,6 +94,46 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                 f"origin must be one of {_valid_origins!r}, got {origin!r}"
             )
         self._origin: str = origin
+
+        # ── Tile backend resolution ──────────────────────────────────────────────
+        # A backend OWNS the source + sampling; a bare ndarray is wrapped. Decide
+        # tile mode from the LOGICAL shape (so we never materialise a huge array just
+        # to measure it). When tiled, `data` below becomes a downsampled OVERVIEW and
+        # the logical full size is remembered for the coordinate system.
+        from anyplotlib.plot2d._tile_backend import as_tile_backend, TileBackend
+        self._integration_method = integration_method
+        self._tile_backend = None
+        self._detail_pending = None   # (id) latest requested tile — latest-wins
+        src = tile_backend if tile_backend is not None else data
+        is_backend = isinstance(src, TileBackend) and not isinstance(src, np.ndarray)
+        if is_backend:
+            logical_h, logical_w = src.full_shape
+        else:
+            _arr = np.asarray(src)
+            logical_h, logical_w = _arr.shape[:2] if _arr.ndim >= 2 else (0, 0)
+        _rgb_src = (not is_backend) and np.asarray(src).ndim == 3
+        tile_on = (not _rgb_src) and (
+            tile is True or (tile == "auto" and max(logical_h, logical_w) > self.TILE_THRESHOLD))
+
+        # Remember the tile PREFERENCE so a later set_data can auto-enable tiling when
+        # a large frame arrives on a plot that started small (the live-navigator case:
+        # imshow a tiny placeholder, then set_data the real 4k frames). tile=False
+        # stays off forever; "auto"/True honour the threshold per frame.
+        self._tile_pref = tile
+        self._tile_on = tile_on
+        self._logical_w = logical_w
+        self._logical_h = logical_h
+        if tile_on:
+            self._tile_backend = as_tile_backend(
+                src, origin=origin) if not is_backend else src
+            # Base texture = a downsampled OVERVIEW (row 0 at top, already oriented);
+            # the logical full size drives image_width/height + the coordinate system.
+            data = self._make_overview(self._tile_backend)
+            # The overview is already display-oriented; don't let the origin='lower'
+            # flip below double-flip it (the y_axis still reverses for correct ticks).
+            self._overview_pre_oriented = True
+        else:
+            self._overview_pre_oriented = False
 
         data = np.asarray(data)
         # (H, W, 3|4) arrays render as true-colour RGB(A); anything else 2-D.
@@ -64,12 +147,15 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                              f"got {data.shape}")
 
         h, w = data.shape[:2]
+        # In tile mode `data` is the overview; the LOGICAL size drives the axes/extent.
+        axis_w = self._logical_w if self._tile_on else w
+        axis_h = self._logical_h if self._tile_on else h
 
         # origin='lower' — row 0 at the bottom, matching matplotlib's matrix
         # convention.  Flip the data so our renderer (which always draws row 0
         # at the top) shows the correct orientation, and reverse the y-axis so
-        # tick values increase upward.
-        if origin == "lower":
+        # tick values increase upward. (A tile overview is already oriented.)
+        if origin == "lower" and not self._overview_pre_oriented:
             data = np.flipud(data)
 
         self._data: np.ndarray = data.astype(float)
@@ -77,21 +163,34 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         x_axis_given = x_axis is not None
         y_axis_given = y_axis is not None
         if x_axis is None:
-            x_axis = np.arange(w, dtype=float)
+            x_axis = np.arange(axis_w, dtype=float)
         if y_axis is None:
-            y_axis = np.arange(h, dtype=float)
+            y_axis = np.arange(axis_h, dtype=float)
         x_axis = np.asarray(x_axis, dtype=float)
         y_axis = np.asarray(y_axis, dtype=float)
 
         if origin == "lower":
             y_axis = y_axis[::-1]
 
+        # Tile mode with no explicit clim: derive the display range from the FULL-RES
+        # data (a native-pixel subsample), NOT the averaged overview. The overview's
+        # min/max are pulled toward the mean, so quantising a near-native zoom DETAIL
+        # tile over that narrow range clips the true extremes → the region goes white
+        # on zoom-in. Using the full-res range keeps base + detail on one honest range.
+        tile_clim = None
+        if (self._tile_on and not self._is_rgb
+                and vmin is None and vmax is None):
+            tile_clim = self._backend_display_range(self._tile_backend)
+
         if self._is_rgb:
             # True-colour path: bytes go to JS as RGBA; no LUT applies.
             img_u8 = _to_rgba_u8(data)
             raw_vmin, raw_vmax = 0.0, 255.0
         else:
-            img_u8, raw_vmin, raw_vmax = _normalize_image(data)
+            # Quantise the overview base over the full-res range (tile_clim) so its
+            # codes line up with the detail tile's; falls back to the overview's own
+            # min/max when the probe couldn't run.
+            img_u8, raw_vmin, raw_vmax = _normalize_image(data, clim=tile_clim)
         self._raw_u8   = img_u8
         self._raw_vmin = raw_vmin
         self._raw_vmax = raw_vmax
@@ -103,9 +202,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         disp_min = float(vmin) if vmin is not None else raw_vmin
         disp_max = float(vmax) if vmax is not None else raw_vmax
 
-        # Compute physical pixel scale (data-units per pixel) from axis arrays
-        scale_x = float(abs(x_axis[-1] - x_axis[0]) / max(w - 1, 1)) if len(x_axis) >= 2 else 1.0
-        scale_y = float(abs(y_axis[-1] - y_axis[0]) / max(h - 1, 1)) if len(y_axis) >= 2 else 1.0
+        # Compute physical pixel scale (data-units per pixel) from axis arrays over
+        # the LOGICAL image size (the axes span the full image, not the overview).
+        scale_x = float(abs(x_axis[-1] - x_axis[0]) / max(axis_w - 1, 1)) if len(x_axis) >= 2 else 1.0
+        scale_y = float(abs(y_axis[-1] - y_axis[0]) / max(axis_h - 1, 1)) if len(y_axis) >= 2 else 1.0
 
         # WebGPU image path: "auto" (GPU above ~1 Mpx), True (force attempt),
         # False/"off" (never). Maps to the JS gpu_mode gate.
@@ -121,8 +221,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "gpu_active":        False,
             "has_axes":          x_axis_given or y_axis_given,
             "image_b64":         self._encode_bytes(img_u8),
-            "image_width":       w,
-            "image_height":      h,
+            # LOGICAL full-image size (zoom math + detail_region are in these px). In
+            # tile mode the base texture (image_b64) is a smaller OVERVIEW whose real
+            # pixel dims are base_width/height (0 → base == image size).
+            "image_width":       axis_w,
+            "image_height":      axis_h,
+            "base_width":        (w if self._tile_on else 0),
+            "base_height":       (h if self._tile_on else 0),
+            "tile_enabled":      self._tile_on,
             "x_axis":            x_axis.tolist(),
             "y_axis":            y_axis.tolist(),
             "units":             units,
@@ -139,6 +245,17 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "zoom":              1.0,
             "center_x":          0.5,
             "center_y":          0.5,
+            # Detail tile: a HIGHER-RES texture for a logical sub-region of the
+            # image, sampled by the shader when the current zoom window is inside
+            # detail_region — so a zoom-in shows true native pixels for the visible
+            # area WITHOUT transferring the whole full-res frame. Set via set_detail;
+            # "" / [] clears it (revert to the base texture). See set_detail.
+            "detail_b64":        "",
+            "detail_region":     [],   # [x0, x1, y0, y1] image-pixel rect of the base
+            "detail_width":      0,
+            "detail_height":     0,
+            "detail_seq":        0,    # bumped per set_detail so the renderer re-uploads
+                                       # a re-sampled tile even at the same size/region
             "overlay_widgets":   [],
             "markers":           [],
             "pointer_settled_ms":    0,
@@ -166,6 +283,11 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self.markers = MarkerRegistry(self._push_markers,
                                       allowed=MarkerRegistry._KNOWN_2D)
         self.callbacks = CallbackRegistry()
+        # Tile mode: anyplotlib itself reacts to view_changed (zoom/pan) → sample a
+        # hi-res detail tile of the visible region from the backend. The consumer
+        # does nothing; it can still add its OWN view_changed handler (they coexist).
+        if self._tile_on:
+            self.callbacks.connect("view_changed", self._on_view_changed_internal)
         self._widgets: dict[str, Widget] = {}
         # Set True once the JS side reports the WebGPU image path activated for
         # this panel (via the gpu_status event → _set_gpu_active). Reflects the
@@ -185,16 +307,347 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         # Keep the state echo in sync for save_html snapshots / introspection.
         self._state["gpu_active"] = self._gpu_active
 
+    # ── Tile mode ──────────────────────────────────────────────────────────────
+
+    def _make_overview(self, backend) -> np.ndarray:
+        """Downsampled overview of the WHOLE image for the base texture — fit to
+        ~OVERVIEW_MAX px on the long edge (refined to the real panel size on the
+        first view_changed). Row 0 at top (display orientation).
+
+        Uses SUBSAMPLE (nearest, ~1 ms), NOT the area-mean integration method: the
+        overview is only the zoomed-OUT thumbnail the GPU upscales — real detail always
+        comes from the on-demand detail tile (which DOES area-mean/native-sample the
+        visible region). Area-meaning the full frame here cost ~65 ms of numpy.sum over
+        16 MP on EVERY movie-scrub frame — the "transport slow" regression. Subsampling
+        a thumbnail is visually equivalent for an overview and ~65× cheaper."""
+        h, w = backend.full_shape
+        scale = max(1.0, max(h, w) / float(self.OVERVIEW_MAX))
+        ov_w = max(1, int(round(w / scale)))
+        ov_h = max(1, int(round(h / scale)))
+        ov = backend.sample(0, w, 0, h, ov_w, ov_h, "subsample")
+        if backend.origin == "lower":
+            ov = np.flipud(ov)   # normalise to row-0-top for the base texture
+        return np.asarray(ov)
+
+    def _backend_display_range(self, backend):
+        """A display (vmin, vmax) for tile mode derived from the FULL-RES data, NOT
+        the overview. The overview is a box-MEAN downsample, so its min/max are pulled
+        toward the mean → a NARROWER range than the native pixels. Quantising the base
+        over that narrow range is fine (the base is itself averaged), but when a zoom
+        samples a near-native DETAIL tile and quantises it over the same narrow range,
+        the true extremes clip to black/white — the region visibly BLOWS OUT (goes
+        white) on zoom-in. Deriving the range from a SUBSAMPLE (native pixels, no
+        averaging) of the full image keeps the extremes, so base and detail share one
+        honest range and the contrast is stable from zoomed-out to zoomed-in.
+
+        Returns (vmin, vmax) or None if it can't be computed (caller falls back to the
+        overview range). Subsample is capped to ~RANGE_SAMPLE_MAX px/edge so this stays
+        cheap even on an 8k+ frame."""
+        try:
+            h, w = backend.full_shape
+            n = self.RANGE_SAMPLE_MAX
+            sw = min(w, n); sh = min(h, n)
+            samp = backend.sample(0, w, 0, h, sw, sh, "subsample")
+            samp = np.asarray(samp)
+            finite = samp[np.isfinite(samp)]
+            if finite.size == 0:
+                return None
+            vmin = float(finite.min()); vmax = float(finite.max())
+            if vmax <= vmin:
+                return None
+            return vmin, vmax
+        except Exception:
+            return None
+
+    def _visible_region(self, zoom, cx, cy):
+        """The visible LOGICAL image-pixel rect for the current zoom/center,
+        expanded by VIEW_OVERFETCH (clamped) so a small pan stays inside the tile."""
+        iw, ih = self._logical_w, self._logical_h
+        vis_w = iw / max(zoom, 1e-9)
+        vis_h = ih / max(zoom, 1e-9)
+        # over-fetch around the visible window
+        ex_w = min(iw, vis_w * self.VIEW_OVERFETCH)
+        ex_h = min(ih, vis_h * self.VIEW_OVERFETCH)
+        x0 = int(max(0, min(iw - ex_w, cx * iw - ex_w / 2)))
+        y0 = int(max(0, min(ih - ex_h, cy * ih - ex_h / 2)))
+        x1 = int(min(iw, x0 + int(round(ex_w))))
+        y1 = int(min(ih, y0 + int(round(ex_h))))
+        return x0, x1, y0, y1
+
+    def enable_tile(self, backend=None, integration_method: str = "mean") -> None:
+        """Turn tile mode ON (or reconfigure it) AFTER construction — for a consumer
+        whose large frame isn't known at ``imshow`` time (e.g. a live navigator whose
+        signal frame arrives later and changes). Registers the internal view→tile loop
+        (once), sets the logical size from the backend, and paints the overview base.
+        Call ``update_tile_source(new_frame)`` on each subsequent data change.
+
+        ``backend``: a TileBackend (or an ndarray, wrapped). ``None`` keeps the
+        current backend (just re-enable / change method)."""
+        from anyplotlib.plot2d._tile_backend import as_tile_backend
+        if backend is not None:
+            self._tile_backend = as_tile_backend(backend, origin=self._origin)
+        if self._tile_backend is None:
+            _TLOG.warning("[TILEDBG] enable_tile ABORT: no backend")
+            return
+        self._integration_method = integration_method
+        h, w = self._tile_backend.full_shape
+        self._logical_w, self._logical_h = int(w), int(h)
+        self._state["image_width"] = int(w)
+        self._state["image_height"] = int(h)
+        self._state["tile_enabled"] = True
+        # Fixed QUANTISATION band for the tile bytes: the overview + detail tiles are
+        # quantised to uint8 over raw_min/raw_max (the full-res data range), NOT the
+        # display window. That lets a CONTRAST change re-window purely in the LUT
+        # (raw_min/raw_max fixed, display_min/display_max move) with NO pixel re-encode
+        # or re-transfer — set_clim just moves the display window (see set_clim). Set
+        # once from the full-res range; keep any existing band on a re-enable.
+        if (self._state.get("raw_min") is None
+                or not (self._state.get("raw_max", 0) > self._state.get("raw_min", 0))):
+            rng = self._backend_display_range(self._tile_backend)
+            if rng is not None:
+                self._state["raw_min"], self._state["raw_max"] = rng
+        _was_on = self._tile_on
+        if not self._tile_on:
+            self._tile_on = True
+            self.callbacks.connect("view_changed", self._on_view_changed_internal)
+        _TLOG.warning(
+            "[TILEDBG] enable_tile logical=%s was_on=%s method=%s display=(%s,%s) "
+            "→ will build overview", (h, w), _was_on, integration_method,
+            self._state.get("display_min"), self._state.get("display_max"))
+        # Paint the overview base + refresh any active tile from the (new) backend.
+        self.update_tile_source()
+
+    def _disable_tile(self) -> None:
+        """Leave tile mode (a consumer sent tile=False). Disconnect the internal
+        view→tile handler, drop the backend, and clear the tile state fields so a
+        following plain set_data sets image_width to the real frame size with
+        base_width=0 and no stale detail tile."""
+        if self._tile_on:
+            try:
+                self.callbacks.disconnect_fn(self._on_view_changed_internal,
+                                             "view_changed")
+            except Exception:
+                pass
+        self._tile_on = False
+        self._tile_backend = None
+        self._state["tile_enabled"] = False
+        self._state["base_width"] = 0
+        self._state["base_height"] = 0
+        self._state.update({"detail_b64": "", "detail_region": [],
+                            "detail_width": 0, "detail_height": 0})
+        _TLOG.warning("[TILEDBG] _disable_tile: tile mode OFF (forced plain)")
+
+    def update_tile_source(self, array=None) -> None:
+        """The backing DATA changed (e.g. a movie navigator advanced a frame) — keep
+        the current zoom/subselection but refresh the pixels. Re-samples the overview
+        base AND (if a detail tile is currently shown) the SAME detail region from the
+        new data, so a live source updates in place without a view change.
+
+        ``array``: swap the numpy backend's source first (convenience for the common
+        ndarray case). For a custom backend that already mutated its own source, call
+        ``update_tile_source()`` with no argument to just re-sample."""
+        if not self._tile_on or self._tile_backend is None:
+            _TLOG.warning("[TILEDBG] update_tile_source SKIP: tile_on=%s backend=%s",
+                          self._tile_on, self._tile_backend is not None)
+            return
+        if array is not None:
+            setter = getattr(self._tile_backend, "set_array", None)
+            if setter is not None:
+                setter(array)
+        reg = self._state.get("detail_region") or []
+        has_detail = len(reg) == 4
+        # Refresh the overview base ONLY when no detail tile is shown (zoomed out) —
+        # when zoomed in, the overview isn't visible, so re-pushing it every frame is
+        # wasted work + a texture swap that can flicker. It refreshes on zoom-out.
+        if not has_detail:
+            try:
+                ov = self._make_overview(self._tile_backend)
+                oh, ow = ov.shape
+                img_u8, _vmin, _vmax = self._normalize_for_base(ov)
+                self._state["image_b64"] = self._encode_pixels("image_b64", img_u8)
+                self._state["base_width"] = int(ow)
+                self._state["base_height"] = int(oh)
+                _TLOG.warning(
+                    "[TILEDBG] update_tile_source OVERVIEW-path (zoomed out, no "
+                    "detail): overview=%s u8[min=%d max=%d] display=(%s,%s) "
+                    "base_wh=(%d,%d) image_wh=(%s,%s)", (oh, ow),
+                    int(img_u8.min()), int(img_u8.max()),
+                    self._state.get("display_min"), self._state.get("display_max"),
+                    ow, oh, self._state.get("image_width"),
+                    self._state.get("image_height"))
+            except Exception as e:
+                _TLOG.warning("[TILEDBG] overview refresh FAILED: %s", e)
+            self._push()
+            return
+        # Zoomed in: re-sample only the CURRENT detail tile from the new data.
+        try:
+            x0, x1, y0, y1 = reg
+            out_h = self._state.get("detail_height") or (y1 - y0)
+            out_w = self._state.get("detail_width") or (x1 - x0)
+            tile = self._tile_backend.sample(
+                x0, x1, y0, y1, out_w, out_h, self._integration_method)
+            if self._tile_backend.origin == "lower":
+                tile = np.flipud(tile)
+            self.set_detail(np.ascontiguousarray(tile), x0, x1, y0, y1)
+            _TLOG.warning(
+                "[TILEDBG] update_tile_source DETAIL-path (zoomed in): region=%s "
+                "resampled tile=%s from new frame", reg, (out_h, out_w))
+        except Exception as e:
+            _TLOG.warning("[TILEDBG] detail refresh FAILED: %s", e)
+            self._push()
+
+    def _tile_quant_clim(self):
+        """The FIXED quantisation band (raw_min/raw_max) the tile bytes are encoded
+        over, so a contrast change re-windows in the LUT without re-encoding pixels.
+        Falls back to the display window if no band is set."""
+        lo, hi = self._state.get("raw_min"), self._state.get("raw_max")
+        if lo is None or hi is None or not (hi > lo):
+            lo, hi = self._state.get("display_min"), self._state.get("display_max")
+        if lo is None or hi is None or not (hi > lo):
+            return None
+        return (lo, hi)
+
+    def _normalize_for_base(self, arr):
+        """Quantise a base/overview array to uint8 over the fixed raw_min/raw_max band
+        (NOT the display window) so contrast re-windows via the LUT alone."""
+        return _normalize_image(arr, clim=self._tile_quant_clim())
+
+    def _on_view_changed_internal(self, event) -> None:
+        """Zoom/pan settled → sample a hi-res detail tile of the (over-fetched)
+        visible region from the backend and upload it. Zoomed out → clear the tile
+        (the overview base is enough). The consumer never wires this up."""
+        if not self._tile_on or self._tile_backend is None:
+            _TLOG.warning("[TILEDBG] view_changed IGNORED: tile_on=%s backend=%s",
+                          self._tile_on, self._tile_backend is not None)
+            return
+        try:
+            zoom = float(getattr(event, "zoom", 1.0) or 1.0)
+            if zoom < self.VIEW_ZOOM_MIN:
+                _TLOG.warning(
+                    "[TILEDBG] view_changed zoom=%.3f < MIN=%.2f → CLEAR detail "
+                    "(show overview base only)", zoom, self.VIEW_ZOOM_MIN)
+                self.set_detail(None)
+                return
+            cx = float(getattr(event, "center_x", 0.5) or 0.5)
+            cy = float(getattr(event, "center_y", 0.5) or 0.5)
+            # Panel device px (JS carries it): the tile is ALWAYS output at the panel
+            # resolution (matched to the region's aspect), NOT min(region, panel). Why:
+            # the tile fills the same on-screen fit-rect regardless of zoom, so its
+            # displayed texel density must be CONSTANT — clamping the output to the
+            # (shrinking) region on a deep zoom made every frame a different-res
+            # texture stretched over the panel, so the image visibly SNAPPED as the
+            # scale jumped. A region SMALLER than the panel is upsampled from real
+            # native pixels (crisp, nearest); a bigger one is area-meaned down.
+            dw = int(getattr(event, "display_width", 0) or 0) or self.OVERVIEW_MAX
+            dh = int(getattr(event, "display_height", 0) or 0) or self.OVERVIEW_MAX
+            x0, x1, y0, y1 = self._visible_region(zoom, cx, cy)
+            rw, rh = x1 - x0, y1 - y0
+            if rw < 2 or rh < 2:
+                return
+            # Fit the panel box (dw×dh) to the region's aspect so the tile isn't
+            # distorted (the fit-rect on screen already has the region's aspect).
+            aspect = rw / rh
+            if aspect >= dw / dh:
+                out_w, out_h = dw, max(1, int(round(dw / aspect)))
+            else:
+                out_h, out_w = dh, max(1, int(round(dh * aspect)))
+            b = self._tile_backend
+            # DIAGNOSTIC: the raw native region straight from the backend, BEFORE
+            # sampling — its shape + distinct-value count tells us whether the backend
+            # actually holds native pixels. If region is 82×82 but the raw crop has
+            # only ~100 distinct values, the backend source is a downsample (bug).
+            _raw = np.asarray(b._a[y0:y1, x0:x1]) if hasattr(b, "_a") else None
+            tile = self._tile_backend.sample(
+                x0, x1, y0, y1, out_w, out_h, self._integration_method)
+            if b.origin == "lower":
+                tile = np.flipud(tile)
+            self.set_detail(np.ascontiguousarray(tile), x0, x1, y0, y1)
+            _bshape = b.full_shape if hasattr(b, "full_shape") else "?"
+            _rawinfo = ("raw_crop=%s distinct=%d" % (
+                _raw.shape, int(np.unique(_raw).size))) if _raw is not None else "raw=?"
+            _tileinfo = "tile_distinct=%d" % int(np.unique(np.asarray(tile)).size)
+            _TLOG.warning(
+                "[TILEDBG] view_changed FETCH zoom=%.2f region=[x %d:%d y %d:%d] "
+                "(%dx%d logical) BACKEND_shape=%s %s → tile=%dx%d %s "
+                "u8[min=%d max=%d]",
+                zoom, x0, x1, y0, y1, rw, rh, _bshape, _rawinfo, out_w, out_h,
+                _tileinfo, int(np.asarray(tile).min()), int(np.asarray(tile).max()))
+        except Exception as e:
+            _TLOG.warning("[TILEDBG] view_changed tile update FAILED: %s", e)
+
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
         import base64
         return base64.b64encode(arr.tobytes()).decode("ascii")
 
+    def _encode_pixels(self, key: str, arr: np.ndarray) -> str:
+        """Return the value to store under a pixel geom key (e.g. ``image_b64``).
+
+        Fast path (Electron BINARY transport active + attached to a Figure):
+        stash the RAW uint8 bytes on the Figure's ``_raw_pixels`` side-table and
+        return only a tiny change-token string. ``_electron._route_change`` then
+        ships those bytes directly as a PLOTBIN frame — skipping the ~20 ms
+        base64 encode here, the megabyte ``json.dumps`` in ``Figure._push``, and
+        the ~17 ms base64 decode that the old binary path paid in
+        ``_route_change`` (it re-decoded the string we had just encoded).
+
+        Fallback (Jupyter / Pyodide / standalone / ``save_html``, or no Figure):
+        base64-encode into the geom JSON exactly as before — those hosts have no
+        binary channel, so the pixels must ride in the trait string.
+
+        The returned token must CHANGE whenever the pixels change, because
+        ``Figure._push`` re-sends the geom channel only when its dict differs
+        from the last one sent (``_geom_last``). The token is a cheap CONTENT
+        checksum (adler32, ~2 ms on a 4 MP frame) of the raw bytes, so it also
+        preserves the "unchanged frame → skip re-send" optimisation exactly like
+        the old base64-string comparison did (identical pixels → identical
+        token → ``_push`` skips), while costing a fraction of a base64 encode.
+        """
+        fig = getattr(self, "_fig", None)
+        store = getattr(fig, "_raw_pixels", None) if fig is not None else None
+        if store is not None and _binary_transport_active():
+            import zlib
+            raw = arr.tobytes()
+            store[(self._id, key)] = raw
+            # Content token: same bytes → same token (skip); changed → re-send.
+            return f"\x00bin:{zlib.adler32(raw) & 0xFFFFFFFF}"
+        # No binary channel — pixels must travel as base64 in the geom JSON.
+        return self._encode_bytes(arr)
+
     def to_state_dict(self) -> dict:
-        """Return a JSON-serialisable copy of the current state."""
+        """Return a JSON-serialisable copy of the current state.
+
+        On the binary-transport path ``_state["image_b64"]`` may hold a tiny
+        ``"\\x00bin:<checksum>"`` change-token instead of a base64 string — the
+        real pixels ride the PLOTBIN channel (``_electron._route_change`` reads
+        them from the Figure's ``_raw_pixels`` side-table). The token is the
+        correct WIRE representation and is passed through untouched here so the
+        hot ``Figure._push`` path does NOT re-encode base64 every frame.
+
+        A COLD consumer with no binary channel (``save_html`` / standalone /
+        Jupyter) must instead materialise real base64; it calls
+        :meth:`resolve_pixel_tokens` on the returned dict (``Figure._push`` does
+        this for the standalone trait when binary transport is off)."""
         d = dict(self._state)
         d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         d["markers"] = self.markers.to_wire_list()
+        return d
+
+    def resolve_pixel_tokens(self, d: dict) -> dict:
+        """Replace any ``"\\x00bin:…"`` pixel change-token in *d* with the real
+        base64 (materialised from the Figure's ``_raw_pixels`` side-table), in
+        place, and return *d*. Used by the COLD paths (save_html / standalone)
+        that have no PLOTBIN channel and need the pixels inline. A no-op for a
+        normal base64 string. See :meth:`to_state_dict`."""
+        import base64
+        fig = getattr(self, "_fig", None)
+        raw_tbl = getattr(fig, "_raw_pixels", None)
+        for key in ("image_b64", "overlay_mask_b64"):
+            val = d.get(key)
+            if not (isinstance(val, str) and val.startswith("\x00bin:")):
+                continue
+            raw = raw_tbl.get((self._id, key)) if raw_tbl is not None else None
+            d[key] = base64.b64encode(raw).decode("ascii") if raw else ""
         return d
 
     # ------------------------------------------------------------------
@@ -206,18 +659,33 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
         Returns a float64 copy with ``writeable=False``.  To replace the
         data call :meth:`set_data`.
+
+        The float64 cast happens HERE, lazily, not in ``set_data`` — a scrub
+        pushes a new frame every tick but rarely reads ``.data`` back, and a
+        full float64 copy of a 4k frame is ~12 ms. ``set_data`` keeps the
+        frame in its source dtype (``self._data``); we cast + copy only on the
+        (rare) read.
         """
-        arr = np.flipud(self._data).copy() if self._origin == "lower" else self._data.copy()
+        src = np.flipud(self._data) if self._origin == "lower" else self._data
+        arr = np.asarray(src, dtype=float).copy()   # cast + independent copy
         arr.flags.writeable = False
         return arr
 
     def set_data(self, data: np.ndarray,
                x_axis=None, y_axis=None, units: str | None = None,
-               clim: tuple | None = None) -> None:
+               clim: tuple | None = None, tile: "str | bool | None" = None) -> None:
         """Replace the image data.
 
         The ``origin`` supplied at construction is automatically re-applied
         so the new data is displayed with the same orientation.
+
+        ``tile`` — per-call override of the tile decision (default ``None`` uses the
+        plot's construction preference). ``False`` forces a PLAIN full-frame push even
+        for a large frame (the caller manages its own decimation); ``True`` forces tile
+        mode. A live consumer that only wants tiling on some frames (e.g. only when its
+        GPU is active, sending the NATIVE frame then, but a pre-decimated frame
+        otherwise) passes ``tile=False`` on the decimated frames so they don't get
+        auto-tiled at the wrong logical size.
 
         ``clim`` — optional ``(vmin, vmax)`` display range applied in the SAME
         push as the new data.  Without it the caller must follow with a separate
@@ -236,16 +704,76 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             raise ValueError(f"data must be 2-D or (H x W x 3|4), got {data.shape}")
         h, w = data.shape[:2]
 
+        # ── Tile mode: a live consumer (e.g. a movie navigator) calls set_data with
+        # each new frame. Route it through the tile pipeline instead of clobbering the
+        # tile state. Writing the plain base frame here would corrupt tiling: it sets
+        # image_width to THIS frame's width while base_width still names the OLD
+        # overview (so JS misreads the base texture — the "shrinks to overview size"
+        # bug), and it clears the active detail tile (so a zoom-in snaps back to the
+        # blurry overview until the next view_changed re-fetches — the flash). The
+        # tile path swaps the backend source + re-samples the overview/detail in place,
+        # keeping image_width, base_width, zoom/center, and the detail region intact.
+        # RGB frames don't tile — fall through to the plain path.
+        # Per-call `tile` override wins; else the construction preference decides.
+        eff_pref = self._tile_pref if tile is None else tile
+        want_tile = (not is_rgb) and (
+            eff_pref is True
+            or (eff_pref == "auto" and max(h, w) > self.TILE_THRESHOLD))
+        # tile=False FORCES the plain path even on an already-tiled plot (the caller is
+        # sending a pre-decimated frame it wants shown as-is) → tear tiling down first.
+        force_plain = (tile is False)
+        _TLOG.warning(
+            "[TILEDBG] set_data ROUTE frame=%s dtype=%s clim=%s  is_rgb=%s "
+            "tile_arg=%r eff_pref=%r want_tile=%s tile_on=%s backend=%s force_plain=%s "
+            "THRESH=%s → %s",
+            (h, w), data.dtype, clim, is_rgb, tile, eff_pref, want_tile,
+            self._tile_on, self._tile_backend is not None, force_plain,
+            self.TILE_THRESHOLD,
+            "PLAIN(forced)" if force_plain
+            else "TILED-SWAP" if (self._tile_on and self._tile_backend is not None
+                                  and not is_rgb)
+            else "AUTO-ENABLE" if (want_tile and not self._tile_on)
+            else "PLAIN")
+        if force_plain and self._tile_on:
+            # Leaving tile mode: drop the internal view handler + backend so the plain
+            # push below sets image_width to the real frame size with base_width=0.
+            self._disable_tile()
+        elif self._tile_on and self._tile_backend is not None and not is_rgb:
+            self._set_data_tiled(data, clim)
+            return
+        # A large scalar frame arriving on a plot that started small (tiny placeholder
+        # → real 4k frames): auto-ENABLE tiling now, exactly like imshow(huge) would,
+        # so the consumer just calls set_data and never hand-rolls a backend. This is
+        # the seam the SpyDE movie viewer uses.
+        elif want_tile and not self._tile_on:
+            self._enable_tile_from_frame(data, clim)
+            return
+
         if self._origin == "lower":
             data = np.flipud(data)
 
-        self._data = data.astype(float)
+        # Keep the frame in its SOURCE dtype (no float64 copy on the hot path);
+        # the `.data` property casts to float lazily on the rare read-back.
+        # np.array(copy=True) so a later caller mutation can't alias our frame
+        # (the old `.astype(float)` also copied) — cheap vs float64 (same-dtype).
+        self._data = np.array(data, copy=True)
         self._is_rgb = is_rgb
         self._state["is_rgb"] = is_rgb
+        # Parse the caller's display range up front so quantisation can spend all
+        # 256 codes on it (clipping a hot pixel / zero beam) instead of stretching
+        # them across the raw min/max — see _normalize_image.
+        parsed_clim = None
+        if clim is not None and not is_rgb:
+            try:
+                parsed_clim = (float(clim[0]), float(clim[1]))
+                if not (parsed_clim[1] > parsed_clim[0]):
+                    parsed_clim = None   # degenerate range → fall back to raw min/max
+            except (TypeError, ValueError, IndexError):
+                parsed_clim = None
         if is_rgb:
             img_u8, vmin, vmax = _to_rgba_u8(data), 0.0, 255.0
         else:
-            img_u8, vmin, vmax = _normalize_image(data)
+            img_u8, vmin, vmax = _normalize_image(data, clim=parsed_clim)
         self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
 
         if x_axis is not None:
@@ -262,15 +790,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if units is not None:
             self._state["units"] = units
 
-        # Apply a caller-supplied display range in the SAME push (no flash).
+        # Display range for the SAME push (no flash). When a valid clim was used,
+        # the codes were quantised over it, so raw_min/raw_max already ARE the clim
+        # and the display window is that same range (identity, t = code/255). Only a
+        # degenerate/absent clim leaves the display range at the raw min/max.
         disp_min, disp_max = vmin, vmax
-        if clim is not None and not is_rgb:
-            try:
-                disp_min, disp_max = float(clim[0]), float(clim[1])
-            except (TypeError, ValueError, IndexError):
-                disp_min, disp_max = vmin, vmax
         fields = {
-            "image_b64":    self._encode_bytes(img_u8),
+            "image_b64":    self._encode_pixels("image_b64", img_u8),
             "image_width":  w,
             "image_height": h,
             "display_min":  disp_min,
@@ -278,12 +804,109 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "raw_min":      vmin,
             "raw_max":      vmax,
         }
+        # A new base frame invalidates any detail tile of the OLD frame — clear it
+        # so the shader doesn't sample a stale hi-res crop over the new image.
+        if self._state.get("detail_b64"):
+            fields.update({"detail_b64": "", "detail_region": [],
+                           "detail_width": 0, "detail_height": 0})
         # RGB images never use the colormap LUT — skip the (costly) rebuild and
         # leave the existing entry untouched.  Only recompute for scalar data.
         if not is_rgb:
             fields["colormap_data"] = _build_colormap_lut(self._state["colormap_name"])
         self._state.update(fields)
         self._push()
+
+    def _set_data_tiled(self, data: np.ndarray, clim: tuple | None) -> None:
+        """set_data for a plot already in tile mode: swap the tile source + refresh
+        the overview/detail from it (via update_tile_source) instead of pushing a
+        plain base frame. Applies ``clim`` first so the re-sampled overview/detail
+        quantise over the new display range in the SAME push. Keeps the logical
+        image_width/height, base_width/height, the active detail region, and the
+        frontend zoom/center — a live frame update, not a view reset.
+
+        The new frame may differ in shape from the current tile source (e.g. a signal
+        whose signal axes changed); update_tile_source → enable_tile re-derives the
+        logical size + overview, so image_width/height stay correct for the new frame.
+        """
+        # Apply the display range up front (if given + valid) so the overview and any
+        # detail tile re-sampled below quantise over it — otherwise the tile path uses
+        # the stale display_min/display_max and the contrast lags a frame.
+        if clim is not None:
+            try:
+                vmin, vmax = float(clim[0]), float(clim[1])
+                if vmax > vmin:
+                    self._state["display_min"] = vmin
+                    self._state["display_max"] = vmax
+            except (TypeError, ValueError, IndexError):
+                pass
+        # If the frame's shape changed, re-enable tiling so image_width/height and the
+        # overview are re-derived for the new logical size; otherwise just swap + re-
+        # sample in place (the common live-navigator case: same-size frames).
+        from anyplotlib.plot2d._tile_backend import as_tile_backend
+        h, w = data.shape[:2]
+        same_shape = (int(w) == int(self._logical_w)
+                      and int(h) == int(self._logical_h))
+        # ascontiguousarray is a no-op (returns the SAME array) when already C-
+        # contiguous — the common movie-frame case — so this is free. It replaces the
+        # old np.array(copy=True) which unconditionally copied all 16 MP every frame
+        # (~4.5 ms) just to stash self._data for a rare .data read-back. The backend
+        # holds the frame now; expose it lazily for read-back below.
+        arr = np.ascontiguousarray(data)
+        self._data = arr           # reference, not a copy — read-back reads the frame
+        setter = getattr(self._tile_backend, "set_array", None)
+        _TLOG.warning(
+            "[TILEDBG] _set_data_tiled frame=%s logical=(%s,%s) same_shape=%s "
+            "has_set_array=%s display=(%s,%s) → %s", (h, w),
+            self._logical_h, self._logical_w, same_shape, setter is not None,
+            self._state.get("display_min"), self._state.get("display_max"),
+            "swap+update_tile_source" if (same_shape and setter is not None)
+            else "rebuild+enable_tile")
+        if same_shape and setter is not None:
+            setter(arr)
+            self.update_tile_source()
+        else:
+            # Shape changed (or a custom backend without set_array): rebuild the
+            # backend around the new frame and re-enable, preserving zoom/center.
+            self._tile_backend = as_tile_backend(arr, origin=self._origin)
+            self.enable_tile(self._tile_backend, self._integration_method)
+
+    def _enable_tile_from_frame(self, data: np.ndarray, clim: tuple | None) -> None:
+        """First large frame on a not-yet-tiled plot → turn tile mode ON around it,
+        exactly like ``imshow(huge)``: wrap the frame in a NumpyTileBackend, set the
+        display range (the caller's ``clim`` if given, else the FULL-RES range so a
+        zoom detail tile doesn't blow out — see _backend_display_range), then
+        enable_tile (which pushes the overview base). This is the seam a live consumer
+        uses: imshow a small placeholder, then set_data the real frames; no need to
+        hand-roll a backend or call enable_tile directly."""
+        from anyplotlib.plot2d._tile_backend import as_tile_backend
+        self._data = np.array(data, copy=True)
+        arr = np.ascontiguousarray(data)
+        self._tile_backend = as_tile_backend(arr, origin=self._origin)
+        # Display range: caller's clim wins; else derive from the full-res frame.
+        rng = None
+        if clim is not None:
+            try:
+                lo, hi = float(clim[0]), float(clim[1])
+                if hi > lo:
+                    rng = (lo, hi)
+            except (TypeError, ValueError, IndexError):
+                rng = None
+        _clim_src = "caller-clim" if rng is not None else None
+        if rng is None:
+            rng = self._backend_display_range(self._tile_backend)
+            _clim_src = "full-res-probe"
+        if rng is not None:
+            self._state["display_min"], self._state["display_max"] = rng
+        else:
+            _clim_src = "NONE(kept-stale)"
+        _TLOG.warning(
+            "[TILEDBG] _enable_tile_from_frame frame=%s dtype=%s data[min=%.4g "
+            "max=%.4g] → display=(%s,%s) via %s", data.shape, data.dtype,
+            float(np.nanmin(data)) if data.size else 0.0,
+            float(np.nanmax(data)) if data.size else 0.0,
+            self._state.get("display_min"), self._state.get("display_max"),
+            _clim_src)
+        self.enable_tile(self._tile_backend, self._integration_method)
 
     def set_overlay_mask(self, mask: "np.ndarray | None",
                          color: str = "#ff4444",
@@ -346,10 +969,101 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._push()
 
     def set_clim(self, vmin=None, vmax=None) -> None:
+        """Set the display range. Because scalar frames are quantised to uint8 over
+        their clim (so a hot pixel / zero beam can't crush the signal — see
+        _normalize_image), a new range is honoured by RE-QUANTISING from the cached
+        raw frame, not merely re-windowing the existing codes (which are saturated
+        outside the previous band and so couldn't widen past it). For an RGB frame
+        (no scalar quantisation) or when no raw frame is cached, fall back to a pure
+        display-window update."""
+        new_min = float(vmin) if vmin is not None else self._state.get("display_min")
+        new_max = float(vmax) if vmax is not None else self._state.get("display_max")
+
+        # ── TILE MODE: window via the LUT only — do NOT re-quantise/re-push pixels.
+        # A tiled plot's base is the OVERVIEW and its pixels stay resident on the GPU;
+        # the shader re-windows contrast purely from the 256-entry LUT (rebuilt in JS
+        # from display_min/display_max over the fixed raw_min/raw_max band). Re-
+        # quantising self._data here would re-encode the FULL 16 MP native frame AND
+        # ship it into the overview slot every drag tick — the "retransfers the whole
+        # image" lag. So just move the display window (a tiny push). Contrast resolves
+        # within the base's original quantisation band, which spans the frame's range.
+        if self._tile_on:
+            if vmin is not None:
+                self._state["display_min"] = float(vmin)
+            if vmax is not None:
+                self._state["display_max"] = float(vmax)
+            self._push()
+            return
+
+        raw = getattr(self, "_data", None)
+        if (not self._is_rgb and raw is not None
+                and new_min is not None and new_max is not None
+                and new_max > new_min):
+            img_u8, qmin, qmax = _normalize_image(raw, clim=(new_min, new_max))
+            self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, qmin, qmax
+            self._state.update({
+                "image_b64":   self._encode_pixels("image_b64", img_u8),
+                "display_min": qmin,
+                "display_max": qmax,
+                "raw_min":     qmin,
+                "raw_max":     qmax,
+            })
+            self._push()
+            return
+        # Fallback: RGB / no cached frame → just move the display window.
         if vmin is not None:
             self._state["display_min"] = float(vmin)
         if vmax is not None:
             self._state["display_max"] = float(vmax)
+        self._push()
+
+    def set_detail(self, tile=None, x0=None, x1=None, y0=None, y1=None) -> None:
+        """Upload a HIGH-RES detail tile covering the LOGICAL image-pixel rectangle
+        ``[x0:x1, y0:y1]`` of the base image (in the SAME orientation as the frame
+        passed to ``set_data`` — already ``origin``-applied), so a zoom-in shows true
+        native pixels for the visible region WITHOUT transferring the whole full-res
+        frame. The shader samples this tile instead of the base whenever the current
+        zoom window lies inside ``[x0:x1, y0:y1]``; otherwise it falls back to the
+        base texture. ``set_detail(None)`` clears it (revert to base).
+
+        ``tile`` is quantised to uint8 over the SAME display range as the base
+        (``display_min``/``display_max``) so its contrast matches seamlessly — a
+        zoom crop must look identical to the base, just sharper. Only meaningful for
+        scalar (non-RGB) images."""
+        if tile is None or self._is_rgb:
+            if self._state.get("detail_b64"):
+                self._state.update({
+                    "detail_b64": "", "detail_region": [],
+                    "detail_width": 0, "detail_height": 0,
+                })
+                self._push()
+            return
+        tile = np.asarray(tile)
+        if tile.ndim != 2:
+            raise ValueError(f"detail tile must be 2-D, got {tile.shape}")
+        # In tile mode quantise over the FIXED raw_min/raw_max band (so contrast re-
+        # windows via the LUT with no re-encode); otherwise (manual set_detail on a
+        # non-tiled plot) match the display window as before.
+        if self._tile_on:
+            clim = self._tile_quant_clim()
+        else:
+            clim = (self._state.get("display_min"), self._state.get("display_max"))
+            if clim[0] is None or clim[1] is None or not (clim[1] > clim[0]):
+                clim = None
+        img_u8, _vmin, _vmax = _normalize_image(tile, clim=clim)
+        th, tw = tile.shape
+        # Monotonic sequence so the renderer's dedup key CHANGES on every pushed tile
+        # even when length + region are identical (a live movie scrub re-samples the
+        # SAME region every frame — without this the JS skips the re-upload and the
+        # zoomed-in view freezes on the first frame). See _detailBytes in figure_esm.js.
+        self._detail_seq = getattr(self, "_detail_seq", 0) + 1
+        self._state.update({
+            "detail_b64":    self._encode_pixels("detail_b64", img_u8),
+            "detail_region": [int(x0), int(x1), int(y0), int(y1)],
+            "detail_width":  int(tw),
+            "detail_height": int(th),
+            "detail_seq":    self._detail_seq,
+        })
         self._push()
 
     def set_scale_mode(self, mode: str) -> None:

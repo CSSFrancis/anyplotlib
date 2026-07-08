@@ -133,3 +133,104 @@ class TestElectronRouting:
         el._route_change("figX", "fig_width", 640)    # a small scalar trait
         assert "bin" not in captured
         assert captured["json"][0]["value"] == 640
+
+    def test_detail_tile_goes_binary(self, monkeypatch):
+        # The zoom DETAIL TILE must ship over PLOTBIN too — else with binary
+        # transport on, its "\x00bin:" token stays in the geom JSON, the bytes are
+        # never sent, and the renderer can't decode it → the crisp zoom tile never
+        # displays (only the downsampled overview base shows). Regression for
+        # detail_b64 missing from _BINARY_KEYS.
+        el = self._reload_electron(monkeypatch, binary=True)
+        assert "detail_b64" in el._BINARY_KEYS   # sanity: the key is registered
+        captured = {"json": [], "bin": []}
+        monkeypatch.setattr(el, "emit_binary",
+                            lambda *a: captured["bin"].append(a))
+        monkeypatch.setattr(el, "emit", lambda o: captured["json"].append(o))
+        tile = np.arange(49, dtype=np.uint8)   # a 7x7 detail tile
+        geom = json.dumps({
+            "detail_b64": base64.b64encode(tile.tobytes()).decode(),
+            "detail_region": [0, 7, 0, 7], "detail_width": 7, "detail_height": 7,
+            "colormap_data": [[0, 0, 0]],
+        })
+        el._route_change("figX", "panel_p1_geom", geom)
+        keys = [a[1] for a in captured["bin"]]
+        assert "detail_b64" in keys, f"detail tile did not go binary: {keys}"
+        # the slimmed geom drops the pixel key but keeps the small region metadata
+        slim = json.loads(captured["json"][0]["value"])
+        assert "detail_b64" not in slim
+        assert slim["detail_region"] == [0, 7, 0, 7]
+
+
+class TestRawPixelSideChannel:
+    """The zero-copy fast path: set_data stashes RAW uint8 bytes on the Figure's
+    _raw_pixels side-table + puts a tiny token in image_b64, and _route_change
+    ships those bytes straight to PLOTBIN — no base64 encode/decode round-trip."""
+
+    def _reload_electron(self, monkeypatch, binary: bool):
+        monkeypatch.setenv("APL_BINARY_TRANSPORT", "1" if binary else "0")
+        import anyplotlib._electron as el
+        importlib.reload(el)
+        return el
+
+    def test_set_data_stashes_raw_bytes_and_tokenises(self, monkeypatch):
+        # Binary transport ON: set_data must NOT base64-encode the pixels into
+        # _state; it stashes raw bytes on the figure and leaves a token.
+        monkeypatch.setenv("APL_BINARY_TRANSPORT", "1")
+        import anyplotlib as apl
+        fig, ax = apl.subplots(1, 1)
+        img = np.arange(64, dtype=np.uint8).reshape(8, 8)
+        p = ax.imshow(img)
+        p.set_data(img.astype(float))
+
+        tok = p._state["image_b64"]
+        assert isinstance(tok, str) and tok.startswith("\x00bin:"), \
+            "binary path should leave a change-token, not base64, in _state"
+        raw = fig._raw_pixels.get((p._id, "image_b64"))
+        assert raw is not None and len(raw) == 64, "raw bytes not stashed on figure"
+        # to_state_dict passes the token through (wire form); resolve_pixel_tokens
+        # materialises real base64 for a cold consumer (save_html / standalone).
+        assert p.to_state_dict()["image_b64"] == tok
+        st = p.resolve_pixel_tokens(p.to_state_dict())
+        assert base64.b64decode(st["image_b64"]) == raw
+
+    def test_route_change_ships_raw_bytes_no_reencode(self, monkeypatch):
+        # A geom whose image_b64 is a TOKEN → _route_change must pull the bytes
+        # from fig._raw_pixels (NOT base64-decode the token) and emit them raw.
+        el = self._reload_electron(monkeypatch, binary=True)
+
+        class _FakeFig:
+            _raw_pixels = {("p1", "image_b64"): b"\x01\x02\x03\x04rawpixels"}
+        monkeypatch.setitem(el._figures, "figX", _FakeFig())
+
+        captured = {"json": []}
+        monkeypatch.setattr(el, "emit_binary",
+                            lambda *a: captured.setdefault("bin", a))
+        monkeypatch.setattr(el, "emit", lambda o: captured["json"].append(o))
+
+        geom = json.dumps({"image_b64": "\x00bin:12345",
+                           "colormap_data": [[1, 2, 3]]})
+        el._route_change("figX", "panel_p1_geom", geom)
+
+        assert "bin" in captured, "token geom should route to emit_binary"
+        _fig_id, key, header, raw = captured["bin"]
+        assert key == "image_b64"
+        assert raw == b"\x01\x02\x03\x04rawpixels", "must ship the side-table bytes verbatim"
+        # slimmed geom drops the pixel key, keeps the LUT
+        slim = json.loads(captured["json"][0]["value"])
+        assert "image_b64" not in slim and slim["colormap_data"] == [[1, 2, 3]]
+
+    def test_route_change_falls_back_to_base64_without_sidetable(self, monkeypatch):
+        # Robustness: a REAL base64 geom (initial frame / no side-table entry)
+        # still decodes correctly through the same path.
+        el = self._reload_electron(monkeypatch, binary=True)
+        captured = {"json": []}
+        monkeypatch.setattr(el, "emit_binary",
+                            lambda *a: captured.setdefault("bin", a))
+        monkeypatch.setattr(el, "emit", lambda o: captured["json"].append(o))
+
+        pixels = np.arange(16, dtype=np.uint8)
+        geom = json.dumps({"image_b64": base64.b64encode(pixels.tobytes()).decode(),
+                           "colormap_data": [[0, 0, 0]]})
+        el._route_change("figY", "panel_pz_geom", geom)   # figY not in _figures
+        assert "bin" in captured
+        assert captured["bin"][3] == pixels.tobytes()

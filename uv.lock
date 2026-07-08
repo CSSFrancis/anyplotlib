@@ -50,6 +50,7 @@ source = { editable = "." }
 dependencies = [
     { name = "anywidget" },
     { name = "colorcet" },
+    { name = "ipykernel" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "traitlets" },
@@ -96,6 +97,7 @@ requires-dist = [
     { name = "anywidget", specifier = ">=0.9.0" },
     { name = "bokeh", marker = "extra == 'docs'", specifier = ">=3.0" },
     { name = "colorcet", specifier = ">=3.0" },
+    { name = "ipykernel", specifier = ">=7.2.0" },
     { name = "jupyterlab", marker = "extra == 'jupyter'", specifier = ">=4.5.5" },
     { name = "matplotlib", marker = "extra == 'docs'", specifier = ">=3.7" },
     { name = "numpy", specifier = ">=2.0.0" },

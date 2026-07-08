@@ -33,14 +33,17 @@ class Axes:
         self._plot: "Plot1D | Plot2D | None" = None
 
     # ------------------------------------------------------------------
-    def imshow(self, data: np.ndarray,
+    def imshow(self, data,
                axes: list | None = None,
                units: str = "px",
                cmap: str | None = None,
                vmin: float | None = None,
                vmax: float | None = None,
                origin: str = "upper",
-               gpu: "str | bool" = "auto") -> "Plot2D":
+               gpu: "str | bool" = "auto",
+               tile: "str | bool" = "auto",
+               integration_method: str = "mean",
+               tile_backend=None) -> "Plot2D":
         """Attach a 2-D image to this axes cell.
 
         Parameters
@@ -75,7 +78,9 @@ class Axes:
         x_axis = axes[0] if axes and len(axes) > 0 else None
         y_axis = axes[1] if axes and len(axes) > 1 else None
         plot = Plot2D(data, x_axis=x_axis, y_axis=y_axis, units=units,
-                      cmap=cmap, vmin=vmin, vmax=vmax, origin=origin, gpu=gpu)
+                      cmap=cmap, vmin=vmin, vmax=vmax, origin=origin, gpu=gpu,
+                      tile=tile, integration_method=integration_method,
+                      tile_backend=tile_backend)
         self._attach(plot)
         return plot
 

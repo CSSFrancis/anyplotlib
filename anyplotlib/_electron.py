@@ -27,7 +27,11 @@ _figures: dict[str, object] = {}   # fig_id -> Figure
 # is zero-risk until the host opts in; SpyDE sets APL_BINARY_TRANSPORT=1.
 _BINARY_TRANSPORT = os.environ.get("APL_BINARY_TRANSPORT") == "1"
 # State keys whose value is a base64 pixel string worth sending as binary.
-_BINARY_KEYS = frozenset({"image_b64", "overlay_mask_b64"})
+# detail_b64 is the zoom DETAIL TILE — it MUST be here too, else with binary
+# transport on its _encode_pixels "\x00bin:<checksum>" token stays in the geom JSON
+# and the real bytes are never shipped, so the renderer can't decode it and the crisp
+# zoom tile never displays (you only ever see the downsampled overview base).
+_BINARY_KEYS = frozenset({"image_b64", "overlay_mask_b64", "detail_b64"})
 
 
 def _route_change(fig_id: str, name: str, value) -> None:
@@ -35,17 +39,21 @@ def _route_change(fig_id: str, name: str, value) -> None:
     large image pixel trait (when binary transport is enabled), else as a
     base64-in-JSON ``state_update``. Extracted from the observer so it's unit-
     testable without a real Figure/stdout."""
-    # Binary fast path: a large base64 pixel string → raw PLOTBIN frame. The
-    # renderer rebuilds the same bytes from the ArrayBuffer (no atob). We decode
-    # the base64 back to bytes here (cheap vs the ~200 ms transport it saves); a
-    # later change can keep the raw bytes upstream to skip even this decode.
+    # Binary fast path: ship large image pixels as a raw PLOTBIN frame (the
+    # renderer rebuilds the bytes from the ArrayBuffer — no atob).
     #
-    # The big pixel strings ride INSIDE a panel geometry trait — ``panel_<pid>_geom``
-    # is a JSON string ``{"image_b64": <b64>, "colormap_data": …, …}`` (see
-    # Figure._push). So for binary transport we parse that JSON, pull the pixel
-    # keys out, ship each as a raw PLOTBIN frame, and send the REST of the geom
-    # (small: LUT + flags) as the normal state_update. A bare pixel trait (not
-    # nested) is handled too, for robustness.
+    # The pixel keys ride INSIDE a panel geometry trait — ``panel_<pid>_geom`` is
+    # a JSON string ``{"image_b64": <token|b64>, "colormap_data": …, …}`` (see
+    # Figure._push). Two producer modes:
+    #   • RAW (Plot2D.set_data with binary transport): the geom carries a tiny
+    #     ``"\x00bin:<n>"`` change-token, and the real uint8 bytes sit in the
+    #     Figure's ``_raw_pixels`` side-table. We emit those bytes directly —
+    #     NO json-parse of a megabyte string, NO base64 decode. This is the hot
+    #     scrub path (a 4k movie frame every tick).
+    #   • BASE64 (initial __init__ frame / non-set_data pushes / robustness): the
+    #     geom carries a real base64 string, which we decode once here.
+    # Either way the REST of the geom (LUT + flags, small) goes as a normal JSON
+    # state_update with the pixels removed. A bare pixel trait is handled too.
     if _BINARY_TRANSPORT and isinstance(value, str) and value:
         if name.startswith("panel_") and name.endswith("_geom"):
             try:
@@ -53,18 +61,29 @@ def _route_change(fig_id: str, name: str, value) -> None:
             except Exception:
                 geom = None
             if isinstance(geom, dict) and any(k in geom for k in _BINARY_KEYS):
+                panel_id = name[len("panel_"):-len("_geom")]
+                fig = _figures.get(fig_id)
+                raw_tbl = getattr(fig, "_raw_pixels", None)
                 sent_binary = False
                 for k in list(geom.keys()):
-                    if k in _BINARY_KEYS and isinstance(geom[k], str) and geom[k]:
+                    if k not in _BINARY_KEYS or not isinstance(geom[k], str) or not geom[k]:
+                        continue
+                    raw = None
+                    if geom[k].startswith("\x00bin:") and raw_tbl is not None:
+                        # RAW fast path: bytes are in the side-table (no decode).
+                        raw = raw_tbl.get((panel_id, k))
+                    if raw is None:
+                        # BASE64 path (initial frame / fallback): decode once.
                         try:
-                            raw = base64.b64decode(geom.pop(k))
-                            # key carries the geom trait + which pixel field, so the
-                            # renderer routes it back into the right panel state.
-                            emit_binary(fig_id, k,
-                                        {"nbytes": len(raw), "geom": name}, raw)
-                            sent_binary = True
+                            raw = base64.b64decode(geom[k])
                         except Exception:
-                            pass   # leave it in geom → goes via JSON below
+                            continue   # leave it in geom → goes via JSON below
+                    geom.pop(k, None)
+                    # key carries which pixel field; geom= the trait name so the
+                    # renderer routes it back into the right panel state.
+                    emit_binary(fig_id, k,
+                                {"nbytes": len(raw), "geom": name}, raw)
+                    sent_binary = True
                 if sent_binary:
                     # Send the slimmed geom (LUT etc., pixels removed) as JSON.
                     emit({"type": "state_update", "fig_id": fig_id, "key": name,
