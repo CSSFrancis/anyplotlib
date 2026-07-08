@@ -56,6 +56,17 @@ class TestTransformWireFormat:
         w = g.to_wire("gid")
         assert w["transform"] == "display"
 
+    def test_clip_display_defaults_true(self):
+        g = _group("circles", offsets=[[8.0, 8.0]], transform="display")
+        w = g.to_wire("gid")
+        assert w["clip_display"] is True
+
+    def test_clip_display_round_trips_false(self):
+        g = _group("circles", offsets=[[8.0, 8.0]], transform="display",
+                   clip_display=False)
+        w = g.to_wire("gid")
+        assert w["clip_display"] is False
+
     def test_transform_data_explicit(self):
         g = _group("rectangles", offsets=[[0.0, 0.0]], widths=10, heights=10,
                    transform="data")
@@ -109,6 +120,15 @@ class TestTransformValidation:
         for tfm in ("data", "axes", "display"):
             _group("circles", offsets=[[1, 2]], transform=tfm)  # no error
 
+    def test_invalid_clip_display_raises(self):
+        with pytest.raises(ValueError, match="clip_display"):
+            _group("circles", offsets=[[1, 2]], clip_display="nope")
+
+    def test_invalid_clip_display_raises_on_set(self):
+        g = _group("circles", offsets=[[1, 2]])
+        with pytest.raises(ValueError, match="clip_display"):
+            g.set(clip_display=1)
+
 
 # ---------------------------------------------------------------------------
 # set() preserves transform
@@ -159,6 +179,12 @@ class TestPlot2DTransformKwarg:
                                      transform="display")
         wire = self.plot.markers.to_wire_list()
         assert wire[0]["transform"] == "display"
+
+    def test_add_rectangles_clip_display_false(self):
+        self.plot.add_rectangles([[5, 5]], widths=10, heights=10, name="r2",
+                                 transform="display", clip_display=False)
+        wire = self.plot.markers.to_wire_list()
+        assert wire[0]["clip_display"] is False
 
     def test_add_arrows_transform_axes(self):
         g = self.plot.add_arrows([[5, 5]], U=1, V=1, name="a", transform="axes")

@@ -1376,6 +1376,34 @@ function render({ model, el }) {
     return { x: (cw - fw) / 2, y: (ch - fh) / 2, w: fw, h: fh, s };
   }
 
+  // On-screen rect occupied by image pixels at the current zoom.
+  // zoom>=1: full fit-rect; zoom<1: centred shrunken rect inside the fit-rect.
+  function _imgVisibleRect2d(st, pw, ph) {
+    const fr = _imgFitRect(st.image_width, st.image_height, pw, ph);
+    const z = st.zoom || 1.0;
+    if (z >= 1.0) return fr;
+    const w = fr.w * z, h = fr.h * z;
+    return { x: fr.x + (fr.w - w) / 2, y: fr.y + (fr.h - h) / 2, w, h, s: fr.s * z };
+  }
+
+  // Clamp a destination rect and its UV mapping to a clip rect.
+  // Returns null when fully outside the clip.
+  function _clipRectUv(dx, dy, dw, dh, u0, v0, u1, v1, cx, cy, cw, ch) {
+    if (!(dw > 0) || !(dh > 0) || !(cw > 0) || !(ch > 0)) return null;
+    const ox0 = dx, oy0 = dy, ox1 = dx + dw, oy1 = dy + dh;
+    const nx0 = Math.max(ox0, cx), ny0 = Math.max(oy0, cy);
+    const nx1 = Math.min(ox1, cx + cw), ny1 = Math.min(oy1, cy + ch);
+    if (nx1 <= nx0 || ny1 <= ny0) return null;
+    const tx0 = (nx0 - ox0) / dw, tx1 = (nx1 - ox0) / dw;
+    const ty0 = (ny0 - oy0) / dh, ty1 = (ny1 - oy0) / dh;
+    const du = u1 - u0, dv = v1 - v0;
+    return {
+      dx: nx0, dy: ny0, dw: nx1 - nx0, dh: ny1 - ny0,
+      u0: u0 + du * tx0, u1: u0 + du * tx1,
+      v0: v0 + dv * ty0, v1: v0 + dv * ty1,
+    };
+  }
+
   function _buildLut32(st) {
     const dMin=st.display_min, dMax=st.display_max;
     const hMin=st.raw_min!=null?st.raw_min:dMin;
@@ -1499,8 +1527,15 @@ function render({ model, el }) {
     // crisp during that gap; the new tile fills the margins when it arrives.
     const ov = detailBitmap ? _detailOverlayRect(st, x, y, w, h) : null;
     if (ov) {
-      ctx.drawImage(detailBitmap, 0, 0, detailBitmap.width, detailBitmap.height,
-        ov.dx, ov.dy, ov.dw, ov.dh);
+      const vr = _imgVisibleRect2d(st, pw, ph);
+      const cl = _clipRectUv(ov.dx, ov.dy, ov.dw, ov.dh,
+        0, 0, 1, 1, vr.x, vr.y, vr.w, vr.h);
+      if (cl) {
+        const dw = detailBitmap.width, dh = detailBitmap.height;
+        ctx.drawImage(detailBitmap,
+          cl.u0 * dw, cl.v0 * dh, (cl.u1 - cl.u0) * dw, (cl.v1 - cl.v0) * dh,
+          cl.dx, cl.dy, cl.dw, cl.dh);
+      }
     }
   }
 
@@ -1968,6 +2003,9 @@ function render({ model, el }) {
     ovCtx.clearRect(0,0,imgW,imgH);
     const widgets=st.overlay_widgets||[];
     const scale=_imgScale2d(st,imgW,imgH);
+    const vr = _imgVisibleRect2d(st, imgW, imgH);
+    ovCtx.save();
+    ovCtx.beginPath(); ovCtx.rect(vr.x, vr.y, vr.w, vr.h); ovCtx.clip();
     for(const w of widgets){
       if(w.visible === false) continue;
       ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
@@ -2010,6 +2048,7 @@ function render({ model, el }) {
       }
       ovCtx.restore();
     }
+    ovCtx.restore();
   }
 
   function _drawHandle2d(ctx,x,y,color){
@@ -2025,6 +2064,7 @@ function render({ model, el }) {
     const sets=st.markers||[];
     if(!sets.length) return;
     const scale=_imgScale2d(st,imgW,imgH);
+    const vr = _imgVisibleRect2d(st, imgW, imgH);
     const hsi = hoverState ? hoverState.si : -1;
 
     for(let si=0;si<sets.length;si++){
@@ -2044,6 +2084,7 @@ function render({ model, el }) {
       // Coordinate transform dispatch: "data" (default), "axes", "display".
       // For non-data transforms sizes are in pixels, not scaled by zoom.
       const tfm = ms.transform || 'data';
+      const clipSet = tfm !== 'display' || ms.clip_display !== false;
       let _tc;
       if(tfm==='axes'){
         const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
@@ -2056,6 +2097,9 @@ function render({ model, el }) {
       const scl = tfm==='data' ? scale : 1;
 
       mkCtx.save();
+      if(clipSet){
+        mkCtx.beginPath(); mkCtx.rect(vr.x, vr.y, vr.w, vr.h); mkCtx.clip();
+      }
       mkCtx.strokeStyle=ec; mkCtx.fillStyle=ec; mkCtx.lineWidth=dlw;
 
       if(type==='circles'){
@@ -2803,16 +2847,19 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // Returns null when there's no detail tile to overlay.
   function _detailDrawUniform(st, imgW, imgH) {
     const fr = _imgFitRect(st.image_width, st.image_height, imgW, imgH);
+    const vr = _imgVisibleRect2d(st, imgW, imgH);
     const det = _detailUV(st);
     if (det) {
-      return _drawUniform(fr.x, fr.y, fr.w, fr.h,
+      return _drawUniform(vr.x, vr.y, vr.w, vr.h,
                           det.u0, det.v0, det.u1, det.v1, imgW, imgH);
     }
     const ov = _detailOverlayRect(st, fr.x, fr.y, fr.w, fr.h);
     if (ov) {
-      // The whole tile texture maps to its region rect (uv 0..1); the shader clips
-      // to the dest rect, so the margin outside stays the base.
-      return _drawUniform(ov.dx, ov.dy, ov.dw, ov.dh, 0, 0, 1, 1, imgW, imgH);
+      const cl = _clipRectUv(ov.dx, ov.dy, ov.dw, ov.dh,
+        0, 0, 1, 1, vr.x, vr.y, vr.w, vr.h);
+      if (!cl) return null;
+      return _drawUniform(cl.dx, cl.dy, cl.dw, cl.dh,
+        cl.u0, cl.v0, cl.u1, cl.v1, imgW, imgH);
     }
     return null;
   }
@@ -4822,23 +4869,39 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   function _markerHitTest2d(mx, my, st, pw, ph) {
     const sets = st.markers || [];
     const scale = _imgScale2d(st, pw, ph);
+    const vr = _imgVisibleRect2d(st, pw, ph);
     for (let si = sets.length-1; si >= 0; si--) {
       const ms = sets[si];
       const type = ms.type || 'circles';
+      const tfm = ms.transform || 'data';
+      const clipSet = tfm !== 'display' || ms.clip_display !== false;
+      if (clipSet && (mx < vr.x || mx > vr.x + vr.w || my < vr.y || my > vr.y + vr.h)) {
+        continue;
+      }
       const collLabel = ms.label != null ? String(ms.label) : null;
       const perLabels = Array.isArray(ms.labels) ? ms.labels : null;
+      let _tc;
+      if(tfm==='axes'){
+        const fr=_imgFitRect(st.image_width,st.image_height,pw,ph);
+        _tc=(fx,fy)=>[fr.x+fx*fr.w, fr.y+(1-fy)*fr.h];
+      } else if(tfm==='display'){
+        _tc=(ix,iy)=>[ix,iy];
+      } else {
+        _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,pw,ph);
+      }
+      const scl = tfm==='data' ? scale : 1;
       if (type === 'circles') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scale);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=r+MARKER_HIT)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'ellipses') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const rw=(ms.widths[i]||ms.widths[0]||10)*scale/2+MARKER_HIT;
-          const rh=(ms.heights[i]||ms.heights[0]||10)*scale/2+MARKER_HIT;
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const rw=(ms.widths[i]||ms.widths[0]||10)*scl/2+MARKER_HIT;
+          const rh=(ms.heights[i]||ms.heights[0]||10)*scl/2+MARKER_HIT;
           const dx=(mx-cx)/Math.max(1,rw), dy=(my-cy)/Math.max(1,rh);
           if(dx*dx+dy*dy<=1.0)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
@@ -4846,24 +4909,24 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if (type === 'rectangles' || type === 'squares') {
         const heights = type==='squares' ? ms.widths : ms.heights;
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const hw=(ms.widths[i]||ms.widths[0]||20)*scale/2+MARKER_HIT;
-          const hh=((heights[i]||heights[0]||20))*scale/2+MARKER_HIT;
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const hw=(ms.widths[i]||ms.widths[0]||20)*scl/2+MARKER_HIT;
+          const hh=((heights[i]||heights[0]||20))*scl/2+MARKER_HIT;
           if(Math.abs(mx-cx)<=hw&&Math.abs(my-cy)<=hh)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'arrows') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [x1,y1]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const mx2=x1+(ms.U[i]||0)*scale/2, my2=y1+(ms.V[i]||0)*scale/2;
+          const [x1,y1]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const mx2=x1+(ms.U[i]||0)*scl/2, my2=y1+(ms.V[i]||0)*scl/2;
           if(Math.sqrt((mx-mx2)**2+(my-my2)**2)<=MARKER_HIT*2)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'lines') {
         for (let i=0;i<(ms.segments||[]).length;i++) {
           const seg=ms.segments[i];
-          const [x1,y1]=_imgToCanvas2d(seg[0][0],seg[0][1],st,pw,ph);
-          const [x2,y2]=_imgToCanvas2d(seg[1][0],seg[1][1],st,pw,ph);
+          const [x1,y1]=_tc(seg[0][0],seg[0][1]);
+          const [x2,y2]=_tc(seg[1][0],seg[1][1]);
           const dx=x2-x1,dy=y2-y1,len2=dx*dx+dy*dy;
           const t=len2>0?Math.max(0,Math.min(1,((mx-x1)*dx+(my-y1)*dy)/len2)):0;
           if(Math.sqrt((mx-(x1+t*dx))**2+(my-(y1+t*dy))**2)<=MARKER_HIT)
@@ -4872,13 +4935,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if (type === 'polygons') {
         for (let i=0;i<(ms.vertices_list||[]).length;i++) {
           const verts=ms.vertices_list[i]; if(!verts||!verts.length) continue;
-          const [cx,cy]=_imgToCanvas2d(verts[0][0],verts[0][1],st,pw,ph);
+          const [cx,cy]=_tc(verts[0][0],verts[0][1]);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=MARKER_HIT*1.5)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'texts') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=MARKER_HIT*1.5)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }

@@ -111,6 +111,8 @@ class MarkerGroup:
             raise ValueError(
                 f"transform must be one of {sorted(_VALID_TRANSFORMS)}, got {tfm!r}"
             )
+        if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
+            raise ValueError("clip_display must be a bool")
         self._data: dict = dict(kwargs)
         self._push_fn = push_fn
         self._parent: "MarkerTypeDict | None" = parent
@@ -130,6 +132,8 @@ class MarkerGroup:
                 f"transform must be one of {sorted(_VALID_TRANSFORMS)}, "
                 f"got {kwargs['transform']!r}"
             )
+        if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
+            raise ValueError("clip_display must be a bool")
         self._data.update(kwargs)
         self._push_fn()
 
@@ -361,6 +365,9 @@ class MarkerGroup:
 
         # ── coordinate transform (always emitted; defaults to "data") ──────
         wire["transform"] = d.get("transform", "data")
+        # Display-space markers are clipped to the visible image rect by default;
+        # this flag allows opting out for HUD-style annotations.
+        wire["clip_display"] = bool(d.get("clip_display", True))
 
         # ── common optional fields ──────────────────────────────────────────
         label = d.get("label")
