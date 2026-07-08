@@ -244,6 +244,12 @@ class TestPlot1DTransformKwarg:
         wire = self.plot.markers.to_wire_list()
         assert wire[0]["transform"] == "axes"
 
+    def test_add_texts_clip_display_false(self):
+        self.plot.add_texts([[8.0, 8.0]], ["hud"], name="t2",
+                            transform="display", clip_display=False)
+        wire = self.plot.markers.to_wire_list()
+        assert wire[0]["clip_display"] is False
+
     def test_default_transform_is_data(self):
         self.plot.add_vlines([0.5], name="v2")
         wire = self.plot.markers.to_wire_list()

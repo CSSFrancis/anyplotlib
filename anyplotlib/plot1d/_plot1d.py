@@ -882,7 +882,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
-                    transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                    transform: str = "data",
+                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add circle markers at explicit (x, y) positions.
 
         On 1-D panels circles are rendered as filled/stroked discs; *radius*
@@ -924,14 +925,16 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_points(self, offsets, name=None, *, sizes=5,
                    color="#ff0000", facecolors=None,
                    linewidths=1.5, alpha=0.3,
                    hover_edgecolors=None, hover_facecolors=None,
                    labels=None, label=None,
-                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                   transform: str = "data",
+                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add point markers at (x, y) positions in data coordinates.
 
         Parameters
@@ -967,13 +970,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_hlines(self, y_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None,
-                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                   transform: str = "data",
+                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add static horizontal lines spanning the full x range.
 
         Parameters
@@ -1001,13 +1006,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_vlines(self, x_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None,
-                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                   transform: str = "data",
+                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add static vertical lines spanning the full y range.
 
         Parameters
@@ -1035,13 +1042,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 color=color, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_arrows(self, offsets, U, V, name=None, *,
                    edgecolors="#ff0000", linewidths=1.5,
                    hover_edgecolors=None,
                    labels=None, label=None,
-                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                   transform: str = "data",
+                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add arrow markers at explicit (x, y) positions.
 
         Parameters
@@ -1071,14 +1080,16 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_ellipses(self, offsets, widths, heights, name=None, *,
                      angles=0, facecolors=None, edgecolors="#ff0000",
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None,
-                     transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                     transform: str = "data",
+                     clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add ellipse markers at explicit (x, y) positions.
 
         Parameters
@@ -1117,13 +1128,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_lines(self, segments, name=None, *,
                   edgecolors="#ff0000", linewidths=1.5,
                   hover_edgecolors=None,
                   labels=None, label=None,
-                  transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                  transform: str = "data",
+                  clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add line-segment markers (static, not draggable).
 
         Parameters
@@ -1151,14 +1164,16 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_rectangles(self, offsets, widths, heights, name=None, *,
                        angles=0, facecolors=None, edgecolors="#ff0000",
                        linewidths=1.5, alpha=0.3,
                        hover_edgecolors=None, hover_facecolors=None,
                        labels=None, label=None,
-                       transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                       transform: str = "data",
+                       clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add rectangle markers at explicit (x, y) positions.
 
         Parameters
@@ -1197,14 +1212,16 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_squares(self, offsets, widths, name=None, *,
                     angles=0, facecolors=None, edgecolors="#ff0000",
                     linewidths=1.5, alpha=0.3,
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
-                    transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                    transform: str = "data",
+                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add square markers at explicit (x, y) positions.
 
         Parameters
@@ -1243,14 +1260,16 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_polygons(self, vertices_list, name=None, *,
                      facecolors=None, edgecolors="#ff0000",
                      linewidths=1.5, alpha=0.3,
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None, clip_path=None,
-                     transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                     transform: str = "data",
+                     clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add polygon markers defined by explicit vertex lists.
 
         Parameters
@@ -1289,11 +1308,13 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label, clip_path=clip_path,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_raster(self, rgba, *, extent, name=None, clip_path=None,
                    smooth: bool = False,
-                   transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                   transform: str = "data",
+                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add an RGBA image drawn between data-coordinate ``extent`` corners.
 
         A single-``drawImage`` raster — the fast path for a dense regular grid
@@ -1332,13 +1353,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 image_width=int(w), image_height=int(h),
                                 extent=tuple(float(v) for v in extent),
                                 clip_path=clip_path, smooth=bool(smooth),
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def add_texts(self, offsets, texts, name=None, *,
                   color="#ff0000", fontsize=12,
                   hover_edgecolors=None,
                   labels=None, label=None,
-                  transform: str = "data") -> "MarkerGroup":  # noqa: F821
+                  transform: str = "data",
+                  clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add text annotations at explicit (x, y) positions.
 
         Parameters
@@ -1368,7 +1391,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 color=color, fontsize=fontsize,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform)
+                                transform=transform,
+                                clip_display=clip_display)
 
     def __repr__(self) -> str:
         n = len(self._state.get("data", []))
