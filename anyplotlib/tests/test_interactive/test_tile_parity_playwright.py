@@ -107,6 +107,76 @@ def _widget_rect(page, panel_id: str, widget_id: str) -> dict:
     return w[0]
 
 
+def _set_widget_visible(page, panel_id: str, widget_id: str, visible: bool) -> None:
+    page.evaluate(
+        """(args) => {
+            const [pid, wid, vis] = args;
+            const key = 'panel_' + pid + '_json';
+            const st = JSON.parse(window._aplModel.get(key));
+            const ws = st.overlay_widgets || [];
+            const w = ws.find(x => x.id === wid);
+            if (!w) throw new Error('widget not found: ' + wid);
+            w.visible = !!vis;
+            st.overlay_widgets = ws;
+            window._aplModel.set(key, JSON.stringify(st));
+        }""",
+        [panel_id, widget_id, visible],
+    )
+
+
+def _set_circles_offsets(page, panel_id: str, offsets: list[list[float]]) -> None:
+    page.evaluate(
+        """(args) => {
+            const [pid, offsets] = args;
+            const key = 'panel_' + pid + '_json';
+            const st = JSON.parse(window._aplModel.get(key));
+            const markers = st.markers || [];
+            const g = markers.find(m => m.type === 'circles');
+            if (!g) throw new Error('circles marker group not found');
+            g.offsets = offsets;
+            if (Array.isArray(g.sizes)) {
+                const s = g.sizes.length > 0 ? g.sizes[0] : 7;
+                g.sizes = offsets.map(() => s);
+            }
+            st.markers = markers;
+            window._aplModel.set(key, JSON.stringify(st));
+        }""",
+        [panel_id, offsets],
+    )
+
+
+def _make_rich_marker_scene(tile: bool):
+    fig, ax = apl.subplots(1, 1, figsize=(FIG_W, FIG_H))
+    x = np.linspace(0.0, 1.0, 1024, dtype=np.float32)
+    y = np.linspace(0.0, 1.0, 1024, dtype=np.float32)
+    img = (np.sin(6 * np.pi * x)[None, :] * np.cos(4 * np.pi * y)[:, None]).astype(np.float32)
+    plot = ax.imshow(img, cmap="gray", vmin=-1.0, vmax=1.0, tile=tile, gpu=False)
+    plot.add_circles(
+        np.array([[140.0, 220.0], [520.0, 520.0], [900.0, 300.0]], dtype=np.float32),
+        name="cir",
+        radius=7,
+        facecolors="#ff4d4d",
+        edgecolors="#ffffff",
+    )
+    plot.add_lines(
+        [
+            [[120.0, 120.0], [920.0, 760.0]],
+            [[180.0, 860.0], [860.0, 180.0]],
+        ],
+        name="ln",
+        edgecolors="#00e5ff",
+        linewidths=2.5,
+    )
+    plot.add_polygons(
+        [[[250.0, 250.0], [330.0, 240.0], [300.0, 330.0]]],
+        name="poly",
+        facecolors="#ff9100",
+        edgecolors="#ff9100",
+        alpha=0.35,
+    )
+    return fig, plot
+
+
 class TestTileInteractiveParity:
     def test_initial_marker_widget_overlay_matches(self, interact_page):
         fig_plain, p_plain, _ = _make_scene(tile=False)
@@ -189,6 +259,56 @@ class TestTileInteractiveParity:
         st_plain = json.loads(page_plain.evaluate("(pid) => globalThis.__apl_viewStateJson(pid)", p_plain._id))
         st_tile = json.loads(page_tile.evaluate("(pid) => globalThis.__apl_viewStateJson(pid)", p_tile._id))
         assert st_tile.get("zoom") == st_plain.get("zoom")
+
+    def test_rich_marker_render_parity(self, interact_page):
+        fig_plain, p_plain = _make_rich_marker_scene(tile=False)
+        fig_tile, p_tile = _make_rich_marker_scene(tile=True)
+        page_plain = interact_page(fig_plain)
+        page_tile = interact_page(fig_tile)
+        page_plain.wait_for_timeout(120)
+        page_tile.wait_for_timeout(120)
+
+        st_tile = json.loads(page_tile.evaluate("(pid) => globalThis.__apl_viewStateJson(pid)", p_tile._id))
+        assert st_tile.get("tile_enabled") is True
+
+        arr_plain = _widget_png(page_plain)
+        arr_tile = _widget_png(page_tile)
+        _assert_exact("rich marker render parity", arr_tile, arr_plain)
+
+    def test_marker_offsets_update_parity(self, interact_page):
+        fig_plain, p_plain, _ = _make_scene(tile=False)
+        fig_tile, p_tile, _ = _make_scene(tile=True)
+        page_plain = interact_page(fig_plain)
+        page_tile = interact_page(fig_tile)
+
+        offsets = [[180.0, 180.0], [540.0, 600.0], [860.0, 260.0]]
+        _set_circles_offsets(page_plain, p_plain._id, offsets)
+        _set_circles_offsets(page_tile, p_tile._id, offsets)
+        page_plain.wait_for_timeout(80)
+        page_tile.wait_for_timeout(80)
+
+        arr_plain = _markers_canvas_rgb(page_plain)
+        arr_tile = _markers_canvas_rgb(page_tile)
+        _assert_exact("marker offset update parity", arr_tile, arr_plain)
+
+    def test_widget_visibility_toggle_parity(self, interact_page):
+        fig_plain, p_plain, _ = _make_scene(tile=False)
+        fig_tile, p_tile, _ = _make_scene(tile=True)
+        w_plain = p_plain.add_widget("crosshair", cx=700.0, cy=720.0)
+        w_tile = p_tile.add_widget("crosshair", cx=700.0, cy=720.0)
+
+        page_plain = interact_page(fig_plain)
+        page_tile = interact_page(fig_tile)
+
+        _set_widget_visible(page_plain, p_plain._id, w_plain.id, False)
+        _set_widget_visible(page_tile, p_tile._id, w_tile.id, False)
+        page_plain.wait_for_timeout(80)
+        page_tile.wait_for_timeout(80)
+
+        arr_plain = _widget_png(page_plain)
+        arr_tile = _widget_png(page_tile)
+        _assert_exact("widget visibility toggle parity", arr_tile, arr_plain)
+
 
 
 
