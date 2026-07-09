@@ -106,10 +106,15 @@ class TestElectronRouting:
         assert key == "image_b64"
         assert header["geom"] == "panel_p1_geom"
         assert raw == pixels.tobytes()
-        # …and the SLIMMED geom (pixels removed, LUT kept) goes as one JSON update.
+        # …and the SLIMMED geom (LUT kept) goes as one JSON update, with the
+        # pixel key replaced by a SMALL content token — NOT removed. The
+        # renderer's blit/texture caches key "unchanged → skip re-upload" on
+        # this string; with the key absent, JS fell back to a 4-sampled-byte
+        # fingerprint that collided across frames and froze the display.
         assert len(captured["json"]) == 1
         slim = json.loads(captured["json"][0]["value"])
-        assert "image_b64" not in slim
+        tok = slim["image_b64"]
+        assert tok.startswith("\x00bin:") and len(tok) < 64
         assert slim["colormap_data"] == [[0, 0, 0]]
 
     def test_geom_stays_base64_when_disabled(self, monkeypatch):
@@ -155,9 +160,11 @@ class TestElectronRouting:
         el._route_change("figX", "panel_p1_geom", geom)
         keys = [a[1] for a in captured["bin"]]
         assert "detail_b64" in keys, f"detail tile did not go binary: {keys}"
-        # the slimmed geom drops the pixel key but keeps the small region metadata
+        # the slimmed geom keeps the small region metadata and carries a small
+        # content TOKEN under the pixel key (cache identity for the renderer).
         slim = json.loads(captured["json"][0]["value"])
-        assert "detail_b64" not in slim
+        assert slim["detail_b64"].startswith("\x00bin:")
+        assert len(slim["detail_b64"]) < 64
         assert slim["detail_region"] == [0, 7, 0, 7]
 
 
@@ -215,9 +222,11 @@ class TestRawPixelSideChannel:
         _fig_id, key, header, raw = captured["bin"]
         assert key == "image_b64"
         assert raw == b"\x01\x02\x03\x04rawpixels", "must ship the side-table bytes verbatim"
-        # slimmed geom drops the pixel key, keeps the LUT
+        # slimmed geom keeps the LUT + the original content token under the
+        # pixel key (already small — passed through as the cache identity).
         slim = json.loads(captured["json"][0]["value"])
-        assert "image_b64" not in slim and slim["colormap_data"] == [[1, 2, 3]]
+        assert slim["image_b64"] == "\x00bin:12345"
+        assert slim["colormap_data"] == [[1, 2, 3]]
 
     def test_route_change_falls_back_to_base64_without_sidetable(self, monkeypatch):
         # Robustness: a REAL base64 geom (initial frame / no side-table entry)

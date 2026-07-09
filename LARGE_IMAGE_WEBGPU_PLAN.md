@@ -22,6 +22,18 @@ Status: **Phase 0 + core Phase 1/2 DONE, hardware-verified** (2026-07-06). Branc
   view falls back to Canvas2D so the base image stays registered with the axes/
   overlays (the GPU quad is full-extent). Nearest sampling on both textures matches
   Canvas2D's `imageSmoothingEnabled=false` pixel-for-pixel.
+- **Zoom/pan v-window fix + headless GPU parity tests (2026-07-09)**: the shader
+  applied a global `1 - v` flip AFTER interpolating the `[v0,v1]` window, sampling
+  the MIRRORED window `[1-v1, 1-v0]` — correct only when v0+v1==1 (rest / centred
+  zoom), so it survived the readback tests but inverted pan-y and detached the
+  image from markers/overlays on any vertically off-centre view (base AND detail
+  passes; fixed by interpolating v from v1 at the screen bottom to v0 at the top).
+  Guarded by `tests/test_plot2d/test_gpu_parity_playwright.py`: GPU-vs-Canvas2D
+  PNG parity (rest/zoom/pan/markers/widgets/detail-tile) on REAL WebGPU in
+  headless Chromium — `channel="chromium"` (the full build; the default headless
+  shell has no `navigator.gpu`) + `--enable-unsafe-webgpu`, skipped when no
+  adapter. NB `page.screenshot()` DOES capture the WebGPU canvas there; the
+  "swapchain reads black" caveat below applies to Electron offscreen capture.
 - **Verification**: `__apl_gpuReadback` renders the active panel to an OFFSCREEN
   texture (the live swapchain reads black under automation) and copies it to CPU.
   On a real 4k movie frame: min 0 / max 255 / 96% non-black / correct gray values.

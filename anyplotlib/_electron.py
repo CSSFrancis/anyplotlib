@@ -14,6 +14,7 @@ import json
 import os
 import sys
 import uuid
+import zlib
 
 from anyplotlib._binary_frame import encode_frame
 
@@ -78,7 +79,18 @@ def _route_change(fig_id: str, name: str, value) -> None:
                             raw = base64.b64decode(geom[k])
                         except Exception:
                             continue   # leave it in geom → goes via JSON below
-                    geom.pop(k, None)
+                    # Replace the pixel value with a small content TOKEN instead of
+                    # popping the key: the renderer's caches (blitCache, GPU
+                    # texture, maskCache) key their "unchanged → skip re-upload"
+                    # checks on this string. Popping it left st.<key> empty in JS,
+                    # whose fallback fingerprint samples only 4 bytes of the
+                    # buffer — two frames differing anywhere else COLLIDED and the
+                    # skip froze the display on the old frame (found: a movie
+                    # overview refresh that only moved a mid-frame feature).
+                    tok = geom[k]
+                    if not tok.startswith("\x00bin:"):
+                        tok = f"\x00bin:{zlib.adler32(raw) & 0xFFFFFFFF}"
+                    geom[k] = tok
                     # key carries which pixel field; geom= the trait name so the
                     # renderer routes it back into the right panel state.
                     emit_binary(fig_id, k,

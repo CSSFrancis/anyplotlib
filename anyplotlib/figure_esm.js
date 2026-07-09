@@ -658,6 +658,7 @@ function render({ model, el }) {
   // ── per-panel state maps ──────────────────────────────────────────────────
   const panels = new Map();
   let _suppressLayoutUpdate = false;  // block re-entry during live resize
+  let _pixArrivalSeq = 0;  // monotonic binary-pixel-frame arrival counter
 
   // ── layout application ───────────────────────────────────────────────────
   function applyLayout() {
@@ -949,6 +950,13 @@ function render({ model, el }) {
           // Bytes come from the global side-table (the model can't carry a
           // Uint8Array), keyed by the same slot the token trait carries.
           const b = (globalThis.__apl_pixbytes || {})[slot];
+          // Stamp a monotonic ARRIVAL sequence on the buffer: every received
+          // frame is genuinely-new content (Python dedups unchanged pixels
+          // before sending), so this is a free collision-proof cache key for
+          // _imageBytes when no content token is present in the state.
+          if (b && b.__aplSeq === undefined) {
+            try { b.__aplSeq = ++_pixArrivalSeq; } catch (_) {}
+          }
           p2._geomCache[pixelKey + '_bytes'] = b;
           if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
         });
@@ -1101,6 +1109,13 @@ function render({ model, el }) {
           // Bytes come from the global side-table (the model can't carry a
           // Uint8Array), keyed by the same slot the token trait carries.
           const b = (globalThis.__apl_pixbytes || {})[slot];
+          // Stamp a monotonic ARRIVAL sequence on the buffer: every received
+          // frame is genuinely-new content (Python dedups unchanged pixels
+          // before sending), so this is a free collision-proof cache key for
+          // _imageBytes when no content token is present in the state.
+          if (b && b.__aplSeq === undefined) {
+            try { b.__aplSeq = ++_pixArrivalSeq; } catch (_) {}
+          }
           p2._geomCache[pixelKey + '_bytes'] = b;
           if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
         });
@@ -1482,7 +1497,18 @@ function render({ model, el }) {
     return oc;
   }
 
-  function _blit2d(bitmap, st, pw, ph, ctx, detailBitmap) {
+  // Brief alpha ramp when detail-overlay mode changes (none/partial/full).
+  const _DETAIL_BLEND_MS = 90;
+
+  function _detailBlendAlpha(p, mode) {
+    const now = performance.now();
+    const b = (p._detailBlend ||= { mode: 'none', t0: now });
+    if (b.mode !== mode) { b.mode = mode; b.t0 = now; }
+    if (mode === 'none') return 0;
+    return Math.max(0, Math.min(1, (now - b.t0) / _DETAIL_BLEND_MS));
+  }
+
+  function _blit2d(p, bitmap, st, pw, ph, ctx, detailBitmap) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
     const iw = st.image_width, ih = st.image_height;
@@ -1490,17 +1516,7 @@ function render({ model, el }) {
     ctx.fillStyle = theme.bgCanvas;
     ctx.fillRect(0, 0, pw, ph);
     ctx.imageSmoothingEnabled = false;
-    // Detail tile FULLY covers the view → blit the hi-res TILE over the fit-rect
-    // (crisp native pixels), mirroring the GPU _detailUV path.
-    const det = detailBitmap ? _detailUV(st) : null;
-    if (det) {
-      const dw = detailBitmap.width, dh = detailBitmap.height;
-      const sx = det.u0 * dw, sy = det.v0 * dh;
-      const sw = (det.u1 - det.u0) * dw, sh = (det.v1 - det.v0) * dh;
-      ctx.drawImage(detailBitmap, sx, sy, sw, sh, x, y, w, h);
-      return;
-    }
-    // Base pass (overview or full frame) — always drawn first.
+    // Base pass (overview or full frame) always draws first; detail layers blend over it.
     if (zoom >= 1.0) {
       // Zoomed in: show a portion of the image filling the fit-rect. The visible
       // window is in LOGICAL px; scale it to the bitmap's OWN texels (the base may
@@ -1518,25 +1534,40 @@ function render({ model, el }) {
       ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height,
         x + (w - dstW) / 2, y + (h - dstH) / 2, dstW, dstH);
     }
-    // Detail OVERLAY pass: when a detail tile exists but no longer FULLY covers the
-    // view (a zoom-OUT or pan just enlarged/moved the window past the old region),
-    // draw the still-valid crisp tile ON TOP of the base over its own screen rect.
-    // Without this the render snaps entirely to the blurry base the instant the
-    // window exceeds the region, then flashes back to crisp when the wider tile
-    // lands ~90 ms later — the jarring zoom-out flash. Compositing keeps the centre
-    // crisp during that gap; the new tile fills the margins when it arrives.
-    const ov = detailBitmap ? _detailOverlayRect(st, x, y, w, h) : null;
-    if (ov) {
-      const vr = _imgVisibleRect2d(st, pw, ph);
-      const cl = _clipRectUv(ov.dx, ov.dy, ov.dw, ov.dh,
-        0, 0, 1, 1, vr.x, vr.y, vr.w, vr.h);
-      if (cl) {
-        const dw = detailBitmap.width, dh = detailBitmap.height;
-        ctx.drawImage(detailBitmap,
-          cl.u0 * dw, cl.v0 * dh, (cl.u1 - cl.u0) * dw, (cl.v1 - cl.v0) * dh,
-          cl.dx, cl.dy, cl.dw, cl.dh);
-      }
+    const det = detailBitmap ? _detailUV(st) : null;
+    const ov = (!det && detailBitmap) ? _detailOverlayRect(st, x, y, w, h) : null;
+    const mode = det ? 'full' : (ov ? 'partial' : 'none');
+    const alpha = _detailBlendAlpha(p, mode);
+    if (mode !== 'none' && alpha < 1 && !p._detailBlendRAF) {
+      p._detailBlendRAF = requestAnimationFrame(() => {
+        p._detailBlendRAF = 0;
+        if (p.state) draw2d(p);
+      });
     }
+    if (!(alpha > 0) || !detailBitmap) return;
+
+    if (det) {
+      const dw = detailBitmap.width, dh = detailBitmap.height;
+      const sx = det.u0 * dw, sy = det.v0 * dh;
+      const sw = (det.u1 - det.u0) * dw, sh = (det.v1 - det.v0) * dh;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(detailBitmap, sx, sy, sw, sh, x, y, w, h);
+      ctx.restore();
+      return;
+    }
+
+    const vr = _imgVisibleRect2d(st, pw, ph);
+    const cl = _clipRectUv(ov.dx, ov.dy, ov.dw, ov.dh,
+      0, 0, 1, 1, vr.x, vr.y, vr.w, vr.h);
+    if (!cl) return;
+    const dw = detailBitmap.width, dh = detailBitmap.height;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(detailBitmap,
+      cl.u0 * dw, cl.v0 * dh, (cl.u1 - cl.u0) * dw, (cl.v1 - cl.v0) * dh,
+      cl.dx, cl.dy, cl.dw, cl.dh);
+    ctx.restore();
   }
 
   function draw2d(p) {
@@ -1612,7 +1643,7 @@ function render({ model, el }) {
     const needRebuild = b64!==blitCache.bytesKey || lk!==blitCache.lutKey
                      || !blitCache.bitmap || blitCache.w!==iw || blitCache.h!==ih;
     if(!needRebuild && blitCache.bitmap){
-      _blit2d(blitCache.bitmap, st, imgW, imgH, ctx, _detailBitmap(p, st));
+      _blit2d(p, blitCache.bitmap, st, imgW, imgH, ctx, _detailBitmap(p, st));
     } else {
       const bytes = _img.bytes;
       if (!bytes) return;
@@ -1628,7 +1659,7 @@ function render({ model, el }) {
       oc.getContext('2d').putImageData(imgData,0,0);
       blitCache.bitmap=oc; blitCache.bytesKey=b64; blitCache.lutKey=lk;
       blitCache.w=iw; blitCache.h=ih;
-      _blit2d(oc, st, imgW, imgH, ctx, _detailBitmap(p, st));
+      _blit2d(p, oc, st, imgW, imgH, ctx, _detailBitmap(p, st));
     }
     }
 
@@ -1677,8 +1708,16 @@ function render({ model, el }) {
           mg=parseInt(mColor.slice(3,5),16);
           mb=parseInt(mColor.slice(5,7),16);
         }
+        // Binary transport ships the mask bytes on the companion trait (the
+        // geom then carries only a "\x00bin:" content token in mob64) — prefer
+        // them; atob is the base64-in-JSON fallback.
         let mBytes;
-        try{const bin=atob(mob64);mBytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)mBytes[i]=bin.charCodeAt(i);}catch(_){mBytes=null;}
+        const mraw=st.overlay_mask_b64_bytes;
+        if(mraw&&(mraw instanceof Uint8Array||mraw.byteLength!==undefined)){
+          mBytes=mraw instanceof Uint8Array?mraw:new Uint8Array(mraw);
+        }else{
+          try{const bin=atob(mob64);mBytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)mBytes[i]=bin.charCodeAt(i);}catch(_){mBytes=null;}
+        }
         if(mBytes&&mBytes.length===iw*ih){
           const mImg=new ImageData(iw,ih);
           // Write colour where mask=255; transparent where mask=0.
@@ -2481,10 +2520,18 @@ fn vs(@builtin(vertex_index) vi : u32) -> VsOut {
   let x = mix(u.rect.x, u.rect.z, q.x);       // lerp into clip-space rect
   let y = mix(u.rect.y, u.rect.w, q.y);
   out.pos = vec4<f32>(x, y, 0.0, 1.0);
-  // Sample the uv sub-region; v flipped so the image draws top-row-first (imshow).
   let uu = mix(u.uvrect.x, u.uvrect.z, q.x);
-  let vv = mix(u.uvrect.y, u.uvrect.w, q.y);
-  out.uv  = vec2<f32>(uu, 1.0 - vv);
+  // q.y=0 is the SCREEN BOTTOM (rect.y is the lower clip edge), which shows
+  // the LAST row of the visible window (v1); q.y=1 (screen top) shows the
+  // first (v0) — so v interpolates from v1 down to v0 WITHIN the window
+  // (imshow: texture row 0 = image top). Do NOT flip with a global (1 - v)
+  // after interpolating [v0,v1]: that samples the MIRRORED window
+  // [1-v1, 1-v0] — identical only when v0+v1 == 1 (full view / vertically
+  // centred), so it survived centred-zoom tests but inverted the pan-y
+  // direction and detached the image from markers/overlays on any
+  // vertically off-centre view (base AND detail passes).
+  let vv = mix(u.uvrect.w, u.uvrect.y, q.y);
+  out.uv  = vec2<f32>(uu, vv);
   return out;
 }
 
@@ -2541,10 +2588,17 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const raw = st.image_b64_bytes;
     if (raw && (raw instanceof Uint8Array || raw.byteLength !== undefined)) {
       const u8 = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
-      // Cache identity: with no base64 string to key on, derive a cheap content
-      // fingerprint (length + a few sampled bytes) so two DIFFERENT same-length
-      // frames don't collide and wrongly skip the re-upload.
+      // Cache identity, in preference order:
+      //  1. the content token in st.image_b64 ("\x00bin:<adler>", kept in the
+      //     slimmed geom by _route_change),
+      //  2. the buffer's ARRIVAL sequence (stamped when the binary frame was
+      //     spliced in — every received frame is new content),
+      //  3. a sampled fingerprint as a last resort. NB sampling is WEAK: it
+      //     reads only 4 bytes, so frames differing anywhere else collide and
+      //     the "unchanged → skip re-upload" check freezes the display — this
+      //     branch must stay a fallback, never the primary key.
       let key = st.image_b64;
+      if (!key && u8.__aplSeq !== undefined) key = `binseq:${u8.__aplSeq}`;
       if (!key) {
         const n = u8.length;
         const s0 = u8[0] || 0, s1 = u8[(n >> 2) | 0] || 0;
@@ -3021,6 +3075,47 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const p = panels.get(panelId);
       if (!p) return null;
       try { return _viewStateJson(p); } catch (_) { return null; }
+    };
+    // Test hook: the image-px → canvas-px transform for a 2-D panel at its
+    // CURRENT zoom/center (the same _imgToCanvas2d the markers/widgets use),
+    // so a test can aim the mouse at a widget/feature under any view.
+    globalThis.__apl_imgToCanvas = function (panelId, ix, iy) {
+      const p = panels.get(panelId);
+      if (!p || !p.state || p.kind !== '2d') return null;
+      const imgW = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
+      const imgH = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
+      try { return _imgToCanvas2d(ix, iy, p.state, imgW, imgH); }
+      catch (_) { return null; }
+    };
+    // Test hook: pixel-freshness diagnostic for a 2-D panel — which bytes does
+    // the state hold vs which bitmap/texture is cached? Distinguishes "stale
+    // bytes arrived" from "fresh bytes, stale render cache".
+    globalThis.__apl_panelDiag = function (panelId) {
+      const p = panels.get(panelId);
+      if (!p || !p.state || p.kind !== '2d') return null;
+      const st = p.state;
+      const img = _imageBytes(st);
+      const fp = (u8) => {
+        if (!u8) return null;
+        const n = u8.length;
+        let s = 0;
+        for (let i = 0; i < n; i += Math.max(1, n >> 6)) s = (s * 31 + u8[i]) >>> 0;
+        return `${n}:${s}`;
+      };
+      return {
+        token: String(st.image_b64 || '').slice(0, 24),
+        hasBytes: !!st.image_b64_bytes,
+        bytesFp: fp(img.bytes),
+        base: [st.base_width, st.base_height],
+        logical: [st.image_width, st.image_height],
+        detail_region: st.detail_region || [],
+        detail_seq: st.detail_seq || 0,
+        geomRev: st._geom_rev,
+        blitKey: p.blitCache && String(p.blitCache.bytesKey || '').slice(0, 24),
+        blitWH: p.blitCache && [p.blitCache.w, p.blitCache.h],
+        gpuBytesKey: p._gpuImg && String(p._gpuImg.bytesKey || '').slice(0, 24),
+        gpu: p._gpu,
+      };
     };
     // Tile debug: __apl_tileDebug(true) then pan/zoom, then __apl_tileDump() to read
     // the ring buffer of detail-tile decisions (detailUV vs FALLBACK->base) + the

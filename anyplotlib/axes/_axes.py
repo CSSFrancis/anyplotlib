@@ -43,6 +43,7 @@ class Axes:
                gpu: "str | bool" = "auto",
                tile: "str | bool" = "auto",
                integration_method: str = "mean",
+               overview_method: str = "mean",
                tile_backend=None) -> "Plot2D":
         """Attach a 2-D image to this axes cell.
 
@@ -80,6 +81,7 @@ class Axes:
         plot = Plot2D(data, x_axis=x_axis, y_axis=y_axis, units=units,
                       cmap=cmap, vmin=vmin, vmax=vmax, origin=origin, gpu=gpu,
                       tile=tile, integration_method=integration_method,
+                      overview_method=overview_method,
                       tile_backend=tile_backend)
         self._attach(plot)
         return plot

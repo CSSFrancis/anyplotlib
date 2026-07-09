@@ -283,6 +283,120 @@ def interact_page(_pw_browser):
 
 
 # ---------------------------------------------------------------------------
+# WebGPU browser + interaction fixture
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def _pw_gpu_browser(_pw_browser):
+    """Full-build Chromium with WebGPU enabled, or skip.
+
+    Playwright's default headless browser is the stripped "chromium headless
+    shell", which has NO ``navigator.gpu`` at all. The full build
+    (``channel="chromium"``, new headless mode) exposes the machine's real
+    WebGPU adapter when launched with ``--enable-unsafe-webgpu``. Tests that
+    depend on this fixture are skipped when the channel isn't installed
+    (``playwright install chromium`` installs both) or when the machine has
+    no usable adapter (e.g. a GPU-less CI runner).
+
+    Launched through the EXISTING sync-playwright context (via
+    ``_pw_browser.browser_type``) — only one ``sync_playwright()`` may be
+    active per thread, so a second context manager here would raise
+    "Sync API inside the asyncio loop" whenever both fixtures are used in
+    one run.
+
+    NB ``navigator.gpu`` only exists in secure contexts: probe/test pages
+    must be loaded via ``file://`` (fine), not ``about:blank``.
+    """
+    try:
+        browser = _pw_browser.browser_type.launch(
+            headless=True, channel="chromium",
+            args=["--enable-unsafe-webgpu"],
+        )
+    except Exception as e:  # channel not installed
+        pytest.skip(f"full-chromium channel unavailable: {e}")
+    # Probe for a real adapter once per session (file:// for secure context).
+    with tempfile.NamedTemporaryFile(
+        suffix=".html", mode="w", encoding="utf-8", delete=False
+    ) as fh:
+        fh.write("<html><body></body></html>")
+        probe_path = pathlib.Path(fh.name)
+    page = browser.new_page()
+    try:
+        page.goto(probe_path.as_uri())
+        adapter = page.evaluate(
+            """async () => {
+                if (!navigator.gpu) return null;
+                try {
+                    const a = await navigator.gpu.requestAdapter();
+                    return a ? ((a.info && a.info.vendor) || 'unknown') : null;
+                } catch (_) { return null; }
+            }"""
+        )
+    finally:
+        page.close()
+        probe_path.unlink(missing_ok=True)
+    if adapter is None:
+        browser.close()
+        pytest.skip("no WebGPU adapter available in headless Chromium")
+    yield browser
+    browser.close()
+
+
+@pytest.fixture
+def gpu_interact_page(_pw_gpu_browser):
+    """Like ``interact_page`` but in the WebGPU-capable browser.
+
+    Returns ``open_widget(fig, expect_gpu=False) → page``. With
+    ``expect_gpu=True`` it additionally waits until every 2-D image panel
+    reports the GPU path ACTIVE (the async device init + activation redraw
+    landed) via the ``__apl_gpu2d`` diagnostic — so a screenshot taken after
+    this is guaranteed to be the WebGPU rendering, not the first-frame
+    Canvas2D paint. CPU-reference figures (``gpu=False``) should be opened in
+    this SAME browser (``expect_gpu=False``) so GPU-vs-CPU comparisons see an
+    identical rendering environment apart from the image path under test.
+    """
+    _pages: list = []
+    _paths: list = []
+
+    def _open(widget, expect_gpu: bool = False):
+        html = _build_interact_html(widget)
+        with tempfile.NamedTemporaryFile(
+            suffix=".html", mode="w", encoding="utf-8", delete=False
+        ) as fh:
+            fh.write(html)
+            tmp = pathlib.Path(fh.name)
+        _paths.append(tmp)
+
+        page = _pw_gpu_browser.new_page()
+        _pages.append(page)
+        page.goto(tmp.as_uri())
+        page.wait_for_function("() => window._aplReady === true", timeout=15_000)
+        page.evaluate(
+            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+        if expect_gpu:
+            page.wait_for_function(
+                """() => {
+                    const d = globalThis.__apl_gpu2d || {};
+                    const v = Object.values(d);
+                    return v.length > 0 && v.every(x => x.active);
+                }""",
+                timeout=20_000,
+            )
+        return page
+
+    yield _open
+
+    for page in _pages:
+        try:
+            page.close()
+        except Exception:
+            pass
+    for path in _paths:
+        path.unlink(missing_ok=True)
+
+
+# ---------------------------------------------------------------------------
 # Benchmark fixtures + helper
 # ---------------------------------------------------------------------------
 

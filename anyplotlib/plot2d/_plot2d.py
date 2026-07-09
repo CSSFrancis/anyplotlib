@@ -84,6 +84,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                  gpu: "str | bool" = "auto",
                  tile: "str | bool" = "auto",
                  integration_method: str = "mean",
+                 overview_method: str = "mean",
                  tile_backend=None):
         self._id:  str = ""       # assigned by Axes._attach
         self._fig: object = None  # assigned by Axes._attach
@@ -102,6 +103,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         # the logical full size is remembered for the coordinate system.
         from anyplotlib.plot2d._tile_backend import as_tile_backend, TileBackend
         self._integration_method = integration_method
+        # Sampling method used for the always-visible base OVERVIEW texture.
+        # Defaults to "mean" so sparse images are integration-consistent between
+        # overview and detail tiles — a "subsample" overview would show very
+        # different intensities on a sparse image compared to a "mean" detail
+        # tile, producing a visible shift on zoom-in.  Pass
+        # overview_method="subsample" to restore the old fast path when a full-
+        # frame area-mean is too expensive (e.g. 16 MP+ frames on every scrub).
+        self._overview_method: str = overview_method
         self._tile_backend = None
         self._detail_pending = None   # (id) latest requested tile — latest-wins
         src = tile_backend if tile_backend is not None else data
@@ -314,17 +323,17 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         ~OVERVIEW_MAX px on the long edge (refined to the real panel size on the
         first view_changed). Row 0 at top (display orientation).
 
-        Uses SUBSAMPLE (nearest, ~1 ms), NOT the area-mean integration method: the
-        overview is only the zoomed-OUT thumbnail the GPU upscales — real detail always
-        comes from the on-demand detail tile (which DOES area-mean/native-sample the
-        visible region). Area-meaning the full frame here cost ~65 ms of numpy.sum over
-        16 MP on EVERY movie-scrub frame — the "transport slow" regression. Subsampling
-        a thumbnail is visually equivalent for an overview and ~65× cheaper."""
+        Uses ``self._overview_method`` (default ``"mean"``) so the base overview is
+        integration-consistent with detail tiles — important for sparse images where a
+        ``"subsample"`` overview shows very different intensities from a ``"mean"``
+        detail tile, producing a visible shift on zoom-in.  Pass
+        ``overview_method="subsample"`` to ``imshow``/``enable_tile`` when a full-frame
+        area-mean is too expensive (e.g. 16 MP+ frames scrubbed on every tick)."""
         h, w = backend.full_shape
         scale = max(1.0, max(h, w) / float(self.OVERVIEW_MAX))
         ov_w = max(1, int(round(w / scale)))
         ov_h = max(1, int(round(h / scale)))
-        ov = backend.sample(0, w, 0, h, ov_w, ov_h, "subsample")
+        ov = backend.sample(0, w, 0, h, ov_w, ov_h, self._overview_method)
         if backend.origin == "lower":
             ov = np.flipud(ov)   # normalise to row-0-top for the base texture
         return np.asarray(ov)
@@ -374,7 +383,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         y1 = int(min(ih, y0 + int(round(ex_h))))
         return x0, x1, y0, y1
 
-    def enable_tile(self, backend=None, integration_method: str = "mean") -> None:
+    def enable_tile(self, backend=None, integration_method: str = "mean",
+                    overview_method: str | None = None) -> None:
         """Turn tile mode ON (or reconfigure it) AFTER construction — for a consumer
         whose large frame isn't known at ``imshow`` time (e.g. a live navigator whose
         signal frame arrives later and changes). Registers the internal view→tile loop
@@ -382,7 +392,12 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         Call ``update_tile_source(new_frame)`` on each subsequent data change.
 
         ``backend``: a TileBackend (or an ndarray, wrapped). ``None`` keeps the
-        current backend (just re-enable / change method)."""
+        current backend (just re-enable / change method).
+
+        ``overview_method``: sampling method for the base overview texture
+        (``"mean"|"subsample"|"max"``).  ``None`` keeps the current setting
+        (default ``"mean"`` from construction).  Use ``"subsample"`` to restore the
+        old fast nearest-neighbour path when a full-frame area-mean is too expensive."""
         from anyplotlib.plot2d._tile_backend import as_tile_backend
         if backend is not None:
             self._tile_backend = as_tile_backend(backend, origin=self._origin)
@@ -390,6 +405,11 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             _TLOG.warning("[TILEDBG] enable_tile ABORT: no backend")
             return
         self._integration_method = integration_method
+        # Only overwrite when caller explicitly passes a value so that internal
+        # re-enables (_set_data_tiled, _enable_tile_from_frame) which omit this
+        # arg preserve whatever the user set at construction / last enable_tile.
+        if overview_method is not None:
+            self._overview_method = overview_method
         h, w = self._tile_backend.full_shape
         self._logical_w, self._logical_h = int(w), int(h)
         self._state["image_width"] = int(w)
@@ -411,8 +431,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._tile_on = True
             self.callbacks.connect("view_changed", self._on_view_changed_internal)
         _TLOG.warning(
-            "[TILEDBG] enable_tile logical=%s was_on=%s method=%s display=(%s,%s) "
-            "→ will build overview", (h, w), _was_on, integration_method,
+            "[TILEDBG] enable_tile logical=%s was_on=%s method=%s overview_method=%s "
+            "display=(%s,%s) → will build overview",
+            (h, w), _was_on, integration_method, self._overview_method,
             self._state.get("display_min"), self._state.get("display_max"))
         # Paint the overview base + refresh any active tile from the (new) backend.
         self.update_tile_source()
@@ -458,25 +479,12 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         has_detail = len(reg) == 4
         # Refresh the overview base ONLY when no detail tile is shown (zoomed out) —
         # when zoomed in, the overview isn't visible, so re-pushing it every frame is
-        # wasted work + a texture swap that can flicker. It refreshes on zoom-out.
+        # wasted work + a texture swap that can flicker. The skipped overview is
+        # marked STALE and refreshed once on the next view settle (see
+        # _on_view_changed_internal) so a zoom-out after a zoomed-in scrub never
+        # shows the pre-scrub frame.
         if not has_detail:
-            try:
-                ov = self._make_overview(self._tile_backend)
-                oh, ow = ov.shape
-                img_u8, _vmin, _vmax = self._normalize_for_base(ov)
-                self._state["image_b64"] = self._encode_pixels("image_b64", img_u8)
-                self._state["base_width"] = int(ow)
-                self._state["base_height"] = int(oh)
-                _TLOG.warning(
-                    "[TILEDBG] update_tile_source OVERVIEW-path (zoomed out, no "
-                    "detail): overview=%s u8[min=%d max=%d] display=(%s,%s) "
-                    "base_wh=(%d,%d) image_wh=(%s,%s)", (oh, ow),
-                    int(img_u8.min()), int(img_u8.max()),
-                    self._state.get("display_min"), self._state.get("display_max"),
-                    ow, oh, self._state.get("image_width"),
-                    self._state.get("image_height"))
-            except Exception as e:
-                _TLOG.warning("[TILEDBG] overview refresh FAILED: %s", e)
+            self._refresh_overview()
             self._push()
             return
         # Zoomed in: re-sample only the CURRENT detail tile from the new data.
@@ -488,13 +496,41 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                 x0, x1, y0, y1, out_w, out_h, self._integration_method)
             if self._tile_backend.origin == "lower":
                 tile = np.flipud(tile)
+            # The base overview now shows OLD data (only the tile was refreshed).
+            # Any zoom-out / partial-cover pan would reveal it — refresh once on
+            # the next view settle.
+            self._overview_stale = True
             self.set_detail(np.ascontiguousarray(tile), x0, x1, y0, y1)
             _TLOG.warning(
                 "[TILEDBG] update_tile_source DETAIL-path (zoomed in): region=%s "
-                "resampled tile=%s from new frame", reg, (out_h, out_w))
+                "resampled tile=%s from new frame (overview marked stale)",
+                reg, (out_h, out_w))
         except Exception as e:
             _TLOG.warning("[TILEDBG] detail refresh FAILED: %s", e)
             self._push()
+
+    def _refresh_overview(self) -> None:
+        """Re-sample the overview base from the backend into the state (image_b64 +
+        base_width/height) and clear the staleness flag. Does NOT push — callers
+        bundle it with their own push so the fresh base rides the same frame as the
+        detail/clear that exposed it."""
+        try:
+            ov = self._make_overview(self._tile_backend)
+            oh, ow = ov.shape
+            img_u8, _vmin, _vmax = self._normalize_for_base(ov)
+            self._state["image_b64"] = self._encode_pixels("image_b64", img_u8)
+            self._state["base_width"] = int(ow)
+            self._state["base_height"] = int(oh)
+            self._overview_stale = False
+            _TLOG.warning(
+                "[TILEDBG] overview refresh: overview=%s u8[min=%d max=%d] "
+                "display=(%s,%s) base_wh=(%d,%d) image_wh=(%s,%s)", (oh, ow),
+                int(img_u8.min()), int(img_u8.max()),
+                self._state.get("display_min"), self._state.get("display_max"),
+                ow, oh, self._state.get("image_width"),
+                self._state.get("image_height"))
+        except Exception as e:
+            _TLOG.warning("[TILEDBG] overview refresh FAILED: %s", e)
 
     def _tile_quant_clim(self):
         """The FIXED quantisation band (raw_min/raw_max) the tile bytes are encoded
@@ -522,12 +558,26 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             return
         try:
             zoom = float(getattr(event, "zoom", 1.0) or 1.0)
+            # A zoomed-in scrub refreshed only the detail tile (update_tile_source),
+            # leaving the base overview on the pre-scrub frame. Any view where the
+            # base can peek out (zoom-out below; the margin around a partial tile
+            # here) must therefore re-sample it ONCE on settle — bundled into the
+            # same push as the detail/clear so the fresh base lands atomically.
+            stale = getattr(self, "_overview_stale", False)
             if zoom < self.VIEW_ZOOM_MIN:
                 _TLOG.warning(
                     "[TILEDBG] view_changed zoom=%.3f < MIN=%.2f → CLEAR detail "
-                    "(show overview base only)", zoom, self.VIEW_ZOOM_MIN)
-                self.set_detail(None)
+                    "(show overview base only%s)", zoom, self.VIEW_ZOOM_MIN,
+                    ", refresh stale overview" if stale else "")
+                if stale:
+                    self._refresh_overview()
+                had_detail = bool(self._state.get("detail_b64"))
+                self.set_detail(None)          # pushes iff a tile was set
+                if stale and not had_detail:
+                    self._push()               # fresh overview still must ship
                 return
+            if stale:
+                self._refresh_overview()       # rides the set_detail push below
             cx = float(getattr(event, "center_x", 0.5) or 0.5)
             cy = float(getattr(event, "center_y", 0.5) or 0.5)
             # Panel device px (JS carries it): the tile is ALWAYS output at the panel
