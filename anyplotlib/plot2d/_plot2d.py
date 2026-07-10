@@ -1168,7 +1168,15 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         xarr = np.asarray(self._state["x_axis"])
         return (float(xarr.min()), float(xarr.max()))
 
-    def set_extent(self, x_axis, y_axis) -> None:
+    def set_extent(self, x_axis, y_axis, units: str | None = None) -> None:
+        """Recalibrate the image axes to the given coordinate arrays.
+
+        Sets ``has_axes`` so the front-end draws physical tick gutters + the
+        scale bar — the same gate ``set_data(x_axis=, y_axis=)`` sets. Without
+        this a tiled image (which is calibrated ONLY through ``set_extent`` /
+        ``enable_tile``, never through ``set_data`` with axis args) would show no
+        ticks and no scale bar (the ``has_axes`` gate stayed False). Pass
+        ``units`` to update the scale-bar unit label in the same push."""
         x_axis = np.asarray(x_axis, dtype=float)
         y_axis = np.asarray(y_axis, dtype=float)
         w = self._state["image_width"]
@@ -1179,6 +1187,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._state["y_axis"]  = y_axis.tolist()
         self._state["scale_x"] = scale_x
         self._state["scale_y"] = scale_y
+        self._state["has_axes"] = len(x_axis) >= 2 and len(y_axis) >= 2
+        if units is not None:
+            self._state["units"] = units
         self._push()
 
     def set_colorbar_label(self, label: str, fontsize: float | None = None) -> None:
