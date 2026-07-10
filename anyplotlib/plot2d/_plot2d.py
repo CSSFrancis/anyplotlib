@@ -430,7 +430,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if not self._tile_on:
             self._tile_on = True
             self.callbacks.connect("view_changed", self._on_view_changed_internal)
-        _TLOG.warning(
+        _TLOG.debug(
             "[TILEDBG] enable_tile logical=%s was_on=%s method=%s overview_method=%s "
             "display=(%s,%s) → will build overview",
             (h, w), _was_on, integration_method, self._overview_method,
@@ -456,7 +456,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._state["base_height"] = 0
         self._state.update({"detail_b64": "", "detail_region": [],
                             "detail_width": 0, "detail_height": 0})
-        _TLOG.warning("[TILEDBG] _disable_tile: tile mode OFF (forced plain)")
+        _TLOG.debug("[TILEDBG] _disable_tile: tile mode OFF (forced plain)")
 
     def update_tile_source(self, array=None) -> None:
         """The backing DATA changed (e.g. a movie navigator advanced a frame) — keep
@@ -468,7 +468,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         ndarray case). For a custom backend that already mutated its own source, call
         ``update_tile_source()`` with no argument to just re-sample."""
         if not self._tile_on or self._tile_backend is None:
-            _TLOG.warning("[TILEDBG] update_tile_source SKIP: tile_on=%s backend=%s",
+            _TLOG.debug("[TILEDBG] update_tile_source SKIP: tile_on=%s backend=%s",
                           self._tile_on, self._tile_backend is not None)
             return
         if array is not None:
@@ -501,7 +501,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             # the next view settle.
             self._overview_stale = True
             self.set_detail(np.ascontiguousarray(tile), x0, x1, y0, y1)
-            _TLOG.warning(
+            _TLOG.debug(
                 "[TILEDBG] update_tile_source DETAIL-path (zoomed in): region=%s "
                 "resampled tile=%s from new frame (overview marked stale)",
                 reg, (out_h, out_w))
@@ -522,7 +522,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._state["base_width"] = int(ow)
             self._state["base_height"] = int(oh)
             self._overview_stale = False
-            _TLOG.warning(
+            _TLOG.debug(
                 "[TILEDBG] overview refresh: overview=%s u8[min=%d max=%d] "
                 "display=(%s,%s) base_wh=(%d,%d) image_wh=(%s,%s)", (oh, ow),
                 int(img_u8.min()), int(img_u8.max()),
@@ -553,7 +553,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         visible region from the backend and upload it. Zoomed out → clear the tile
         (the overview base is enough). The consumer never wires this up."""
         if not self._tile_on or self._tile_backend is None:
-            _TLOG.warning("[TILEDBG] view_changed IGNORED: tile_on=%s backend=%s",
+            _TLOG.debug("[TILEDBG] view_changed IGNORED: tile_on=%s backend=%s",
                           self._tile_on, self._tile_backend is not None)
             return
         try:
@@ -565,7 +565,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             # same push as the detail/clear so the fresh base lands atomically.
             stale = getattr(self, "_overview_stale", False)
             if zoom < self.VIEW_ZOOM_MIN:
-                _TLOG.warning(
+                _TLOG.debug(
                     "[TILEDBG] view_changed zoom=%.3f < MIN=%.2f → CLEAR detail "
                     "(show overview base only%s)", zoom, self.VIEW_ZOOM_MIN,
                     ", refresh stale overview" if stale else "")
@@ -616,7 +616,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             _rawinfo = ("raw_crop=%s distinct=%d" % (
                 _raw.shape, int(np.unique(_raw).size))) if _raw is not None else "raw=?"
             _tileinfo = "tile_distinct=%d" % int(np.unique(np.asarray(tile)).size)
-            _TLOG.warning(
+            _TLOG.debug(
                 "[TILEDBG] view_changed FETCH zoom=%.2f region=[x %d:%d y %d:%d] "
                 "(%dx%d logical) BACKEND_shape=%s %s → tile=%dx%d %s "
                 "u8[min=%d max=%d]",
@@ -772,7 +772,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         # tile=False FORCES the plain path even on an already-tiled plot (the caller is
         # sending a pre-decimated frame it wants shown as-is) → tear tiling down first.
         force_plain = (tile is False)
-        _TLOG.warning(
+        _TLOG.debug(
             "[TILEDBG] set_data ROUTE frame=%s dtype=%s clim=%s  is_rgb=%s "
             "tile_arg=%r eff_pref=%r want_tile=%s tile_on=%s backend=%s force_plain=%s "
             "THRESH=%s → %s",
@@ -904,7 +904,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         arr = np.ascontiguousarray(data)
         self._data = arr           # reference, not a copy — read-back reads the frame
         setter = getattr(self._tile_backend, "set_array", None)
-        _TLOG.warning(
+        _TLOG.debug(
             "[TILEDBG] _set_data_tiled frame=%s logical=(%s,%s) same_shape=%s "
             "has_set_array=%s display=(%s,%s) → %s", (h, w),
             self._logical_h, self._logical_w, same_shape, setter is not None,
@@ -949,7 +949,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._state["display_min"], self._state["display_max"] = rng
         else:
             _clim_src = "NONE(kept-stale)"
-        _TLOG.warning(
+        _TLOG.debug(
             "[TILEDBG] _enable_tile_from_frame frame=%s dtype=%s data[min=%.4g "
             "max=%.4g] → display=(%s,%s) via %s", data.shape, data.dtype,
             float(np.nanmin(data)) if data.size else 0.0,

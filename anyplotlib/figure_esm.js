@@ -12,13 +12,12 @@ function render({ model, el }) {
   // This guarantees pixel-perfect alignment of all panels in a row/column.
   const PAD_L=58, PAD_R=12, PAD_T=12, PAD_B=42;
 
-  // Tile-mode render diagnostics. ON when globalThis.__apl_tiledbg is truthy —
-  // default it ON during this debug session so the render decision is visible in the
-  // Electron renderer console WITHOUT opening devtools (electron-vite tees renderer
-  // console to the terminal). Turn off with globalThis.__apl_tiledbg=false. Logs the
-  // per-frame render decision (which texture/passes drew, detail region, contrast) so
-  // a "why is it blurry / white / flashing" question has real numbers.
-  if (globalThis.__apl_tiledbg === undefined) globalThis.__apl_tiledbg = true;
+  // Tile-mode render diagnostics. OFF by default — a console.warn PER ANIMATION
+  // FRAME per panel floods the teed renderer console (and the host app's log
+  // relay) in normal use. Opt in with globalThis.__apl_tiledbg=true when
+  // debugging a render decision ("why is it blurry / white / flashing"): it logs
+  // which texture/passes drew, the detail region, and the contrast window.
+  if (globalThis.__apl_tiledbg === undefined) globalThis.__apl_tiledbg = false;
   function _tiledbg(tag, msg) {
     if (!globalThis.__apl_tiledbg) return;
     try { console.warn(`[TILEDBG-JS:${tag}] ${msg}`); } catch (_) {}
