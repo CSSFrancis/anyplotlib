@@ -660,6 +660,36 @@ function render({ model, el }) {
   let _suppressLayoutUpdate = false;  // block re-entry during live resize
   let _pixArrivalSeq = 0;  // monotonic binary-pixel-frame arrival counter
 
+  // Binary transport: raw pixel bytes ride a global side-table (`__apl_pixbytes`,
+  // keyed `panel_<id>_geom::<pixelKey>`) because the model can't carry a
+  // Uint8Array. Splice ANY currently-present bytes for this panel's geom trait
+  // into `p2._geomCache` under `<pixelKey>_bytes`, stamping a monotonic arrival
+  // sequence so _imageBytes gets a collision-proof cache key. Returns true if
+  // any bytes were spliced. Used by BOTH the per-key change listener AND the
+  // panel's INITIAL paint — the latter is load-bearing: a first pixel frame that
+  // arrived (via the awi_state_binary postMessage handler) BEFORE render()
+  // registered the change listener sits in the side-table with nothing to
+  // consume it; without this splice the panel stays permanently blank (the
+  // initial _loadGeom only parses the slimmed geom JSON, which carries the
+  // LUT/flags, NOT the bytes). Idempotent: re-splicing the same buffer keeps the
+  // same __aplSeq, so it does not force a spurious re-upload on the normal path.
+  function _spliceBinaryBytes(p2, geomTrait) {
+    const tbl = globalThis.__apl_pixbytes;
+    if (!tbl) return false;
+    let spliced = false;
+    for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
+      const b = tbl[`${geomTrait}::${pixelKey}`];
+      if (!b) continue;
+      if (b.__aplSeq === undefined) {
+        try { b.__aplSeq = ++_pixArrivalSeq; } catch (_) {}
+      }
+      if (!p2._geomCache) p2._geomCache = {};
+      p2._geomCache[pixelKey + '_bytes'] = b;
+      spliced = true;
+    }
+    return spliced;
+  }
+
   // ── layout application ───────────────────────────────────────────────────
   function applyLayout() {
     if (_suppressLayoutUpdate) return;
@@ -946,18 +976,7 @@ function render({ model, el }) {
         model.on(`change:${slot}`, () => {
           const p2 = panels.get(id);
           if (!p2) return;
-          if (!p2._geomCache) p2._geomCache = {};
-          // Bytes come from the global side-table (the model can't carry a
-          // Uint8Array), keyed by the same slot the token trait carries.
-          const b = (globalThis.__apl_pixbytes || {})[slot];
-          // Stamp a monotonic ARRIVAL sequence on the buffer: every received
-          // frame is genuinely-new content (Python dedups unchanged pixels
-          // before sending), so this is a free collision-proof cache key for
-          // _imageBytes when no content token is present in the state.
-          if (b && b.__aplSeq === undefined) {
-            try { b.__aplSeq = ++_pixArrivalSeq; } catch (_) {}
-          }
-          p2._geomCache[pixelKey + '_bytes'] = b;
+          _spliceBinaryBytes(p2, _geomTrait);
           if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
         });
       }
@@ -981,7 +1000,15 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    if (_hasGeom) {
+      _loadGeom(p, model.get(_geomTrait), 1);
+      // First-paint race fix: consume any binary pixel bytes that already
+      // arrived (before this render registered the change listeners above) so
+      // the INITIAL paint below shows them instead of leaving the panel blank
+      // until an organic second frame. No-op on the normal path (side-table
+      // empty until the first frame lands).
+      _spliceBinaryBytes(p, _geomTrait);
+    }
     try {
       p.state = JSON.parse(model.get(`panel_${id}_json`));
       _applyGeom(p, p.state);
@@ -1105,18 +1132,7 @@ function render({ model, el }) {
         model.on(`change:${slot}`, () => {
           const p2 = panels.get(id);
           if (!p2) return;
-          if (!p2._geomCache) p2._geomCache = {};
-          // Bytes come from the global side-table (the model can't carry a
-          // Uint8Array), keyed by the same slot the token trait carries.
-          const b = (globalThis.__apl_pixbytes || {})[slot];
-          // Stamp a monotonic ARRIVAL sequence on the buffer: every received
-          // frame is genuinely-new content (Python dedups unchanged pixels
-          // before sending), so this is a free collision-proof cache key for
-          // _imageBytes when no content token is present in the state.
-          if (b && b.__aplSeq === undefined) {
-            try { b.__aplSeq = ++_pixArrivalSeq; } catch (_) {}
-          }
-          p2._geomCache[pixelKey + '_bytes'] = b;
+          _spliceBinaryBytes(p2, _geomTrait);
           if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
         });
       }
@@ -1140,7 +1156,12 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    if (_hasGeom) {
+      _loadGeom(p, model.get(_geomTrait), 1);
+      // First-paint race fix (see _createPanelDOM): splice any binary pixel
+      // bytes that arrived before render() registered the listeners above.
+      _spliceBinaryBytes(p, _geomTrait);
+    }
     try {
       p.state = JSON.parse(model.get(`panel_${id}_json`));
       _applyGeom(p, p.state);
