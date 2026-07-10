@@ -13,7 +13,13 @@ Each fragment is a plain ``.rst`` file named::
     {PR_number}.{type}.rst
 
 where ``{PR_number}`` is the GitHub pull-request number and ``{type}`` is one
-of:
+of the types below.
+
+If a change has no natural PR number (e.g. work batched on a long-lived
+feature branch), name the file ``+{slug}.{type}.rst`` — the leading ``+``
+marks it as an "orphan" fragment so towncrier omits the issue link. Without
+it, the slug is rendered as a broken PR link in the changelog (this bit the
+0.2.0 notes).
 
 =================  ==============================================================
 Type               Use when …

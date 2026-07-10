@@ -22,7 +22,23 @@ New Features
   per-pixel JavaScript colormap loop. Large images (≳1 megapixel) take the GPU path
   automatically; everything below the threshold, RGB images, ``gpu=False``, and any
   device without WebGPU keep the identical Canvas2D path. ``plot.gpu_active`` reports
-  which path ran. Verified on an NVIDIA Pascal GPU. (`#webgpu_2d_image <https://github.com/CSSFrancis/anyplotlib/pull/webgpu_2d_image>`_)
+  which path ran. Verified on an NVIDIA Pascal GPU.
+- Arbitrarily large images can now display through **tile mode**
+  (``imshow(..., tile="auto")``): the figure shows a downsampled overview as its
+  base and, after each zoom/pan settles, samples a high-resolution detail tile of
+  just the visible region at panel resolution — deep zooms stay crisp without
+  ever shipping the full-resolution frame. ``Plot2D.enable_tile`` /
+  ``update_tile_source`` swap the underlying frame while the zoom and
+  subselection persist (live-data contract), and a pluggable ``TileBackend``
+  (default: a fast vectorised numpy box-mean) lets out-of-core or GPU sources
+  own the sampling.
+- Markers gained a ``clip_display`` option controlling whether they draw
+  outside the current axes view or are clipped to it.
+- ``set_extent`` now updates the axes state (calibrated units / scale bar), so
+  applying a calibrated extent after figure creation renders labelled axes
+  instead of bare pixels.
+- Regular ``pcolormesh`` meshes are detected and rasterized to an image for
+  display (fast IPF-style heatmaps) instead of drawing per-quad.
 
 
 Bug Fixes
@@ -38,7 +54,7 @@ Bug Fixes
   binary buffers are additionally stamped with an arrival sequence as a fallback
   key, and the overlay-mask draw path now reads the binary byte side-channel
   (it previously only decoded base64, so masks never displayed over the binary
-  transport). (`#binary_token_cache_freeze <https://github.com/CSSFrancis/anyplotlib/pull/binary_token_cache_freeze>`_)
+  transport).
 - Fixed the WebGPU 2-D image path sampling a vertically MIRRORED window when the
   view was panned off-centre: the shader applied a global ``1 - v`` flip after
   interpolating the ``[v0, v1]`` uv window, which sampled ``[1-v1, 1-v0]``
@@ -49,12 +65,12 @@ Bug Fixes
   detail-tile passes share the shader, so both are fixed. GPU-vs-CPU screenshot
   parity tests (zoom, pan, markers, widgets, detail tile) now run on real WebGPU
   in headless Chromium (``channel="chromium"`` + ``--enable-unsafe-webgpu``) and
-  skip on machines with no adapter. (`#gpu_pan_v_mirror <https://github.com/CSSFrancis/anyplotlib/pull/gpu_pan_v_mirror>`_)
+  skip on machines with no adapter.
 - ``Plot2D.set_data`` no longer makes a float64 copy of every incoming frame.
   The float64 cast now happens lazily in the ``.data`` property (the only reader),
   so a frame stream — e.g. scrubbing an in-situ movie — keeps the source dtype and
   skips a ~12 ms float64 copy of a 4k frame per tick. ``.data`` still returns a
-  read-only float64 copy, unchanged for callers. (`#lazy_data_cast <https://github.com/CSSFrancis/anyplotlib/pull/lazy_data_cast>`_)
+  read-only float64 copy, unchanged for callers.
 - The Electron binary pixel transport now ships the RAW uint8 image bytes end to
   end, instead of base64-encoding them in ``set_data`` only to base64-decode them
   straight back in the routing layer. ``Plot2D.set_data`` stashes the raw bytes on
@@ -66,13 +82,13 @@ Bug Fixes
   bytes-on-wire. Non-Electron hosts (Jupyter / Pyodide / standalone / ``save_html``)
   are unchanged: they have no PLOTBIN channel, so the token is resolved back to
   inline base64 via ``Plot2D.resolve_pixel_tokens`` when the figure state is
-  serialised for them. (`#raw_pixel_transport <https://github.com/CSSFrancis/anyplotlib/pull/raw_pixel_transport>`_)
+  serialised for them.
 - Tile mode: a data update while zoomed in (``update_tile_source`` with a detail
   tile shown) refreshes only the detail tile, leaving the overview base on the
   old frame — zooming out then flashed the pre-update frame. The skipped
   overview is now marked stale and re-sampled once on the next view settle
   (riding the same push as the detail/clear), preserving the per-frame skip
-  optimisation while never exposing stale base pixels. (`#stale_overview_zoom_out <https://github.com/CSSFrancis/anyplotlib/pull/stale_overview_zoom_out>`_)
+  optimisation while never exposing stale base pixels.
 - Interactive zoom/pan on a 2-D image no longer re-serialises (and re-transmits)
   the full image on every mouse tick. The wheel/pan/orbit handlers write only the
   light *view* state back to the ``panel_<id>_json`` trait now, excluding the
@@ -80,7 +96,20 @@ Bug Fixes
   state for drawing. Previously the whole frame was ``JSON.stringify``-d per tick —
   catastrophically so on the binary transport, where the pixel buffer is a
   ``Uint8Array`` that stringifies to a ``{"0":..,"1":..}`` object with one key per
-  byte — which stalled zoom on large images. (`#zoom_view_write <https://github.com/CSSFrancis/anyplotlib/pull/zoom_view_write>`_)
+  byte — which stalled zoom on large images.
+- Fixed a first-paint race under the Electron binary transport: binary
+  side-table bytes that arrived before ``render()`` attached its listeners were
+  stranded, leaving the first frame blank until the next update — they are now
+  spliced into the initial paint.
+
+
+Maintenance
+-----------
+
+- ``anyplotlib.__version__`` is now exposed from the package metadata.
+- Per-frame hot-path costs trimmed: the colormap LUT is cached instead of being
+  rebuilt every frame (~100 ms), and small-range data rescales in float32
+  (~60 ms → ~27 ms per 2048² frame).
 
 
 0.1.0 (2026-06-24)
