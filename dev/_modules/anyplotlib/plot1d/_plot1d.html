@@ -1402,7 +1402,8 @@
                     <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                    <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add circle markers at explicit (x, y) positions.</span>
 
 <span class="sd">        On 1-D panels circles are rendered as filled/stroked discs; *radius*</span>
@@ -1444,7 +1445,8 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_points">
@@ -1454,7 +1456,8 @@
                    <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add point markers at (x, y) positions in data coordinates.</span>
 
 <span class="sd">        Parameters</span>
@@ -1490,7 +1493,8 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_hlines">
@@ -1499,7 +1503,8 @@
                    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add static horizontal lines spanning the full x range.</span>
 
 <span class="sd">        Parameters</span>
@@ -1527,7 +1532,8 @@
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_vlines">
@@ -1536,7 +1542,8 @@
                    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add static vertical lines spanning the full y range.</span>
 
 <span class="sd">        Parameters</span>
@@ -1564,7 +1571,8 @@
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_arrows">
@@ -1573,7 +1581,8 @@
                    <span class="n">edgecolors</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arrow markers at explicit (x, y) positions.</span>
 
 <span class="sd">        Parameters</span>
@@ -1603,7 +1612,8 @@
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_ellipses">
@@ -1613,7 +1623,8 @@
                      <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                      <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                     <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add ellipse markers at explicit (x, y) positions.</span>
 
 <span class="sd">        Parameters</span>
@@ -1652,7 +1663,8 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_lines">
@@ -1661,7 +1673,8 @@
                   <span class="n">edgecolors</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                  <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                  <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add line-segment markers (static, not draggable).</span>
 
 <span class="sd">        Parameters</span>
@@ -1689,7 +1702,8 @@
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_rectangles">
@@ -1699,7 +1713,8 @@
                        <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                        <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                       <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                       <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                       <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add rectangle markers at explicit (x, y) positions.</span>
 
 <span class="sd">        Parameters</span>
@@ -1738,7 +1753,8 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_squares">
@@ -1748,7 +1764,8 @@
                     <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                    <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add square markers at explicit (x, y) positions.</span>
 
 <span class="sd">        Parameters</span>
@@ -1787,7 +1804,8 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_polygons">
@@ -1797,7 +1815,8 @@
                      <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
                      <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clip_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                     <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add polygon markers defined by explicit vertex lists.</span>
 
 <span class="sd">        Parameters</span>
@@ -1836,14 +1855,16 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">clip_path</span><span class="o">=</span><span class="n">clip_path</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_raster">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.add_raster">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_raster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rgba</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">extent</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clip_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">smooth</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an RGBA image drawn between data-coordinate ``extent`` corners.</span>
 
 <span class="sd">        A single-``drawImage`` raster — the fast path for a dense regular grid</span>
@@ -1882,7 +1903,8 @@
                                 <span class="n">image_width</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">image_height</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">),</span>
                                 <span class="n">extent</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">extent</span><span class="p">),</span>
                                 <span class="n">clip_path</span><span class="o">=</span><span class="n">clip_path</span><span class="p">,</span> <span class="n">smooth</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">smooth</span><span class="p">),</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot1D.add_texts">
@@ -1891,7 +1913,8 @@
                   <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                  <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                  <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add text annotations at explicit (x, y) positions.</span>
 
 <span class="sd">        Parameters</span>
@@ -1921,7 +1944,8 @@
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span></div>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

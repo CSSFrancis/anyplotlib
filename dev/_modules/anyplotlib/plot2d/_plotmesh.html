@@ -531,7 +531,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_raw_u8</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_vmax</span> <span class="o">=</span> <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-            <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span>      <span class="bp">self</span><span class="o">.</span><span class="n">_encode_bytes</span><span class="p">(</span><span class="n">img_u8</span><span class="p">),</span>
+            <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span>      <span class="bp">self</span><span class="o">.</span><span class="n">_encode_pixels</span><span class="p">(</span><span class="s2">&quot;image_b64&quot;</span><span class="p">,</span> <span class="n">img_u8</span><span class="p">),</span>
             <span class="s2">&quot;image_width&quot;</span><span class="p">:</span>    <span class="n">cols</span><span class="p">,</span>
             <span class="s2">&quot;image_height&quot;</span><span class="p">:</span>   <span class="n">rows</span><span class="p">,</span>
             <span class="s2">&quot;x_axis&quot;</span><span class="p">:</span>         <span class="n">xe</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
