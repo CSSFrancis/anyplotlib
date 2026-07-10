@@ -323,12 +323,47 @@ def _pw_gpu_browser(_pw_browser):
     page = browser.new_page()
     try:
         page.goto(probe_path.as_uri())
+        # Probe the FULL render path, not just requestAdapter(): on GPU-less CI
+        # runners (GitHub ubuntu) a SwiftShader adapter resolves but device
+        # creation / the canvas 'webgpu' context / an actual submit fails, so an
+        # adapter-only probe passes and every test then times out waiting for
+        # __apl_gpu2d activation instead of skipping. Mirror what the figure ESM
+        # does: adapter → device → canvas context → configure → one cleared
+        # render pass, each step raced against a timeout.
         adapter = page.evaluate(
             """async () => {
                 if (!navigator.gpu) return null;
+                const timeout = (ms) =>
+                    new Promise((r) => setTimeout(() => r('__timeout__'), ms));
                 try {
-                    const a = await navigator.gpu.requestAdapter();
-                    return a ? ((a.info && a.info.vendor) || 'unknown') : null;
+                    const a = await Promise.race(
+                        [navigator.gpu.requestAdapter(), timeout(10000)]);
+                    if (!a || a === '__timeout__') return null;
+                    const d = await Promise.race(
+                        [a.requestDevice(), timeout(10000)]);
+                    if (!d || d === '__timeout__') return null;
+                    const c = document.createElement('canvas');
+                    c.width = 4; c.height = 4;
+                    const ctx = c.getContext('webgpu');
+                    if (!ctx) return null;
+                    ctx.configure({
+                        device: d,
+                        format: navigator.gpu.getPreferredCanvasFormat(),
+                        alphaMode: 'premultiplied',
+                    });
+                    const tex = ctx.getCurrentTexture();
+                    if (!tex) return null;
+                    const enc = d.createCommandEncoder();
+                    const pass = enc.beginRenderPass({ colorAttachments: [{
+                        view: tex.createView(), loadOp: 'clear', storeOp: 'store',
+                        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    }]});
+                    pass.end();
+                    d.queue.submit([enc.finish()]);
+                    const done = await Promise.race(
+                        [d.queue.onSubmittedWorkDone(), timeout(10000)]);
+                    if (done === '__timeout__') return null;
+                    return (a.info && a.info.vendor) || 'unknown';
                 } catch (_) { return null; }
             }"""
         )
@@ -337,7 +372,7 @@ def _pw_gpu_browser(_pw_browser):
         probe_path.unlink(missing_ok=True)
     if adapter is None:
         browser.close()
-        pytest.skip("no WebGPU adapter available in headless Chromium")
+        pytest.skip("no usable WebGPU render path in headless Chromium")
     yield browser
     browser.close()
 
