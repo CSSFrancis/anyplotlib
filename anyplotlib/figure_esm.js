@@ -12,6 +12,17 @@ function render({ model, el }) {
   // This guarantees pixel-perfect alignment of all panels in a row/column.
   const PAD_L=58, PAD_R=12, PAD_T=12, PAD_B=42;
 
+  // Tile-mode render diagnostics. OFF by default — a console.warn PER ANIMATION
+  // FRAME per panel floods the teed renderer console (and the host app's log
+  // relay) in normal use. Opt in with globalThis.__apl_tiledbg=true when
+  // debugging a render decision ("why is it blurry / white / flashing"): it logs
+  // which texture/passes drew, the detail region, and the contrast window.
+  if (globalThis.__apl_tiledbg === undefined) globalThis.__apl_tiledbg = false;
+  function _tiledbg(tag, msg) {
+    if (!globalThis.__apl_tiledbg) return;
+    try { console.warn(`[TILEDBG-JS:${tag}] ${msg}`); } catch (_) {}
+  }
+
   // ── theme ────────────────────────────────────────────────────────────────
   function _isDarkBg(node) {
     while (node && node !== document.body) {
@@ -358,10 +369,44 @@ function render({ model, el }) {
     return state;
   }
 
-  // Parse the geom trait into the per-panel cache.
+  // Serialise a panel's VIEW state for the light `panel_<id>_json` trait,
+  // EXCLUDING the heavy geometry keys that `_applyGeom` splices in from the
+  // cache (`image_b64`, `colormap_data`, `*_b64`, and their binary `*_bytes`
+  // companions).  The interaction handlers (wheel/pan/orbit) write the view
+  // state back on every mouse tick; without this strip they re-serialise —
+  // and re-transmit — the full frame each tick.  For the BINARY path that is
+  // `JSON.stringify` of a Uint8Array → a `{"0":..,"1":..}` object with one
+  // key per byte (millions of entries), which stalls zoom on large images.
+  // Python's `_push` already keeps geometry off this trait; the echo-back
+  // listener re-splices geom from `_geomCache`, so dropping it here is safe
+  // (the geometry is never actually lost — only kept out of the light path).
+  function _viewStateJson(p2) {
+    const st = p2.state;
+    if (!st) return '{}';
+    const geom = p2._geomCache;
+    if (!geom) return JSON.stringify(st);
+    // Fast path: shallow-clone without the cached geom keys (and their
+    // `_bytes` variants).  Object.keys(geom) is exactly what _applyGeom
+    // merged in, so this auto-tracks any future geom key with no hardcoded
+    // list to drift out of sync with the Python-side _GEOM_KEYS.
+    const skip = new Set(Object.keys(geom));
+    const view = {};
+    for (const k in st) { if (!skip.has(k)) view[k] = st[k]; }
+    return JSON.stringify(view);
+  }
+
+  // Parse the geom trait into the per-panel cache. PRESERVES any binary pixel
+  // bytes (`*_bytes`, delivered on the companion trait) — the slimmed geom JSON
+  // carries only the LUT/flags now, and it may arrive AFTER the binary frame, so
+  // replacing the cache wholesale would drop the pixels. Re-splice them.
   function _loadGeom(p2, raw, rev) {
     try {
-      p2._geomCache = JSON.parse(raw || '{}');
+      const prev = p2._geomCache || {};
+      const next = JSON.parse(raw || '{}');
+      for (const k in prev) {
+        if (k.endsWith('_bytes') && next[k] === undefined) next[k] = prev[k];
+      }
+      p2._geomCache = next;
       p2._geomRev = rev;
     } catch (_) {}
   }
@@ -612,6 +657,37 @@ function render({ model, el }) {
   // ── per-panel state maps ──────────────────────────────────────────────────
   const panels = new Map();
   let _suppressLayoutUpdate = false;  // block re-entry during live resize
+  let _pixArrivalSeq = 0;  // monotonic binary-pixel-frame arrival counter
+
+  // Binary transport: raw pixel bytes ride a global side-table (`__apl_pixbytes`,
+  // keyed `panel_<id>_geom::<pixelKey>`) because the model can't carry a
+  // Uint8Array. Splice ANY currently-present bytes for this panel's geom trait
+  // into `p2._geomCache` under `<pixelKey>_bytes`, stamping a monotonic arrival
+  // sequence so _imageBytes gets a collision-proof cache key. Returns true if
+  // any bytes were spliced. Used by BOTH the per-key change listener AND the
+  // panel's INITIAL paint — the latter is load-bearing: a first pixel frame that
+  // arrived (via the awi_state_binary postMessage handler) BEFORE render()
+  // registered the change listener sits in the side-table with nothing to
+  // consume it; without this splice the panel stays permanently blank (the
+  // initial _loadGeom only parses the slimmed geom JSON, which carries the
+  // LUT/flags, NOT the bytes). Idempotent: re-splicing the same buffer keeps the
+  // same __aplSeq, so it does not force a spurious re-upload on the normal path.
+  function _spliceBinaryBytes(p2, geomTrait) {
+    const tbl = globalThis.__apl_pixbytes;
+    if (!tbl) return false;
+    let spliced = false;
+    for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
+      const b = tbl[`${geomTrait}::${pixelKey}`];
+      if (!b) continue;
+      if (b.__aplSeq === undefined) {
+        try { b.__aplSeq = ++_pixArrivalSeq; } catch (_) {}
+      }
+      if (!p2._geomCache) p2._geomCache = {};
+      p2._geomCache[pixelKey + '_bytes'] = b;
+      spliced = true;
+    }
+    return spliced;
+  }
 
   // ── layout application ───────────────────────────────────────────────────
   function applyLayout() {
@@ -666,7 +742,12 @@ function render({ model, el }) {
     }
 
     for (const [id, p] of panels) {
-      if (!seen.has(id)) { p.cell.remove(); panels.delete(id); }
+      if (!seen.has(id)) {
+        // Free GPU resources before dropping the panel (2D image textures +
+        // 3D geometry buffers), else they leak on re-layout / panel close.
+        try { _gpuDisposeImagePanel(p); _gpuDisposePanel(p); } catch (_) {}
+        p.cell.remove(); panels.delete(id);
+      }
     }
 
     // Update insetsContainer size and reposition all insets
@@ -686,15 +767,28 @@ function render({ model, el }) {
     let cbCanvas=null, cbCtx=null, plotWrap=null, wrapNode=null;
     let titleCanvas=null;
     let stack3dGpuCanvas=null;   // WebGPU geometry canvas (3D only)
+    let stack2dGpuCanvas=null;   // WebGPU image canvas (2D large-image path)
 
     if (kind === '2d') {
       plotWrap = document.createElement('div');
       plotWrap.style.cssText = `position:relative;display:inline-block;vertical-align:top;line-height:0;` +
         `width:${pw}px;height:${ph}px;overflow:visible;flex-shrink:0;`;
 
+      // gpuCanvas (WebGPU image) draws the image raster BELOW plotCanvas (via
+      // z-index 0) when GPU mode is active, while plotCanvas keeps drawing all
+      // decorations (axes/colorbar/scale-bar/mask/markers) over a now-transparent
+      // background. Hidden until/unless the GPU image path activates. It is
+      // appended AFTER plotCanvas (below) so DOM order keeps plotCanvas first —
+      // callers/tests that grab `querySelector('canvas')` still get the image
+      // canvas; z-index (not DOM order) controls the visual stacking.
+      var gpu2d = document.createElement('canvas');
+      gpu2d.style.cssText =
+        `position:absolute;top:0;left:0;display:none;border-radius:2px;z-index:0;`;
+      stack2dGpuCanvas = gpu2d;
+
       plotCanvas = document.createElement('canvas');
       plotCanvas.style.cssText =
-        `position:absolute;display:block;border-radius:2px;background:${theme.bgCanvas};`;
+        `position:absolute;display:block;border-radius:2px;background:${theme.bgCanvas};z-index:1;`;
       overlayCanvas = document.createElement('canvas');
       overlayCanvas.style.cssText =
         'position:absolute;z-index:5;cursor:default;pointer-events:all;outline:none;touch-action:none;';
@@ -723,6 +817,7 @@ function render({ model, el }) {
       titleCanvas.style.cssText = `position:absolute;pointer-events:none;z-index:8;background:transparent;display:none;`;
 
       plotWrap.appendChild(plotCanvas);
+      plotWrap.appendChild(gpu2d);      // below plotCanvas via z-index, after in DOM
       plotWrap.appendChild(overlayCanvas);
       plotWrap.appendChild(markersCanvas);
       plotWrap.appendChild(yAxisCanvas);
@@ -795,7 +890,7 @@ function render({ model, el }) {
     return { plotCanvas, overlayCanvas, markersCanvas, statusBar,
              xAxisCanvas, yAxisCanvas, scaleBar,
              cbCanvas, cbCtx, plotWrap, wrapNode, titleCanvas,
-             gpuCanvas: stack3dGpuCanvas };
+             gpuCanvas: stack3dGpuCanvas || stack2dGpuCanvas };
   }
 
   function _createPanelDOM(id, kind, pw, ph, spec) {
@@ -870,6 +965,20 @@ function render({ model, el }) {
         _loadGeom(p2, model.get(_geomTrait), rev);
         if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
       });
+      // Binary transport: raw pixel bytes for this panel arrive on a companion
+      // trait `panel_<id>_geom::<pixelKey>` (a Uint8Array). Merge them into the
+      // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
+      // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
+      // the small LUT/flags), so pixels + LUT converge in the cache.
+      for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
+        const slot = `${_geomTrait}::${pixelKey}`;
+        model.on(`change:${slot}`, () => {
+          const p2 = panels.get(id);
+          if (!p2) return;
+          _spliceBinaryBytes(p2, _geomTrait);
+          if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+        });
+      }
     }
 
     model.on(`change:panel_${id}_json`, () => {
@@ -890,7 +999,15 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    if (_hasGeom) {
+      _loadGeom(p, model.get(_geomTrait), 1);
+      // First-paint race fix: consume any binary pixel bytes that already
+      // arrived (before this render registered the change listeners above) so
+      // the INITIAL paint below shows them instead of leaving the panel blank
+      // until an organic second frame. No-op on the normal path (side-table
+      // empty until the first frame lands).
+      _spliceBinaryBytes(p, _geomTrait);
+    }
     try {
       p.state = JSON.parse(model.get(`panel_${id}_json`));
       _applyGeom(p, p.state);
@@ -1004,6 +1121,20 @@ function render({ model, el }) {
         _loadGeom(p2, model.get(_geomTrait), rev);
         if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
       });
+      // Binary transport: raw pixel bytes for this panel arrive on a companion
+      // trait `panel_<id>_geom::<pixelKey>` (a Uint8Array). Merge them into the
+      // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
+      // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
+      // the small LUT/flags), so pixels + LUT converge in the cache.
+      for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
+        const slot = `${_geomTrait}::${pixelKey}`;
+        model.on(`change:${slot}`, () => {
+          const p2 = panels.get(id);
+          if (!p2) return;
+          _spliceBinaryBytes(p2, _geomTrait);
+          if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+        });
+      }
     }
 
     model.on(`change:panel_${id}_json`, () => {
@@ -1024,7 +1155,12 @@ function render({ model, el }) {
       _redrawPanel(p2);
     });
 
-    if (_hasGeom) _loadGeom(p, model.get(_geomTrait), 1);
+    if (_hasGeom) {
+      _loadGeom(p, model.get(_geomTrait), 1);
+      // First-paint race fix (see _createPanelDOM): splice any binary pixel
+      // bytes that arrived before render() registered the listeners above.
+      _spliceBinaryBytes(p, _geomTrait);
+    }
     try {
       p.state = JSON.parse(model.get(`panel_${id}_json`));
       _applyGeom(p, p.state);
@@ -1118,7 +1254,8 @@ function render({ model, el }) {
     function _sz(c, ctx, w, h) {
       c.style.width=w+'px'; c.style.height=h+'px';
       c.width=w*dpr; c.height=h*dpr;
-      ctx.setTransform(dpr,0,0,dpr,0,0);
+      // ctx is null for a WebGPU canvas (no 2D context to transform).
+      if (ctx) ctx.setTransform(dpr,0,0,dpr,0,0);
     }
 
     if (p.kind === '2d') {
@@ -1172,6 +1309,15 @@ function render({ model, el }) {
       p.plotCanvas.style.left = imgX + 'px';
       p.plotCanvas.style.top  = imgY + 'px';
       _sz(p.plotCanvas, p.plotCtx, imgW, imgH);
+
+      // The 2D WebGPU image canvas (if present) sits under plotCanvas and matches
+      // the image area exactly. _sz sets CSS size + dpr backing; the WebGPU
+      // context reconfigures to this size on the next GPU draw.
+      if (p.gpuCanvas) {
+        p.gpuCanvas.style.left = imgX + 'px';
+        p.gpuCanvas.style.top  = imgY + 'px';
+        _sz(p.gpuCanvas, null, imgW, imgH);
+      }
 
       // Overlay and markers match the image canvas exactly
       p.overlayCanvas.style.left = imgX + 'px';
@@ -1265,6 +1411,34 @@ function render({ model, el }) {
     return { x: (cw - fw) / 2, y: (ch - fh) / 2, w: fw, h: fh, s };
   }
 
+  // On-screen rect occupied by image pixels at the current zoom.
+  // zoom>=1: full fit-rect; zoom<1: centred shrunken rect inside the fit-rect.
+  function _imgVisibleRect2d(st, pw, ph) {
+    const fr = _imgFitRect(st.image_width, st.image_height, pw, ph);
+    const z = st.zoom || 1.0;
+    if (z >= 1.0) return fr;
+    const w = fr.w * z, h = fr.h * z;
+    return { x: fr.x + (fr.w - w) / 2, y: fr.y + (fr.h - h) / 2, w, h, s: fr.s * z };
+  }
+
+  // Clamp a destination rect and its UV mapping to a clip rect.
+  // Returns null when fully outside the clip.
+  function _clipRectUv(dx, dy, dw, dh, u0, v0, u1, v1, cx, cy, cw, ch) {
+    if (!(dw > 0) || !(dh > 0) || !(cw > 0) || !(ch > 0)) return null;
+    const ox0 = dx, oy0 = dy, ox1 = dx + dw, oy1 = dy + dh;
+    const nx0 = Math.max(ox0, cx), ny0 = Math.max(oy0, cy);
+    const nx1 = Math.min(ox1, cx + cw), ny1 = Math.min(oy1, cy + ch);
+    if (nx1 <= nx0 || ny1 <= ny0) return null;
+    const tx0 = (nx0 - ox0) / dw, tx1 = (nx1 - ox0) / dw;
+    const ty0 = (ny0 - oy0) / dh, ty1 = (ny1 - oy0) / dh;
+    const du = u1 - u0, dv = v1 - v0;
+    return {
+      dx: nx0, dy: ny0, dw: nx1 - nx0, dh: ny1 - ny0,
+      u0: u0 + du * tx0, u1: u0 + du * tx1,
+      v0: v0 + dv * ty0, v1: v0 + dv * ty1,
+    };
+  }
+
   function _buildLut32(st) {
     const dMin=st.display_min, dMax=st.display_max;
     const hMin=st.raw_min!=null?st.raw_min:dMin;
@@ -1319,7 +1493,42 @@ function render({ model, el }) {
     return _imgFitRect(st.image_width, st.image_height, pw, ph).s * st.zoom;
   }
 
-  function _blit2d(bitmap, st, pw, ph, ctx) {
+  // Build (and cache on the panel) the Canvas2D bitmap for the detail tile —
+  // LUT-colormapped like the base. Returns null if no tile. Cached by the tile's
+  // content key so it rebuilds only when the tile or LUT changes.
+  function _detailBitmap(p, st) {
+    if (st.is_rgb) return null;
+    const d = _detailBytes(st);
+    if (!d.bytes || !st.detail_width || !st.detail_height) return null;
+    const dw = st.detail_width, dh = st.detail_height;
+    const lk = _lutKey(st);
+    const cache = (p._detailBlit ||= {});
+    if (cache.bitmap && cache.key === d.key && cache.lutKey === lk
+        && cache.w === dw && cache.h === dh) return cache.bitmap;
+    if (d.bytes.length < dw * dh) return null;
+    const imgData = new ImageData(dw, dh);
+    const lut = _buildLut32(st);
+    const out32 = new Uint32Array(imgData.data.buffer);
+    for (let i = 0; i < dw * dh; i++) out32[i] = lut[d.bytes[i]];
+    const oc = new OffscreenCanvas(dw, dh);
+    oc.getContext('2d').putImageData(imgData, 0, 0);
+    cache.bitmap = oc; cache.key = d.key; cache.lutKey = lk;
+    cache.w = dw; cache.h = dh;
+    return oc;
+  }
+
+  // Brief alpha ramp when detail-overlay mode changes (none/partial/full).
+  const _DETAIL_BLEND_MS = 90;
+
+  function _detailBlendAlpha(p, mode) {
+    const now = performance.now();
+    const b = (p._detailBlend ||= { mode: 'none', t0: now });
+    if (b.mode !== mode) { b.mode = mode; b.t0 = now; }
+    if (mode === 'none') return 0;
+    return Math.max(0, Math.min(1, (now - b.t0) / _DETAIL_BLEND_MS));
+  }
+
+  function _blit2d(p, bitmap, st, pw, ph, ctx, detailBitmap) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
     const iw = st.image_width, ih = st.image_height;
@@ -1327,18 +1536,58 @@ function render({ model, el }) {
     ctx.fillStyle = theme.bgCanvas;
     ctx.fillRect(0, 0, pw, ph);
     ctx.imageSmoothingEnabled = false;
+    // Base pass (overview or full frame) always draws first; detail layers blend over it.
     if (zoom >= 1.0) {
-      // Zoomed in: show a portion of the image filling the fit-rect.
+      // Zoomed in: show a portion of the image filling the fit-rect. The visible
+      // window is in LOGICAL px; scale it to the bitmap's OWN texels (the base may
+      // be a smaller overview: bitmap.width may be < image_width).
+      const bw = bitmap.width, bh = bitmap.height;
+      const kx = bw / iw, ky = bh / ih;   // logical→bitmap texel scale
       const visW = iw / zoom, visH = ih / zoom;
       const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
       const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
-      ctx.drawImage(bitmap, srcX, srcY, visW, visH, x, y, w, h);
+      ctx.drawImage(bitmap, srcX * kx, srcY * ky, visW * kx, visH * ky, x, y, w, h);
     } else {
-      // Zoomed out: shrink the fit-rect proportionally, keep it centred.
+      // Zoomed out: shrink the fit-rect proportionally, keep it centred. Source is
+      // the whole bitmap (overview or full).
       const dstW = w * zoom, dstH = h * zoom;
-      ctx.drawImage(bitmap, 0, 0, iw, ih,
+      ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height,
         x + (w - dstW) / 2, y + (h - dstH) / 2, dstW, dstH);
     }
+    const det = detailBitmap ? _detailUV(st) : null;
+    const ov = (!det && detailBitmap) ? _detailOverlayRect(st, x, y, w, h) : null;
+    const mode = det ? 'full' : (ov ? 'partial' : 'none');
+    const alpha = _detailBlendAlpha(p, mode);
+    if (mode !== 'none' && alpha < 1 && !p._detailBlendRAF) {
+      p._detailBlendRAF = requestAnimationFrame(() => {
+        p._detailBlendRAF = 0;
+        if (p.state) draw2d(p);
+      });
+    }
+    if (!(alpha > 0) || !detailBitmap) return;
+
+    if (det) {
+      const dw = detailBitmap.width, dh = detailBitmap.height;
+      const sx = det.u0 * dw, sy = det.v0 * dh;
+      const sw = (det.u1 - det.u0) * dw, sh = (det.v1 - det.v0) * dh;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(detailBitmap, sx, sy, sw, sh, x, y, w, h);
+      ctx.restore();
+      return;
+    }
+
+    const vr = _imgVisibleRect2d(st, pw, ph);
+    const cl = _clipRectUv(ov.dx, ov.dy, ov.dw, ov.dh,
+      0, 0, 1, 1, vr.x, vr.y, vr.w, vr.h);
+    if (!cl) return;
+    const dw = detailBitmap.width, dh = detailBitmap.height;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(detailBitmap,
+      cl.u0 * dw, cl.v0 * dh, (cl.u1 - cl.u0) * dw, (cl.v1 - cl.v0) * dh,
+      cl.dx, cl.dy, cl.dw, cl.dh);
+    ctx.restore();
   }
 
   function draw2d(p) {
@@ -1353,25 +1602,71 @@ function render({ model, el }) {
     const imgW = p.imgW || Math.max(1, pw - PAD_L - PAD_R);
     const imgH = p.imgH || Math.max(1, ph - PAD_T - PAD_B);
 
-    // Decode base64 image bytes
-    const b64=st.image_b64||'';
-    const iw=st.image_width, ih=st.image_height;
+    // Image bytes: prefer the binary trait (image_bytes, no atob) over base64.
+    const _img = _imageBytes(st);
+    const b64 = _img.key;                    // cache identity (b64 string or bin token)
+    // The base bitmap is built at the OVERVIEW texel size (base_width/height in tile
+    // mode; else the full image). _blit2d then draws it over the fit-rect using the
+    // LOGICAL image_width/height for the zoom math, so the overview scales to the
+    // full extent (lower-res until a detail tile covers the view).
+    const iw=st.base_width||st.image_width, ih=st.base_height||st.image_height;
 
-    if(!b64||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
+    if(!_img.bytes||iw===0||ih===0){ctx.clearRect(0,0,imgW,imgH);return;}
 
     const isRgb=!!st.is_rgb;   // bytes are RGBA (4/px) — no LUT applies
     const lk=isRgb?'__rgb__':_lutKey(st);
+
+    // ── WebGPU image path (large scalar images) ─────────────────────────────
+    // If the GPU path is active for this panel, draw the image raster on the
+    // gpuCanvas (shader-LUT colormap on a texture) and CLEAR the plotCanvas image
+    // area so the 2D decorations below (axes/colorbar/scale bar/mask/markers)
+    // composite over the GPU image. Any failure reverts to the Canvas2D blit for
+    // this frame (and the panel is marked unavailable on hard errors).
+    // Test/diagnostic hook: record what the GPU path decided this frame.
+    try { (globalThis.__apl_gpu2d ||= {})[p.id] =
+      { wanted: _gpuWanted2d(st), gpu: p._gpu, hasImg: !!p._gpuImg,
+        iw: st.image_width, ih: st.image_height, active: false }; } catch (_) {}
+    let _gpuPainted = false;
+    if (_gpuWanted2d(st) && p._gpu === 'active' && p._gpuImg) {
+      if (_gpuDraw2dImage(p, st, imgW, imgH)) {
+        if (p.gpuCanvas.style.display === 'none') p.gpuCanvas.style.display = 'block';
+        // plotCanvas holds only decorations now → transparent, cleared each frame.
+        p.plotCanvas.style.background = 'transparent';
+        ctx.clearRect(0, 0, imgW, imgH);
+        _gpuPainted = true;
+        try { globalThis.__apl_gpu2d[p.id].active = true; } catch (_) {}
+      } else {
+        _tiledbg('path', `panel=${p.id} GPU draw returned FALSE → Canvas2D fallback ` +
+          `(tile_enabled=${st.tile_enabled})`);
+      }
+    } else if (p.gpuCanvas && p.gpuCanvas.style.display !== 'none'
+               && (!_gpuWanted2d(st) || p._gpu !== 'active')) {
+      // GPU not painting this frame (shrank below threshold, RGB image, a
+      // zoom/pan, or device lost) → hide the GPU layer, restore the opaque plot
+      // canvas. gpu_active (capability) is echoed only on PERMANENT loss (the
+      // device-lost handler); a transient zoom/shrink is reversible so the flag
+      // stays as-is rather than flapping per frame.
+      p.gpuCanvas.style.display = 'none';
+      p.plotCanvas.style.background = theme.bgCanvas;
+      try { globalThis.__apl_gpu2d[p.id].active = false; } catch (_) {}
+    }
+
+    if (!_gpuPainted) {
+    if (globalThis.__apl_tiledbg && st.tile_enabled) {
+      const reg = st.detail_region || [];
+      const uv = _detailUV(st);
+      _tiledbg('canvas', `panel=${p.id} CANVAS2D blit (NOT gpu) ` +
+        `zoom=${(st.zoom||1).toFixed(2)} base[${st.base_width}x${st.base_height}] ` +
+        `image[${st.image_width}x${st.image_height}] detail_region=[${reg.join(',')}] ` +
+        `detailUV=${uv?'COVERS':'partial/none'} hasDetailBmp=${!!_detailBitmap(p, st)}`);
+    }
     const needRebuild = b64!==blitCache.bytesKey || lk!==blitCache.lutKey
                      || !blitCache.bitmap || blitCache.w!==iw || blitCache.h!==ih;
     if(!needRebuild && blitCache.bitmap){
-      _blit2d(blitCache.bitmap, st, imgW, imgH, ctx);
+      _blit2d(p, blitCache.bitmap, st, imgW, imgH, ctx, _detailBitmap(p, st));
     } else {
-      let bytes;
-      try {
-        const bin=atob(b64);
-        bytes=new Uint8Array(bin.length);
-        for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-      } catch(_){return;}
+      const bytes = _img.bytes;
+      if (!bytes) return;
       const imgData=new ImageData(iw,ih);
       if(isRgb){
         imgData.data.set(bytes.subarray(0, iw*ih*4));
@@ -1384,7 +1679,33 @@ function render({ model, el }) {
       oc.getContext('2d').putImageData(imgData,0,0);
       blitCache.bitmap=oc; blitCache.bytesKey=b64; blitCache.lutKey=lk;
       blitCache.w=iw; blitCache.h=ih;
-      _blit2d(oc, st, imgW, imgH, ctx);
+      _blit2d(p, oc, st, imgW, imgH, ctx, _detailBitmap(p, st));
+    }
+    }
+
+    // Kick off async GPU activation if wanted but not yet tried (first frame is
+    // always Canvas2D; the device resolves, the panel builds its pipeline, and a
+    // redraw flips to GPU). Mirrors the 3D path's async-init contract.
+    if (_gpuWanted2d(st) && p.gpuCanvas && p._gpu === undefined) {
+      p._gpu = 'pending';
+      _gpuDevice().then((device) => {
+        // The panel may have been removed while the device promise was pending
+        // (guard like the 3D path) — don't init/report/draw on a detached panel.
+        if (!device || !panels.has(p.id)) { p._gpu = 'unavailable'; return; }
+        try { _gpuInitImagePanel(p, device); p._gpu = 'active'; _reportGpu(p); }
+        catch (e) { p._gpu = 'unavailable';
+                    console.warn('[anyplotlib] GPU image init failed:', e); }
+        _redrawPanel(p);
+      });
+    }
+
+    // Tile mode: once the panel has a real on-screen size, emit ONE view_changed so
+    // the Python tile consumer can size the overview / initial tile to the actual
+    // panel px (imgW/imgH are only known after the first layout). Fires immediately
+    // (not debounced) so the first crisp tile appears without a user gesture.
+    if (st.tile_enabled && !p._didInitialView && p.imgW > 0 && p.imgH > 0) {
+      p._didInitialView = true;
+      _emitViewChanged(p, true);
     }
 
     // ── Overlay mask compositing ─────────────────────────────────────────────
@@ -1407,8 +1728,16 @@ function render({ model, el }) {
           mg=parseInt(mColor.slice(3,5),16);
           mb=parseInt(mColor.slice(5,7),16);
         }
+        // Binary transport ships the mask bytes on the companion trait (the
+        // geom then carries only a "\x00bin:" content token in mob64) — prefer
+        // them; atob is the base64-in-JSON fallback.
         let mBytes;
-        try{const bin=atob(mob64);mBytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)mBytes[i]=bin.charCodeAt(i);}catch(_){mBytes=null;}
+        const mraw=st.overlay_mask_b64_bytes;
+        if(mraw&&(mraw instanceof Uint8Array||mraw.byteLength!==undefined)){
+          mBytes=mraw instanceof Uint8Array?mraw:new Uint8Array(mraw);
+        }else{
+          try{const bin=atob(mob64);mBytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)mBytes[i]=bin.charCodeAt(i);}catch(_){mBytes=null;}
+        }
         if(mBytes&&mBytes.length===iw*ih){
           const mImg=new ImageData(iw,ih);
           // Write colour where mask=255; transparent where mask=0.
@@ -1733,6 +2062,9 @@ function render({ model, el }) {
     ovCtx.clearRect(0,0,imgW,imgH);
     const widgets=st.overlay_widgets||[];
     const scale=_imgScale2d(st,imgW,imgH);
+    const vr = _imgVisibleRect2d(st, imgW, imgH);
+    ovCtx.save();
+    ovCtx.beginPath(); ovCtx.rect(vr.x, vr.y, vr.w, vr.h); ovCtx.clip();
     for(const w of widgets){
       if(w.visible === false) continue;
       ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
@@ -1775,6 +2107,7 @@ function render({ model, el }) {
       }
       ovCtx.restore();
     }
+    ovCtx.restore();
   }
 
   function _drawHandle2d(ctx,x,y,color){
@@ -1790,6 +2123,7 @@ function render({ model, el }) {
     const sets=st.markers||[];
     if(!sets.length) return;
     const scale=_imgScale2d(st,imgW,imgH);
+    const vr = _imgVisibleRect2d(st, imgW, imgH);
     const hsi = hoverState ? hoverState.si : -1;
 
     for(let si=0;si<sets.length;si++){
@@ -1809,6 +2143,7 @@ function render({ model, el }) {
       // Coordinate transform dispatch: "data" (default), "axes", "display".
       // For non-data transforms sizes are in pixels, not scaled by zoom.
       const tfm = ms.transform || 'data';
+      const clipSet = tfm !== 'display' || ms.clip_display !== false;
       let _tc;
       if(tfm==='axes'){
         const fr=_imgFitRect(st.image_width,st.image_height,imgW,imgH);
@@ -1821,6 +2156,9 @@ function render({ model, el }) {
       const scl = tfm==='data' ? scale : 1;
 
       mkCtx.save();
+      if(clipSet){
+        mkCtx.beginPath(); mkCtx.rect(vr.x, vr.y, vr.w, vr.h); mkCtx.clip();
+      }
       mkCtx.strokeStyle=ec; mkCtx.fillStyle=ec; mkCtx.lineWidth=dlw;
 
       if(type==='circles'){
@@ -1950,6 +2288,10 @@ function render({ model, el }) {
   // ═══════════════════════════════════════════════════════════════════════
   const GPU_POINT_THRESHOLD = 20000;
   const GPU_VOXEL_THRESHOLD = 8000;   // cubes cost ~6× a point on canvas
+  // A 2-D scalar image goes to the GPU (shader-LUT colormap on a texture) above
+  // this many pixels — below it the Canvas2D atob+LUT loop is already instant.
+  // ~1 megapixel: a 1024² image and up (a large in-situ movie frame is 16-64 Mpx).
+  const GPU_IMAGE_THRESHOLD = 1 << 20;
   let _gpuDevicePromise = null;   // module singleton: Promise<GPUDevice|null>
 
   function _gpuDevice() {
@@ -1969,6 +2311,15 @@ function render({ model, el }) {
               if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
               if (p.plotCanvas) p.plotCanvas.style.background = theme.bgPlot;
               _gpuDisposePanel(p);
+              _redrawPanel(p);
+            } else if (p.kind === '2d' && p._gpu === 'active') {
+              // 2-D image panel: revert to the Canvas2D blit path + free GPU
+              // resources, and echo the fallback so plot.gpu_active goes False.
+              p._gpu = 'unavailable';
+              if (p.gpuCanvas) p.gpuCanvas.style.display = 'none';
+              if (p.plotCanvas) p.plotCanvas.style.background = theme.bgCanvas;
+              _gpuDisposeImagePanel(p);
+              _reportGpu(p);
               _redrawPanel(p);
             }
           }
@@ -1992,7 +2343,7 @@ function render({ model, el }) {
     } catch (_) {}
   }
 
-  // Should this panel try the GPU path for its current state?
+  // Should this 3-D panel try the GPU path for its current state?
   function _gpuWanted(st) {
     if (typeof navigator === 'undefined' || !navigator.gpu) return false;
     const mode = st.gpu_mode || 'auto';
@@ -2002,6 +2353,25 @@ function render({ model, el }) {
     if (mode === 'always') return true;
     const thr = geom === 'voxels' ? GPU_VOXEL_THRESHOLD : GPU_POINT_THRESHOLD;
     return (st.vertices_count || 0) > thr;
+  }
+
+  // Should this 2-D image panel take the WebGPU texture path? Scalar (LUT) images
+  // only — RGB(A) images stay on Canvas2D (they need no colormap and are rare/
+  // small). Gated by megapixels above GPU_IMAGE_THRESHOLD unless gpu_mode forces.
+  function _gpuWanted2d(st) {
+    if (typeof navigator === 'undefined' || !navigator.gpu) return false;
+    const mode = st.gpu_mode || 'auto';
+    if (mode === 'off') return false;
+    if (st.is_rgb) return false;                 // no LUT → nothing to accelerate
+    // Pixels present as base64 (image_b64) OR binary bytes (image_b64_bytes).
+    if ((!st.image_b64 && !st.image_b64_bytes)
+        || !st.image_width || !st.image_height) return false;
+    // ZOOM/PAN is now honoured by the shader (the quad's clip rect + uv sub-region
+    // mirror _blit2d, so the GPU image stays registered with the overlays and
+    // UPSAMPLES real texels on zoom-in), so we no longer fall back on zoom. See
+    // _imageDrawUniform.
+    if (mode === 'always') return true;
+    return (st.image_width * st.image_height) >= GPU_IMAGE_THRESHOLD;
   }
 
   const _GPU_POINT_WGSL = `
@@ -2119,6 +2489,661 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   return vec4<f32>(in.color.rgb, in.alpha);
 }
 `;
+
+  // ── 2-D large-image WebGPU path ────────────────────────────────────────────
+  // A fullscreen textured quad samples the normalized uint8 image (an R8 texture,
+  // the same bytes the Canvas2D path decodes) and maps each pixel through the
+  // 256-entry colormap LUT (a 256×1 RGBA texture). This replaces the 64-million-
+  // iteration JS atob+LUT loop with one GPU draw.
+  //
+  // CRITICAL: the LUT is built by _buildLut32, which ALREADY bakes the display
+  // window (clim) AND the scale_mode (linear/log/symlog) into a direct
+  // "pixel value → final colour" map: lut[raw] = final colour. The Canvas2D path
+  // uses it as a plain lookup (out32[i] = lut[bytes[i]]). So the shader must be an
+  // IDENTITY lookup — index the LUT by raw/255 and NOTHING else. (A previous
+  // version re-applied dmin/dmax in the shader on top of the already-windowed LUT,
+  // double-applying the contrast — correct only at full-range clim, wrong for any
+  // narrowed window or log/symlog. Do NOT reintroduce a clim uniform here.)
+  //
+  // The quad is fullscreen with NO zoom/pan: the GPU path is used only when the
+  // view is unzoomed/uncentred (see _gpuWanted2d); a zoomed/panned view falls
+  // back to Canvas2D so the base image stays registered with the axes/overlays.
+  const _GPU_IMAGE_WGSL = `
+// rect   = the on-screen quad in CLIP space (x0,y0,x1,y1). For zoom<=1 this is the
+//          fit-rect shrunk by zoom (centred); for zoom>=1 it's the full fit-rect.
+// uvrect = the texture sub-region to sample (u0,v0,u1,v1), in 0..1. For zoom>=1
+//          this is the zoomed-in window of the image (a small region stretched over
+//          the fit-rect, nearest sampling UPSAMPLES real texels); for zoom<=1 it's
+//          the whole texture (0,0,1,1). Together they reproduce _blit2d's zoom/pan
+//          exactly, so the GPU image stays registered with the axes/overlays at any
+//          zoom. Outside the rect the clear colour shows as the letterbox bars.
+struct U { rect : vec4<f32>, uvrect : vec4<f32>, };
+@group(0) @binding(0) var<uniform> u : U;
+@group(0) @binding(1) var img  : texture_2d<f32>;
+@group(0) @binding(2) var lut  : texture_2d<f32>;
+@group(0) @binding(3) var samp : sampler;
+
+struct VsOut {
+  @builtin(position) pos : vec4<f32>,
+  @location(0) uv        : vec2<f32>,
+};
+
+// Unit quad in 0..1; mapped into the clip-space rect + the uv sub-region below.
+const Q = array<vec2<f32>, 6>(
+  vec2(0.0,0.0), vec2(1.0,0.0), vec2(0.0,1.0),
+  vec2(0.0,1.0), vec2(1.0,0.0), vec2(1.0,1.0));
+
+@vertex
+fn vs(@builtin(vertex_index) vi : u32) -> VsOut {
+  var out : VsOut;
+  let q = Q[vi];                              // 0..1 across the drawn quad
+  let x = mix(u.rect.x, u.rect.z, q.x);       // lerp into clip-space rect
+  let y = mix(u.rect.y, u.rect.w, q.y);
+  out.pos = vec4<f32>(x, y, 0.0, 1.0);
+  let uu = mix(u.uvrect.x, u.uvrect.z, q.x);
+  // q.y=0 is the SCREEN BOTTOM (rect.y is the lower clip edge), which shows
+  // the LAST row of the visible window (v1); q.y=1 (screen top) shows the
+  // first (v0) — so v interpolates from v1 down to v0 WITHIN the window
+  // (imshow: texture row 0 = image top). Do NOT flip with a global (1 - v)
+  // after interpolating [v0,v1]: that samples the MIRRORED window
+  // [1-v1, 1-v0] — identical only when v0+v1 == 1 (full view / vertically
+  // centred), so it survived centred-zoom tests but inverted the pan-y
+  // direction and detached the image from markers/overlays on any
+  // vertically off-centre view (base AND detail passes).
+  let vv = mix(u.uvrect.w, u.uvrect.y, q.y);
+  out.uv  = vec2<f32>(uu, vv);
+  return out;
+}
+
+@fragment
+fn fs(in : VsOut) -> @location(0) vec4<f32> {
+  // R8 unorm (0..1) = the frame value already normalized to the 0..255 index the
+  // LUT is keyed on. Direct identity lookup — the LUT holds the final colour
+  // (clim + scale_mode baked in). Nearest sampling on img (no interpolation of
+  // raw values); the LUT is sampled at the texel centre.
+  let raw = textureSampleLevel(img, samp, in.uv, 0.0).r;   // 0..1 == index/255
+  return textureSampleLevel(lut, samp, vec2<f32>(raw, 0.5), 0.0);
+}
+`;
+
+  function _gpuInitImagePanel(p, device) {
+    const fmt = navigator.gpu.getPreferredCanvasFormat();
+    const ctx = p.gpuCanvas.getContext('webgpu');
+    ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
+    const module = device.createShaderModule({ code: _GPU_IMAGE_WGSL });
+    const pipeline = device.createRenderPipeline({
+      layout: 'auto',
+      vertex:   { module, entryPoint: 'vs' },
+      fragment: { module, entryPoint: 'fs', targets: [{ format: fmt }] },
+      primitive:{ topology: 'triangle-list' },
+    });
+    // NEAREST on both textures matches the Canvas2D path's imageSmoothingEnabled=
+    // false (no interpolation of raw values or between LUT colour entries), so the
+    // GPU output is a pixel-faithful match of the reference.
+    const samp = device.createSampler({
+      magFilter: 'nearest', minFilter: 'nearest', mipmapFilter: 'nearest' });
+    // Uniform holds the clip-space quad rect + the texture uv sub-region (two
+    // vec4 = 32 B) so the quad matches the fit-rect AND zoom/pan of the Canvas2D
+    // path + overlays.
+    const uniformBuf = device.createBuffer({
+      size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    // Second uniform for the DETAIL overlay pass (its own screen rect + uv), so the
+    // crisp tile can be stitched OVER the upsampled overview base in one frame
+    // (base fills the margin, tile fills the padded FOV — no zoom-out flash).
+    const uniformBuf2 = device.createBuffer({
+      size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    p._gpuImg = { device, ctx, fmt, pipeline, samp, uniformBuf, uniformBuf2,
+                  tex: null, texW: 0, texH: 0, lutTex: null, lutKey: null,
+                  bytesKey: null, bindGroup: null,
+                  // Detail texture slot (kept resident alongside the base).
+                  dtex: null, dtexW: 0, dtexH: 0, dbytesKey: null, dbindGroup: null };
+  }
+
+  // Raw single-channel pixel bytes for the current image state. Prefers the
+  // BINARY bytes `image_b64_bytes` (a Uint8Array spliced into the state from the
+  // geomCache by the binary transport — no atob) over `image_b64` (base64, needs
+  // decoding). Returns {bytes, key} where `key` is a cheap identity for the
+  // "unchanged → skip re-upload" check.
+  function _imageBytes(st) {
+    const raw = st.image_b64_bytes;
+    if (raw && (raw instanceof Uint8Array || raw.byteLength !== undefined)) {
+      const u8 = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+      // Cache identity, in preference order:
+      //  1. the content token in st.image_b64 ("\x00bin:<adler>", kept in the
+      //     slimmed geom by _route_change),
+      //  2. the buffer's ARRIVAL sequence (stamped when the binary frame was
+      //     spliced in — every received frame is new content),
+      //  3. a sampled fingerprint as a last resort. NB sampling is WEAK: it
+      //     reads only 4 bytes, so frames differing anywhere else collide and
+      //     the "unchanged → skip re-upload" check freezes the display — this
+      //     branch must stay a fallback, never the primary key.
+      let key = st.image_b64;
+      if (!key && u8.__aplSeq !== undefined) key = `binseq:${u8.__aplSeq}`;
+      if (!key) {
+        const n = u8.length;
+        const s0 = u8[0] || 0, s1 = u8[(n >> 2) | 0] || 0;
+        const s2 = u8[(n >> 1) | 0] || 0, s3 = u8[n - 1] || 0;
+        key = `bin:${n}:${s0},${s1},${s2},${s3}`;
+      }
+      return { bytes: u8, key };
+    }
+    const b64 = st.image_b64 || '';
+    if (!b64) return { bytes: null, key: '' };
+    try {
+      const bin = atob(b64);
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return { bytes: u8, key: b64 };
+    } catch (_) { return { bytes: null, key: '' }; }
+  }
+
+  // Detail-tile bytes (binary `detail_b64_bytes` or base64 `detail_b64`), keyed so a
+  // new tile re-uploads. Prefix the key with 'detail:' so it never collides with a
+  // base-image key of the same length (they share the one GPU texture slot).
+  function _detailBytes(st) {
+    const raw = st.detail_b64_bytes;
+    if (raw && (raw instanceof Uint8Array || raw.byteLength !== undefined)) {
+      const u8 = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+      const reg = st.detail_region || [];
+      // Key on detail_seq (a monotonic counter bumped by Python's set_detail on EVERY
+      // push), NOT just length+region. A live movie scrub while zoomed in re-samples
+      // the SAME region every frame → identical length + region, so a length/region
+      // key would match every frame and the GPU/Canvas dedup would SKIP the re-upload
+      // — the display freezes on the first frame ("won't update when zoomed in").
+      // detail_seq guarantees a distinct key per pushed tile.
+      const seq = st.detail_seq || 0;
+      return { bytes: u8, key: `detail:${seq}:${u8.length}:${reg.join(',')}` };
+    }
+    const b64 = st.detail_b64 || '';
+    if (!b64) return { bytes: null, key: '' };
+    try {
+      const bin = atob(b64);
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return { bytes: u8, key: `detail:${b64}` };
+    } catch (_) { return { bytes: null, key: '' }; }
+  }
+
+  // Write single-channel R8 bytes into a device texture, (re)creating it if the size
+  // changed. Returns the (possibly new) texture, or null if bytes are missing/short.
+  function _gpuWriteR8(device, tex, texWH, iw, ih, bytes) {
+    if (!bytes) return null;
+    if (bytes.length < iw * ih) return null;
+    if (!tex || texWH.w !== iw || texWH.h !== ih) {
+      if (tex) tex.destroy();
+      tex = device.createTexture({
+        size: [iw, ih, 1], format: 'r8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST |
+               GPUTextureUsage.RENDER_ATTACHMENT });
+      texWH.w = iw; texWH.h = ih;
+    }
+    // bytesPerRow must be a multiple of 256 for writeTexture; R8 = 1 B/px, so pad
+    // each row up to the next 256 boundary.
+    const bpr = Math.ceil(iw / 256) * 256;
+    let src = bytes;
+    if (bpr !== iw) {
+      src = new Uint8Array(bpr * ih);
+      for (let r = 0; r < ih; r++) src.set(bytes.subarray(r * iw, r * iw + iw), r * bpr);
+    }
+    device.queue.writeTexture(
+      { texture: tex }, src, { bytesPerRow: bpr, rowsPerImage: ih }, [iw, ih, 1]);
+    return tex;
+  }
+
+  // Ensure the shared LUT texture is current for st. Returns false only if it can't
+  // be built. Sets g.lutTex; invalidates both bind groups when the LUT changes.
+  function _gpuEnsureLut(g, st) {
+    const device = g.device;
+    const lutKey = _lutKey(st);
+    if (lutKey === g.lutKey && g.lutTex) return true;
+    const lut = _buildLut32(st);             // Uint32Array(256), 0xAABBGGRR
+    const rgba = new Uint8Array(256 * 4);
+    for (let i = 0; i < 256; i++) {
+      const v = lut[i];
+      rgba[i*4]   = v & 0xff;
+      rgba[i*4+1] = (v >> 8) & 0xff;
+      rgba[i*4+2] = (v >> 16) & 0xff;
+      rgba[i*4+3] = 255;
+    }
+    if (!g.lutTex) {
+      g.lutTex = device.createTexture({
+        size: [256, 1, 1], format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+    }
+    device.queue.writeTexture(
+      { texture: g.lutTex }, rgba, { bytesPerRow: 256 * 4, rowsPerImage: 1 },
+      [256, 1, 1]);
+    g.lutKey = lutKey;
+    g.bindGroup = null; g.dbindGroup = null;   // LUT changed → both groups rebuild
+    return true;
+  }
+
+  // Upload the BASE (overview/full) image bytes + the LUT. Returns false if the base
+  // bytes couldn't be decoded (caller falls back to Canvas2D). The detail tile is
+  // uploaded separately (_gpuUploadDetail) into its own slot for the overlay pass —
+  // base and detail are STITCHED in one frame, not swapped, so a zoom-out shows the
+  // crisp padded tile over an upsampled-overview margin (no flash).
+  function _gpuUploadImage(p, st) {
+    const g = p._gpuImg, device = g.device;
+    // The BASE texture is an OVERVIEW in tile mode: its real texel dims are
+    // base_width/height (0 → full image_width/height). The shader samples UV as a
+    // fraction 0..1 of the texture, so a smaller overview still maps over the full
+    // logical extent — lower-res until the detail tile covers the view.
+    const iw = st.base_width || st.image_width;
+    const ih = st.base_height || st.image_height;
+    const img = _imageBytes(st);
+    if (img.key !== g.bytesKey || !g.tex || g.texW !== iw || g.texH !== ih) {
+      const texWH = { w: g.texW, h: g.texH };
+      const tex = _gpuWriteR8(device, g.tex, texWH, iw, ih, img.bytes);
+      if (!tex) return false;
+      g.tex = tex; g.texW = texWH.w; g.texH = texWH.h;
+      g.bytesKey = img.key;
+      g.bindGroup = null;   // texture changed → rebuild bind group
+    }
+    if (!_gpuEnsureLut(g, st)) return false;
+    if (!g.bindGroup) {
+      g.bindGroup = device.createBindGroup({
+        layout: g.pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: g.uniformBuf } },
+          { binding: 1, resource: g.tex.createView() },
+          { binding: 2, resource: g.lutTex.createView() },
+          { binding: 3, resource: g.samp },
+        ],
+      });
+    }
+    return true;
+  }
+
+  // Upload the DETAIL tile into its own slot (g.dtex) + build g.dbindGroup bound to
+  // uniformBuf2. Returns true if a detail tile is resident & ready to draw, false if
+  // there's none (or its bytes couldn't be decoded → skip the overlay pass). Assumes
+  // _gpuUploadImage already ran this frame (LUT is current).
+  function _gpuUploadDetail(p, st) {
+    const g = p._gpuImg, device = g.device;
+    const reg = st.detail_region;
+    if (!_hasDetail(st) || !reg || reg.length !== 4
+        || !st.detail_width || !st.detail_height) return false;
+    const iw = st.detail_width, ih = st.detail_height;
+    const img = _detailBytes(st);
+    if (img.key !== g.dbytesKey || !g.dtex || g.dtexW !== iw || g.dtexH !== ih) {
+      const texWH = { w: g.dtexW, h: g.dtexH };
+      const tex = _gpuWriteR8(device, g.dtex, texWH, iw, ih, img.bytes);
+      if (!tex) return false;
+      g.dtex = tex; g.dtexW = texWH.w; g.dtexH = texWH.h;
+      g.dbytesKey = img.key;
+      g.dbindGroup = null;
+    }
+    if (!g.dtex) return false;
+    if (!g.dbindGroup) {
+      g.dbindGroup = device.createBindGroup({
+        layout: g.pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: g.uniformBuf2 } },
+          { binding: 1, resource: g.dtex.createView() },
+          { binding: 2, resource: g.lutTex.createView() },
+          { binding: 3, resource: g.samp },
+        ],
+      });
+    }
+    return true;
+  }
+
+  // Compute the GPU uniform: the on-screen quad in CLIP space + the texture uv
+  // sub-region to sample, honouring zoom/center EXACTLY like the Canvas2D _blit2d
+  // (so the GPU image stays registered with the axes/overlays at any zoom, and a
+  // zoom-in UPSAMPLES real texels via nearest sampling). Returns 8 floats:
+  // [rx0,ry0,rx1,ry1, u0,v0,u1,v1]. imgW/imgH = the gpuCanvas area in CSS px.
+  // The visible image-pixel window [srcX, srcX+visW]×[srcY, srcY+visH] for the
+  // current zoom/center, in BASE image pixels (zoom>=1). Mirrors _imageDrawUniform.
+  function _visibleWindow(st) {
+    const iw = st.image_width, ih = st.image_height;
+    const zoom = st.zoom || 1.0;
+    if (zoom < 1.0) return { srcX: 0, srcY: 0, visW: iw, visH: ih };
+    const cx = (st.center_x == null ? 0.5 : st.center_x);
+    const cy = (st.center_y == null ? 0.5 : st.center_y);
+    const visW = iw / zoom, visH = ih / zoom;
+    const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+    const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+    return { srcX, srcY, visW, visH };
+  }
+
+  // Is the detail tile active AND does it fully cover the current visible window?
+  // If so, return the tile-relative UV of that window (so the shader samples the
+  // hi-res tile); otherwise null (sample the base texture). Requires the whole
+  // visible window inside detail_region so a zoom-in shows only crisp tile texels.
+  // True when a detail tile is present, regardless of transport: base64 path leaves
+  // the string in st.detail_b64; the BINARY path strips detail_b64 out of the geom
+  // and ships bytes on the companion trait (spliced into st.detail_b64_bytes). Gating
+  // on detail_b64 alone made the binary path NEVER show the detail tile — only the
+  // blurry overview — because the string is absent under binary transport.
+  function _hasDetail(st) {
+    if (st.detail_b64) return true;
+    const b = st.detail_b64_bytes;
+    return !!(b && (b instanceof Uint8Array || b.byteLength !== undefined) && b.length);
+  }
+
+  function _detailUV(st) {
+    const reg = st.detail_region;
+    if (!_hasDetail(st) || !reg || reg.length !== 4) return null;
+    const [tx0, tx1, ty0, ty1] = reg;
+    const tw = tx1 - tx0, th = ty1 - ty0;
+    if (!(tw > 0) || !(th > 0)) return null;
+    const w = _visibleWindow(st);
+    if (w.srcX < tx0 - 0.5 || w.srcX + w.visW > tx1 + 0.5 ||
+        w.srcY < ty0 - 0.5 || w.srcY + w.visH > ty1 + 0.5) return null;
+    return {
+      u0: (w.srcX - tx0) / tw, u1: (w.srcX + w.visW - tx0) / tw,
+      v0: (w.srcY - ty0) / th, v1: (w.srcY + w.visH - ty0) / th,
+    };
+  }
+
+  // The screen rect (within the fit-rect fx,fy,fw,fh) where the detail tile's
+  // logical region maps at the current zoom/center — for compositing the still-
+  // valid crisp tile OVER the base when it no longer FULLY covers the view (a
+  // zoom-out/pan that outgrew the region). Returns null when: no tile; the tile
+  // already fully covers (the _detailUV branch draws it full-screen instead); or
+  // the region is entirely off-screen (nothing to overlay). This is what removes
+  // the zoom-out flash — the centre stays crisp until the wider tile lands.
+  function _detailOverlayRect(st, fx, fy, fw, fh) {
+    const reg = st.detail_region;
+    if (!_hasDetail(st) || !reg || reg.length !== 4) return null;
+    if (_detailUV(st)) return null;                 // fully covered → drawn elsewhere
+    const zoom = st.zoom || 1.0;
+    // At/below zoom 1 the whole image is visible and the overview base is
+    // authoritative — don't float a stale crisp patch over it. The overlay is a
+    // zoom-IN / transition aid (it prevents the zoom-OUT flash WHILE still
+    // magnified); the live loop clears the tile below VIEW_ZOOM_MIN anyway, so this
+    // only additionally guards a manually-set tile at zoom<=1.
+    if (zoom <= 1.0) return null;
+    const [tx0, tx1, ty0, ty1] = reg;
+    if (!(tx1 > tx0) || !(ty1 > ty0)) return null;
+    const iw = st.image_width, ih = st.image_height;
+    // Logical→screen mapping identical to the zoom>=1 base blit (windowed), so the
+    // overlaid tile registers exactly over the base.
+    const cx = (st.center_x == null ? 0.5 : st.center_x);
+    const cy = (st.center_y == null ? 0.5 : st.center_y);
+    const visW = iw / zoom, visH = ih / zoom;
+    const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+    const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+    const mapX = (lx) => fx + ((lx - srcX) / visW) * fw;
+    const mapY = (ly) => fy + ((ly - srcY) / visH) * fh;
+    const dx = mapX(tx0), dx1 = mapX(tx1);
+    const dy = mapY(ty0), dy1 = mapY(ty1);
+    const dw = dx1 - dx, dh = dy1 - dy;
+    if (!(dw > 0.5) || !(dh > 0.5)) return null;
+    // Fully outside the fit-rect → nothing to show.
+    if (dx1 <= fx || dx >= fx + fw || dy1 <= fy || dy >= fy + fh) return null;
+    return { dx, dy, dw, dh };
+  }
+
+  // Pack a screen dest rect (px, y-down) + uv sub-region (0..1) into the 8-float
+  // clip-space uniform the shader expects. Shared by the base + detail passes.
+  function _drawUniform(dx, dy, dw, dh, u0, v0, u1, v1, imgW, imgH) {
+    const rx0 = (dx / imgW) * 2 - 1;
+    const rx1 = ((dx + dw) / imgW) * 2 - 1;
+    const ry0 = 1 - ((dy + dh) / imgH) * 2;   // bottom edge (lower clip y)
+    const ry1 = 1 - (dy / imgH) * 2;          // top edge (upper clip y)
+    return new Float32Array([rx0, ry0, rx1, ry1, u0, v0, u1, v1]);
+  }
+
+  // Uniform for the BASE pass: the overview/full frame over the fit-rect honouring
+  // zoom/pan (NOT the detail — that's a separate overlay pass now, so the base
+  // always fills the whole view and the crisp tile stitches on top).
+  function _imageDrawUniform(st, imgW, imgH) {
+    const fr = _imgFitRect(st.image_width, st.image_height, imgW, imgH);
+    const iw = st.image_width, ih = st.image_height;
+    const zoom = st.zoom || 1.0;
+    const cx = (st.center_x == null ? 0.5 : st.center_x);
+    const cy = (st.center_y == null ? 0.5 : st.center_y);
+    let dx = fr.x, dy = fr.y, dw = fr.w, dh = fr.h;   // dest rect in px
+    let u0 = 0, v0 = 0, u1 = 1, v1 = 1;               // full texture
+    if (zoom >= 1.0) {
+      // Zoomed in: sample a window of the image over the full fit-rect.
+      const visW = iw / zoom, visH = ih / zoom;
+      const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+      const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+      u0 = srcX / iw; u1 = (srcX + visW) / iw;
+      v0 = srcY / ih; v1 = (srcY + visH) / ih;
+    } else {
+      // Zoomed out: shrink the dest rect proportionally, keep centred.
+      dw = fr.w * zoom; dh = fr.h * zoom;
+      dx = fr.x + (fr.w - dw) / 2; dy = fr.y + (fr.h - dh) / 2;
+    }
+    return _drawUniform(dx, dy, dw, dh, u0, v0, u1, v1, imgW, imgH);
+  }
+
+  // Uniform for the DETAIL overlay pass. Two cases:
+  //  • fully covers (_detailUV): draw the tile over the WHOLE fit-rect, sampling the
+  //    tile-relative UV of the visible window (crisp zoom-in) — hides the base.
+  //  • partial (_detailOverlayRect): draw the tile at its own screen rect over the
+  //    base (crisp centre + overview margin on a zoom-out, no flash).
+  // Returns null when there's no detail tile to overlay.
+  function _detailDrawUniform(st, imgW, imgH) {
+    const fr = _imgFitRect(st.image_width, st.image_height, imgW, imgH);
+    const vr = _imgVisibleRect2d(st, imgW, imgH);
+    const det = _detailUV(st);
+    if (det) {
+      return _drawUniform(vr.x, vr.y, vr.w, vr.h,
+                          det.u0, det.v0, det.u1, det.v1, imgW, imgH);
+    }
+    const ov = _detailOverlayRect(st, fr.x, fr.y, fr.w, fr.h);
+    if (ov) {
+      const cl = _clipRectUv(ov.dx, ov.dy, ov.dw, ov.dh,
+        0, 0, 1, 1, vr.x, vr.y, vr.w, vr.h);
+      if (!cl) return null;
+      return _drawUniform(cl.dx, cl.dy, cl.dw, cl.dh,
+        cl.u0, cl.v0, cl.u1, cl.v1, imgW, imgH);
+    }
+    return null;
+  }
+
+  // Draw the image on the GPU canvas. Returns false on any failure so the caller
+  // reverts to Canvas2D for this frame. No clim uniform: the LUT already bakes in
+  // the display window + scale_mode (see _GPU_IMAGE_WGSL) — the shader is a plain
+  // identity lookup.
+  function _gpuDraw2dImage(p, st, imgW, imgH) {
+    const g = p._gpuImg;
+    try {
+      if (!_gpuUploadImage(p, st)) { _tiledbg('gpu', 'base upload FAILED → canvas fallback'); return false; }
+      const device = g.device;
+      // BASE pass: the overview/full frame over the fit-rect, honouring zoom/pan, so
+      // it lines up with the Canvas2D blit + overlays. Always drawn — the crisp tile
+      // stitches on top, and the base shows through any margin the tile doesn't cover.
+      device.queue.writeBuffer(g.uniformBuf, 0, _imageDrawUniform(st, imgW, imgH));
+      // DETAIL pass (optional): the hi-res tile over its screen rect (full fit-rect
+      // when it covers the view; its own padded-FOV rect on a zoom-out). Prepared
+      // BEFORE the encoder so a decode failure just skips the overlay (base still
+      // draws) rather than aborting the whole frame to the Canvas2D fallback.
+      let drawDetail = false;
+      const du = _detailDrawUniform(st, imgW, imgH);
+      const _detUpload = du ? _gpuUploadDetail(p, st) : false;
+      if (du && _detUpload) {
+        device.queue.writeBuffer(g.uniformBuf2, 0, du);
+        drawDetail = true;
+      }
+      if (globalThis.__apl_tiledbg) {
+        const reg = st.detail_region || [];
+        const uv = _detailUV(st);
+        _tiledbg('gpu', `DRAW zoom=${(st.zoom||1).toFixed(2)} ` +
+          `center=(${(st.center_x||0.5).toFixed(3)},${(st.center_y||0.5).toFixed(3)}) ` +
+          `base[${st.base_width}x${st.base_height}] image[${st.image_width}x${st.image_height}] ` +
+          `detail_region=[${reg.join(',')}] detailUV=${uv?'COVERS(full)':'partial/none'} ` +
+          `drawDetail=${drawDetail} detUpload=${_detUpload} ` +
+          `display=(${st.display_min},${st.display_max})`);
+      }
+      // Clear to the canvas background so the letterbox bars match the Canvas2D
+      // path (which leaves the plotCanvas bg showing outside the fit-rect).
+      const bg = _clearRgba(theme.bgCanvas);
+      const enc = device.createCommandEncoder();
+      const view = g.ctx.getCurrentTexture().createView();
+      const pass = enc.beginRenderPass({
+        colorAttachments: [{ view, loadOp: 'clear', storeOp: 'store',
+          clearValue: bg }] });
+      pass.setPipeline(g.pipeline);
+      pass.setBindGroup(0, g.bindGroup);
+      pass.draw(6);
+      if (drawDetail) {
+        // Second pass on the SAME target, loadOp:'load' to keep the base underneath.
+        pass.end();
+        const pass2 = enc.beginRenderPass({
+          colorAttachments: [{ view, loadOp: 'load', storeOp: 'store' }] });
+        pass2.setPipeline(g.pipeline);
+        pass2.setBindGroup(0, g.dbindGroup);
+        pass2.draw(6);
+        pass2.end();
+      } else {
+        pass.end();
+      }
+      device.queue.submit([enc.finish()]);
+      return true;
+    } catch (e) {
+      console.warn('[anyplotlib] GPU image draw failed — canvas fallback:', e);
+      return false;
+    }
+  }
+
+  // '#rrggbb' → {r,g,b,a} floats 0..1 for a WebGPU clearValue.
+  function _clearRgba(hex) {
+    const h = (hex || '#000000').replace('#', '');
+    const n = parseInt(h.length === 3
+      ? h.split('').map(c => c + c).join('') : h, 16);
+    return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255,
+             b: (n & 255) / 255, a: 1 };
+  }
+
+  // Test hook: render an active 2-D image panel into an OFFSCREEN RGBA texture
+  // (not the live swapchain, which reads black under automation) and copy it back
+  // to CPU. Returns {w,h,px:[[r,g,b],...]} on an NxN sample grid so a test can
+  // verify the shader-LUT actually produced the expected colormapped output.
+  async function _gpuReadbackImage(panelId, N) {
+    N = N || 24;
+    const p = panels.get(panelId);
+    if (!p || p._gpu !== 'active' || !p._gpuImg) return null;
+    const g = p._gpuImg, device = g.device, st = p.state;
+    if (!_gpuUploadImage(p, st)) return null;
+    // Fill the whole NxN readback target (rect = full clip space) sampling the
+    // FULL texture (uv 0..1) so the readback reads the entire image regardless of
+    // aspect or the live zoom — the shader is a plain LUT identity lookup (clim
+    // baked into LUT), so this reads the true colormapped output.
+    device.queue.writeBuffer(g.uniformBuf, 0,
+      new Float32Array([-1, -1, 1, 1, 0, 0, 1, 1]));
+    // Offscreen target at NxN (a coarse but faithful downscale via the sampler).
+    const tex = device.createTexture({
+      size: [N, N, 1], format: g.fmt,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC });
+    const enc = device.createCommandEncoder();
+    const pass = enc.beginRenderPass({
+      colorAttachments: [{ view: tex.createView(), loadOp: 'clear',
+        storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 1 } }] });
+    pass.setPipeline(g.pipeline); pass.setBindGroup(0, g.bindGroup); pass.draw(6); pass.end();
+    const bpr = Math.ceil(N * 4 / 256) * 256;
+    const buf = device.createBuffer({
+      size: bpr * N, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    enc.copyTextureToBuffer({ texture: tex }, { buffer: buf, bytesPerRow: bpr }, [N, N, 1]);
+    device.queue.submit([enc.finish()]);
+    await buf.mapAsync(GPUMapMode.READ);
+    const data = new Uint8Array(buf.getMappedRange()).slice();
+    buf.unmap(); buf.destroy(); tex.destroy();
+    const isBgra = g.fmt.startsWith('bgra');
+    const px = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const o = r * bpr + c * 4;
+      px.push(isBgra ? [data[o+2], data[o+1], data[o]]
+                     : [data[o], data[o+1], data[o+2]]);
+    }
+    return { w: N, h: N, px };
+  }
+  try { globalThis.__apl_gpuReadback = _gpuReadbackImage; } catch (_) {}
+
+  // Test hook: set zoom/center on a 2-D image panel and redraw, so an automated
+  // test can verify the GPU path stays active + upsamples when zoomed (mirrors the
+  // wheel handler, without a synthetic wheel event).
+  try {
+    globalThis.__apl_setZoom = function (panelId, zoom, cx, cy) {
+      const p = panels.get(panelId);
+      if (!p || !p.state) return false;
+      p.state.zoom = zoom;
+      if (cx != null) p.state.center_x = cx;
+      if (cy != null) p.state.center_y = cy;
+      const _t0 = performance.now();
+      try { draw2d(p); } catch (_) {}
+      const _tDraw = performance.now() - _t0;
+      // Compare the wheel handler's post-draw serialise: the OLD cost
+      // (JSON.stringify of the whole geom-polluted state) vs the NEW cost
+      // (_viewStateJson, geom stripped). On the binary path the old cost is a
+      // Uint8Array → {"0":..} stringify (millions of keys); the new one is tiny.
+      const _t1 = performance.now();
+      let _slen = 0;
+      try { _slen = JSON.stringify(p.state).length; } catch (_) { _slen = -1; }
+      const _tStringify = performance.now() - _t1;
+      const _t2 = performance.now();
+      let _vlen = 0;
+      try { _vlen = _viewStateJson(p).length; } catch (_) { _vlen = -1; }
+      const _tView = performance.now() - _t2;
+      globalThis.__apl_zoom_dbg = { draw: _tDraw,
+        stringify: _tStringify, len: _slen,           // OLD (full state)
+        viewStringify: _tView, viewLen: _vlen,        // NEW (geom stripped)
+        hasBytes: !!(p.state && p.state.image_b64_bytes),
+        b64len: (p.state && p.state.image_b64 && p.state.image_b64.length) || 0 };
+      return _tDraw;   // draw2d ms (a zoom-only redraw)
+    };
+    // Test hook: return the EXACT string the interaction handlers now write to
+    // the light `panel_<id>_json` trait (geometry stripped). Lets a test assert
+    // the heavy geom keys never leak into the per-tick view write.
+    globalThis.__apl_viewStateJson = function (panelId) {
+      const p = panels.get(panelId);
+      if (!p) return null;
+      try { return _viewStateJson(p); } catch (_) { return null; }
+    };
+    // Test hook: the image-px → canvas-px transform for a 2-D panel at its
+    // CURRENT zoom/center (the same _imgToCanvas2d the markers/widgets use),
+    // so a test can aim the mouse at a widget/feature under any view.
+    globalThis.__apl_imgToCanvas = function (panelId, ix, iy) {
+      const p = panels.get(panelId);
+      if (!p || !p.state || p.kind !== '2d') return null;
+      const imgW = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
+      const imgH = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
+      try { return _imgToCanvas2d(ix, iy, p.state, imgW, imgH); }
+      catch (_) { return null; }
+    };
+    // Test hook: pixel-freshness diagnostic for a 2-D panel — which bytes does
+    // the state hold vs which bitmap/texture is cached? Distinguishes "stale
+    // bytes arrived" from "fresh bytes, stale render cache".
+    globalThis.__apl_panelDiag = function (panelId) {
+      const p = panels.get(panelId);
+      if (!p || !p.state || p.kind !== '2d') return null;
+      const st = p.state;
+      const img = _imageBytes(st);
+      const fp = (u8) => {
+        if (!u8) return null;
+        const n = u8.length;
+        let s = 0;
+        for (let i = 0; i < n; i += Math.max(1, n >> 6)) s = (s * 31 + u8[i]) >>> 0;
+        return `${n}:${s}`;
+      };
+      return {
+        token: String(st.image_b64 || '').slice(0, 24),
+        hasBytes: !!st.image_b64_bytes,
+        bytesFp: fp(img.bytes),
+        base: [st.base_width, st.base_height],
+        logical: [st.image_width, st.image_height],
+        detail_region: st.detail_region || [],
+        detail_seq: st.detail_seq || 0,
+        geomRev: st._geom_rev,
+        blitKey: p.blitCache && String(p.blitCache.bytesKey || '').slice(0, 24),
+        blitWH: p.blitCache && [p.blitCache.w, p.blitCache.h],
+        gpuBytesKey: p._gpuImg && String(p._gpuImg.bytesKey || '').slice(0, 24),
+        gpu: p._gpu,
+      };
+    };
+    // Tile debug: __apl_tileDebug(true) then pan/zoom, then __apl_tileDump() to read
+    // the ring buffer of detail-tile decisions (detailUV vs FALLBACK->base) + the
+    // window/region/uv so we can see exactly where a pan snaps or inverts.
+    globalThis.__apl_tileDebug = function (on) { globalThis.__APL_TILE_DEBUG = !!on;
+      if (on) globalThis.__apl_tileDbg = []; return globalThis.__APL_TILE_DEBUG; };
+    globalThis.__apl_tileDump = function () { return globalThis.__apl_tileDbg || []; };
+  } catch (_) {}
 
   function _gpuInitPanel(p, device, geom) {
     const fmt = navigator.gpu.getPreferredCanvasFormat();
@@ -2377,6 +3402,22 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       g.uniformBuf && g.uniformBuf.destroy();
     } catch (_) {}
     p._gpuObj = null;
+  }
+
+  // Free the 2-D image GPU resources (R8 image texture can be tens of MB). Call on
+  // panel removal / figure dispose / device loss so repeatedly opening + closing
+  // large-image panels (an in-situ movie viewer) doesn't leak GPU memory.
+  function _gpuDisposeImagePanel(p) {
+    const g = p._gpuImg;
+    if (!g) return;
+    try {
+      g.tex && g.tex.destroy();
+      g.dtex && g.dtex.destroy();
+      g.lutTex && g.lutTex.destroy();
+      g.uniformBuf && g.uniformBuf.destroy();
+      g.uniformBuf2 && g.uniformBuf2.destroy();
+    } catch (_) {}
+    p._gpuImg = null;
   }
 
   function draw3d(p, _retry) {
@@ -3015,6 +4056,30 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     model.save_changes();
   }
 
+  // Debounced 'view_changed' event: fires to Python after zoom/pan SETTLES (~90 ms
+  // idle) with the current view rect, so a viewport-LOD consumer can fetch a hi-res
+  // detail tile for exactly the visible region (see Plot2D.set_detail). Debounced so
+  // a fast wheel/drag doesn't flood Python — only the final resting view is sent.
+  const _viewChangeTimers = {};
+  function _emitViewChanged(p, immediate) {
+    const st = p.state; if (!st) return;
+    const send = () => {
+      _viewChangeTimers[p.id] = null;
+      const s = p.state; if (!s) return;
+      const dpr = window.devicePixelRatio || 1;
+      _emitEvent(p.id, 'view_changed', null, {
+        zoom: s.zoom, center_x: s.center_x, center_y: s.center_y,
+        image_width: s.image_width, image_height: s.image_height,
+        // Panel device px → the tile consumer sizes the tile to what fits on screen.
+        display_width: Math.round((p.imgW || 0) * dpr),
+        display_height: Math.round((p.imgH || 0) * dpr),
+      });
+    };
+    if (_viewChangeTimers[p.id]) clearTimeout(_viewChangeTimers[p.id]);
+    if (immediate) { send(); return; }
+    _viewChangeTimers[p.id] = setTimeout(send, 90);
+  }
+
   function _modifiers(e) {
     const mods = [];
     if (e.ctrlKey)  mods.push("ctrl");
@@ -3044,7 +4109,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // panel listener echo — see the _selfWrite guard in _createPanelDOM.
     function _writeState() {
       p._selfWrite = true;
-      try { model.set(`panel_${p.id}_json`, JSON.stringify(p.state)); }
+      try { model.set(`panel_${p.id}_json`, _viewStateJson(p)); }
       finally { p._selfWrite = false; }
     }
 
@@ -3919,23 +4984,39 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   function _markerHitTest2d(mx, my, st, pw, ph) {
     const sets = st.markers || [];
     const scale = _imgScale2d(st, pw, ph);
+    const vr = _imgVisibleRect2d(st, pw, ph);
     for (let si = sets.length-1; si >= 0; si--) {
       const ms = sets[si];
       const type = ms.type || 'circles';
+      const tfm = ms.transform || 'data';
+      const clipSet = tfm !== 'display' || ms.clip_display !== false;
+      if (clipSet && (mx < vr.x || mx > vr.x + vr.w || my < vr.y || my > vr.y + vr.h)) {
+        continue;
+      }
       const collLabel = ms.label != null ? String(ms.label) : null;
       const perLabels = Array.isArray(ms.labels) ? ms.labels : null;
+      let _tc;
+      if(tfm==='axes'){
+        const fr=_imgFitRect(st.image_width,st.image_height,pw,ph);
+        _tc=(fx,fy)=>[fr.x+fx*fr.w, fr.y+(1-fy)*fr.h];
+      } else if(tfm==='display'){
+        _tc=(ix,iy)=>[ix,iy];
+      } else {
+        _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,pw,ph);
+      }
+      const scl = tfm==='data' ? scale : 1;
       if (type === 'circles') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scale);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=r+MARKER_HIT)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'ellipses') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const rw=(ms.widths[i]||ms.widths[0]||10)*scale/2+MARKER_HIT;
-          const rh=(ms.heights[i]||ms.heights[0]||10)*scale/2+MARKER_HIT;
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const rw=(ms.widths[i]||ms.widths[0]||10)*scl/2+MARKER_HIT;
+          const rh=(ms.heights[i]||ms.heights[0]||10)*scl/2+MARKER_HIT;
           const dx=(mx-cx)/Math.max(1,rw), dy=(my-cy)/Math.max(1,rh);
           if(dx*dx+dy*dy<=1.0)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
@@ -3943,24 +5024,24 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if (type === 'rectangles' || type === 'squares') {
         const heights = type==='squares' ? ms.widths : ms.heights;
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const hw=(ms.widths[i]||ms.widths[0]||20)*scale/2+MARKER_HIT;
-          const hh=((heights[i]||heights[0]||20))*scale/2+MARKER_HIT;
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const hw=(ms.widths[i]||ms.widths[0]||20)*scl/2+MARKER_HIT;
+          const hh=((heights[i]||heights[0]||20))*scl/2+MARKER_HIT;
           if(Math.abs(mx-cx)<=hw&&Math.abs(my-cy)<=hh)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'arrows') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [x1,y1]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
-          const mx2=x1+(ms.U[i]||0)*scale/2, my2=y1+(ms.V[i]||0)*scale/2;
+          const [x1,y1]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          const mx2=x1+(ms.U[i]||0)*scl/2, my2=y1+(ms.V[i]||0)*scl/2;
           if(Math.sqrt((mx-mx2)**2+(my-my2)**2)<=MARKER_HIT*2)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'lines') {
         for (let i=0;i<(ms.segments||[]).length;i++) {
           const seg=ms.segments[i];
-          const [x1,y1]=_imgToCanvas2d(seg[0][0],seg[0][1],st,pw,ph);
-          const [x2,y2]=_imgToCanvas2d(seg[1][0],seg[1][1],st,pw,ph);
+          const [x1,y1]=_tc(seg[0][0],seg[0][1]);
+          const [x2,y2]=_tc(seg[1][0],seg[1][1]);
           const dx=x2-x1,dy=y2-y1,len2=dx*dx+dy*dy;
           const t=len2>0?Math.max(0,Math.min(1,((mx-x1)*dx+(my-y1)*dy)/len2)):0;
           if(Math.sqrt((mx-(x1+t*dx))**2+(my-(y1+t*dy))**2)<=MARKER_HIT)
@@ -3969,13 +5050,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if (type === 'polygons') {
         for (let i=0;i<(ms.vertices_list||[]).length;i++) {
           const verts=ms.vertices_list[i]; if(!verts||!verts.length) continue;
-          const [cx,cy]=_imgToCanvas2d(verts[0][0],verts[0][1],st,pw,ph);
+          const [cx,cy]=_tc(verts[0][0],verts[0][1]);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=MARKER_HIT*1.5)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'texts') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
-          const [cx,cy]=_imgToCanvas2d(ms.offsets[i][0],ms.offsets[i][1],st,pw,ph);
+          const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=MARKER_HIT*1.5)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
@@ -4192,22 +5273,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       e.preventDefault();
       const st=p.state; if(!st) return;
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
-      const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
-      // Image point under cursor before zoom change
-      const [anchorX,anchorY]=_canvasToImg2d(mx,my,st,imgW,imgH);
-      const curZ=st.zoom, newZ=Math.max(0.75,Math.min(100,curZ*(e.deltaY>0?0.9:1.1)));
-      st.zoom=newZ;
-      // Reposition center so the same image point stays under the cursor
-      const iw=st.image_width, ih=st.image_height;
-      const fr=_imgFitRect(iw,ih,imgW,imgH);
-      const newVisW=iw/newZ, newVisH=ih/newZ;
-      const newSrcX=anchorX-(mx-fr.x)/fr.w*newVisW;
-      const newSrcY=anchorY-(my-fr.y)/fr.h*newVisH;
-      st.center_x=Math.max(0,Math.min(1,(newSrcX+newVisW/2)/iw));
-      st.center_y=Math.max(0,Math.min(1,(newSrcY+newVisH/2)/ih));
+      const newZ=Math.max(0.75,Math.min(100,st.zoom*(e.deltaY>0?0.9:1.1)));
+      if(!st.tile_enabled){
+        // NON-tiled image: anchor the zoom on the cursor (the image point under the
+        // cursor stays put) — there's no detail-tile fetch to disagree with it.
+        const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
+        const [anchorX,anchorY]=_canvasToImg2d(mx,my,st,imgW,imgH);
+        st.zoom=newZ;
+        const iw=st.image_width, ih=st.image_height;
+        const fr=_imgFitRect(iw,ih,imgW,imgH);
+        const newVisW=iw/newZ, newVisH=ih/newZ;
+        const newSrcX=anchorX-(mx-fr.x)/fr.w*newVisW;
+        const newSrcY=anchorY-(my-fr.y)/fr.h*newVisH;
+        st.center_x=Math.max(0,Math.min(1,(newSrcX+newVisW/2)/iw));
+        st.center_y=Math.max(0,Math.min(1,(newSrcY+newVisH/2)/ih));
+      } else {
+        // TILE mode: zoom about the CURRENT CENTER, not the cursor. Cursor-anchored
+        // zoom looked right DURING the wheel (base blit re-anchored to the cursor),
+        // but when the debounced detail-tile fetch landed it re-derived the visible
+        // window from center_x/center_y — a different anchor — so the image visibly
+        // JUMPED. Center-zoom makes the base blit + detail tile agree at every zoom.
+        st.zoom=newZ;
+      }
       draw2d(p);
       _propagateZoom2d(p);
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
+      _emitViewChanged(p);   // debounced → fetch a hi-res detail tile on zoom settle
       _scheduleCommit();
     },{passive:false});
 
@@ -4256,7 +5347,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/z));
       draw2d(p);
       _propagateZoom2d(p);
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
       _scheduleCommit(); e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
@@ -4266,7 +5357,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
         const _did=_dw.id||null;
         p.ovDrag2d=null; overlayCanvas.style.cursor='default';
-        model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+        model.set(`panel_${p.id}_json`, _viewStateJson(p));
         _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
         return;
       }
@@ -4306,8 +5397,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // ── Normal pan settle ───────────────────────────────────────────────────
       st.center_x=Math.max(0,Math.min(1,panStart.cx-(cmx-panStart.mx)/fr.w/st.zoom));
       st.center_y=Math.max(0,Math.min(1,panStart.cy-(cmy-panStart.my)/fr.h/st.zoom));
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
       _emitEvent(p.id,'pointer_up',null,{center_x:st.center_x,center_y:st.center_y,zoom:st.zoom,..._pointerFields(e),button:e.button});
+      _emitViewChanged(p);   // pan settled → refresh the detail tile for the new view
       model.save_changes();
     });
 
@@ -4421,20 +5513,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const key=e.key.toLowerCase();
       if(key==='r'){
         st.zoom=1; st.center_x=0.5; st.center_y=0.5;
-        draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        draw2d(p); model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       } else if(key==='c'){
         st.show_colorbar=!st.show_colorbar;
         draw2d(p);
-        model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       } else if(key==='l'){
         st.scale_mode=st.scale_mode==='log'?'linear':'log';
-        draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        draw2d(p); model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       } else if(key==='s'){
         st.scale_mode=st.scale_mode==='symlog'?'linear':'symlog';
-        draw2d(p); model.set(`panel_${p.id}_json`,JSON.stringify(st)); model.save_changes();
+        draw2d(p); model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
         e.stopPropagation(); e.preventDefault();
       }
     });
@@ -4475,7 +5567,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       st.view_x0=nx0;st.view_x1=nx1;
       draw1d(p);
       _propagateView1d(p);
-      model.set(`panel_${p.id}_json`,JSON.stringify(st));
+      model.set(`panel_${p.id}_json`,_viewStateJson(p));
       _scheduleCommit();
     },{passive:false});
 
@@ -4512,7 +5604,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if(nx0<0){nx0=0;nx1=span;}if(nx1>1){nx1=1;nx0=1-span;}
       st.view_x0=nx0;st.view_x1=nx1;
       draw1d(p);_propagateView1d(p);
-      model.set(`panel_${p.id}_json`,JSON.stringify(st));_scheduleCommit();e.preventDefault();
+      model.set(`panel_${p.id}_json`,_viewStateJson(p));_scheduleCommit();e.preventDefault();
     });
     document.addEventListener('mouseup',(e)=>{
       settled.clear();
@@ -4523,7 +5615,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
         const _did=_dw.id||null;
         p.ovDrag=null; overlayCanvas.style.cursor='crosshair';
-        model.set(`panel_${p.id}_json`,JSON.stringify(p.state));
+        model.set(`panel_${p.id}_json`,_viewStateJson(p));
         _emitEvent(p.id,'pointer_up',_did,{..._dw,..._pointerFields(e),button:e.button});
       }
       if(p.isPanning){
@@ -4562,7 +5654,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         x:p.mouseX ?? 0, y:p.mouseY ?? 0,
         xdata:physX,
       });
-      if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();e.stopPropagation();e.preventDefault();}
+      if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,_viewStateJson(p));model.save_changes();e.stopPropagation();e.preventDefault();}
     });
     overlayCanvas.addEventListener('keyup',(e)=>{
       _emitEvent(p.id,'key_up',null,{
@@ -4817,7 +5909,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
 
     drawOverlay2d(p);
-    model.set(`panel_${p.id}_json`, JSON.stringify(st));
+    model.set(`panel_${p.id}_json`, _viewStateJson(p));
     model.save_changes();
     e.preventDefault();
   }
@@ -4902,7 +5994,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       w.y=st.data_max-((clampY-r.y)/(r.h||1))*(st.data_max-st.data_min);
     }
     drawOverlay1d(p);
-    model.set(`panel_${p.id}_json`,JSON.stringify(st));model.save_changes();
+    model.set(`panel_${p.id}_json`,_viewStateJson(p));model.save_changes();
     e.preventDefault();
   }
 
@@ -4923,7 +6015,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           if(axis==='x'||axis==='both'){tp.state.zoom=st.zoom;tp.state.center_x=st.center_x;}
           if(axis==='y'||axis==='both'){tp.state.center_y=st.center_y;}
           _redrawPanel(tp);
-          model.set(`panel_${pid}_json`,JSON.stringify(tp.state));
+          model.set(`panel_${pid}_json`,_viewStateJson(tp));
         }
       }
     }
@@ -4941,7 +6033,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           const tp=panels.get(pid); if(!tp||!tp.state) continue;
           tp.state.view_x0=st.view_x0; tp.state.view_x1=st.view_x1;
           _redrawPanel(tp);
-          model.set(`panel_${pid}_json`,JSON.stringify(tp.state));
+          model.set(`panel_${pid}_json`,_viewStateJson(tp));
         }
       }
     }
@@ -5664,7 +6756,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const _did = _dw.id || null;
       p.ovDrag = null;
       overlayCanvas.style.cursor = 'default';
-      model.set(`panel_${p.id}_json`, JSON.stringify(p.state));
+      model.set(`panel_${p.id}_json`, _viewStateJson(p));
       _emitEvent(p.id, 'pointer_up', _did, {..._dw, ..._pointerFields(e), button: e.button});
       _scheduleCommit();
     });
@@ -5969,6 +7061,8 @@ export function createLocalModel(initialState) {
 //   opts.onEvent(ev)        — parsed interaction events (pointer/key/wheel …)
 //   opts.onSync(key, value) — raw outbound model writes, for a Python bridge
 export function mount(el, state, opts) {
+  // Diagnostic marker: proves THIS (WebGPU-2D) build of figure_esm.js is loaded.
+  try { globalThis.__apl_build = 'webgpu-2d'; } catch (_) {}
   const o = opts || {};
   const model = createLocalModel(state);
   if (o.onSync) model._setSyncHandler(o.onSync);
@@ -6000,7 +7094,13 @@ export function mount(el, state, opts) {
     // Remove the figure's DOM.  (Window-level listeners registered by the
     // renderer are inert once the DOM is gone; for complete cleanup, discard
     // the containing element or iframe.)
-    dispose() { model.off(); el.replaceChildren(); },
+    dispose() {
+      // Free GPU resources for every panel before tearing down the DOM.
+      try { for (const p of panels.values()) {
+        _gpuDisposeImagePanel(p); _gpuDisposePanel(p);
+      } } catch (_) {}
+      model.off(); el.replaceChildren();
+    },
   };
 }
 

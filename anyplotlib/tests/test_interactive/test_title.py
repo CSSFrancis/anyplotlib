@@ -143,9 +143,9 @@ class TestTitle2DRendering:
         page.wait_for_timeout(200)
 
         plot_canvas_top = page.evaluate("""() => {
-            // z-index auto = plotCanvas (the image canvas)
-            const canvases = Array.from(document.querySelectorAll('canvas'));
-            const pc = canvases.find(c => !c.style.zIndex && c.style.position === 'absolute');
+            // plotCanvas is the FIRST canvas in DOM order (a WebGPU image canvas,
+            // if present, is appended after it and sits below via z-index).
+            const pc = document.querySelector('canvas');
             return pc ? pc.style.top : null;
         }""")
 

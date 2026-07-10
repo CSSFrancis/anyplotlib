@@ -199,6 +199,21 @@ class TestPlot2DExtent:
         assert p._state["scale_x"] == pytest.approx(1.0)
         assert p._state["scale_y"] == pytest.approx(2.0)
 
+    def test_set_extent_sets_has_axes(self):
+        # A plot created without axis args starts has_axes=False; set_extent must
+        # flip it True so the front-end draws physical tick gutters + the scale
+        # bar (the tiled/GPU path calibrates only through set_extent).
+        p = _make_plot2d((32, 32))
+        assert p._state["has_axes"] is False
+        p.set_extent(np.linspace(0.0, 10.0, 32), np.linspace(0.0, 20.0, 32))
+        assert p._state["has_axes"] is True
+
+    def test_set_extent_updates_units(self):
+        p = _make_plot2d((32, 32))
+        p.set_extent(np.linspace(0.0, 10.0, 32),
+                     np.linspace(0.0, 20.0, 32), units="Å⁻¹")
+        assert p._state["units"] == "Å⁻¹"
+
 
 class TestPlot2DColorbar:
 

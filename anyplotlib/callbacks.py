@@ -24,7 +24,7 @@ from typing import Any, Callable
 VALID_EVENT_TYPES = frozenset({
     "pointer_down", "pointer_up", "pointer_move", "pointer_settled",
     "pointer_enter", "pointer_leave", "double_click", "wheel",
-    "key_down", "key_up", "close", "*",
+    "key_down", "key_up", "close", "view_changed", "*",
 })
 
 
@@ -79,6 +79,14 @@ class Event:
     # Wheel
     dx: float | None = None
     dy: float | None = None
+    # View (view_changed events — the current zoom/pan viewport)
+    zoom: float | None = None
+    center_x: float | None = None
+    center_y: float | None = None
+    image_width: int | None = None
+    image_height: int | None = None
+    display_width: int | None = None    # panel device px (JS) → tile output resolution
+    display_height: int | None = None
     # Key
     key: str | None = None
     last_widget_id: str | None = None

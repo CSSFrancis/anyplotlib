@@ -24,6 +24,16 @@ _HERE = pathlib.Path(__file__).parent.parent
 _ESM_SOURCE = (_HERE / "figure_esm.js").read_text(encoding="utf-8")
 
 
+def _binary_wire() -> bool:
+    """True when the Electron binary pixel transport is live, so a pixel
+    change-token in the panel state should stay a token (the real bytes ride
+    PLOTBIN) rather than being resolved to inline base64. Read fresh from the
+    environment — the same gate ``Plot2D._encode_pixels`` uses — so producer and
+    serializer never disagree."""
+    import os
+    return os.environ.get("APL_BINARY_TRANSPORT") == "1"
+
+
 class Figure(anywidget.AnyWidget):
     """Multi-panel interactive figure widget.
 
@@ -124,6 +134,14 @@ class Figure(anywidget.AnyWidget):
         # when its values genuinely change.
         self._geom_rev: dict = {}
         self._geom_last: dict = {}
+        # Raw pixel side-table for the Electron BINARY transport: maps
+        # ``(panel_id, pixel_key)`` → the raw ``bytes`` of the current frame.
+        # When binary transport is active, ``Plot2D.set_data`` stashes the
+        # uint8 image bytes here (and puts a tiny change-token in the geom
+        # field instead of a 5.6 MB base64 string), so ``_electron._route_change``
+        # ships them straight to a PLOTBIN frame with NO base64 encode/decode
+        # and NO megabyte JSON. Empty (and ignored) on every non-Electron path.
+        self._raw_pixels: dict = {}
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -279,6 +297,14 @@ class Figure(anywidget.AnyWidget):
         state = plot.to_state_dict()
         geom_keys = getattr(plot, "_GEOM_KEYS", None)
         gname = f"panel_{panel_id}_geom"
+        # ``state`` may carry a ``"\x00bin:…"`` pixel change-token (binary
+        # transport: the real bytes ride PLOTBIN via ``_route_change``). Keep
+        # the token when that channel is live; otherwise — a standalone /
+        # save_html / Jupyter figure with no binary channel — materialise the
+        # real base64 inline so the pixels actually travel. ``_binary_wire``
+        # matches the producer's gate (``Plot2D._encode_pixels``).
+        if geom_keys and not _binary_wire() and hasattr(plot, "resolve_pixel_tokens"):
+            plot.resolve_pixel_tokens(state)
         if geom_keys and self.has_trait(gname):
             # Split heavy geometry into its own channel.  Detect change by
             # comparing the geom values themselves (the b64 strings / LUT
@@ -501,7 +527,20 @@ class Figure(anywidget.AnyWidget):
 
         plot = self._plots_map.get(panel_id)
         if plot is None:
+            if event_type == "view_changed":
+                import logging
+                # WARNING so SpyDE's log stream forwards it (it drops non-spyde.* INFO).
+                logging.getLogger("anyplotlib.tile").warning(
+                    "[TILE] view_changed for UNKNOWN panel %r (have %r) — dropped",
+                    panel_id, list(self._plots_map.keys()))
             return
+
+        if event_type == "view_changed":
+            import logging
+            logging.getLogger("anyplotlib.tile").warning(
+                "[TILE] view_changed RECEIVED panel=%s zoom=%s center=(%s,%s) disp=(%s,%s)",
+                panel_id, msg.get("zoom"), msg.get("center_x"), msg.get("center_y"),
+                msg.get("display_width"), msg.get("display_height"))
 
         # GPU activation status echo (WebGPU path) — not a user event.
         if event_type == "gpu_status":
@@ -537,6 +576,13 @@ class Figure(anywidget.AnyWidget):
                 group_index=msg.get("group_index"),
                 dx=msg.get("dx"),
                 dy=msg.get("dy"),
+                zoom=msg.get("zoom"),
+                center_x=msg.get("center_x"),
+                center_y=msg.get("center_y"),
+                image_width=msg.get("image_width"),
+                image_height=msg.get("image_height"),
+                display_width=msg.get("display_width"),
+                display_height=msg.get("display_height"),
                 key=msg.get("key"),
                 last_widget_id=msg.get("last_widget_id"),
             )

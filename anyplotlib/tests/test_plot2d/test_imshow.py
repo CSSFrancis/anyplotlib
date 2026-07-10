@@ -45,10 +45,15 @@ Y = np.array([10.0, 20.0, 30.0, 40.0])
 
 
 def _decoded(v: Plot2D) -> np.ndarray:
-    """Return the stored uint8 image as a (H, W) array."""
-    raw = base64.b64decode(v._state["image_b64"])
+    """Return the stored uint8 image as a (H, W) array.
+
+    Resolves any raw-bytes change-token (used when binary transport is active)
+    back to real base64 via ``resolve_pixel_tokens`` before decoding, so the
+    helper works regardless of transport mode."""
+    st = v.resolve_pixel_tokens(v.to_state_dict())
+    raw = base64.b64decode(st["image_b64"])
     return np.frombuffer(raw, dtype=np.uint8).reshape(
-        v._state["image_height"], v._state["image_width"]
+        st["image_height"], st["image_width"]
     )
 
 
@@ -165,6 +170,63 @@ class TestImshowVminVmax:
         v.set_clim(vmin=1.0, vmax=14.0)
         assert v._state["display_min"] == pytest.approx(1.0)
         assert v._state["display_max"] == pytest.approx(14.0)
+
+
+class TestImshowClimQuantization:
+    """set_data(clim=) / set_clim quantise the uint8 codes over the clim (not the
+    raw min/max), so a single hot pixel / zero beam can't crush the signal into a
+    handful of codes. raw_min/raw_max then equal the clim so the JS LUT reconstructs
+    each code's value correctly."""
+
+    @staticmethod
+    def _hot_frame():
+        rng = np.random.RandomState(0)
+        f = rng.gamma(2.0, 400.0, (48, 48)).astype(np.float32)  # faint signal ~0-4000
+        f[5, 5] = 60000.0                                        # hot pixel / zero beam
+        return f
+
+    def test_set_data_clim_quantises_over_clim(self):
+        fig, ax = apl.subplots()
+        v = ax.imshow(np.zeros((4, 4)))
+        frame = self._hot_frame()
+        clim = (88.0, 2638.0)
+        v.set_data(frame, clim=clim)
+        # raw_min/max are the quantisation endpoints (== clim), so the LUT maps back
+        # correctly; display window is the same range.
+        assert v._state["raw_min"] == pytest.approx(clim[0])
+        assert v._state["raw_max"] == pytest.approx(clim[1])
+        assert v._state["display_min"] == pytest.approx(clim[0])
+        assert v._state["display_max"] == pytest.approx(clim[1])
+        # The signal now spans nearly all 256 codes (vs ~12 quantising over raw
+        # min/max), and the hot pixel saturates to 255 instead of stealing the range.
+        u8 = v._raw_u8
+        sig_codes = len(np.unique(u8[frame <= clim[1]]))
+        assert sig_codes > 128, f"signal only got {sig_codes} codes — hot pixel crushed it"
+        assert u8[5, 5] == 255, "hot pixel above clim must saturate to 255"
+
+    def test_set_data_without_clim_unchanged(self):
+        """No clim → quantise over raw min/max (backward-compatible)."""
+        fig, ax = apl.subplots()
+        v = ax.imshow(np.zeros((4, 4)))
+        frame = self._hot_frame()
+        v.set_data(frame)
+        assert v._state["raw_min"] == pytest.approx(float(frame.min()))
+        assert v._state["raw_max"] == pytest.approx(float(frame.max()))
+
+    def test_set_clim_requantises_from_raw(self):
+        """set_clim re-quantises from the cached raw frame so a NEW range is honoured
+        at full fidelity (not capped by the previous quantisation band)."""
+        fig, ax = apl.subplots()
+        v = ax.imshow(np.zeros((4, 4)))
+        frame = self._hot_frame()
+        v.set_data(frame, clim=(88.0, 2638.0))
+        # Widen the window well past the previous band toward the beam.
+        v.set_clim(0.0, 30000.0)
+        assert v._state["raw_min"] == pytest.approx(0.0)
+        assert v._state["raw_max"] == pytest.approx(30000.0)
+        # The hot pixel (60000, still above the new max) saturates; a mid value is
+        # now representable (it wasn't at the old narrow band).
+        assert v._raw_u8[5, 5] == 255
 
 
 # ===========================================================================

@@ -287,3 +287,35 @@ def compare_arrays(
 
     return True, f"ok — {n_bad}/{n_total} pixels ({frac:.2%}) differ by >{tol}"
 
+
+def compare_arrays_exact(actual: np.ndarray, expected: np.ndarray) -> tuple[bool, str]:
+    """Compare two arrays with strict byte-for-byte equality.
+
+    Returns ``(True, msg)`` only when *all* values are identical.
+    """
+    if actual.shape != expected.shape:
+        return False, (
+            f"shape mismatch: actual {actual.shape} vs expected {expected.shape}"
+        )
+
+    neq = actual != expected
+    if not np.any(neq):
+        return True, f"ok — all {actual.size} values are identical"
+
+    # For image arrays (H, W, C), count per-pixel mismatches (any channel differs).
+    if actual.ndim >= 3:
+        bad = np.any(neq, axis=-1)
+    else:
+        bad = neq
+    n_bad = int(bad.sum())
+    n_total = bad.size
+
+    first = tuple(int(i) for i in np.argwhere(neq)[0])
+    aval = int(actual[first])
+    eval_ = int(expected[first])
+    return False, (
+        f"{n_bad}/{n_total} elements differ; "
+        f"first mismatch at {first}: actual={aval}, expected={eval_}"
+    )
+
+

@@ -6,6 +6,8 @@ Shared low-level utilities used across plot subpackages.
 
 from __future__ import annotations
 
+import functools
+
 import numpy as np
 
 _LINESTYLE_ALIASES: dict[str, str] = {
@@ -79,20 +81,48 @@ def _to_rgba_u8(data: np.ndarray) -> np.ndarray:
     return np.ascontiguousarray(data)
 
 
-def _normalize_image(data: np.ndarray):
-    """Normalise data to uint8, returning (img_u8, vmin, vmax)."""
-    img = data.astype(np.float64, copy=False)
-    vmin = float(np.nanmin(img))
-    vmax = float(np.nanmax(img))
-    if vmax > vmin:
-        buf = np.empty_like(img)
-        np.subtract(img, vmin, out=buf)
-        np.divide(buf, vmax - vmin, out=buf)
-        np.multiply(buf, 255.0, out=buf)
-        img_u8 = buf.astype(np.uint8)
+def _normalize_image(data: np.ndarray, clim: "tuple | None" = None):
+    """Normalise data to uint8, returning (img_u8, vmin, vmax) where vmin/vmax are
+    the QUANTISATION endpoints the 8-bit codes span (the caller stores them as
+    raw_min/raw_max so the renderer can reconstruct each code's value).
+
+    When ``clim=(lo, hi)`` is given, quantise over THAT range instead of the raw
+    data min/max, clipping outliers to 0/255. This is what makes a single hot pixel
+    (or the saturating zero-order beam) NOT crush the real signal: without it the
+    256 codes are stretched across the full data range, so a 60000-count hot pixel
+    over a 0-4000 signal leaves the signal only ~12 distinct codes (≈3.5-bit) before
+    it ever reaches the display window; clipping to the robust display range instead
+    gives the signal the full 256 codes and just saturates the outlier. When no
+    clim is given the behaviour is unchanged (quantise over raw min/max).
+
+    Uses float32 for the rescale when the data range is small enough that float32's
+    ~7 significant digits don't lose low bits (the common case: uint8/uint16 movie
+    frames), else float64. float32 halves the memory bandwidth of the subtract/
+    divide/multiply passes (~60ms → ~27ms on a 2048² frame — this runs every movie
+    frame) with a byte-identical result. vmin/vmax are always returned as full-
+    precision Python floats."""
+    if clim is not None:
+        vmin, vmax = float(clim[0]), float(clim[1])
     else:
-        img_u8 = np.zeros(data.shape, dtype=np.uint8)
-    return img_u8, vmin, vmax
+        vmin = float(np.nanmin(data))
+        vmax = float(np.nanmax(data))
+    if vmax <= vmin:
+        return np.zeros(data.shape, dtype=np.uint8), vmin, vmax
+    # float32 is safe when |values| and the span are within its ~1.6e7 exact-integer
+    # range with headroom; a huge-magnitude float source keeps float64 to avoid
+    # banding. (subtract of two near-equal large float32s loses precision.)
+    span = vmax - vmin
+    use32 = (max(abs(vmin), abs(vmax)) < 1e6) and (span > 1e-6)
+    dt = np.float32 if use32 else np.float64
+    img = data.astype(dt, copy=False)
+    buf = np.empty_like(img)
+    np.subtract(img, dt(vmin), out=buf)
+    np.divide(buf, dt(span), out=buf)
+    np.multiply(buf, dt(255.0), out=buf)
+    # Clip into [0, 255] BEFORE the uint8 cast so out-of-clim values saturate
+    # instead of wrapping (a hot pixel above vmax would otherwise overflow uint8).
+    np.clip(buf, 0.0, 255.0, out=buf)
+    return buf.astype(np.uint8), vmin, vmax
 
 
 # Mapping from common matplotlib colormap names to their nearest colorcet
@@ -115,8 +145,14 @@ _CMAP_ALIASES: dict[str, str] = {
 }
 
 
+@functools.lru_cache(maxsize=64)
 def _build_colormap_lut(name: str) -> list:
     """Return a 256-entry ``[[r, g, b], ...]`` LUT for the named colormap.
+
+    CACHED (lru_cache) — it's a pure function of ``name`` but costs ~100 ms
+    (colorcet lookup + 256 hex parses), and it was being rebuilt on EVERY frame of
+    a movie scrub even though the colormap doesn't change. The returned list is
+    treated as read-only by callers (they JSON-serialise it); do NOT mutate it.
 
     Priority order:
 
