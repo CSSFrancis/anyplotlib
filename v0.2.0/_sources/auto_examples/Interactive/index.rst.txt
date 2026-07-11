@@ -1,0 +1,286 @@
+
+
+.. _sphx_glr_auto_examples_Interactive:
+
+Interactive Examples
+====================
+
+Examples that use the callback / event system to connect widget
+interactions to live Python computations.
+
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the PointWidget on a 1-D panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_point_widget_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_point_widget`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Draggable Point Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the key_down event handler API: press a key while the plot is focused to add an overlay widget centred on the current cursor position, or press Backspace / Delete to remove the last widget you clicked.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_key_bindings_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_key_bindings`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Key-Press Widget Placement</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A side-by-side view: the left panel shows a synthetic 512×512 STEM image with a red overlay marking pixels above the threshold; the right panel shows a 32-bin intensity histogram with a yellow vertical line at the current threshold value.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_threshold_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_threshold_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Live intensity thresholding on a multi-phase STEM image.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="An EBSD-style orientation explorer for a synthetic polycrystal:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_ipf_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_ipf_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inverse Pole Figure (IPF) Explorer</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable rectangle widget on a real-space image drives a live 2-D FFT of the selected region, displayed in a side-by-side panel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_interactive_fft_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_interactive_fft`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive FFT ROI</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Five synthetic EELS spectra (Carbon-rich, Nitride, Oxide, Silicide, Mixed) stacked vertically on a single axis, each with known characteristic edges and a power-law background.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_eels_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_eels_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">EELS multi-spectrum explorer.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A side-by-side viewer for a 3-D (y, x, energy) dataset.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_3d_spectral_viewer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_3d_spectral_viewer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive 3D Spectral Viewer</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Synthetic HAADF-STEM image with 18 Gaussian nanoparticles on a Poisson noise background.  Candidate peaks are detected automatically using a 7×7 local-maximum filter and marked with small grey circles.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_particle_picker_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_particle_picker`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">HAADF STEM nanoparticle picker.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Click on any region of the image to flood-fill all pixels of similar intensity — the union of all seeded regions is shown as a live semi-transparent overlay on the original image.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_segment_by_contrast_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_segment_by_contrast`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive Contrast Segmentation</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A synthetic (256, 256, 300) EDS datacube — one 300-channel spectrum per scan position.  Four rectangular ROIs overlay the total-counts image (HAADF proxy).  Entering an ROI sums all spectra within the rectangle (spatial sum over every scan position in the box) and displays the result in the top-right panel.  Draggable coloured range widgets on the spectrum define the integration window for each element; each bar height is the channel sum of the ROI spectrum within that window.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_spectra_roi_inspector_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_spectra_roi_inspector`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">ROI-to-spectrum inspector for a 3-D EDS hyperspectral dataset.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="An EBSD-style orientation explorer pairing a map with a density IPF:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_ipf_density_map_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_ipf_density_map`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inverse Pole Figure (IPF) Density Map</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="An orthoslice viewer for a synthetic 3-D polycrystal (voxel grain map), in the style of EBSD/tomography volume browsers:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_voxel_grain_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_voxel_grain_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3-D Voxel Grain Explorer</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A noisy composite signal built from two Gaussians is displayed.  Two additional overlay lines show the individual component curves and a white sum curve that always equals the current manual model.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_interactive_fitting_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_interactive_fitting`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive 1-D Gaussian Fitting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A 3 × 3 grid of synthetic images, each independently segmented by flood-fill.  Pass 8 or 9 images as images_flat; the grid always has 3 columns and enough rows to fit them all (last cell left blank when 8 images are supplied).">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_segment_by_contrast_advanced_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_segment_by_contrast_advanced`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Advanced Interactive Contrast Segmentation (3 × 3 Grid)</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/Interactive/plot_point_widget
+   /auto_examples/Interactive/plot_key_bindings
+   /auto_examples/Interactive/plot_threshold_explorer
+   /auto_examples/Interactive/plot_ipf_explorer
+   /auto_examples/Interactive/plot_interactive_fft
+   /auto_examples/Interactive/plot_eels_explorer
+   /auto_examples/Interactive/plot_3d_spectral_viewer
+   /auto_examples/Interactive/plot_particle_picker
+   /auto_examples/Interactive/plot_segment_by_contrast
+   /auto_examples/Interactive/plot_spectra_roi_inspector
+   /auto_examples/Interactive/plot_ipf_density_map
+   /auto_examples/Interactive/plot_voxel_grain_explorer
+   /auto_examples/Interactive/plot_interactive_fitting
+   /auto_examples/Interactive/plot_segment_by_contrast_advanced
+
