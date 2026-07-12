@@ -193,10 +193,14 @@ const blobUrl = URL.createObjectURL(blob);
 const el      = document.getElementById("widget-root");
 const model   = makeModel(STATE);
 
+// render() returns an internal API ({{ panels, exportPNG, ... }}) that the PNG
+// export protocol below needs.  Held here so the message listener can reach it.
+let _aplRenderApi = null;
+
 import(blobUrl).then(mod => {{
   const renderFn = mod.default?.render ?? mod.render;
   if (typeof renderFn === "function") {{
-    renderFn({{ model, el }});
+    _aplRenderApi = renderFn({{ model, el }});
   }} else {{
     el.textContent = "ESM has no render() export";
   }}
@@ -249,6 +253,40 @@ window.addEventListener('message', (e) => {{
     }} catch (_) {{}}
     _fromParent = false;
     return;
+  }}
+}});
+
+// ── PNG export protocol ──────────────────────────────────────────────────────
+// Rides the same postMessage channel as the state updates above.  A parent page
+// (or the SpyDE report harvester) requests a composite PNG of the whole figure:
+//   → {{ type: 'anyplotlib_export_png', requestId, opts }}
+// and receives back, on event.source (targetOrigin '*'):
+//   ← {{ type: 'anyplotlib_export_png_result', requestId, dataUrl, width, height }}
+//   ← {{ type: 'anyplotlib_export_png_result', requestId, error }}   (on failure)
+// `opts` is forwarded verbatim to handle.exportPNG ({{ scale?, includeWidgets? }}).
+window.addEventListener('message', (e) => {{
+  if (!e.data || e.data.type !== 'anyplotlib_export_png') return;
+  const requestId = e.data.requestId;
+  const source = e.source;
+  const reply = (msg) => {{
+    try {{
+      if (source && typeof source.postMessage === 'function') {{
+        source.postMessage(Object.assign(
+          {{ type: 'anyplotlib_export_png_result', requestId }}, msg), '*');
+      }}
+    }} catch (_) {{}}
+  }};
+  try {{
+    if (!_aplRenderApi || typeof _aplRenderApi.exportPNG !== 'function') {{
+      reply({{ error: 'figure not ready (exportPNG unavailable)' }});
+      return;
+    }}
+    Promise.resolve(_aplRenderApi.exportPNG(e.data.opts || {{}}))
+      .then((res) => reply({{
+        dataUrl: res.dataUrl, width: res.width, height: res.height }}))
+      .catch((err) => reply({{ error: String(err && err.message || err) }}));
+  }} catch (err) {{
+    reply({{ error: String(err && err.message || err) }});
   }}
 }});
 </script>

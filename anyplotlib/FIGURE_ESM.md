@@ -309,3 +309,42 @@ Python → JS (set widget position from Python):
   widget.set(…) → Figure._push_widget → event_json with source:'python'
   → model.on('change:event_json') patches overlay_widgets + redraws
 ```
+
+---
+
+## PNG export (`exportPNG`)
+
+`render()` now RETURNS an internal API object `{ panels, exportPNG,
+_gpuDisposeImagePanel, _gpuDisposePanel }` (anywidget ignores render()'s return;
+`mount()` captures it — this also fixed a latent bug where the old
+mount-handle `dispose()` referenced `panels`/`_gpuDispose*` from module scope,
+which are inside `render`'s closure, and silently threw). The mount handle
+exposes `handle.exportPNG({scale=1, includeWidgets=false}) →
+Promise<{dataUrl,width,height}>`.
+
+`exportPNG(opts)` (inside `render`, near `redrawAll`) composites the WHOLE
+figure onto one offscreen canvas at `devicePixelRatio × scale`:
+
+- **WebGPU hazard first**: a WebGPU canvas's drawing buffer is only valid right
+  after its render pass, so exportPNG force-calls `draw2d(p)` on every
+  active-GPU 2-D panel (`p._gpu==='active' && p.gpuCanvas` visible) to re-submit
+  its pass, THEN composites in the SAME synchronous task — so
+  `drawImage(gpuCanvas,…)` reads live pixels, not a blank buffer.
+- **Extent**: `fig_width/height + 2×8 px` gridDiv padding (NOT the measured
+  `gridDiv` width — a bare `mount()` page has no `.apl-outer` inline-block CSS,
+  so the grid container can stretch to the viewport). **Origin**: `gridDiv`'s
+  top-left (grid tracks are fixed-px + left-anchored, so panels sit correctly).
+- **Per-panel z-order** (`_drawEl` positions each canvas by its
+  `getBoundingClientRect()` relative to the root): gpuCanvas (z0) → plotCanvas
+  (z1) → x/yAxisCanvas → cbCanvas → [overlayCanvas z5 only if `includeWidgets`]
+  → markersCanvas (z6) → scaleBar (z7) → titleCanvas (z8). Grid panels first,
+  then insets (`p.isInset`) on top. Status bars / stats overlays are excluded.
+- Ends with `out.toDataURL('image/png')`; rejects the promise with a message on
+  failure (no 2-D context, `toDataURL` throw).
+
+The standalone HTML template (`_repr_utils.build_standalone_html`) captures
+render()'s api into `_aplRenderApi` and adds a `message` listener:
+`{type:'anyplotlib_export_png', requestId, opts}` → `exportPNG(opts)` → replies
+`{type:'anyplotlib_export_png_result', requestId, dataUrl, width, height}` (or
+`{…, error}`) to `event.source` (targetOrigin `'*'`) — the same channel the
+`awi_state` postMessages ride. Tests: `tests/test_embed/test_export_png.py`.
