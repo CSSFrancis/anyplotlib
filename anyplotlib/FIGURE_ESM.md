@@ -63,6 +63,8 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | `drawScaleBar2d` / `drawColorbar2d` | 1360 / 1436 |
 | `_drawAxes2d` (ticks, labels, title) | 1491 |
 | `drawOverlay2d` / `drawMarkers2d` | 1629 / 1685 |
+| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 1553 / 1577 / 1629 |
+| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 675 / 706 |
 | **3D drawing**: `draw3d` | 1833 |
 | Event emission `_emitEvent` | 2031 |
 | 3D event handlers `_attachEvents3d` | 2059 |
@@ -193,6 +195,82 @@ st.colorbar_label_size            (label font sizes; optional)
 Zoom model: at `zoom=1` the whole image fills the fit-rect; at `zoom=Z>1` a
 `1/Z` region fills it.  `_imgToCanvas2d` / `_canvasToImg2d` must stay exact
 inverses of the blit geometry.
+
+---
+
+## Image layers (multi-image overlay)
+
+`Plot2D.add_layer(data, cmap=, alpha=, clim=, visible=)` composites a second
+(third, …) scalar image OVER the base image in the same panel, each with its own
+colormap / clim / alpha. Distinct from `set_overlay_mask` (single-colour boolean
+mask). `Layer.set(...)`, `Layer.set_data(frame)`, `Layer.remove()`,
+`Plot2D.layers`, `Plot2D.remove_layer(layer)`. **Layers and tile mode are mutually
+exclusive** (guard raises in both directions: `add_layer` on a tiled plot, and
+`enable_tile` / `set_data(tile=True)` / auto-tile on a layered plot).
+
+### State + transport (dynamic per-layer pixel keys)
+
+The layer *metadata* lives in `st.layers` (a list of small dicts on the light view
+trait):
+
+```
+st.layers = [{ id, cmap, clim_min, clim_max, alpha, visible,
+               width, height, colormap_data, image_b64 }, …]   # z-order
+```
+
+`image_b64` in each entry is the layer's pixels: a base64 string (Jupyter /
+standalone / `save_html`) OR a `"\x00bin:<adler32>"` change-token (Electron binary
+transport). The JS reads pixels from this entry field on the base64 path.
+
+The *heavy pixel bytes* additionally ride a **DYNAMIC geometry key**
+`layer_<id>_b64` — one per layer — mirroring how the base image `image_b64` rides
+the geom channel. The dynamic-key mechanism:
+
+- **`Plot2D._GEOM_KEYS` is a PROPERTY** (not a plain frozenset): it returns the
+  fixed base set (`image_b64`, `colormap_data`, `overlay_mask_b64`, `detail_b64`)
+  UNION the current `layer_<id>_b64` keys. So `Figure._push` splits every layer's
+  pixels off the light view trait onto `panel_<id>_geom` and dedup-caches them
+  exactly like the base image; a removed layer's key drops out automatically.
+- **`_electron._route_change`** ships each layer key as its own PLOTBIN frame:
+  `_is_binary_pixel_key(k)` matches `k in _BINARY_KEYS` OR `layer_*_b64`. The
+  binary frame header carries `{"geom": "panel_<id>_geom"}` and `key=layer_<id>_b64`,
+  so the receiver builds slot `panel_<id>_geom::layer_<id>_b64` (the same
+  `awi_state_binary` handler as the base image — already generic on `hdr.geom` +
+  `e.data.key`, no change needed there).
+- **`resolve_pixel_tokens`** (cold path: `save_html` / standalone) materialises
+  real base64 for every `layer_<id>_b64` key AND the entry `image_b64` mirror, so a
+  snapshot is self-contained.
+- **JS `_spliceBinaryBytes`** scans `__apl_pixbytes` by the `panel_<id>_geom::`
+  PREFIX (not the old hardcoded 3-key list) so it splices any `layer_<id>_b64_bytes`
+  into `p2._geomCache`. The per-slot binary listeners are registered only for the
+  fixed keys (`_registerBinaryPixelListeners`); dynamic layer bytes are consumed by
+  the **geom-JSON change handler**, which now also calls `_spliceBinaryBytes` — the
+  geom trait always re-pushes when layers change, so a layer's bytes converge into
+  the cache regardless of trait arrival order.
+
+### JS compositing (`_drawLayers2d`, called from `draw2d`)
+
+After the base image (Canvas2D blit OR WebGPU) and the overlay mask, and BEFORE
+`_drawAxes2d` / markers / widgets, `_drawLayers2d(p, st, imgW, imgH, ctx, iw, ih)`
+draws each **visible** layer bottom-up on `plotCanvas`:
+
+- `_layerBytes(st, layer)` prefers `layer_<id>_b64_bytes` (binary) over the entry
+  `image_b64` base64;
+- `_layerBitmap(p, st, layer)` builds a LUT-colormapped RGBA `OffscreenCanvas`,
+  **cached per layer id** by `(pixel key, cmap, clim)` — rebuilt only when the
+  layer's data or appearance changes (a live scrub that only swaps one layer's
+  data rebuilds just that layer);
+- it blits with the SAME fit-rect + zoom/pan transform as the base blit
+  (`_imgFitRect` + the `zoom>=1` window math) at `ctx.globalAlpha = layer.alpha`,
+  so zoom/pan track the base exactly.
+
+Because layers draw on `plotCanvas`, they sit UNDER `markersCanvas` /
+`overlayCanvas` (z-order) and are captured by `exportPNG` for free (plotCanvas is
+z1 in the composite). Over a WebGPU base the layers still composite in Canvas2D on
+`plotCanvas` (which sits above the transparent `gpuCanvas`) — verified by
+`test_layers_playwright.py::TestGpuBaseWithLayer`. Per-move perf: only the changed
+layer's LUT bitmap is rebuilt (the box-loop is ~one pass over H×W uint8 → uint32,
+comparable to the base image's `_buildLut32` blit).
 
 ---
 
