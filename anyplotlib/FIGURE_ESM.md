@@ -136,7 +136,37 @@ geometry changes (visibility, label, sizes) re-layout automatically.
 #### `applyLayout()` (line 590)
 Reads `layout_json`. Builds CSS grid tracks from `panel_specs[].panel_width/height`.
 Creates panels that don't exist yet, resizes existing ones, removes stale ones.
-Also creates/updates inset panels from `inset_specs`.
+Also creates/updates inset panels from `inset_specs`, then draws region
+indications from `layout.indications` (on the next frame — see below).
+
+#### Inset placement (`_applyAllInsetStates`)
+Each `inset_specs[]` entry carries EITHER `corner` (one of the four corners;
+`anchor` is `null`) OR `anchor` (`[x_frac, y_frac]` of the inset's top-left in
+figure fraction; `corner` is `null`). Corner insets stack per-corner with
+`INSET_GAP`; anchored insets are placed directly at their fraction (clamped
+inside the figure). Minimize / maximize / restore work for both — a maximized
+inset floats centred at ~72 % (z 45); a minimized one collapses to its title
+bar in place.
+
+#### Region indications (callouts — `_drawCallouts`)
+`layout.indications` is an array of mark_inset-style callouts, each
+`{inset_id, parent_id, region:[x,y,w,h], color, linestyle, linewidth}`.
+`_drawCallouts()` renders them onto a figure-level `calloutCanvas` (z 30, above
+panels + insets, below maximized-inset float and the resize handle,
+`pointer-events:none`):
+- The **dashed source rect** maps `region` (parent DATA coords) through the
+  parent's `_imgToCanvas2d` every draw, so it tracks the parent's zoom/pan; it
+  is clipped to the parent's image area.
+- Two **leader lines** connect the rect's corners facing the inset to the
+  inset's nearest corners (loc1/loc2-auto by comparing centres); they follow
+  the inset's live DOM rect and are **hidden while the inset is minimized**.
+
+`_drawCallouts()` is called at the end of `_redrawPanel` / `redrawAll` (tracks
+zoom/pan), at the end of `_applyAllInsetStates` (inset moved), on `applyLayout`
+(deferred one rAF so `getBoundingClientRect` is real), and inside `exportPNG`
+(forced fresh draw, then `calloutCanvas` composited last). All coordinates go
+through element bounding rects relative to the callout canvas, so no layout math
+is duplicated. Cheap no-op when `indications` is empty (just clears the canvas).
 
 #### `_createPanelDOM(id, kind, pw, ph, spec)` (line 763)
 Builds all canvas/DOM elements for one panel (via `_buildCanvasStack`),
@@ -416,7 +446,8 @@ figure onto one offscreen canvas at `devicePixelRatio × scale`:
   `getBoundingClientRect()` relative to the root): gpuCanvas (z0) → plotCanvas
   (z1) → x/yAxisCanvas → cbCanvas → [overlayCanvas z5 only if `includeWidgets`]
   → markersCanvas (z6) → scaleBar (z7) → titleCanvas (z8). Grid panels first,
-  then insets (`p.isInset`) on top. Status bars / stats overlays are excluded.
+  then insets (`p.isInset`) on top, then the figure-level `calloutCanvas`
+  (region indications) composited LAST. Status bars / stats overlays are excluded.
 - Ends with `out.toDataURL('image/png')`; rejects the promise with a message on
   failure (no 2-D context, `toDataURL` throw).
 

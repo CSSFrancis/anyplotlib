@@ -407,6 +407,7 @@ class Figure(anywidget.AnyWidget):
             })
 
         inset_specs = []
+        indications = []
         for pid, inset_ax in self._insets_map.items():
             plot = self._plots_map.get(pid)
             pw = max(64, round(self.fig_width  * inset_ax.w_frac))
@@ -416,12 +417,21 @@ class Figure(anywidget.AnyWidget):
                 "kind":         _plot_kind(plot) if plot else "1d",
                 "w_frac":       inset_ax.w_frac,
                 "h_frac":       inset_ax.h_frac,
+                # corner is None for anchor-placed insets; anchor is None for
+                # corner-placed ones.  JS picks the placement mode by which is set.
                 "corner":       inset_ax.corner,
+                "anchor":       list(inset_ax.anchor)
+                                if getattr(inset_ax, "anchor", None) is not None
+                                else None,
                 "title":        inset_ax.title,
                 "panel_width":  pw,
                 "panel_height": ph,
                 "inset_state":  inset_ax._inset_state,
             })
+            # Region indication (mark_inset callout) is keyed by the inset id.
+            ind = getattr(inset_ax, "_indication", None)
+            if ind is not None:
+                indications.append({"inset_id": pid, **ind})
 
         self.layout_json = json.dumps({
             "nrows":          self._nrows,
@@ -433,22 +443,28 @@ class Figure(anywidget.AnyWidget):
             "panel_specs":    panel_specs,
             "share_groups":   share_groups,
             "inset_specs":    inset_specs,
+            "indications":    indications,
             "hspace":         self._hspace,
             "wspace":         self._wspace,
         })
 
     # ── inset creation ────────────────────────────────────────────────────────
     def add_inset(self, w_frac: float, h_frac: float, *,
-                  corner: str = "top-right", title: str = "") -> "InsetAxes":
+                  corner: str = "top-right", anchor=None,
+                  title: str = "") -> "InsetAxes":
         """Create and return a floating inset axes.
 
-        The inset overlays the figure at the specified corner.  Call
-        plot-factory methods on the returned :class:`InsetAxes` to attach
-        data::
+        The inset overlays the figure at the specified corner (default) or at
+        an arbitrary *anchor* position.  Call plot-factory methods on the
+        returned :class:`InsetAxes` to attach data::
 
             inset = fig.add_inset(0.3, 0.25, corner="top-right", title="Zoom")
             inset.imshow(data)    # returns Plot2D
             inset.plot(profile)   # returns Plot1D
+
+            # arbitrary placement (top-left corner at 55% across, 10% down):
+            free = fig.add_inset(0.3, 0.25, anchor=(0.55, 0.10))
+            free.imshow(data)
 
         Parameters
         ----------
@@ -456,7 +472,13 @@ class Figure(anywidget.AnyWidget):
             Width and height as fractions of the figure size (0–1).
         corner : str, optional
             Positioning corner: ``"top-right"`` (default), ``"top-left"``,
-            ``"bottom-right"``, or ``"bottom-left"``.
+            ``"bottom-right"``, or ``"bottom-left"``.  Mutually exclusive with
+            *anchor*.
+        anchor : (x_frac, y_frac), optional
+            Position of the inset's TOP-LEFT corner as fractions of the figure
+            size (0–1), from the figure's top-left.  When given, the inset
+            floats at that anchor and *corner* is ignored.  Use this for
+            free placement (e.g. a callout panel next to the region it marks).
         title : str, optional
             Text displayed in the inset title bar.
 
@@ -464,7 +486,8 @@ class Figure(anywidget.AnyWidget):
         -------
         InsetAxes
         """
-        return InsetAxes(self, w_frac, h_frac, corner=corner, title=title)
+        return InsetAxes(self, w_frac, h_frac, corner=corner,
+                         anchor=anchor, title=title)
 
     def _register_inset(self, inset_ax: "InsetAxes", plot) -> None:
         """Register an inset plot, allocating its trait and updating layout."""

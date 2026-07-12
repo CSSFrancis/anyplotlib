@@ -519,6 +519,19 @@ function render({ model, el }) {
     'position:absolute;top:8px;left:8px;pointer-events:none;z-index:20;overflow:visible;';
   outerDiv.appendChild(insetsContainer);
 
+  // ── Callout overlay canvas ────────────────────────────────────────────────
+  // A figure-level canvas covering the grid content area (inside gridDiv's
+  // 8 px padding), used to draw mark_inset-style region indications: a dashed
+  // source rectangle on the parent panel + leader lines out to the inset.
+  // It spans the whole figure because leaders cross panel boundaries.  Sits
+  // ABOVE panel content / insets but BELOW the maximized-inset float (z 45) and
+  // the resize handle (z 100); pointer-events:none so it never eats clicks.
+  const calloutCanvas = document.createElement('canvas');
+  calloutCanvas.style.cssText =
+    'position:absolute;top:8px;left:8px;pointer-events:none;z-index:30;';
+  outerDiv.appendChild(calloutCanvas);
+  const calloutCtx = calloutCanvas.getContext('2d');
+
   // Inset layout constants
   const INSET_TITLE_H = 22;   // px — title bar height
   const INSET_GAP     = 8;    // px — gap between stacked insets in same corner
@@ -780,6 +793,14 @@ function render({ model, el }) {
     insetsContainer.style.width  = (layout.fig_width  || 640) + 'px';
     insetsContainer.style.height = (layout.fig_height || 480) + 'px';
     if (insetSpecs.length) _applyAllInsetStates(layout);
+    // Region indications depend on the browser having laid out the panels +
+    // insets (getBoundingClientRect must be real). During the synchronous
+    // applyLayout the DOM isn't measured yet, so draw once on the next frame.
+    if ((layout.indications || []).length) {
+      requestAnimationFrame(() => _drawCallouts());
+    } else {
+      _drawCallouts();  // clears any stale indication canvas
+    }
   }
 
   // ── _buildCanvasStack ─────────────────────────────────────────────────────
@@ -1201,9 +1222,10 @@ function render({ model, el }) {
 
   // ── _applyAllInsetStates ──────────────────────────────────────────────────
   // Positions every inset for the given layout snapshot.
-  // Groups insets by corner, stacks with INSET_GAP spacing.
-  // Minimized insets contribute only INSET_TITLE_H to the stack height.
-  // Maximized insets float centred at z-index:45, outside the stack.
+  // Corner-placed insets are grouped by corner and stacked with INSET_GAP
+  // spacing (minimized ones contribute only INSET_TITLE_H to the stack).
+  // Anchor-placed insets (spec.anchor != null) float at their anchor fraction.
+  // Maximized insets float centred at z-index:45, outside any stack.
   function _applyAllInsetStates(layout) {
     const insetSpecs = layout.inset_specs || [];
     const fw = layout.fig_width  || 640;
@@ -1212,10 +1234,60 @@ function render({ model, el }) {
     insetsContainer.style.width  = fw + 'px';
     insetsContainer.style.height = fh + 'px';
 
-    // Group by corner, preserving insertion order
+    // Split anchored insets from corner insets. Anchored ones are placed
+    // directly at their fraction; corner ones stack per-corner as before.
+    const anchored = [];
     const byCorner = {};
     for (const spec of insetSpecs) {
+      if (spec.anchor) { anchored.push(spec); continue; }
       (byCorner[spec.corner] = byCorner[spec.corner] || []).push(spec);
+    }
+
+    // ── anchor-placed insets ────────────────────────────────────────────────
+    for (const spec of anchored) {
+      const p = panels.get(spec.id);
+      if (!p || !p.isInset) continue;
+      const pw = spec.panel_width;
+      const ph = spec.panel_height;
+      const state = spec.inset_state;
+      const stackH = state === 'minimized' ? INSET_TITLE_H : INSET_TITLE_H + ph;
+
+      // Maximized floats centred (same treatment as corner insets below).
+      if (state === 'maximized') {
+        const mw = Math.round(fw * 0.72), mh = Math.round(fh * 0.72);
+        p.insetDiv.style.left = Math.round((fw - mw) / 2) + 'px';
+        p.insetDiv.style.top  = Math.round((fh - mh) / 2) + 'px';
+        p.insetDiv.style.width  = mw + 'px';
+        p.insetDiv.style.height = (INSET_TITLE_H + mh) + 'px';
+        p.insetDiv.style.zIndex = '45';
+        p.contentDiv.style.display = 'block';
+        p.contentDiv.style.height  = mh + 'px';
+        if (p.pw !== mw || p.ph !== mh) {
+          p.pw = mw; p.ph = mh; _resizePanelDOM(spec.id, mw, mh); _redrawPanel(p);
+        }
+        continue;
+      }
+
+      // Normal / minimized: top-left corner sits at the anchor fraction,
+      // clamped so the inset stays inside the figure.
+      let left = Math.round(spec.anchor[0] * fw);
+      let top  = Math.round(spec.anchor[1] * fh);
+      left = Math.max(0, Math.min(left, fw - pw));
+      top  = Math.max(0, Math.min(top,  fh - stackH));
+      p.insetDiv.style.left   = left + 'px';
+      p.insetDiv.style.top    = top  + 'px';
+      p.insetDiv.style.width  = pw   + 'px';
+      p.insetDiv.style.height = stackH + 'px';
+      p.insetDiv.style.zIndex = '25';
+      if (state === 'minimized') {
+        p.contentDiv.style.display = 'none';
+      } else {
+        p.contentDiv.style.display = 'block';
+        p.contentDiv.style.height  = ph + 'px';
+        if (p.pw !== pw || p.ph !== ph) {
+          p.pw = pw; p.ph = ph; _resizePanelDOM(spec.id, pw, ph); _redrawPanel(p);
+        }
+      }
     }
 
     for (const [corner, group] of Object.entries(byCorner)) {
@@ -1260,6 +1332,147 @@ function render({ model, el }) {
 
         offset += stackH + INSET_GAP;
       }
+    }
+    // Inset positions changed → refresh leader lines / rects.  Use the layout's
+    // own size (may be a live-resize snapshot ahead of the model).
+    _drawCallouts([fw, fh]);
+  }
+
+  // ── _drawCallouts ─────────────────────────────────────────────────────────
+  // Draw every mark_inset-style region indication onto the figure-level
+  // calloutCanvas.  Called after any parent redraw / inset move / resize, so
+  // the dashed source rect tracks the parent's zoom+pan (region is mapped
+  // through _imgToCanvas2d every draw) and the leaders follow the inset's
+  // current DOM rect (leaders hide while the inset is minimized).
+  //
+  // Coordinate space: everything is mapped into calloutCanvas CSS px via each
+  // element's getBoundingClientRect relative to the canvas's own rect — so no
+  // layout math is duplicated and the leaders line up across panel boundaries.
+  function _drawCallouts(sizeOverride) {
+    let layout;
+    try { layout = JSON.parse(model.get('layout_json')); } catch (_) { return; }
+    const inds = layout.indications || [];
+
+    // Size the canvas to the figure content (fig size + no padding — it is
+    // already offset by 8 px like insetsContainer).  During a live figure
+    // resize the model hasn't been written yet, so accept an explicit size.
+    const fw = sizeOverride ? sizeOverride[0]
+             : (Number(model.get('fig_width'))  || layout.fig_width  || 640);
+    const fh = sizeOverride ? sizeOverride[1]
+             : (Number(model.get('fig_height')) || layout.fig_height || 480);
+    if (calloutCanvas.width !== Math.round(fw * dpr) ||
+        calloutCanvas.height !== Math.round(fh * dpr)) {
+      calloutCanvas.style.width  = fw + 'px';
+      calloutCanvas.style.height = fh + 'px';
+      calloutCanvas.width  = Math.round(fw * dpr);
+      calloutCanvas.height = Math.round(fh * dpr);
+    }
+    calloutCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    calloutCtx.clearRect(0, 0, fw, fh);
+    if (!inds.length) return;
+
+    const base = calloutCanvas.getBoundingClientRect();
+
+    for (const ind of inds) {
+      const parent = panels.get(ind.parent_id);
+      const inset  = panels.get(ind.inset_id);
+      if (!parent || !parent.state || !inset || !inset.isInset) continue;
+
+      // ── source rectangle in parent-canvas px → figure px ─────────────────
+      // Map the region's four data-space corners through the parent's
+      // data→canvas transform (tracks zoom/pan), then offset by the parent
+      // markers canvas's position relative to the callout canvas.
+      const st = parent.state;
+      const imgW = parent.imgW || 1, imgH = parent.imgH || 1;
+      const [rx, ry, rw, rh] = ind.region;
+      const mkRect = (parent.markersCanvas || parent.plotCanvas).getBoundingClientRect();
+      const offX = mkRect.left - base.left;
+      const offY = mkRect.top  - base.top;
+      const toFig = (dx, dy) => {
+        const [cx, cy] = _imgToCanvas2d(dx, dy, st, imgW, imgH);
+        return [offX + cx, offY + cy];
+      };
+      const [x0, y0] = toFig(rx,      ry);
+      const [x1, y1] = toFig(rx + rw, ry);
+      const [x2, y2] = toFig(rx + rw, ry + rh);
+      const [x3, y3] = toFig(rx,      ry + rh);
+      // Axis-aligned bounds of the (untransformed) rect in figure px.
+      const rL = Math.min(x0, x1, x2, x3), rR = Math.max(x0, x1, x2, x3);
+      const rT = Math.min(y0, y1, y2, y3), rB = Math.max(y0, y1, y2, y3);
+
+      const color = ind.color || '#ff9800';
+      const lw    = ind.linewidth != null ? ind.linewidth : 1.5;
+      const dash  = ind.linestyle === 'solid'  ? []
+                  : ind.linestyle === 'dotted' ? [2, 3]
+                  : [6, 4];  // dashed (default)
+
+      calloutCtx.save();
+      calloutCtx.strokeStyle = color;
+      calloutCtx.lineWidth   = lw;
+      calloutCtx.setLineDash(dash);
+
+      // Dashed source rectangle (drawn as the 4 transformed corners so it
+      // stays correct even if a future transform rotates/skews it).  Clipped
+      // to the parent's image area so a zoomed-in region that runs off the
+      // panel doesn't paint over neighbouring panels (the leaders below are
+      // intentionally NOT clipped — they cross panel boundaries).
+      calloutCtx.save();
+      calloutCtx.beginPath();
+      calloutCtx.rect(offX, offY, imgW, imgH);
+      calloutCtx.clip();
+      calloutCtx.beginPath();
+      calloutCtx.moveTo(x0, y0);
+      calloutCtx.lineTo(x1, y1);
+      calloutCtx.lineTo(x2, y2);
+      calloutCtx.lineTo(x3, y3);
+      calloutCtx.closePath();
+      calloutCtx.stroke();
+      calloutCtx.restore();
+
+      // ── leader lines to the inset (skip while minimized) ─────────────────
+      const insSpec = (layout.inset_specs || []).find(s => s.id === ind.inset_id);
+      const minimized = insSpec && insSpec.inset_state === 'minimized';
+      if (!minimized) {
+        const iRect = inset.insetDiv.getBoundingClientRect();
+        const iL = iRect.left - base.left, iT = iRect.top  - base.top;
+        const iR = iL + iRect.width,       iB = iT + iRect.height;
+
+        // Pick which pair of rect corners face the inset (mark_inset loc1/loc2
+        // auto): compare the inset's centre to the rect's centre and connect
+        // the two corners on the facing side(s).  Deterministic and simple.
+        const rcx = (rL + rR) / 2, rcy = (rT + rB) / 2;
+        const icx = (iL + iR) / 2, icy = (iT + iB) / 2;
+        const dxc = icx - rcx, dyc = icy - rcy;
+
+        // Rect corners (TL, TR, BR, BL) paired with the inset corner nearest
+        // to each, so each leader is short and non-crossing.
+        const rectCorners = {
+          TL: [rL, rT], TR: [rR, rT], BR: [rR, rB], BL: [rL, rB],
+        };
+        const insCorners = {
+          TL: [iL, iT], TR: [iR, iT], BR: [iR, iB], BL: [iL, iB],
+        };
+        // Choose the two rect corners on the side facing the inset.
+        let pair;
+        if (Math.abs(dxc) >= Math.abs(dyc)) {
+          // Inset predominantly left/right of the rect → connect that vertical edge.
+          pair = dxc >= 0 ? [['TR', 'TL'], ['BR', 'BL']]
+                          : [['TL', 'TR'], ['BL', 'BR']];
+        } else {
+          // Inset predominantly above/below → connect that horizontal edge.
+          pair = dyc >= 0 ? [['BL', 'TL'], ['BR', 'TR']]
+                          : [['TL', 'BL'], ['TR', 'BR']];
+        }
+        for (const [rc, ic] of pair) {
+          const [px, py] = rectCorners[rc];
+          const [qx, qy] = insCorners[ic];
+          calloutCtx.beginPath();
+          calloutCtx.moveTo(px, py);
+          calloutCtx.lineTo(qx, qy);
+          calloutCtx.stroke();
+        }
+      }
+      calloutCtx.restore();
     }
   }
 
@@ -7025,10 +7238,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     else if(p.kind==='3d') draw3d(p);
     else if(p.kind==='bar') drawBar(p);
     else                   draw1d(p);
+    // Region indications track the parent's zoom/pan: any panel redraw
+    // refreshes ALL callouts (cheap no-op when there are none). Redrawing all
+    // (not just this panel's) keeps rect + leaders consistent when a parent
+    // and its inset live in different panels.
+    _drawCallouts();
   }
 
   function redrawAll() {
     for(const p of panels.values()) _redrawPanel(p);
+    _drawCallouts();
   }
 
   // ── PNG export ────────────────────────────────────────────────────────────
@@ -7127,6 +7346,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Grid panels first, then insets on top (insets sit above grid content).
     for (const p of panels.values()) if (!p.isInset) _drawPanel(p);
     for (const p of panels.values()) if (p.isInset)  _drawPanel(p);
+
+    // Callout indications (dashed source rects + leader lines) sit above panel
+    // content and insets — composite them last so they overlay everything.
+    // Force a fresh draw first so the canvas reflects the current view.
+    try { _drawCallouts(); } catch (_) {}
+    _drawEl(calloutCanvas);
 
     let dataUrl;
     try {
@@ -7235,6 +7460,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   return {
     panels,
     exportPNG,
+    calloutCanvas,      // figure-level region-indication overlay
+    _drawCallouts,      // force a callout redraw (tests / external layout sync)
     _gpuDisposeImagePanel,
     _gpuDisposePanel,
   };
@@ -7335,6 +7562,7 @@ export function mount(el, state, opts) {
   const api = render({ model, el }) || {};
   return {
     model,
+    api,               // internal render() API (panels, calloutCanvas, _drawCallouts, …)
     get(key) { return model.get(key); },
     set(key, value) { model.set(key, value); model.save_changes(); },
     // Replace one panel's full state (object or pre-serialised JSON string).
