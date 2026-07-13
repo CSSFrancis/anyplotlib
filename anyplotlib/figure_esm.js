@@ -676,8 +676,15 @@ function render({ model, el }) {
     const tbl = globalThis.__apl_pixbytes;
     if (!tbl) return false;
     let spliced = false;
-    for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
-      const b = tbl[`${geomTrait}::${pixelKey}`];
+    // Fixed base-image / mask / detail keys PLUS every DYNAMIC layer pixel key
+    // (`layer_<id>_b64`) currently present in the side-table for this panel's
+    // geom trait — layer keys aren't enumerable ahead of time, so scan by the
+    // `<geomTrait>::` prefix. Splices each into the cache as `<pixelKey>_bytes`.
+    const prefix = `${geomTrait}::`;
+    for (const slot in tbl) {
+      if (!slot.startsWith(prefix)) continue;
+      const pixelKey = slot.slice(prefix.length);
+      const b = tbl[slot];
       if (!b) continue;
       if (b.__aplSeq === undefined) {
         try { b.__aplSeq = ++_pixArrivalSeq; } catch (_) {}
@@ -687,6 +694,25 @@ function render({ model, el }) {
       spliced = true;
     }
     return spliced;
+  }
+
+  // Register the per-pixel-key binary-bytes change listeners for a panel's geom
+  // trait. The FIXED base-image / mask / detail keys each get a dedicated
+  // listener (their slot fires `change:<slot>` when new bytes arrive). DYNAMIC
+  // layer keys (layer_<id>_b64) are NOT enumerable here — their bytes are picked
+  // up by the geom-JSON re-splice (the geom trait always re-pushes when layers
+  // change) and by _spliceBinaryBytes's prefix scan, so they need no per-slot
+  // listener. Shared by _createPanelDOM and _createInsetDOM.
+  function _registerBinaryPixelListeners(id, geomTrait) {
+    for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
+      const slot = `${geomTrait}::${pixelKey}`;
+      model.on(`change:${slot}`, () => {
+        const p2 = panels.get(id);
+        if (!p2) return;
+        _spliceBinaryBytes(p2, geomTrait);
+        if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
+      });
+    }
   }
 
   // ── layout application ───────────────────────────────────────────────────
@@ -963,6 +989,11 @@ function render({ model, el }) {
         const rev = (p2.state && p2.state._geom_rev !== undefined)
           ? p2.state._geom_rev : ((p2._geomRev || 0) + 1);
         _loadGeom(p2, model.get(_geomTrait), rev);
+        // Re-splice any binary pixel bytes present for this panel — including
+        // DYNAMIC layer keys (layer_<id>_b64) that have no dedicated per-slot
+        // listener. The geom JSON always re-pushes when layers change, so this
+        // guarantees a layer's bytes are consumed regardless of arrival order.
+        _spliceBinaryBytes(p2, _geomTrait);
         if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
       });
       // Binary transport: raw pixel bytes for this panel arrive on a companion
@@ -970,15 +1001,7 @@ function render({ model, el }) {
       // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
       // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
       // the small LUT/flags), so pixels + LUT converge in the cache.
-      for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
-        const slot = `${_geomTrait}::${pixelKey}`;
-        model.on(`change:${slot}`, () => {
-          const p2 = panels.get(id);
-          if (!p2) return;
-          _spliceBinaryBytes(p2, _geomTrait);
-          if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
-        });
-      }
+      _registerBinaryPixelListeners(id, _geomTrait);
     }
 
     model.on(`change:panel_${id}_json`, () => {
@@ -1119,6 +1142,8 @@ function render({ model, el }) {
         const rev = (p2.state && p2.state._geom_rev !== undefined)
           ? p2.state._geom_rev : ((p2._geomRev || 0) + 1);
         _loadGeom(p2, model.get(_geomTrait), rev);
+        // Re-splice binary bytes incl. dynamic layer keys — see _createPanelDOM.
+        _spliceBinaryBytes(p2, _geomTrait);
         if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
       });
       // Binary transport: raw pixel bytes for this panel arrive on a companion
@@ -1126,15 +1151,7 @@ function render({ model, el }) {
       // geomCache under `<pixelKey>_bytes` so _imageBytes uses them (no atob), and
       // redraw. Fires INDEPENDENTLY of the geom JSON trait (which now carries only
       // the small LUT/flags), so pixels + LUT converge in the cache.
-      for (const pixelKey of ['image_b64', 'overlay_mask_b64', 'detail_b64']) {
-        const slot = `${_geomTrait}::${pixelKey}`;
-        model.on(`change:${slot}`, () => {
-          const p2 = panels.get(id);
-          if (!p2) return;
-          _spliceBinaryBytes(p2, _geomTrait);
-          if (p2.state) { _applyGeom(p2, p2.state); _redrawPanel(p2); }
-        });
-      }
+      _registerBinaryPixelListeners(id, _geomTrait);
     }
 
     model.on(`change:panel_${id}_json`, () => {
@@ -1528,6 +1545,120 @@ function render({ model, el }) {
     return Math.max(0, Math.min(1, (now - b.t0) / _DETAIL_BLEND_MS));
   }
 
+  // ── Image layers (multi-image overlay) ─────────────────────────────────────
+  // Raw single-channel pixel bytes for ONE layer. Prefers the BINARY bytes
+  // (`layer_<id>_b64_bytes`, spliced into the geomCache under `<key>_bytes`) over
+  // the base64 string in the layer entry's `image_b64`. Returns {bytes, key} where
+  // `key` is a cheap identity for the "unchanged → skip rebuild" check.
+  function _layerBytes(st, layer) {
+    const pk = `layer_${layer.id}_b64`;
+    const raw = st[pk + '_bytes'];
+    if (raw && (raw instanceof Uint8Array || raw.byteLength !== undefined)) {
+      const u8 = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+      let key = layer.image_b64;            // the "\x00bin:<adler>" content token
+      if (!key && u8.__aplSeq !== undefined) key = `binseq:${u8.__aplSeq}`;
+      if (!key) key = `layerbin:${u8.length}`;
+      return { bytes: u8, key };
+    }
+    const b64 = layer.image_b64 || '';
+    if (!b64 || b64.charCodeAt(0) === 0) return { bytes: null, key: '' };  // token, no bytes yet
+    try {
+      const bin = atob(b64);
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return { bytes: u8, key: b64 };
+    } catch (_) { return { bytes: null, key: '' }; }
+  }
+
+  // Build (and cache on the panel) the LUT-colormapped RGBA OffscreenCanvas for
+  // one layer. Cached per layer id by (pixel key, cmap, clim) so a live scrub only
+  // rebuilds when the layer's data/appearance actually changes. Returns null when
+  // the bytes aren't available or the size is wrong.
+  function _layerBitmap(p, st, layer) {
+    const d = _layerBytes(st, layer);
+    const lw = layer.width || st.image_width;
+    const lh = layer.height || st.image_height;
+    if (!d.bytes || !lw || !lh || d.bytes.length < lw * lh) return null;
+    const cmap = layer.cmap || 'gray';
+    const dMin = layer.clim_min, dMax = layer.clim_max;
+    const lutKey = [cmap, dMin, dMax].join('|');
+    const cache = (p._layerBlit ||= {});
+    const c = cache[layer.id];
+    if (c && c.key === d.key && c.lutKey === lutKey && c.w === lw && c.h === lh)
+      return c.bitmap;
+    // Build a 256-entry uint32 LUT from the layer's own colormap + clim. The layer
+    // bytes are quantised over [clim_min, clim_max] (Python side), so code i maps
+    // linearly through that window; the LUT bakes clim→colour like the base path.
+    const cmapData = layer.colormap_data || st.colormap_data || [];
+    let cmapFlat = null;
+    if (cmapData.length === 256) {
+      cmapFlat = new Uint8Array(256 * 4);
+      for (let i = 0; i < 256; i++) {
+        cmapFlat[i*4] = cmapData[i][0]; cmapFlat[i*4+1] = cmapData[i][1];
+        cmapFlat[i*4+2] = cmapData[i][2]; cmapFlat[i*4+3] = 255;
+      }
+    }
+    const lut = new Uint32Array(256);
+    const buf = new ArrayBuffer(4); const dv = new DataView(buf);
+    const u32 = new Uint32Array(buf);
+    for (let raw = 0; raw < 256; raw++) {
+      // Bytes are already the normalised index over the layer's clim (Python
+      // _normalize_image), so idx == raw — identity into the colormap.
+      const idx = raw;
+      if (cmapFlat) {
+        dv.setUint8(0, cmapFlat[idx*4]); dv.setUint8(1, cmapFlat[idx*4+1]);
+        dv.setUint8(2, cmapFlat[idx*4+2]); dv.setUint8(3, 255);
+      } else { dv.setUint8(0, idx); dv.setUint8(1, idx); dv.setUint8(2, idx); dv.setUint8(3, 255); }
+      lut[raw] = u32[0];
+    }
+    const imgData = new ImageData(lw, lh);
+    const out32 = new Uint32Array(imgData.data.buffer);
+    for (let i = 0; i < lw * lh; i++) out32[i] = lut[d.bytes[i]];
+    const oc = new OffscreenCanvas(lw, lh);
+    oc.getContext('2d').putImageData(imgData, 0, 0);
+    cache[layer.id] = { bitmap: oc, key: d.key, lutKey, w: lw, h: lh };
+    return oc;
+  }
+
+  // Composite every VISIBLE layer over the base image on plotCanvas, bottom-up,
+  // using the SAME zoom/pan/fit-rect transform as the base blit (so zoom/pan track
+  // exactly) at each layer's own globalAlpha. Layers draw AFTER the base + overlay
+  // mask and BEFORE axes/markers/widgets, so they sit under annotations + widgets.
+  // Works identically over a WebGPU base (which lives on the gpuCanvas beneath the
+  // transparent plotCanvas): the layers just paint onto plotCanvas above it.
+  function _drawLayers2d(p, st, imgW, imgH, ctx, iw, ih) {
+    const layers = st.layers;
+    if (!layers || !layers.length) { if (p._layerBlit) p._layerBlit = {}; return; }
+    // Drop cache entries for layers that were removed.
+    if (p._layerBlit) {
+      const live = new Set(layers.map(l => l.id));
+      for (const k in p._layerBlit) if (!live.has(k)) delete p._layerBlit[k];
+    }
+    const { x, y, w, h } = _imgFitRect(iw, ih, imgW, imgH);
+    const z = st.zoom, cx = st.center_x, cy = st.center_y;
+    for (const layer of layers) {
+      if (layer.visible === false) continue;
+      const bmp = _layerBitmap(p, st, layer);
+      if (!bmp) continue;
+      const alpha = layer.alpha != null ? layer.alpha : 1.0;
+      const bw = bmp.width, bh = bmp.height;
+      const kx = bw / iw, ky = bh / ih;    // logical→layer-texel scale (==1 here)
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.imageSmoothingEnabled = false;
+      if (z >= 1.0) {
+        const visW = iw / z, visH = ih / z;
+        const sx = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
+        const sy = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
+        ctx.drawImage(bmp, sx * kx, sy * ky, visW * kx, visH * ky, x, y, w, h);
+      } else {
+        const dw = w * z, dh = h * z;
+        ctx.drawImage(bmp, 0, 0, bw, bh, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      }
+      ctx.restore();
+    }
+  }
+
   function _blit2d(p, bitmap, st, pw, ph, ctx, detailBitmap) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
@@ -1769,6 +1900,14 @@ function render({ model, el }) {
         ctx.restore();
       }
     }
+    // ── Image layers ─────────────────────────────────────────────────────────
+    // Composited over the base image (+ overlay mask) at each layer's own
+    // colormap/clim/alpha, using the same zoom/pan transform, UNDER axes/markers/
+    // widgets. For a WebGPU base the layers paint on the transparent plotCanvas
+    // that sits above the gpuCanvas. iw/ih == the logical image size here (tiling
+    // is forbidden when layers exist, so base_width is 0 and iw == image_width).
+    _drawLayers2d(p, st, imgW, imgH, ctx, iw, ih);
+
     // Axes / scalebar / colorbar
     _drawAxes2d(p);
     drawScaleBar2d(p);

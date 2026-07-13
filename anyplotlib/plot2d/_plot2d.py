@@ -60,8 +60,34 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     #: channel keys are eligible for the PLOTBIN binary route in _route_change — if it
     #: rode the light view trait instead, its "\x00bin:" token would never be resolved
     #: to bytes and the crisp zoom tile would never render (only the overview shows).
-    _GEOM_KEYS = frozenset({"image_b64", "colormap_data", "overlay_mask_b64",
-                            "detail_b64"})
+    #:
+    #: NB ``_GEOM_KEYS`` is a *property* (not a plain frozenset) because image LAYERS
+    #: add DYNAMIC pixel keys ``layer_<id>_b64`` — one per active layer — that must
+    #: also ride the geom channel (dedup-cached + PLOTBIN-eligible), exactly like the
+    #: base image. The property returns the fixed base set UNION the current layer
+    #: pixel keys, so ``Figure._push`` splits every layer's pixels off the light view
+    #: trait and the binary route recognises them. The consumers only ever iterate the
+    #: returned set, so a set-typed property is a drop-in for the old frozenset.
+    _BASE_GEOM_KEYS = frozenset({"image_b64", "colormap_data", "overlay_mask_b64",
+                                 "detail_b64"})
+
+    @property
+    def _GEOM_KEYS(self) -> frozenset:
+        layer_keys = self._layer_pixel_keys()
+        if not layer_keys:
+            return self._BASE_GEOM_KEYS
+        return self._BASE_GEOM_KEYS | layer_keys
+
+    @staticmethod
+    def _layer_pixel_key(layer_id: str) -> str:
+        """The top-level state / geom key holding one layer's raw pixel bytes."""
+        return f"layer_{layer_id}_b64"
+
+    def _layer_pixel_keys(self) -> frozenset:
+        """The pixel geom keys for every currently-attached layer."""
+        return frozenset(
+            self._layer_pixel_key(lyr["id"])
+            for lyr in self._state.get("layers", []))
 
     # Logical image bigger than this (either side) uses the tile backend under
     # tile="auto": it sends a downsampled OVERVIEW as the base + streams a hi-res
@@ -267,6 +293,12 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                        # a re-sampled tile even at the same size/region
             "overlay_widgets":   [],
             "markers":           [],
+            # Image LAYERS (see add_layer): each entry is a small metadata dict
+            # {id, cmap, clim_min, clim_max, alpha, visible, width, height, image_b64}
+            # drawn bottom-up OVER the base image. The heavy pixel bytes for a layer
+            # ride the DYNAMIC geom key layer_<id>_b64 (see _GEOM_KEYS); image_b64 in
+            # the entry is the base64 / "\x00bin:" TOKEN mirror the JS reads.
+            "layers":            [],
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
             # Transparent mask overlay (set via set_overlay_mask)
@@ -302,6 +334,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         # this panel (via the gpu_status event → _set_gpu_active). Reflects the
         # actual render path, not just the requested gpu_mode.
         self._gpu_active: bool = False
+
+        # Image layers (see add_layer). ``_layers`` holds the Layer handles in
+        # z-order; ``_layer_raw`` caches each layer's display-oriented raw frame
+        # (keyed by layer id) so a clim change can re-quantise without the caller
+        # re-supplying data — the layer analogue of ``self._data`` + ``set_clim``.
+        self._layers: list = []
+        self._layer_raw: dict = {}
 
     @property
     def gpu_active(self) -> bool:
@@ -398,6 +437,12 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         (``"mean"|"subsample"|"max"``).  ``None`` keeps the current setting
         (default ``"mean"`` from construction).  Use ``"subsample"`` to restore the
         old fast nearest-neighbour path when a full-frame area-mean is too expensive."""
+        if self._state.get("layers"):
+            raise RuntimeError(
+                "enable_tile is not supported on a plot with image layers — tile "
+                "mode streams detail tiles of a single image and cannot composite "
+                "independent layers. Remove all layers first (remove_layer), or "
+                "keep the plot untiled.")
         from anyplotlib.plot2d._tile_backend import as_tile_backend
         if backend is not None:
             self._tile_backend = as_tile_backend(backend, origin=self._origin)
@@ -688,16 +733,45 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         base64 (materialised from the Figure's ``_raw_pixels`` side-table), in
         place, and return *d*. Used by the COLD paths (save_html / standalone)
         that have no PLOTBIN channel and need the pixels inline. A no-op for a
-        normal base64 string. See :meth:`to_state_dict`."""
+        normal base64 string. See :meth:`to_state_dict`.
+
+        Also materialises every LAYER's pixels: each layer has a top-level geom
+        key ``layer_<id>_b64`` AND a mirror ``image_b64`` field inside its
+        ``layers`` entry — both are resolved so a ``save_html`` snapshot of a
+        layered plot is self-contained."""
         import base64
         fig = getattr(self, "_fig", None)
         raw_tbl = getattr(fig, "_raw_pixels", None)
-        for key in ("image_b64", "overlay_mask_b64"):
-            val = d.get(key)
+
+        def _resolve(store_key: str, val):
             if not (isinstance(val, str) and val.startswith("\x00bin:")):
-                continue
-            raw = raw_tbl.get((self._id, key)) if raw_tbl is not None else None
-            d[key] = base64.b64encode(raw).decode("ascii") if raw else ""
+                return val
+            raw = raw_tbl.get((self._id, store_key)) if raw_tbl is not None else None
+            return base64.b64encode(raw).decode("ascii") if raw else ""
+
+        for key in ("image_b64", "overlay_mask_b64"):
+            if d.get(key) is not None:
+                d[key] = _resolve(key, d.get(key))
+        # Layer pixels: top-level layer_<id>_b64 key + the mirror in the entry.
+        # ``d`` is a SHALLOW copy of ``_state`` (to_state_dict), so ``d["layers"]``
+        # shares the entry dicts with the live state. Rebuild the list with COPIED
+        # entries before rewriting ``image_b64`` so materialising base64 for a cold
+        # snapshot never mutates a live "\x00bin:" token back into base64 (which
+        # would corrupt the binary-transport dedup on the next push).
+        layers = d.get("layers")
+        if layers:
+            new_layers = []
+            for lyr in layers:
+                lid = lyr.get("id")
+                if lid is None:
+                    new_layers.append(lyr)
+                    continue
+                pk = self._layer_pixel_key(lid)
+                resolved = _resolve(pk, d.get(pk, lyr.get("image_b64")))
+                if pk in d:
+                    d[pk] = resolved
+                new_layers.append({**lyr, "image_b64": resolved})
+            d["layers"] = new_layers
         return d
 
     # ------------------------------------------------------------------
@@ -766,7 +840,15 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         # RGB frames don't tile — fall through to the plain path.
         # Per-call `tile` override wins; else the construction preference decides.
         eff_pref = self._tile_pref if tile is None else tile
-        want_tile = (not is_rgb) and (
+        # Layers + tiling are mutually exclusive (a layer can't be tiled against
+        # the same streamed view). A plot with layers ALWAYS takes the plain path:
+        # honour an explicit tile=True by refusing, and never auto-enable.
+        _has_layers = bool(self._state.get("layers"))
+        if _has_layers and tile is True:
+            raise RuntimeError(
+                "set_data(tile=True) is not supported on a plot with image layers "
+                "— remove all layers (remove_layer) before enabling tile mode.")
+        want_tile = (not is_rgb) and (not _has_layers) and (
             eff_pref is True
             or (eff_pref == "auto" and max(h, w) > self.TILE_THRESHOLD))
         # tile=False FORCES the plain path even on an already-tiled plot (the caller is
@@ -1008,6 +1090,210 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._state["overlay_mask_b64"]   = base64.b64encode(u8.tobytes()).decode("ascii")
             self._state["overlay_mask_color"] = color
             self._state["overlay_mask_alpha"] = alpha
+        self._push()
+
+    # ------------------------------------------------------------------
+    # Image layers (multi-image overlay)
+    # ------------------------------------------------------------------
+    @property
+    def layers(self) -> list:
+        """The list of :class:`~anyplotlib.plot2d._layer.Layer` handles, in
+        z-order (index 0 drawn first, above the base image)."""
+        return list(self._layers)
+
+    def _norm_clim(self, clim):
+        """Parse a ``(vmin, vmax)`` clim → ``(lo, hi)`` floats, or ``(None, None)``
+        for auto. A degenerate (non-increasing) range falls back to auto."""
+        if clim is None:
+            return (None, None)
+        try:
+            lo, hi = float(clim[0]), float(clim[1])
+        except (TypeError, ValueError, IndexError):
+            return (None, None)
+        if not (hi > lo):
+            return (None, None)
+        return (lo, hi)
+
+    def _encode_layer_pixels(self, layer_id: str, frame: np.ndarray, clim):
+        """Quantise a 2-D layer frame → uint8, store the bytes under the layer's
+        geom key (base64 or PLOTBIN token via _encode_pixels), and return
+        ``(token, height, width, vmin, vmax)``.
+
+        Requires ``frame.shape == (image_height, image_width)`` — raises
+        ``ValueError`` otherwise (a layer must line up pixel-for-pixel with the
+        base image, since it shares the base's image→screen transform)."""
+        arr = np.asarray(frame)
+        ih = self._state["image_height"]
+        iw = self._state["image_width"]
+        if arr.ndim != 2:
+            raise ValueError(
+                f"layer data must be 2-D (H x W), got shape {arr.shape}")
+        if arr.shape != (ih, iw):
+            raise ValueError(
+                f"layer data shape {arr.shape} does not match the base image "
+                f"({ih} x {iw}); a layer must be the same size as the base image")
+        # origin='lower' flips the base data for display; flip layers to match so
+        # they line up with the base pixels.
+        if self._origin == "lower":
+            arr = np.flipud(arr)
+        lo, hi = self._norm_clim(clim)
+        parsed = (lo, hi) if lo is not None else None
+        img_u8, vmin, vmax = _normalize_image(arr, clim=parsed)
+        pk = self._layer_pixel_key(layer_id)
+        token = self._encode_pixels(pk, np.ascontiguousarray(img_u8))
+        # Cache the (display-oriented) raw frame so a later clim change can
+        # re-quantise without the caller re-supplying data (mirrors self._data
+        # for the base image + set_clim).
+        self._layer_raw[layer_id] = arr
+        return token, int(arr.shape[0]), int(arr.shape[1]), vmin, vmax
+
+    def add_layer(self, data, *, cmap: str = "magma", alpha: float = 0.5,
+                  clim=None, visible: bool = True):
+        """Add an image LAYER drawn over the base image.
+
+        Each layer has its OWN colormap, display range (``clim``), and opacity
+        (``alpha``), and is composited on top of the base image (and previously
+        added layers) with the SAME zoom/pan transform, so it tracks the base
+        exactly.  This is the multi-image overlay primitive; for a single-colour
+        boolean mask use :meth:`set_overlay_mask` instead.
+
+        Parameters
+        ----------
+        data : ndarray, shape (H, W)
+            2-D scalar array, the same size as the base image.  Normalised to
+            uint8 via ``clim`` → LUT exactly like the base image.  A shape
+            mismatch raises ``ValueError``.
+        cmap : str, optional
+            Colormap name (default ``"magma"``).
+        alpha : float, optional
+            Opacity in [0, 1] (default ``0.5``).
+        clim : (vmin, vmax) or None, optional
+            Display range; ``None`` (default) auto-scales to the data min/max.
+        visible : bool, optional
+            Whether the layer is drawn (default ``True``).
+
+        Returns
+        -------
+        Layer
+            A handle with ``.set(...)`` / ``.set_data(frame)`` / ``.remove()``.
+
+        Raises
+        ------
+        RuntimeError
+            If the plot is in TILE mode — layers are incompatible with tiling
+            (a layer would have to be tiled independently against the same view).
+            Load the plot with ``tile=False`` to use layers.
+        ValueError
+            If ``data`` is not 2-D or does not match the base image size.
+        """
+        if self._tile_on:
+            raise RuntimeError(
+                "add_layer is not supported in tile mode — a tiled plot streams "
+                "detail tiles of a single image and cannot composite independent "
+                "layers. Create the plot with tile=False to use layers.")
+        from anyplotlib.plot2d._layer import Layer, _next_layer_id
+        alpha = float(alpha)
+        if not (0.0 <= alpha <= 1.0):
+            raise ValueError(f"alpha must be in [0, 1], got {alpha!r}")
+        layer_id = _next_layer_id()
+        token, h, w, vmin, vmax = self._encode_layer_pixels(layer_id, data, clim)
+        entry = {
+            "id":       layer_id,
+            "cmap":     cmap,
+            "clim_min": vmin,
+            "clim_max": vmax,
+            "alpha":    alpha,
+            "visible":  bool(visible),
+            "width":    w,
+            "height":   h,
+            # The layer's colormap LUT (256 [r,g,b]); the JS composites via this.
+            "colormap_data": _build_colormap_lut(cmap),
+            # Mirror of the pixel token so the JS reads bytes for this layer even
+            # when it only sees the light `layers` list (the heavy bytes ride the
+            # geom key layer_<id>_b64, spliced into the panel state by the binary /
+            # geom machinery under the same key).
+            "image_b64": token,
+        }
+        # Also stash the pixels as a TOP-LEVEL geom key so Figure._push splits it
+        # onto the geom channel (dedup-cached) and the binary route ships it.
+        self._state[self._layer_pixel_key(layer_id)] = token
+        self._state.setdefault("layers", []).append(entry)
+        layer = Layer(self, layer_id)
+        self._layers.append(layer)
+        self._push()
+        return layer
+
+    def _layer_entry(self, layer_id: str) -> dict:
+        for lyr in self._state.get("layers", []):
+            if lyr.get("id") == layer_id:
+                return lyr
+        raise ValueError(f"no layer {layer_id!r} on this plot")
+
+    def _layer_set(self, layer_id: str, *, cmap=None, alpha=None, clim=None,
+                   visible=None) -> None:
+        entry = self._layer_entry(layer_id)
+        if cmap is not None:
+            entry["cmap"] = cmap
+            entry["colormap_data"] = _build_colormap_lut(cmap)
+        if alpha is not None:
+            a = float(alpha)
+            if not (0.0 <= a <= 1.0):
+                raise ValueError(f"alpha must be in [0, 1], got {alpha!r}")
+            entry["alpha"] = a
+        if visible is not None:
+            entry["visible"] = bool(visible)
+        if clim is not None:
+            # A clim change must RE-QUANTISE the cached frame (like set_clim on the
+            # base), because the 8-bit codes are quantised over the old range and
+            # can't be re-windowed past it in the LUT alone. We keep the raw frame
+            # in _layer_raw for exactly this.
+            raw = self._layer_raw.get(layer_id)
+            lo, hi = self._norm_clim(clim)
+            if raw is not None:
+                parsed = (lo, hi) if lo is not None else None
+                img_u8, vmin, vmax = _normalize_image(raw, clim=parsed)
+                pk = self._layer_pixel_key(layer_id)
+                token = self._encode_pixels(pk, np.ascontiguousarray(img_u8))
+                entry["clim_min"], entry["clim_max"] = vmin, vmax
+                entry["image_b64"] = token
+                self._state[pk] = token
+            else:
+                # No cached frame (unusual) — just record the requested endpoints.
+                entry["clim_min"], entry["clim_max"] = lo, hi
+        self._push()
+
+    def _layer_set_data(self, layer_id: str, frame) -> None:
+        entry = self._layer_entry(layer_id)
+        # Re-quantise over the layer's CURRENT clim so a live frame keeps its
+        # contrast window (None endpoints → auto per-frame, matching the base).
+        cur_clim = (entry.get("clim_min"), entry.get("clim_max"))
+        clim = cur_clim if cur_clim[0] is not None else None
+        token, h, w, vmin, vmax = self._encode_layer_pixels(layer_id, frame, clim)
+        entry["width"], entry["height"] = w, h
+        entry["clim_min"], entry["clim_max"] = vmin, vmax
+        entry["image_b64"] = token
+        self._state[self._layer_pixel_key(layer_id)] = token
+        self._push()
+
+    def remove_layer(self, layer) -> None:
+        """Remove *layer* (a :class:`Layer` handle or its id string)."""
+        from anyplotlib.plot2d._layer import Layer
+        layer_id = layer.id if isinstance(layer, Layer) else str(layer)
+        self._state["layers"] = [
+            l for l in self._state.get("layers", []) if l.get("id") != layer_id]
+        pk = self._layer_pixel_key(layer_id)
+        self._state.pop(pk, None)
+        self._layer_raw.pop(layer_id, None)
+        # Drop the raw-pixel side-table entry so a removed layer's bytes aren't
+        # retained (and can't be re-shipped).
+        fig = getattr(self, "_fig", None)
+        raw_tbl = getattr(fig, "_raw_pixels", None)
+        if raw_tbl is not None:
+            raw_tbl.pop((self._id, pk), None)
+        for h in list(self._layers):
+            if h.id == layer_id:
+                h._removed = True
+                self._layers.remove(h)
         self._push()
 
     # ------------------------------------------------------------------
