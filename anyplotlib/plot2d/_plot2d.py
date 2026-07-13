@@ -26,7 +26,7 @@ from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
 )
 from anyplotlib._utils import _normalize_image, _build_colormap_lut, _to_rgba_u8
 
@@ -1543,7 +1543,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
         Dispatches to the dedicated ``add_<kind>_widget`` method.
         Supported kinds: ``"circle"``, ``"rectangle"``, ``"annular"``,
-        ``"polygon"``, ``"crosshair"``, ``"label"``.
+        ``"polygon"``, ``"crosshair"``, ``"label"``, ``"arrow"``.
+
+        Every kind also accepts ``show_handles`` (default ``True``) to toggle
+        the grab-handle dots without changing hit-testing / draggability.
         """
         dispatch = {
             "circle":    self.add_circle_widget,
@@ -1552,6 +1555,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "polygon":   self.add_polygon_widget,
             "crosshair": self.add_crosshair_widget,
             "label":     self.add_label_widget,
+            "arrow":     self.add_arrow_widget,
         }
         key = kind.lower()
         if key not in dispatch:
@@ -1559,14 +1563,15 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         return dispatch[key](color=color, **kwargs)
 
     def add_circle_widget(self, cx: float | None = None, cy: float | None = None,
-                          r: float | None = None, color: str = "#00e5ff") -> CircleWidget:
+                          r: float | None = None, color: str = "#00e5ff",
+                          show_handles: bool = True) -> CircleWidget:
         """Add a draggable circle overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CircleWidget(lambda: None,
                               cx=float(cx) if cx is not None else iw / 2,
                               cy=float(cy) if cy is not None else ih / 2,
                               r=float(r) if r is not None else iw * 0.1,
-                              color=color)
+                              color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1574,7 +1579,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_rectangle_widget(self, x: float | None = None, y: float | None = None,
                               w: float | None = None, h: float | None = None,
-                              color: str = "#00e5ff") -> RectangleWidget:
+                              color: str = "#00e5ff",
+                              show_handles: bool = True) -> RectangleWidget:
         """Add a draggable rectangle overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = RectangleWidget(lambda: None,
@@ -1582,7 +1588,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                  y=float(y) if y is not None else ih * 0.25,
                                  w=float(w) if w is not None else iw * 0.5,
                                  h=float(h) if h is not None else ih * 0.5,
-                                 color=color)
+                                 color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1590,7 +1596,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_annular_widget(self, cx: float | None = None, cy: float | None = None,
                            r_outer: float | None = None, r_inner: float | None = None,
-                           color: str = "#00e5ff") -> AnnularWidget:
+                           color: str = "#00e5ff",
+                           show_handles: bool = True) -> AnnularWidget:
         """Add a draggable annular (ring) overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = AnnularWidget(lambda: None,
@@ -1598,32 +1605,35 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                cy=float(cy) if cy is not None else ih / 2,
                                r_outer=float(r_outer) if r_outer is not None else iw * 0.2,
                                r_inner=float(r_inner) if r_inner is not None else iw * 0.1,
-                               color=color)
+                               color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
-    def add_polygon_widget(self, vertices=None, color: str = "#00e5ff") -> PolygonWidget:
+    def add_polygon_widget(self, vertices=None, color: str = "#00e5ff",
+                           show_handles: bool = True) -> PolygonWidget:
         """Add a draggable polygon overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         if vertices is None:
             vertices = [[iw * .25, ih * .25], [iw * .75, ih * .25],
                         [iw * .75, ih * .75], [iw * .25, ih * .75]]
-        widget = PolygonWidget(lambda: None, vertices=vertices, color=color)
+        widget = PolygonWidget(lambda: None, vertices=vertices, color=color,
+                               show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
     def add_crosshair_widget(self, cx: float | None = None, cy: float | None = None,
-                              color: str = "#00e5ff") -> CrosshairWidget:
+                              color: str = "#00e5ff",
+                              show_handles: bool = True) -> CrosshairWidget:
         """Add a draggable crosshair overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CrosshairWidget(lambda: None,
                                  cx=float(cx) if cx is not None else iw / 2,
                                  cy=float(cy) if cy is not None else ih / 2,
-                                 color=color)
+                                 color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1631,13 +1641,36 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_label_widget(self, x: float | None = None, y: float | None = None,
                           text: str = "Label", fontsize: int = 14,
-                          color: str = "#00e5ff") -> LabelWidget:
+                          color: str = "#00e5ff",
+                          show_handles: bool = True) -> LabelWidget:
         """Add a draggable text label overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = LabelWidget(lambda: None,
                              x=float(x) if x is not None else iw * 0.1,
                              y=float(y) if y is not None else ih * 0.1,
-                             text=str(text), fontsize=int(fontsize), color=color)
+                             text=str(text), fontsize=int(fontsize), color=color,
+                             show_handles=show_handles)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_arrow_widget(self, x: float | None = None, y: float | None = None,
+                         u: float | None = None, v: float | None = None,
+                         color: str = "#00e5ff", linewidth: float = 2,
+                         show_handles: bool = True) -> ArrowWidget:
+        """Add a draggable arrow overlay (tail at ``(x, y)``, head at
+        ``(x + u, y + v)``). Defaults place the tail at 25 %, 25 % of the image
+        with a vector of 15 % of the image size, mirroring
+        :meth:`add_label_widget`'s defaulting."""
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = ArrowWidget(lambda: None,
+                             x=float(x) if x is not None else iw * 0.25,
+                             y=float(y) if y is not None else ih * 0.25,
+                             u=float(u) if u is not None else iw * 0.15,
+                             v=float(v) if v is not None else ih * 0.15,
+                             color=color, linewidth=linewidth,
+                             show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()

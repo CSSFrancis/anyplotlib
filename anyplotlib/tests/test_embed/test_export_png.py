@@ -223,6 +223,82 @@ class TestExportBasic:
 
 
 # ---------------------------------------------------------------------------
+# 1c. Figure-level annotation layer export (always composited; edit chrome is
+#     never exported).
+# ---------------------------------------------------------------------------
+
+class TestExportFigureMarkers:
+    RED = (255, 0, 0)
+
+    def test_figure_marker_always_exported(self, mount_page):
+        """A figure-level marker is CONTENT — it must appear in the default
+        export (no includeWidgets flag needed)."""
+        fig, ax = apl.subplots(1, 1, figsize=(360, 300))
+        ax.imshow(np.zeros((32, 32), dtype=np.float32),
+                  cmap="gray", vmin=0.0, vmax=1.0)
+        fig.set_figure_markers([
+            {"kind": "rect", "x": 0.5, "y": 0.5, "w": 0.4, "h": 0.4,
+             "color": "#ff0000", "linewidth": 4},
+        ])
+        page = mount_page(fig)
+        page.evaluate(
+            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+        arr = _decode_data_url(_export_via_handle(page, {})["dataUrl"])
+        assert _closest_color(arr, self.RED) > 20, (
+            "figure-level red rect not present in the default export"
+        )
+
+    def test_edit_chrome_handles_not_exported(self, mount_page):
+        """With edit_chrome on the on-screen marker draws grab-handle dots, but
+        the export must be identical to the non-edit export (handles suppressed;
+        hover/selection outlines are DOM styles, never on a canvas)."""
+        def _build(edit):
+            fig, ax = apl.subplots(1, 1, figsize=(360, 300))
+            ax.imshow(np.zeros((32, 32), dtype=np.float32),
+                      cmap="gray", vmin=0.0, vmax=1.0)
+            fig.set_figure_markers([
+                {"kind": "circle", "x": 0.5, "y": 0.5, "r": 0.25,
+                 "color": "#ff0000", "linewidth": 3, "id": "c1"},
+            ])
+            fig.edit_chrome = edit
+            fig.selected_panel = list(fig._plots_map)[0] if edit else ""
+            return fig
+
+        page_off = mount_page(_build(False))
+        page_on = mount_page(_build(True))
+        for pg in (page_off, page_on):
+            pg.evaluate(
+                "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+            )
+        arr_off = _decode_data_url(_export_via_handle(page_off, {})["dataUrl"])
+        arr_on = _decode_data_url(_export_via_handle(page_on, {})["dataUrl"])
+
+        assert arr_off.shape == arr_on.shape
+        # Handle dots are white with a coloured ring — if they were exported the
+        # red count / white-dot pixels would differ.  Require pixel-identical.
+        diff = np.abs(arr_off.astype(np.int32) - arr_on.astype(np.int32)).sum()
+        assert diff == 0, (
+            "edit-mode export differs from non-edit — handles/outlines leaked "
+            f"into the exported image (diff={diff})"
+        )
+
+    def test_figMarkerCanvas_exposed_on_handle(self, mount_page):
+        """The render API exposes figMarkerCanvas + _drawFigureMarkers (SpyDE
+        and tests reach the marker layer through these)."""
+        fig, ax = apl.subplots(1, 1, figsize=(200, 160))
+        ax.imshow(np.zeros((8, 8), dtype=np.float32))
+        page = mount_page(fig)
+        has = page.evaluate(
+            """() => ({
+                canvas: !!window._handle.api.figMarkerCanvas,
+                draw: typeof window._handle.api._drawFigureMarkers === 'function',
+            })"""
+        )
+        assert has["canvas"] and has["draw"]
+
+
+# ---------------------------------------------------------------------------
 # 1b. Inset title bar export (exportPNG must draw the DOM title text)
 # ---------------------------------------------------------------------------
 

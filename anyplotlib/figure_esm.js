@@ -532,6 +532,19 @@ function render({ model, el }) {
   outerDiv.appendChild(calloutCanvas);
   const calloutCtx = calloutCanvas.getContext('2d');
 
+  // ── Figure-level annotation overlay canvas ────────────────────────────────
+  // Content annotations (text / circle / rect / arrow) positioned in FIGURE
+  // FRACTIONS, drawn OVER all panels + insets + callouts.  These are CONTENT
+  // (always exported), unlike the hover/selection outlines (DOM chrome, never
+  // exported).  pointer-events default OFF so normal panel interaction is
+  // untouched; toggled ON only while edit_chrome is active so the markers can
+  // be dragged.  Sits above callouts (z 30) but below the resize handle (z 100).
+  const figMarkerCanvas = document.createElement('canvas');
+  figMarkerCanvas.style.cssText =
+    'position:absolute;top:8px;left:8px;pointer-events:none;z-index:35;';
+  outerDiv.appendChild(figMarkerCanvas);
+  const figMarkerCtx = figMarkerCanvas.getContext('2d');
+
   // Inset layout constants
   const INSET_TITLE_H = 22;   // px — title bar height
   const INSET_GAP     = 8;    // px — gap between stacked insets in same corner
@@ -801,6 +814,10 @@ function render({ model, el }) {
     } else {
       _drawCallouts();  // clears any stale indication canvas
     }
+    // Figure-level annotation layer tracks the figure size (fractions → px) and
+    // re-binds per-panel edit-chrome hover handlers for any newly-created cells.
+    _drawFigureMarkers();
+    _applyPanelChrome();
   }
 
   // ── _buildCanvasStack ─────────────────────────────────────────────────────
@@ -1475,6 +1492,257 @@ function render({ model, el }) {
       calloutCtx.restore();
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Figure-level annotation layer + edit chrome (Report Builder edit mode)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const EDIT_ACCENT = '#4b78d2';   // outline / handle accent for edit chrome
+  let _figMarkers = [];            // parsed figure_markers_json (fractions)
+  let _figMarkerDrag = null;       // active drag: {id, mode, snap, startMX/MY}
+
+  function _editOn() { return !!model.get('edit_chrome'); }
+
+  function _loadFigMarkers() {
+    try { _figMarkers = JSON.parse(model.get('figure_markers_json') || '[]') || []; }
+    catch (_) { _figMarkers = []; }
+    if (!Array.isArray(_figMarkers)) _figMarkers = [];
+  }
+
+  // Current figure content size in CSS px (grid content, no padding).
+  function _figSizePx() {
+    const fw = Number(model.get('fig_width'))  || 640;
+    const fh = Number(model.get('fig_height')) || 480;
+    return [fw, fh];
+  }
+
+  // Fraction (0..1) → figure-content CSS px.
+  function _fracToFigPx(fx, fy, fw, fh) { return [fx * fw, fy * fh]; }
+
+  // ── _drawFigureMarkers ────────────────────────────────────────────────────
+  // Draw every figure-level annotation onto figMarkerCanvas.  Fraction→px uses
+  // the figure content size; circle radius scales with min(fw,fh) so it stays
+  // round under a non-square figure.  Handles are drawn only in edit mode.
+  function _drawFigureMarkers(sizeOverride, forceNoHandles) {
+    const [fw, fh] = sizeOverride || _figSizePx();
+    if (figMarkerCanvas.width !== Math.round(fw * dpr) ||
+        figMarkerCanvas.height !== Math.round(fh * dpr)) {
+      figMarkerCanvas.style.width  = fw + 'px';
+      figMarkerCanvas.style.height = fh + 'px';
+      figMarkerCanvas.width  = Math.round(fw * dpr);
+      figMarkerCanvas.height = Math.round(fh * dpr);
+    }
+    figMarkerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    figMarkerCtx.clearRect(0, 0, fw, fh);
+    if (!_figMarkers.length) return;
+    const rmin = Math.min(fw, fh);
+    const edit = _editOn() && !forceNoHandles;
+
+    for (const m of _figMarkers) {
+      const color = m.color || EDIT_ACCENT;
+      const lw = m.linewidth != null ? m.linewidth : 2;
+      figMarkerCtx.save();
+      figMarkerCtx.strokeStyle = color;
+      figMarkerCtx.fillStyle   = color;
+      figMarkerCtx.lineWidth   = lw;
+      if (m.kind === 'text') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        const fs = m.fontsize || 16;
+        figMarkerCtx.font = `${fs}px sans-serif`;
+        figMarkerCtx.textAlign = 'left';
+        figMarkerCtx.textBaseline = 'top';
+        figMarkerCtx.fillText(m.text || '', px, py);
+        if (edit) _drawHandle2d(figMarkerCtx, px, py, color);
+      } else if (m.kind === 'circle') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        const r = (m.r || 0) * rmin;
+        figMarkerCtx.beginPath(); figMarkerCtx.arc(px, py, r, 0, Math.PI*2); figMarkerCtx.stroke();
+        if (edit) _drawHandle2d(figMarkerCtx, px, py, color);
+      } else if (m.kind === 'rect') {
+        // x,y = CENTRE; w,h = fractions of figure size.
+        const [cx, cy] = _fracToFigPx(m.x, m.y, fw, fh);
+        const rw = (m.w || 0) * fw, rh = (m.h || 0) * fh;
+        figMarkerCtx.strokeRect(cx - rw/2, cy - rh/2, rw, rh);
+        if (edit) _drawHandle2d(figMarkerCtx, cx, cy, color);
+      } else if (m.kind === 'arrow') {
+        const [tx, ty] = _fracToFigPx(m.x, m.y, fw, fh);
+        const [hx, hy] = _fracToFigPx(m.x + (m.u||0), m.y + (m.v||0), fw, fh);
+        const ang = Math.atan2(hy-ty, hx-tx), HL = 12;
+        figMarkerCtx.beginPath(); figMarkerCtx.moveTo(tx, ty); figMarkerCtx.lineTo(hx, hy); figMarkerCtx.stroke();
+        figMarkerCtx.beginPath(); figMarkerCtx.moveTo(hx, hy);
+        figMarkerCtx.lineTo(hx-HL*Math.cos(ang-Math.PI/6), hy-HL*Math.sin(ang-Math.PI/6));
+        figMarkerCtx.lineTo(hx-HL*Math.cos(ang+Math.PI/6), hy-HL*Math.sin(ang+Math.PI/6));
+        figMarkerCtx.closePath(); figMarkerCtx.fill();
+        if (edit) { _drawHandle2d(figMarkerCtx, tx, ty, color); _drawHandle2d(figMarkerCtx, hx, hy, color); }
+      }
+      figMarkerCtx.restore();
+    }
+  }
+
+  // Mouse (figMarkerCanvas CSS px) for a pointer event.
+  function _figMarkerMouse(e) {
+    const r = figMarkerCanvas.getBoundingClientRect();
+    const sx = r.width  ? figMarkerCanvas.width  / dpr / r.width  : 1;
+    const sy = r.height ? figMarkerCanvas.height / dpr / r.height : 1;
+    return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
+  }
+
+  // Hit-test the figure markers (topmost first). Returns {id, mode} or null.
+  function _figMarkerHitTest(mx, my) {
+    const [fw, fh] = _figSizePx();
+    const rmin = Math.min(fw, fh);
+    const HR = 9;
+    for (let i = _figMarkers.length - 1; i >= 0; i--) {
+      const m = _figMarkers[i];
+      if (m.kind === 'arrow') {
+        const [tx, ty] = _fracToFigPx(m.x, m.y, fw, fh);
+        const [hx, hy] = _fracToFigPx(m.x + (m.u||0), m.y + (m.v||0), fw, fh);
+        if (Math.hypot(mx-hx, my-hy) <= HR) return { id: m.id, mode: 'resize_head' };
+        if (Math.hypot(mx-tx, my-ty) <= HR) return { id: m.id, mode: 'move' };
+        if (_distToSegment2d(mx, my, tx, ty, hx, hy) <= HR) return { id: m.id, mode: 'move' };
+      } else if (m.kind === 'circle') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        const r = (m.r || 0) * rmin;
+        if (Math.abs(Math.hypot(mx-px, my-py) - r) <= Math.max(HR, r*0.18) ||
+            Math.hypot(mx-px, my-py) <= HR) return { id: m.id, mode: 'move' };
+      } else if (m.kind === 'rect') {
+        const [cx, cy] = _fracToFigPx(m.x, m.y, fw, fh);
+        const rw = (m.w||0) * fw, rh = (m.h||0) * fh;
+        if (mx >= cx-rw/2-HR && mx <= cx+rw/2+HR && my >= cy-rh/2-HR && my <= cy+rh/2+HR)
+          return { id: m.id, mode: 'move' };
+      } else if (m.kind === 'text') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        // Approximate text box: measure width, one line tall.
+        figMarkerCtx.save();
+        figMarkerCtx.font = `${m.fontsize||16}px sans-serif`;
+        const tw = figMarkerCtx.measureText(m.text || '').width;
+        figMarkerCtx.restore();
+        const th = m.fontsize || 16;
+        if (mx >= px-HR && mx <= px+tw+HR && my >= py-HR && my <= py+th+HR)
+          return { id: m.id, mode: 'move' };
+      }
+    }
+    return null;
+  }
+
+  function _figMarkerById(id) { return _figMarkers.find(m => m.id === id) || null; }
+
+  // Persist the current _figMarkers to the model (no event emission).
+  function _writeFigMarkers() {
+    model.set('figure_markers_json', JSON.stringify(_figMarkers));
+    model.save_changes();
+  }
+
+  // Apply a drag delta (in figure fractions) to the dragged marker.
+  function _doFigMarkerDrag(e) {
+    const d = _figMarkerDrag; if (!d) return;
+    const [fw, fh] = _figSizePx();
+    const [mx, my] = _figMarkerMouse(e);
+    const m = _figMarkerById(d.id); if (!m) return;
+    const s = d.snap;
+    const dfx = (mx - d.startMX) / fw, dfy = (my - d.startMY) / fh;
+    if (d.mode === 'move') {
+      m.x = s.x + dfx; m.y = s.y + dfy;
+    } else if (d.mode === 'resize_head' && m.kind === 'arrow') {
+      m.u = (mx / fw) - m.x; m.v = (my / fh) - m.y;
+    }
+    _drawFigureMarkers();
+    e.preventDefault();
+  }
+
+  // ── Edit chrome: per-panel hover + selection outlines ─────────────────────
+  // Purely JS-local DOM styling; never exported.  Hover uses a dashed accent
+  // outline via a data-attr-driven inline style; selection a solid one.
+  function _applyPanelChrome() {
+    const edit = _editOn();
+    const sel = model.get('selected_panel') || '';
+    for (const p of panels.values()) {
+      const cell = p.cell; if (!cell) continue;
+      // Selection outline (persistent, solid) wins over hover.
+      if (edit && p.id === sel) {
+        cell.style.outline = `2px solid ${EDIT_ACCENT}`;
+        cell.style.outlineOffset = '-1px';
+      } else if (!p._editHover || !edit) {
+        cell.style.outline = '';
+        cell.style.outlineOffset = '';
+      }
+      // (Re)bind hover handlers exactly once per cell.
+      if (!p._editHoverBound) {
+        p._editHoverBound = true;
+        cell.addEventListener('mouseenter', () => {
+          p._editHover = true;
+          if (_editOn() && p.id !== (model.get('selected_panel') || '')) {
+            cell.style.outline = `2px dashed ${EDIT_ACCENT}`;
+            cell.style.outlineOffset = '-1px';
+          }
+        });
+        cell.addEventListener('mouseleave', () => {
+          p._editHover = false;
+          if (p.id !== (model.get('selected_panel') || '')) {
+            cell.style.outline = '';
+            cell.style.outlineOffset = '';
+          }
+        });
+      }
+    }
+  }
+
+  // Edit mode redraws the marker layer (so handles appear/disappear) and the
+  // panel chrome.  figMarkerCanvas ALWAYS stays pointer-events:none — a
+  // full-figure canvas set to `auto` would sit above every panel's overlay
+  // (z 35 > z 5) and swallow all panel interaction.  Instead the outerDiv
+  // capture handler below hit-tests markers itself, so a marker is grabbable
+  // where it lies and panels stay fully interactive everywhere else.
+  function _applyEditMode() {
+    _applyPanelChrome();
+    _drawFigureMarkers();
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    if (!_figMarkerDrag) return;
+    _doFigMarkerDrag(e);
+  });
+  document.addEventListener('mouseup', (e) => {
+    if (!_figMarkerDrag) return;
+    const d = _figMarkerDrag; _figMarkerDrag = null;
+    const m = _figMarkerById(d.id);
+    // Persist + emit a figure_marker pointer_up carrying the updated FRACTIONS.
+    _writeFigMarkers();
+    const upd = { figure_marker: true, marker_id: d.id };
+    if (m) { for (const k of ['x','y','u','v','r','w','h']) if (m[k] !== undefined) upd[k] = m[k]; }
+    _emitEvent('', 'pointer_up', null, { ...upd, ..._pointerFields(e), button: e.button });
+    e.preventDefault();
+  });
+
+  // ── Edit-mode mousedown capture on outerDiv ───────────────────────────────
+  // Runs BEFORE any panel handler (capture phase).  Two jobs, both edit-only:
+  //   1. If a figure marker is under the cursor → start a marker drag and
+  //      STOP propagation so the panel underneath doesn't also react.
+  //   2. Else, if the target is NOT inside any panel cell / inset / chrome →
+  //      emit a figure-background pointer_down.
+  // A plain click inside a panel does neither (its own path handles it).
+  outerDiv.addEventListener('mousedown', (e) => {
+    if (!_editOn() || e.button !== 0) return;
+    const [mx, my] = _figMarkerMouse(e);
+
+    // (1) Marker grab — highest priority, even over a panel underneath.
+    const hit = _figMarkerHitTest(mx, my);
+    if (hit) {
+      const m = _figMarkerById(hit.id);
+      _figMarkerDrag = { id: hit.id, mode: hit.mode, snap: {...m},
+                         startMX: mx, startMY: my };
+      e.preventDefault(); e.stopPropagation();
+      return;
+    }
+
+    // (2) Background detection.
+    const t = e.target;
+    for (const p of panels.values()) {
+      if (p.cell && p.cell.contains(t)) return;   // inside a panel / inset
+    }
+    if (t === resizeHandle || (helpBtn && helpBtn.contains(t)) ||
+        (helpCard && helpCard.contains(t))) return;
+    _emitEvent('', 'pointer_down', null, { figure_background: true, ..._pointerFields(e), button: e.button });
+  }, true);
 
   function _resizePanelDOM(id, pw, ph) {
     const p = panels.get(id);
@@ -2419,28 +2687,35 @@ function render({ model, el }) {
     ovCtx.beginPath(); ovCtx.rect(vr.x, vr.y, vr.w, vr.h); ovCtx.clip();
     for(const w of widgets){
       if(w.visible === false) continue;
+      // Handle dots are drawn unless the widget opts out (show_handles:false).
+      // The body + hit-testing / drag are unaffected — this is purely cosmetic.
+      const _handles = w.show_handles !== false;
       ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
       if(w.type==='circle'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath(); ovCtx.arc(ccx,ccy,w.r*scale,0,Math.PI*2); ovCtx.stroke();
-        _drawHandle2d(ovCtx,ccx+w.r*scale,ccy,w.color);
+        if(_handles) _drawHandle2d(ovCtx,ccx+w.r*scale,ccy,w.color);
       } else if(w.type==='annular'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath();ovCtx.arc(ccx,ccy,w.r_outer*scale,0,Math.PI*2);ovCtx.stroke();
         ovCtx.beginPath();ovCtx.arc(ccx,ccy,w.r_inner*scale,0,Math.PI*2);ovCtx.stroke();
-        _drawHandle2d(ovCtx,ccx+w.r_outer*scale,ccy,w.color);
-        _drawHandle2d(ovCtx,ccx+w.r_inner*scale,ccy-w.r_inner*scale*0.3,w.color);
+        if(_handles){
+          _drawHandle2d(ovCtx,ccx+w.r_outer*scale,ccy,w.color);
+          _drawHandle2d(ovCtx,ccx+w.r_inner*scale,ccy-w.r_inner*scale*0.3,w.color);
+        }
       } else if(w.type==='rectangle'){
         const [rx,ry]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
         const rw=w.w*scale, rh=w.h*scale;
         ovCtx.strokeRect(rx,ry,rw,rh);
-        _drawHandle2d(ovCtx,rx,ry,w.color);_drawHandle2d(ovCtx,rx+rw,ry,w.color);
-        _drawHandle2d(ovCtx,rx,ry+rh,w.color);_drawHandle2d(ovCtx,rx+rw,ry+rh,w.color);
+        if(_handles){
+          _drawHandle2d(ovCtx,rx,ry,w.color);_drawHandle2d(ovCtx,rx+rw,ry,w.color);
+          _drawHandle2d(ovCtx,rx,ry+rh,w.color);_drawHandle2d(ovCtx,rx+rw,ry+rh,w.color);
+        }
       } else if(w.type==='crosshair'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath();ovCtx.moveTo(0,ccy);ovCtx.lineTo(imgW,ccy);ovCtx.stroke();
         ovCtx.beginPath();ovCtx.moveTo(ccx,0);ovCtx.lineTo(ccx,imgH);ovCtx.stroke();
-        ovCtx.beginPath();ovCtx.arc(ccx,ccy,4,0,Math.PI*2);ovCtx.fillStyle=w.color||'#00e5ff';ovCtx.fill();
+        if(_handles){ovCtx.beginPath();ovCtx.arc(ccx,ccy,4,0,Math.PI*2);ovCtx.fillStyle=w.color||'#00e5ff';ovCtx.fill();}
       } else if(w.type==='polygon'){
         const verts=w.vertices||[];
         if(verts.length>=2){
@@ -2449,13 +2724,27 @@ function render({ model, el }) {
           ovCtx.moveTo(px0,py0);
           for(let k=1;k<verts.length;k++){const[px,py]=_imgToCanvas2d(verts[k][0],verts[k][1],st,imgW,imgH);ovCtx.lineTo(px,py);}
           ovCtx.closePath();ovCtx.stroke();
-          for(const v of verts){const[px,py]=_imgToCanvas2d(v[0],v[1],st,imgW,imgH);_drawHandle2d(ovCtx,px,py,w.color);}
+          if(_handles) for(const v of verts){const[px,py]=_imgToCanvas2d(v[0],v[1],st,imgW,imgH);_drawHandle2d(ovCtx,px,py,w.color);}
         }
       } else if(w.type==='label'){
         const [lx,ly]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
         ovCtx.font=`${w.fontsize||14}px sans-serif`;ovCtx.fillStyle=w.color||'#00e5ff';
         ovCtx.textAlign='left';ovCtx.textBaseline='top';ovCtx.fillText(w.text||'',lx,ly);
-        _drawHandle2d(ovCtx,lx,ly,w.color);
+        if(_handles) _drawHandle2d(ovCtx,lx,ly,w.color);
+      } else if(w.type==='arrow'){
+        // Shaft from tail (x,y) to head (x+u,y+v), then a filled arrowhead —
+        // reusing the head math from the static 'arrows' marker branch.
+        const [tx,ty]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
+        const [hx,hy]=_imgToCanvas2d(w.x+w.u,w.y+w.v,st,imgW,imgH);
+        ovCtx.lineWidth=(w.linewidth!=null?w.linewidth:2);
+        ovCtx.fillStyle=w.color||'#00e5ff';
+        const ang=Math.atan2(hy-ty,hx-tx), HL=10;
+        ovCtx.beginPath();ovCtx.moveTo(tx,ty);ovCtx.lineTo(hx,hy);ovCtx.stroke();
+        ovCtx.beginPath();ovCtx.moveTo(hx,hy);
+        ovCtx.lineTo(hx-HL*Math.cos(ang-Math.PI/6),hy-HL*Math.sin(ang-Math.PI/6));
+        ovCtx.lineTo(hx-HL*Math.cos(ang+Math.PI/6),hy-HL*Math.sin(ang+Math.PI/6));
+        ovCtx.closePath();ovCtx.fill();
+        if(_handles){_drawHandle2d(ovCtx,tx,ty,w.color);_drawHandle2d(ovCtx,hx,hy,w.color);}
       }
       ovCtx.restore();
     }
@@ -6177,9 +6466,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const [lx, ly] = _imgToCanvas2d(w.x, w.y, st, imgW, imgH);
         if (Math.hypot(mx-lx, my-ly) <= HR + 6)
           return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'arrow') {
+        const [tx, ty] = _imgToCanvas2d(w.x, w.y, st, imgW, imgH);
+        const [hx, hy] = _imgToCanvas2d(w.x + w.u, w.y + w.v, st, imgW, imgH);
+        // head handle → re-aim the arrow
+        if (Math.hypot(mx-hx, my-hy) <= HR)
+          return { idx:i, mode:'resize_head', snapW:{...w}, startMX:mx, startMY:my };
+        // tail handle → move whole arrow
+        if (Math.hypot(mx-tx, my-ty) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+        // near the shaft → move whole arrow
+        if (_distToSegment2d(mx, my, tx, ty, hx, hy) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
       }
     }
     return null;
+  }
+
+  // Perpendicular distance from point (px,py) to the segment (ax,ay)-(bx,by).
+  function _distToSegment2d(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx*dx + dy*dy;
+    if (len2 === 0) return Math.hypot(px-ax, py-ay);
+    let t = ((px-ax)*dx + (py-ay)*dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (ax + t*dx), py - (ay + t*dy));
   }
 
   function _pointInPolygon2d(mx, my, verts, st, imgW, imgH) {
@@ -6258,6 +6570,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
     } else if (w.type === 'label') {
       w.x = s.x + dix; w.y = s.y + diy;
+    } else if (w.type === 'arrow') {
+      if (d.mode === 'move') {
+        w.x = s.x + dix; w.y = s.y + diy;
+      } else if (d.mode === 'resize_head') {
+        // head follows the cursor → u,v = imgMouse − tail
+        w.u = imgMX - s.x; w.v = imgMY - s.y;
+      }
     }
 
     drawOverlay2d(p);
@@ -6543,6 +6862,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       _resizePanelDOM(p.id, p.pw, p.ph);
       _redrawPanel(p);
     }
+    _drawFigureMarkers([nfw, nfh]);
   }
 
   document.addEventListener('mousemove', (e) => {
@@ -6559,6 +6879,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _rafPending = false;
         if (!isResizing) return;
         _applyFigResizeDOM(_pendingNfw, _pendingNfh);
+        // Track the figure-marker overlay to the live drag size.
+        _drawFigureMarkers([_pendingNfw, _pendingNfh]);
       });
     }
     e.preventDefault();
@@ -7391,6 +7713,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     try { _drawCallouts(); } catch (_) {}
     _drawEl(calloutCanvas);
 
+    // Figure-level annotation layer is CONTENT — always composited (handles
+    // suppressed for export). Hover/selection outlines are DOM styles and are
+    // never on a canvas, so they are inherently excluded.
+    try { _drawFigureMarkers(null, true); } catch (_) {}
+    _drawEl(figMarkerCanvas);
+    // Restore the on-screen draw (handles visible again if in edit mode).
+    try { _drawFigureMarkers(); } catch (_) {}
+
     let dataUrl;
     try {
       dataUrl = out.toDataURL('image/png');
@@ -7488,8 +7818,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     } catch(_) {}
   });
 
+  // ── edit-chrome / figure-marker listeners ─────────────────────────────────
+  model.on('change:edit_chrome',    () => { _applyEditMode(); });
+  model.on('change:selected_panel', () => { _applyPanelChrome(); });
+  model.on('change:figure_markers_json', () => { _loadFigMarkers(); _drawFigureMarkers(); });
+
   // ── initial render ────────────────────────────────────────────────────────
+  _loadFigMarkers();
   applyLayout();
+  _applyEditMode();
 
   // Internal API surface returned to mount().  anywidget ignores render()'s
   // return value; mount() captures it so its handle can reach the closure's
@@ -7500,6 +7837,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     exportPNG,
     calloutCanvas,      // figure-level region-indication overlay
     _drawCallouts,      // force a callout redraw (tests / external layout sync)
+    figMarkerCanvas,    // figure-level annotation overlay (content, exported)
+    _drawFigureMarkers, // force a figure-marker redraw (tests / external sync)
     _gpuDisposeImagePanel,
     _gpuDisposePanel,
   };
