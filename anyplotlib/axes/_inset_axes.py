@@ -154,11 +154,12 @@ class InsetAxes(Axes):
             panel in the SAME figure as this inset (typically the panel the
             inset overlays) — a plot registered on a different ``Figure``
             raises ``ValueError``.
-        region : (x, y, w, h)
-            The source rectangle in the parent image's data coordinates:
-            top-left ``(x, y)`` plus width and height.  The values follow the
-            same convention as the parent's axes (pixel indices for an
-            uncalibrated image; physical units when the axes are calibrated).
+        region : tuple of float
+            The source rectangle in the parent image's data coordinates, as
+            ``(x, y, w, h)``: top-left ``(x, y)`` plus width and height.  The
+            values follow the same convention as the parent's axes (pixel
+            indices for an uncalibrated image; physical units when the axes
+            are calibrated).
             All four must be finite; ``w`` and ``h`` must be strictly
             positive.  The rectangle MAY extend outside the parent's data
             bounds (e.g. a region near an edge) — that is allowed by design
