@@ -10,6 +10,46 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.3.0b1 (2026-07-13)
+====================
+
+New Features
+------------
+
+- Added :class:`~anyplotlib.widgets.ArrowWidget` (draggable arrow overlay, tail
+  at ``(x, y)`` and head at ``(x + u, y + v)``) via ``Plot2D.add_arrow_widget`` /
+  ``add_widget("arrow")``, and a ``show_handles`` option (default ``True``) on
+  every 2-D overlay widget to hide the grab-handle dots without affecting drag.
+- Added figure-level edit-mode chrome to :class:`~anyplotlib.Figure`: the
+  ``edit_chrome`` and ``selected_panel`` traits (per-panel hover / selection
+  outlines), figure-background click events, and a figure-level annotation layer
+  (``set_figure_markers`` / ``figure_markers``, positioned in figure fractions and
+  always included in ``exportPNG``) with figure-level callbacks via
+  ``add_event_handler``.
+- Extended :class:`~anyplotlib.Figure` edit-mode interaction:
+
+  * Circle and rectangle overlay widgets are now **resizable via visible nodes** —
+    a circle draws a centre (move) node and an east-point radius node; a rectangle
+    draws all four corner nodes (opposite corner anchored on drag).  Drawn only
+    when ``show_handles`` is ``True``, with matching resize cursors.
+  * :class:`~anyplotlib.widgets.ArrowWidget` **tail is now a reshape node**:
+    dragging the tail moves it while the head stays anchored (dragging the shaft
+    still moves the whole arrow; the head node still re-aims it).
+  * The selected-panel and hover **outlines are fully inset** (``outline-offset:
+    -2px``) so an edge/corner panel's ring is no longer clipped at the figure's
+    right/bottom edge.
+  * **Panel drag-swap** under ``edit_chrome``: each grid panel shows a move grip
+    in its top-left corner; dragging it over a *different* panel emits a
+    figure-level ``pointer_up`` event with ``panel_swap: true`` and
+    ``source_panel_id`` / ``target_panel_id`` (new :class:`~anyplotlib.Event`
+    fields).  anyplotlib performs no layout change itself — the host swaps and
+    rebuilds.  Releasing on the source panel or empty space cancels cleanly; the
+    grip is inert when ``edit_chrome`` is off.
+  * The JS ``mount()`` embedding entry point accepts an ``onResize({width,
+    height})`` callback, fired (debounced) when the **root container resizes**, so
+    an embedding host can relayout the figure to its new box.
+
+
 0.2.0 (2026-07-10)
 ==================
 
