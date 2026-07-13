@@ -6892,6 +6892,112 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     for(const p of panels.values()) _redrawPanel(p);
   }
 
+  // ── PNG export ────────────────────────────────────────────────────────────
+  // Composite the WHOLE figure (all panels, insets, background) onto one
+  // offscreen canvas and return a PNG data URL.  Used by handle.exportPNG()
+  // and the standalone-HTML postMessage export protocol.
+  //
+  //   opts.scale          extra multiplier on top of devicePixelRatio (1)
+  //   opts.includeWidgets include the interactive overlay canvas (false)
+  //
+  // The composite is positioned by each element's on-screen bounding box
+  // relative to the figure background (`gridDiv`), so multi-panel grids and
+  // corner insets export as one correctly-arranged image without re-deriving
+  // any layout math.  Elements are drawn in DOM/z-order per panel: gpuCanvas
+  // (beneath) → plotCanvas → [overlayCanvas] → markersCanvas → axis canvases →
+  // colorbar → scale bar → title.  Status bars and other hover chrome are
+  // excluded.
+  function exportPNG(opts) {
+    const o = opts || {};
+    const scale = (o.scale != null && o.scale > 0) ? o.scale : 1;
+    const includeWidgets = !!o.includeWidgets;
+    const outScale = (window.devicePixelRatio || 1) * scale;
+
+    // WebGPU hazard: a WebGPU canvas's drawing buffer is only valid right after
+    // its render pass.  Force a synchronous re-render of every active-GPU 2-D
+    // panel FIRST, then composite in the SAME task — so drawImage(gpuCanvas)
+    // reads freshly-rendered pixels instead of a blank/cleared buffer.
+    for (const p of panels.values()) {
+      if (p.kind === '2d' && p._gpu === 'active' && p._gpuImg
+          && p.gpuCanvas && p.gpuCanvas.style.display !== 'none') {
+        try { draw2d(p); } catch (_) {}
+      }
+    }
+
+    // The figure background element (grid) defines the ORIGIN for every
+    // relative rect.  Its top-left is the figure's top-left; the grid tracks are
+    // fixed-px and left-anchored, so panel canvases sit at the correct offset
+    // even if the grid container itself stretches wider than the figure (it can
+    // in a bare mount() page with no .apl-outer inline-block CSS constraining
+    // it).  So take the ORIGIN from the DOM but the EXTENT from the true figure
+    // size — fig_width/height (the grid content) + the 8 px gridDiv padding on
+    // each side — rather than the possibly-stretched gridDiv width.
+    const rootRect = gridDiv.getBoundingClientRect();
+    const GRID_PAD = 8;   // gridDiv padding (see the gridDiv cssText)
+    const figW = Number(model.get('fig_width'))  || 0;
+    const figH = Number(model.get('fig_height')) || 0;
+    // Fall back to the measured content box if the model lacks sizes.
+    const contentW = figW ? figW + 2 * GRID_PAD : rootRect.width;
+    const contentH = figH ? figH + 2 * GRID_PAD : rootRect.height;
+    const W = Math.max(1, Math.round(contentW * outScale));
+    const H = Math.max(1, Math.round(contentH * outScale));
+
+    const out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    const octx = out.getContext('2d');
+    if (!octx) return Promise.reject(new Error('exportPNG: 2D context unavailable'));
+    octx.imageSmoothingEnabled = false;
+
+    // Figure background first (matches the on-screen gridDiv background).
+    octx.fillStyle = theme.bg;
+    octx.fillRect(0, 0, W, H);
+
+    // Draw one element scaled into the output at its position relative to root.
+    // Skips hidden (display:none) or zero-area elements; catches per-element
+    // draw failures (a tainted / uninitialised canvas) so one bad layer never
+    // aborts the whole export.
+    const _drawEl = (elm) => {
+      if (!elm) return;
+      const cs = window.getComputedStyle(elm);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      // A canvas with 0×0 backing store has nothing to blit.
+      if (elm.width === 0 || elm.height === 0) return;
+      const r = elm.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      const dx = (r.left - rootRect.left) * outScale;
+      const dy = (r.top  - rootRect.top)  * outScale;
+      const dw = r.width  * outScale;
+      const dh = r.height * outScale;
+      try { octx.drawImage(elm, dx, dy, dw, dh); } catch (_) {}
+    };
+
+    // Per-panel canvas stack, in visual z-order (see _buildCanvasStack).
+    const _drawPanel = (p) => {
+      _drawEl(p.gpuCanvas);      // z 0 — GPU image raster (beneath)
+      _drawEl(p.plotCanvas);     // z 1 — image blit + inline decorations
+      _drawEl(p.yAxisCanvas);    // physical axis gutters (no explicit z)
+      _drawEl(p.xAxisCanvas);
+      _drawEl(p.cbCanvas);       // colorbar strip + label
+      if (includeWidgets) _drawEl(p.overlayCanvas);  // z 5 — interactive widgets
+      _drawEl(p.markersCanvas);  // z 6 — static marker groups
+      _drawEl(p.scaleBar);       // z 7 — physical scale bar
+      _drawEl(p.titleCanvas);    // z 8 — 2-D title strip
+      // (statusBar / statsDiv are hover chrome — intentionally excluded.)
+    };
+
+    // Grid panels first, then insets on top (insets sit above grid content).
+    for (const p of panels.values()) if (!p.isInset) _drawPanel(p);
+    for (const p of panels.values()) if (p.isInset)  _drawPanel(p);
+
+    let dataUrl;
+    try {
+      dataUrl = out.toDataURL('image/png');
+    } catch (e) {
+      return Promise.reject(new Error('exportPNG: toDataURL failed — ' + e));
+    }
+    return Promise.resolve({ dataUrl, width: W, height: H });
+  }
+
   // ── cell-aware CSS scaling ────────────────────────────────────────────────
   // When the notebook cell (or any container) is narrower than the figure's
   // native size, apply CSS transform:scale() to outerDiv so it shrinks
@@ -6982,6 +7088,17 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   // ── initial render ────────────────────────────────────────────────────────
   applyLayout();
+
+  // Internal API surface returned to mount().  anywidget ignores render()'s
+  // return value; mount() captures it so its handle can reach the closure's
+  // panel map + drawing helpers (exportPNG, dispose) that are otherwise
+  // inaccessible from module scope.
+  return {
+    panels,
+    exportPNG,
+    _gpuDisposeImagePanel,
+    _gpuDisposePanel,
+  };
 }
 
 export default { render };
@@ -7074,7 +7191,9 @@ export function mount(el, state, opts) {
       } catch (_) {}
     });
   }
-  render({ model, el });
+  // Capture render()'s internal API so the handle can reach the closure's
+  // panel map + drawing helpers (exportPNG / GPU dispose).
+  const api = render({ model, el }) || {};
   return {
     model,
     get(key) { return model.get(key); },
@@ -7091,13 +7210,24 @@ export function mount(el, state, opts) {
       model.set('fig_height', Math.round(height));
       model.save_changes();
     },
+    // Composite the whole figure to a PNG data URL.
+    //   opts.scale (1)               extra multiplier over devicePixelRatio
+    //   opts.includeWidgets (false)  include the interactive widget overlay
+    // Resolves to {dataUrl, width, height}; rejects with a useful message.
+    exportPNG(opts) {
+      if (typeof api.exportPNG !== 'function') {
+        return Promise.reject(new Error('exportPNG unavailable (render() returned no API)'));
+      }
+      try { return api.exportPNG(opts); }
+      catch (e) { return Promise.reject(e); }
+    },
     // Remove the figure's DOM.  (Window-level listeners registered by the
     // renderer are inert once the DOM is gone; for complete cleanup, discard
     // the containing element or iframe.)
     dispose() {
       // Free GPU resources for every panel before tearing down the DOM.
-      try { for (const p of panels.values()) {
-        _gpuDisposeImagePanel(p); _gpuDisposePanel(p);
+      try { if (api.panels) for (const p of api.panels.values()) {
+        api._gpuDisposeImagePanel(p); api._gpuDisposePanel(p);
       } } catch (_) {}
       model.off(); el.replaceChildren();
     },
