@@ -4291,7 +4291,28 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const gpuGeomChanged = p._gpuObj && p._gpuObj.geom !== geom;
     if (gpuGeomChanged) { _gpuDisposePanel(p); p._gpu = undefined; }
     if (p.kind === '3d' && _gpuWanted(st)) {
-      if (p._gpu === undefined) {
+      // Zero-drawable-size guard: SpyDE (and any host) mounts a 3-D panel HIDDEN
+      // (display:none) and reveals it later, so the FIRST draw3d can run with
+      // pw/ph == 0 (a zero-size layout) and the gpuCanvas collapsed to 0 client
+      // px.  _gpuInitPanel configures the WebGPU swapchain and every draw pass
+      // calls getCurrentTexture() against that canvas — on a zero-drawable-size
+      // surface this is undefined behaviour: some drivers throw (→ the mid-draw
+      // catch latches p._gpu='unavailable', TERMINAL) and others configure a
+      // dead 0×0 context that silently draws nothing.  Either way the panel is
+      // then stuck on Canvas2D forever because the `_gpu === undefined` guard
+      // never re-runs.  So DON'T init at zero size: leave _gpu === undefined and
+      // let the canvas path render (a hidden panel isn't visible anyway).  When
+      // the panel is revealed/resized, the layout/fig-size change fires a
+      // redrawAll() → this draw3d re-runs at the real size → init re-attempts.
+      // Gate on pw/ph (the LOGICAL panel size that drives the gpuCanvas backing
+      // store in _gpuDrawPoints/_gpuEnsureSize and every getCurrentTexture()).
+      // NB: don't test the gpuCanvas' own client size — it starts display:none
+      // until GPU activates, so clientWidth is 0 even for a fully-visible panel;
+      // that would wrongly block the normal case.  A panel revealed by a pure
+      // display toggle (pw/ph already non-zero, only client size was 0) is
+      // handled by the ResizeObserver reveal branch, which redraws it.
+      const hasDrawableSize = (pw || 0) > 0 && (ph || 0) > 0;
+      if (p._gpu === undefined && hasDrawableSize) {
         p._gpu = 'pending';
         const initGeom = geom;
         _gpuDevice().then((device) => {
@@ -7959,9 +7980,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     let _lastCellW = 0;
     let _lastRoW = 0, _lastRoH = 0;
     let _roTimer = null;
+    let _wasZeroSize = true;
     new ResizeObserver(entries => {
       const cr = entries[0].contentRect;
       const cellW = cr.width, cellH = cr.height;
+      // (0) Reveal detection: a host (SpyDE) can mount a panel HIDDEN
+      // (display:none) and reveal it later by toggling display alone, WITHOUT
+      // any layout_json / fig_width change (so neither model listener below
+      // fires a redraw).  A 3-D GPU panel that skipped init while zero-size
+      // (see the hasDrawableSize guard in draw3d) would then stay on Canvas2D
+      // forever.  When the observed element transitions from zero-size to a
+      // real size, re-attempt GPU init on any 3-D panel still on the canvas
+      // path and redraw it, so the reveal actually flips it to WebGPU.
+      const _nowZero = !(cellW > 0 && cellH > 0);
+      if (_wasZeroSize && !_nowZero) {
+        _wasZeroSize = false;
+        requestAnimationFrame(() => {
+          let _need = false;
+          for (const p of panels.values()) {
+            if (p.kind === '3d' && p._gpu === undefined && p.state
+                && _gpuWanted(p.state)) { _need = true; break; }
+          }
+          if (_need) redrawAll();
+        });
+      } else if (_nowZero) {
+        _wasZeroSize = true;
+      }
       // (1) Jupyter fit-to-cell down-scale — width-only to avoid a feedback
       // loop (our own scaleWrap height updates would re-trigger the observer).
       if (cellW !== _lastCellW) {
