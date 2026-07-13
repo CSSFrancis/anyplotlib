@@ -63,6 +63,8 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | `drawScaleBar2d` / `drawColorbar2d` | 1360 / 1436 |
 | `_drawAxes2d` (ticks, labels, title) | 1491 |
 | `drawOverlay2d` / `drawMarkers2d` | 1629 / 1685 |
+| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 1553 / 1577 / 1629 |
+| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 675 / 706 |
 | **3D drawing**: `draw3d` | 1833 |
 | Event emission `_emitEvent` | 2031 |
 | 3D event handlers `_attachEvents3d` | 2059 |
@@ -134,7 +136,66 @@ geometry changes (visibility, label, sizes) re-layout automatically.
 #### `applyLayout()` (line 590)
 Reads `layout_json`. Builds CSS grid tracks from `panel_specs[].panel_width/height`.
 Creates panels that don't exist yet, resizes existing ones, removes stale ones.
-Also creates/updates inset panels from `inset_specs`.
+Also creates/updates inset panels from `inset_specs`, then draws region
+indications from `layout.indications` (on the next frame — see below).
+
+#### Inset placement (`_applyAllInsetStates`)
+Each `inset_specs[]` entry carries EITHER `corner` (one of the four corners;
+`anchor` is `null`) OR `anchor` (`[x_frac, y_frac]` of the inset's top-left in
+figure fraction; `corner` is `null`). Corner insets stack per-corner with
+`INSET_GAP`; anchored insets are placed directly at their fraction (clamped
+inside the figure). Minimize / maximize / restore work for both — a maximized
+inset floats centred at ~72 % (z 45); a minimized one collapses to its title
+bar in place.
+
+#### Region indications (callouts — `_drawCallouts`)
+`layout.indications` is an array of mark_inset-style callouts, each
+`{inset_id, parent_id, region:[x,y,w,h], color, linestyle, linewidth}`.
+`_drawCallouts()` renders them onto a figure-level `calloutCanvas` (z 30, above
+panels + insets, below maximized-inset float and the resize handle,
+`pointer-events:none`):
+- The **dashed source rect** maps `region` (parent DATA coords) through the
+  parent's `_imgToCanvas2d` every draw, so it tracks the parent's zoom/pan; it
+  is clipped to the parent's image area.
+- Two **leader lines** connect the rect's corners facing the inset to the
+  inset's nearest corners (loc1/loc2-auto by comparing centres); they follow
+  the inset's live DOM rect and are **hidden while the inset is minimized**.
+
+`_drawCallouts()` is called at the end of `_redrawPanel` / `redrawAll` (tracks
+zoom/pan), at the end of `_applyAllInsetStates` (inset moved), on `applyLayout`
+(deferred one rAF so `getBoundingClientRect` is real), and inside `exportPNG`
+(forced fresh draw, then `calloutCanvas` composited last). All coordinates go
+through element bounding rects relative to the callout canvas, so no layout math
+is duplicated. Cheap no-op when `indications` is empty (just clears the canvas).
+The `if (!parent || !parent.state || !inset || !inset.isInset) continue;` guard
+per indication is defensive/permanent — kept even though a foreign-figure
+`parent_plot` can no longer reach this array at all (see validation below); it
+still protects against other edge cases (e.g. a panel mid-teardown).
+
+**`InsetAxes.indicate_region(parent_plot, region, …)` validates both arguments**
+before recording an indication: `parent_plot` must be a panel registered on
+THIS inset's own `Figure` (`self._fig._plots_map.get(pid) is parent_plot` —
+not just "has some `_id`", which is the pre-existing check for "never attached
+to any figure") — a plot that belongs to a *different* `Figure` raises
+`ValueError`. `region` must be exactly 4 finite numbers `(x, y, w, h)` with
+`w > 0` and `h > 0` — `NaN`/`inf`, a degenerate/negative size, or the wrong
+number of values raises `ValueError`. A region that extends OUTSIDE the
+parent's data bounds is explicitly **allowed** (clipping is a visual concern
+handled by `_drawCallouts`'s clip-to-image-area, not a validation error). See
+`test_indicate_region_foreign_figure_parent_raises`,
+`test_indicate_region_foreign_inset_parent_raises`,
+`test_indicate_region_degenerate_region_raises`, and
+`test_indicate_region_out_of_bounds_is_allowed` in
+`tests/test_layouts/test_inset_callout.py`.
+
+**Inset removal**: as of this writing there is no `remove_inset` (or
+equivalent) API — `Figure._insets_map` / `_plots_map` are only ever appended
+to, never deleted from, so `indications` (rebuilt fresh from `_insets_map` on
+every `_push_layout()` call) cannot go stale from a removed inset today. If a
+removal API is added later, it MUST also delete the inset's entry from both
+maps — otherwise `layout.indications` would keep emitting an entry whose
+`inset_id` no longer resolves to a live panel (caught by the `_drawCallouts`
+guard above, but a dangling entry all the same).
 
 #### `_createPanelDOM(id, kind, pw, ph, spec)` (line 763)
 Builds all canvas/DOM elements for one panel (via `_buildCanvasStack`),
@@ -193,6 +254,111 @@ st.colorbar_label_size            (label font sizes; optional)
 Zoom model: at `zoom=1` the whole image fills the fit-rect; at `zoom=Z>1` a
 `1/Z` region fills it.  `_imgToCanvas2d` / `_canvasToImg2d` must stay exact
 inverses of the blit geometry.
+
+---
+
+## Image layers (multi-image overlay)
+
+`Plot2D.add_layer(data, cmap=, alpha=, clim=, visible=)` composites a second
+(third, …) scalar image OVER the base image in the same panel, each with its own
+colormap / clim / alpha. Distinct from `set_overlay_mask` (single-colour boolean
+mask). `Layer.set(...)`, `Layer.set_data(frame)`, `Layer.remove()`,
+`Plot2D.layers`, `Plot2D.remove_layer(layer)`. **Layers and tile mode are mutually
+exclusive** (guard raises in both directions: `add_layer` on a tiled plot, and
+`enable_tile` / `set_data(tile=True)` / auto-tile on a layered plot).
+
+**A shape-changing `Plot2D.set_data` on a plot with layers raises `ValueError`.**
+Each layer entry keeps the `(width, height)` it had at `add_layer` / its last
+`Layer.set_data` time (`_encode_layer_pixels`), but `_drawLayers2d` always fits
+every layer's bitmap into the BASE image's *current* `_imgFitRect(iw, ih, …)`
+(`iw`/`ih` = the live `image_width`/`image_height`). So a base `set_data` that
+changes shape while a stale-sized layer is still attached would silently stretch
+that layer's old pixels over the new image instead of erroring — `set_data`
+now checks `data.shape[:2]` against the current `image_height`/`image_width`
+whenever `st.layers` is non-empty and raises before touching any state if they
+differ (same-shape updates, the common live-update case, are unaffected). Remove
+all layers first (`remove_layer`), change the base shape, then re-add them at the
+new size. A layer-FREE plot's shape-changing `set_data` is unaffected and always
+refreshes `image_width`/`image_height` (they're set unconditionally in the
+pushed `fields` dict). See `TestTileGuards` / `TestShapeChangeNoLayers` in
+`tests/test_plot2d/test_layers.py`.
+
+**`Layer.set(clim=…)` has three distinct meanings** — `None` (default) leaves
+the clim UNCHANGED (a no-op on that field, not "reset to auto"); a `(vmin, vmax)`
+tuple sets an explicit range and re-quantises the cached frame over it;
+`"auto"` is the sentinel to explicitly RESET to auto — recomputes the display
+range from the layer's own current data (`self._layer_raw[layer_id]`) min/max,
+the same auto-ranging `add_layer(..., clim=None)` does at creation time, and
+re-quantises. Before this, `clim=None` was documented as "auto" but actually
+behaved as a no-op, and there was no way to get back to auto range after
+setting an explicit clim short of `remove()` + `add_layer()` again. See
+`TestSet::test_set_clim_auto_resets_to_data_range` /
+`test_set_clim_auto_matches_add_layer_auto` /
+`test_set_clim_none_is_a_noop` in `tests/test_plot2d/test_layers.py`.
+
+### State + transport (dynamic per-layer pixel keys)
+
+The layer *metadata* lives in `st.layers` (a list of small dicts on the light view
+trait):
+
+```
+st.layers = [{ id, cmap, clim_min, clim_max, alpha, visible,
+               width, height, colormap_data, image_b64 }, …]   # z-order
+```
+
+`image_b64` in each entry is the layer's pixels: a base64 string (Jupyter /
+standalone / `save_html`) OR a `"\x00bin:<adler32>"` change-token (Electron binary
+transport). The JS reads pixels from this entry field on the base64 path.
+
+The *heavy pixel bytes* additionally ride a **DYNAMIC geometry key**
+`layer_<id>_b64` — one per layer — mirroring how the base image `image_b64` rides
+the geom channel. The dynamic-key mechanism:
+
+- **`Plot2D._GEOM_KEYS` is a PROPERTY** (not a plain frozenset): it returns the
+  fixed base set (`image_b64`, `colormap_data`, `overlay_mask_b64`, `detail_b64`)
+  UNION the current `layer_<id>_b64` keys. So `Figure._push` splits every layer's
+  pixels off the light view trait onto `panel_<id>_geom` and dedup-caches them
+  exactly like the base image; a removed layer's key drops out automatically.
+- **`_electron._route_change`** ships each layer key as its own PLOTBIN frame:
+  `_is_binary_pixel_key(k)` matches `k in _BINARY_KEYS` OR `layer_*_b64`. The
+  binary frame header carries `{"geom": "panel_<id>_geom"}` and `key=layer_<id>_b64`,
+  so the receiver builds slot `panel_<id>_geom::layer_<id>_b64` (the same
+  `awi_state_binary` handler as the base image — already generic on `hdr.geom` +
+  `e.data.key`, no change needed there).
+- **`resolve_pixel_tokens`** (cold path: `save_html` / standalone) materialises
+  real base64 for every `layer_<id>_b64` key AND the entry `image_b64` mirror, so a
+  snapshot is self-contained.
+- **JS `_spliceBinaryBytes`** scans `__apl_pixbytes` by the `panel_<id>_geom::`
+  PREFIX (not the old hardcoded 3-key list) so it splices any `layer_<id>_b64_bytes`
+  into `p2._geomCache`. The per-slot binary listeners are registered only for the
+  fixed keys (`_registerBinaryPixelListeners`); dynamic layer bytes are consumed by
+  the **geom-JSON change handler**, which now also calls `_spliceBinaryBytes` — the
+  geom trait always re-pushes when layers change, so a layer's bytes converge into
+  the cache regardless of trait arrival order.
+
+### JS compositing (`_drawLayers2d`, called from `draw2d`)
+
+After the base image (Canvas2D blit OR WebGPU) and the overlay mask, and BEFORE
+`_drawAxes2d` / markers / widgets, `_drawLayers2d(p, st, imgW, imgH, ctx, iw, ih)`
+draws each **visible** layer bottom-up on `plotCanvas`:
+
+- `_layerBytes(st, layer)` prefers `layer_<id>_b64_bytes` (binary) over the entry
+  `image_b64` base64;
+- `_layerBitmap(p, st, layer)` builds a LUT-colormapped RGBA `OffscreenCanvas`,
+  **cached per layer id** by `(pixel key, cmap, clim)` — rebuilt only when the
+  layer's data or appearance changes (a live scrub that only swaps one layer's
+  data rebuilds just that layer);
+- it blits with the SAME fit-rect + zoom/pan transform as the base blit
+  (`_imgFitRect` + the `zoom>=1` window math) at `ctx.globalAlpha = layer.alpha`,
+  so zoom/pan track the base exactly.
+
+Because layers draw on `plotCanvas`, they sit UNDER `markersCanvas` /
+`overlayCanvas` (z-order) and are captured by `exportPNG` for free (plotCanvas is
+z1 in the composite). Over a WebGPU base the layers still composite in Canvas2D on
+`plotCanvas` (which sits above the transparent `gpuCanvas`) — verified by
+`test_layers_playwright.py::TestGpuBaseWithLayer`. Per-move perf: only the changed
+layer's LUT bitmap is rebuilt (the box-loop is ~one pass over H×W uint8 → uint32,
+comparable to the base image's `_buildLut32` blit).
 
 ---
 
@@ -338,7 +504,26 @@ figure onto one offscreen canvas at `devicePixelRatio × scale`:
   `getBoundingClientRect()` relative to the root): gpuCanvas (z0) → plotCanvas
   (z1) → x/yAxisCanvas → cbCanvas → [overlayCanvas z5 only if `includeWidgets`]
   → markersCanvas (z6) → scaleBar (z7) → titleCanvas (z8). Grid panels first,
-  then insets (`p.isInset`) on top. Status bars / stats overlays are excluded.
+  then insets (`p.isInset`) on top — **each titled inset's title bar text is
+  drawn directly onto the output canvas right after its canvas stack**
+  (`_drawInsetTitle`; the title bar is plain DOM — a `<div>`/`<span>`, not a
+  canvas — so `_drawEl` alone never captures it; approximates the on-screen
+  CSS: 11px sans-serif, `theme.tickText` colour, left-padded to the titleBar's
+  rect) — then the figure-level `calloutCanvas` (region indications) composited
+  LAST. Status bars / stats overlays are excluded.
+- **Coordinate snapping** (`_drawEl`): `dx`/`dy` are `Math.round()`ed from the
+  element's `left`/`top`, and `dw`/`dh` are the ROUNDED `right`/`bottom` edge
+  minus the rounded `dx`/`dy` — never `Math.round(width)` directly. This makes
+  two elements that share a CSS edge (e.g. adjacent grid panels, or a
+  panel's axis-gutter canvas against its plotCanvas) round that shared edge to
+  the *same* output pixel on both sides. Without it, at a fractional effective
+  scale (`devicePixelRatio × opts.scale` — e.g. a real 150% Windows display, or
+  `scale: 1.25`), each element's `dx`/`dw` were computed independently as raw
+  floats, and adjacent elements could round their common boundary to different
+  output pixels — a 1px background-coloured seam (or overlap) exactly at the
+  join. See `TestExportMultiPanel::test_fractional_scale_no_seam_between_panels`
+  in `tests/test_embed/test_export_png.py` (reproduced with
+  `device_scale_factor=1.5`).
 - Ends with `out.toDataURL('image/png')`; rejects the promise with a message on
   failure (no 2-D context, `toDataURL` throw).
 

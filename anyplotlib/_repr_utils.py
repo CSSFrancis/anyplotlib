@@ -144,6 +144,20 @@ function makeModel(state) {{
   const _data   = Object.assign({{}}, state);
   const _cbs    = {{}};
   const _anyCbs = [];
+  // Keys set() has touched while _fromParent (an inbound awi_state push) is
+  // in effect, awaiting the matching save_changes() flush. Mirrors the
+  // dirty-set pattern figure_esm.js's own createLocalModel() uses (see
+  // mount()): the _fromParent branch below defers listener firing from
+  // set() to save_changes() (see the comment there), but save_changes() was
+  // firing EVERY registered change:* callback instead of only the key(s)
+  // that changed. Concretely: a single set('event_json', ...) (the Python
+  // targeted-widget-update side channel, _push_widget) also re-fired every
+  // panel's change:panel_<id>_json listener, which re-parses that panel's
+  // (untouched, stale) trait and overwrites p.state wholesale — silently
+  // reverting the very widget edit event_json just applied, in the same
+  // synchronous cascade. Only the _fromParent path needs tracking — the
+  // local (!_fromParent) path already fires synchronously in set() itself.
+  const _parentDirty = new Set();
   return {{
     get(key)      {{ return _data[key]; }},
     set(key, val) {{
@@ -155,12 +169,32 @@ function makeModel(state) {{
         const ev = 'change:' + key;
         if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try {{ cb({{ new: val }}); }} catch(_) {{}}
         for (const cb of [..._anyCbs]) try {{ cb(); }} catch(_) {{}}
+      }} else {{
+        _parentDirty.add(key);
       }}
     }},
     save_changes() {{
-      for (const [ev, cbs] of Object.entries(_cbs))
-        for (const cb of cbs) try {{ cb({{ new: _data[ev.slice(7)] }}); }} catch(_) {{}}
-      for (const cb of _anyCbs) try {{ cb(); }} catch(_) {{}}
+      if (_parentDirty.size) {{
+        // Fire only listeners for keys an inbound awi_state set() actually
+        // touched since the last flush (each at most once) — not the whole
+        // _cbs table. Snapshot + clear BEFORE invoking callbacks, since a
+        // callback may itself call set()/save_changes() (re-entrant-safe).
+        const keys = [..._parentDirty];
+        _parentDirty.clear();
+        for (const key of keys) {{
+          const ev = 'change:' + key;
+          if (_cbs[ev]) for (const cb of [..._cbs[ev]]) try {{ cb({{ new: _data[key] }}); }} catch(_) {{}}
+        }}
+        for (const cb of [..._anyCbs]) try {{ cb(); }} catch(_) {{}}
+      }} else {{
+        // Local (!_fromParent) path — unchanged: set() already fired
+        // synchronously per-key, so this refires the full table (matches the
+        // pre-existing local-set behaviour; harmless since _cbs entries are
+        // typically no-ops for a key that hasn't just changed).
+        for (const [ev, cbs] of Object.entries(_cbs))
+          for (const cb of cbs) try {{ cb({{ new: _data[ev.slice(7)] }}); }} catch(_) {{}}
+        for (const cb of _anyCbs) try {{ cb(); }} catch(_) {{}}
+      }}
       // Forward interaction events to the parent-page Pyodide instance.
       if (!_fromParent && FIG_ID && window.parent !== window && _eventJsonDirty) {{
         _eventJsonDirty = false;

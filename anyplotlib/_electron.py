@@ -32,7 +32,18 @@ _BINARY_TRANSPORT = os.environ.get("APL_BINARY_TRANSPORT") == "1"
 # transport on its _encode_pixels "\x00bin:<checksum>" token stays in the geom JSON
 # and the real bytes are never shipped, so the renderer can't decode it and the crisp
 # zoom tile never displays (you only ever see the downsampled overview base).
+#
+# Image LAYERS add DYNAMIC pixel keys ``layer_<id>_b64`` (one per layer) that also
+# ride the geom channel and must ship as binary — they can't be enumerated in a
+# fixed frozenset, so ``_is_binary_pixel_key`` matches them by name pattern.
 _BINARY_KEYS = frozenset({"image_b64", "overlay_mask_b64", "detail_b64"})
+
+
+def _is_binary_pixel_key(k: str) -> bool:
+    """True for a geom key whose value is raw image pixels worth shipping as a
+    PLOTBIN binary frame — the fixed base-image/mask/detail keys OR a dynamic
+    per-layer key ``layer_<id>_b64``."""
+    return k in _BINARY_KEYS or (k.startswith("layer_") and k.endswith("_b64"))
 
 
 def _route_change(fig_id: str, name: str, value) -> None:
@@ -61,13 +72,15 @@ def _route_change(fig_id: str, name: str, value) -> None:
                 geom = json.loads(value)
             except Exception:
                 geom = None
-            if isinstance(geom, dict) and any(k in geom for k in _BINARY_KEYS):
+            if isinstance(geom, dict) and any(
+                    _is_binary_pixel_key(k) for k in geom):
                 panel_id = name[len("panel_"):-len("_geom")]
                 fig = _figures.get(fig_id)
                 raw_tbl = getattr(fig, "_raw_pixels", None)
                 sent_binary = False
                 for k in list(geom.keys()):
-                    if k not in _BINARY_KEYS or not isinstance(geom[k], str) or not geom[k]:
+                    if (not _is_binary_pixel_key(k)
+                            or not isinstance(geom[k], str) or not geom[k]):
                         continue
                     raw = None
                     if geom[k].startswith("\x00bin:") and raw_tbl is not None:
