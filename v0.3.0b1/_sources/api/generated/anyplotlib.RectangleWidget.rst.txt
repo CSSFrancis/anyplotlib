@@ -1,0 +1,6 @@
+﻿anyplotlib.RectangleWidget
+==========================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: RectangleWidget

@@ -1,0 +1,1369 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Event System &#8212; anyplotlib 0.3.0b1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/anywidget_overlay.css?v=a271c467" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=6a9e09cd" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="_static/documentation_options.js?v=c574efb9"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="_static/anywidget_config.js?v=cd5adc06"></script>
+    <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="_static/anywidget_bridge.js?v=a2d47ea1"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'events';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/v0.3.0b1/events.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Embedding outside Jupyter" href="embedding.html" />
+    <link rel="prev" title="Getting Started" href="getting_started.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Event System</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="event-system">
+<span id="events"></span><h1>Event System<a class="headerlink" href="#event-system" title="Link to this heading">#</a></h1>
+<p>anyplotlib uses a unified event system inspired by
+<a class="reference external" href="https://github.com/pygfx/rendercanvas">pygfx/rendercanvas</a> with
+anyplotlib-specific extensions. Every plot class (<a class="reference internal" href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D" title="anyplotlib.Plot1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot1D</span></code></a>,
+<a class="reference internal" href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D" title="anyplotlib.Plot2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot2D</span></code></a>, <a class="reference internal" href="api/generated/anyplotlib.PlotMesh.html#anyplotlib.PlotMesh" title="anyplotlib.PlotMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotMesh</span></code></a>,
+<a class="reference internal" href="api/generated/anyplotlib.Plot3D.html#anyplotlib.Plot3D" title="anyplotlib.Plot3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot3D</span></code></a>, <a class="reference internal" href="api/generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar" title="anyplotlib.PlotBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotBar</span></code></a>) and every
+interactive widget shares the same API.</p>
+<section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">600</span><span class="p">,</span> <span class="mi">400</span><span class="p">))</span>
+<span class="n">plot</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)))</span>
+
+<span class="c1"># Direct call</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_press</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;clicked at data (</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">xdata</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">ydata</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<span class="n">plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">on_press</span><span class="p">,</span> <span class="s2">&quot;pointer_down&quot;</span><span class="p">)</span>
+
+<span class="c1"># Decorator form — equivalent</span>
+<span class="nd">@plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_down&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_press</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;clicked at data (</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">xdata</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">ydata</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<span class="c1"># Multiple types in one call</span>
+<span class="nd">@plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_down&quot;</span><span class="p">,</span> <span class="s2">&quot;pointer_up&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_press_release</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">event_type</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">button</span><span class="p">)</span>
+
+<span class="c1"># Wildcard — fires for every event type</span>
+<span class="nd">@plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_all</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+<span class="c1"># Remove by CID</span>
+<span class="n">cid</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">on_press</span><span class="p">,</span> <span class="s2">&quot;pointer_down&quot;</span><span class="p">)</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">remove_handler</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span>
+
+<span class="c1"># Remove by function reference</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">remove_handler</span><span class="p">(</span><span class="n">on_press</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="event-types">
+<h2>Event types<a class="headerlink" href="#event-types" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 78.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Event type</p></th>
+<th class="head"><p>Trigger</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_down</span></code></p></td>
+<td><p>Mouse button pressed inside the panel.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_up</span></code></p></td>
+<td><p>Mouse button released.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_move</span></code></p></td>
+<td><p>Pointer moved (drag or hover).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code></p></td>
+<td><p>Pointer held still for ≥ <em>ms</em> milliseconds within ± <em>delta</em> pixels.
+Zero-cost when no handler is connected (timer never created).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_enter</span></code></p></td>
+<td><p>Cursor enters the panel.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_leave</span></code></p></td>
+<td><p>Cursor leaves the panel.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">double_click</span></code></p></td>
+<td><p>Double-click.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">wheel</span></code></p></td>
+<td><p>Scroll wheel or trackpad pinch.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">key_down</span></code></p></td>
+<td><p>Key pressed while panel has focus.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key_up</span></code></p></td>
+<td><p>Key released.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">*</span></code></p></td>
+<td><p>Wildcard — handler receives every dispatched event type.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="pointer-settled-thresholds">
+<h3><code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code> thresholds<a class="headerlink" href="#pointer-settled-thresholds" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Default: 300 ms dwell, 4-pixel radius</span>
+<span class="nd">@plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_settled&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_settle</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="n">update_tooltip</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">xdata</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">ydata</span><span class="p">)</span>
+
+<span class="c1"># Custom thresholds</span>
+<span class="nd">@plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_settled&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_settle_slow</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="n">run_expensive_query</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">xdata</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">ydata</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The timer is activated when the first <code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code> handler connects and
+deactivated (zeroed out) when the last one disconnects, so there is no JS
+overhead when the event is unused.</p>
+</section>
+</section>
+<section id="event-object">
+<h2>Event object<a class="headerlink" href="#event-object" title="Link to this heading">#</a></h2>
+<p>Every handler receives a single <a class="reference internal" href="api/generated/anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.callbacks.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a> instance.
+All fields are top-level attributes — there is no nested <code class="docutils literal notranslate"><span class="pre">data</span></code> dict.</p>
+<section id="universal-fields-every-event">
+<h3>Universal fields (every event)<a class="headerlink" href="#universal-fields-every-event" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 64.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p>e.g. <code class="docutils literal notranslate"><span class="pre">&quot;pointer_down&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;key_up&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">object</span></code></p></td>
+<td><p>The plot or widget that fired the event.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_stamp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">perf_counter()</span></code> at fire time (seconds).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">modifiers</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list[str]</span></code></p></td>
+<td><p>Active modifier keys: <code class="docutils literal notranslate"><span class="pre">&quot;ctrl&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;shift&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;alt&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;meta&quot;</span></code>.
+Empty list when none held.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stop_propagation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> inside a handler to prevent remaining handlers
+in the same dispatch from running.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="pointer-fields">
+<h3>Pointer fields<a class="headerlink" href="#pointer-fields" title="Link to this heading">#</a></h3>
+<p>Present on <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code>, <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code>, <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code>, <code class="docutils literal notranslate"><span class="pre">pointer_enter</span></code>, <code class="docutils literal notranslate"><span class="pre">pointer_leave</span></code>, <code class="docutils literal notranslate"><span class="pre">double_click</span></code>.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 64.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Canvas pixel coordinates within the panel.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">button</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Which button was pressed or released: 0 = left, 1 = middle, 2 = right.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> on <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code>, <code class="docutils literal notranslate"><span class="pre">pointer_enter</span></code>, <code class="docutils literal notranslate"><span class="pre">pointer_leave</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">buttons</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>Bitmask of <em>currently held</em> buttons (useful on <code class="docutils literal notranslate"><span class="pre">pointer_enter</span></code> to
+detect dragging into the panel).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xdata</span></code>, <code class="docutils literal notranslate"><span class="pre">ydata</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Data-space coordinates. Available on Plot1D, Plot2D, PlotMesh.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> on Plot3D (use <code class="docutils literal notranslate"><span class="pre">ray</span></code> instead) and PlotBar.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ray</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Plot3D only: <code class="docutils literal notranslate"><span class="pre">{&quot;origin&quot;:</span> <span class="pre">[x,y,z],</span> <span class="pre">&quot;direction&quot;:</span> <span class="pre">[dx,dy,dz]}</span></code>.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> on all other plot types.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">line_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Plot1D only. Set to the overlay line’s ID when the pointer is over a
+named line; <code class="docutils literal notranslate"><span class="pre">None</span></code> when over the primary line or empty space.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dwell_ms</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code> only: actual elapsed dwell time in milliseconds.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="plotbar-additional-fields-on-pointer-down">
+<h3>PlotBar additional fields on <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code><a class="headerlink" href="#plotbar-additional-fields-on-pointer-down" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 18.0%" />
+<col style="width: 62.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bar_index</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Index of the bar that was pressed; <code class="docutils literal notranslate"><span class="pre">None</span></code> when the press missed all
+bars.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Bar height at <code class="docutils literal notranslate"><span class="pre">bar_index</span></code>; <code class="docutils literal notranslate"><span class="pre">None</span></code> on miss.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x_label</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Category label of the pressed bar; <code class="docutils literal notranslate"><span class="pre">None</span></code> when none is set or on miss.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">group_index</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Group index for grouped-bar charts; <code class="docutils literal notranslate"><span class="pre">None</span></code> for simple bars or on miss.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="wheel-fields">
+<h3>Wheel fields<a class="headerlink" href="#wheel-fields" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 64.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Pointer position at scroll time.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Scroll deltas (positive = down/right).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="key-fields">
+<h3>Key fields<a class="headerlink" href="#key-fields" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 64.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Key name: <code class="docutils literal notranslate"><span class="pre">&quot;q&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Enter&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ArrowLeft&quot;</span></code>, etc. (DOM
+<code class="docutils literal notranslate"><span class="pre">KeyboardEvent.key</span></code> values).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Pointer position at keypress time (useful for placing UI elements at
+the cursor).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">last_widget_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>ID of the last overlay widget the user clicked, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.
+Lets key handlers operate on the most-recently-selected widget.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="per-line-filtering-on-plot1d">
+<h2>Per-line filtering on Plot1D<a class="headerlink" href="#per-line-filtering-on-plot1d" title="Link to this heading">#</a></h2>
+<p>Lines returned by <a class="reference internal" href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.add_line" title="anyplotlib.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_line()</span></code></a> expose their own
+<code class="docutils literal notranslate"><span class="pre">add_event_handler</span></code>. Internally this connects to the plot-level
+<code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> / <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code> and filters by <code class="docutils literal notranslate"><span class="pre">line_id</span></code>, so no new
+mechanism is required.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">600</span><span class="p">,</span> <span class="mi">300</span><span class="p">))</span>
+<span class="n">plot</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+<span class="n">overlay</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7043&quot;</span><span class="p">)</span>
+
+<span class="nd">@overlay</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_down&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_pick</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;picked overlay line at xdata=</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">xdata</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="pause-and-hold">
+<h2>Pause and hold<a class="headerlink" href="#pause-and-hold" title="Link to this heading">#</a></h2>
+<p>Both are context managers available on every plot and widget.</p>
+<p><strong>Pause</strong> (suppress — events are dropped):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">pause_events</span><span class="p">():</span>               <span class="c1"># suppress all types</span>
+    <span class="n">update_all_panels</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">pause_events</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">):</span> <span class="c1"># suppress specific type(s)</span>
+    <span class="n">do_something</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Hold</strong> (buffer — events are queued and flushed on exit):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">hold_events</span><span class="p">():</span>                    <span class="c1"># buffer all types</span>
+    <span class="n">do_something</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">hold_events</span><span class="p">(</span><span class="s2">&quot;pointer_settled&quot;</span><span class="p">):</span>   <span class="c1"># buffer specific type(s) only</span>
+    <span class="n">do_something</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Both support nesting via a depth counter. When both are active for the same
+type, <em>pause wins</em>: events are dropped, not buffered.</p>
+</section>
+<section id="priority-ordering">
+<h2>Priority ordering<a class="headerlink" href="#priority-ordering" title="Link to this heading">#</a></h2>
+<p>Handlers fire in ascending <code class="docutils literal notranslate"><span class="pre">order</span></code> value (default <code class="docutils literal notranslate"><span class="pre">0</span></code>). Lower values fire
+first:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">fast_handler</span><span class="p">,</span>   <span class="s2">&quot;pointer_move&quot;</span><span class="p">,</span> <span class="n">order</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">normal_handler</span><span class="p">,</span> <span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>       <span class="c1"># order=0</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">slow_handler</span><span class="p">,</span>   <span class="s2">&quot;pointer_move&quot;</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="comparison-with-matplotlib-and-pygfx">
+<h2>Comparison with Matplotlib and pygfx<a class="headerlink" href="#comparison-with-matplotlib-and-pygfx" title="Link to this heading">#</a></h2>
+<p>Design goals: align naming with pygfx/rendercanvas (which inherits from DOM
+conventions), fill the gaps in the old <code class="docutils literal notranslate"><span class="pre">on_click</span></code>/<code class="docutils literal notranslate"><span class="pre">on_release</span></code>/<code class="docutils literal notranslate"><span class="pre">on_key</span></code>
+API, and add anyplotlib-specific extensions (<code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pause_events</span></code>, <code class="docutils literal notranslate"><span class="pre">hold_events</span></code>).</p>
+<section id="api-mapping">
+<h3>API mapping<a class="headerlink" href="#api-mapping" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 35.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>anyplotlib (new)</p></th>
+<th class="head"><p>Matplotlib equivalent</p></th>
+<th class="head"><p>pygfx / rendercanvas equivalent</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;pointer_down&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;button_press_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;pointer_down&quot;)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;pointer_up&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;button_release_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;pointer_up&quot;)</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;pointer_move&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;motion_notify_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;pointer_move&quot;)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;pointer_settled&quot;,</span> <span class="pre">ms=300)</span></code></p></td>
+<td><p><em>(no equivalent — requires manual timer)</em></p></td>
+<td><p><em>(no equivalent)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;pointer_enter&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;axes_enter_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;pointer_enter&quot;)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;pointer_leave&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;axes_leave_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;pointer_leave&quot;)</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;double_click&quot;)</span></code></p></td>
+<td><p><em>(detect via button_press_event + dblclick guard)</em></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;double_click&quot;)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;wheel&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;scroll_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;wheel&quot;)</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;key_down&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;key_press_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;key_down&quot;)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;key_up&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_connect(&quot;key_release_event&quot;,</span> <span class="pre">fn)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;key_up&quot;)</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">add_event_handler(fn,</span> <span class="pre">&quot;*&quot;)</span></code></p></td>
+<td><p><em>(no wildcard — register for each type separately)</em></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.add_event_handler(fn,</span> <span class="pre">&quot;*&quot;)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">plot.pause_events()</span></code></p></td>
+<td><p><em>(no equivalent)</em></p></td>
+<td><p><em>(no equivalent)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">plot.hold_events()</span></code></p></td>
+<td><p><em>(no equivalent)</em></p></td>
+<td><p><em>(no equivalent)</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">remove_handler(cid)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fig.canvas.mpl_disconnect(cid)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">renderer.remove_event_handler(fn,</span> <span class="pre">&quot;pointer_down&quot;)</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="event-field-mapping">
+<h3>Event field mapping<a class="headerlink" href="#event-field-mapping" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 35.0%" />
+<col style="width: 37.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>anyplotlib field</p></th>
+<th class="head"><p>Matplotlib equivalent</p></th>
+<th class="head"><p>pygfx equivalent</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event.xdata</span></code>, <code class="docutils literal notranslate"><span class="pre">event.ydata</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.xdata</span></code>, <code class="docutils literal notranslate"><span class="pre">event.ydata</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.x</span></code>, <code class="docutils literal notranslate"><span class="pre">event.y</span></code> <em>(data-space)</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">event.x</span></code>, <code class="docutils literal notranslate"><span class="pre">event.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.x</span></code>, <code class="docutils literal notranslate"><span class="pre">event.y</span></code> <em>(canvas pixels)</em></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.x</span></code>, <code class="docutils literal notranslate"><span class="pre">event.y</span></code> <em>(canvas pixels)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event.button</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.button</span></code> (1=left, 2=middle, 3=right)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.button</span></code> (0=left, 1=middle, 2=right)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">event.modifiers</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.key</span></code> <em>(only first modifier)</em></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.modifiers</span></code> <em>(list)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event.key</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.key</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">event.key</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">event.dwell_ms</span></code></p></td>
+<td><p><em>(absent)</em></p></td>
+<td><p><em>(absent)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event.line_id</span></code></p></td>
+<td><p><em>(absent — use pick_event)</em></p></td>
+<td><p><em>(absent)</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">event.bar_index</span></code></p></td>
+<td><p><em>(absent — use pick_event)</em></p></td>
+<td><p><em>(absent)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event.ray</span></code></p></td>
+<td><p><em>(absent)</em></p></td>
+<td><p><em>(absent — 3-D not a focus of rendercanvas)</em></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Matplotlib uses a 1-based button numbering (1=left, 2=middle, 3=right).
+anyplotlib and pygfx both follow the DOM convention (0=left, 1=middle,
+2=right).</p>
+</div>
+</section>
+</section>
+<section id="implementation-status">
+<h2>Implementation status<a class="headerlink" href="#implementation-status" title="Link to this heading">#</a></h2>
+<p>The table below tracks what is implemented, partially implemented, or planned
+for each event type and plot class.  ✓ = fully implemented,
+◑ = partial / known gap, ✗ = not yet implemented.</p>
+<section id="id1">
+<h3>Event types<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 14.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Event type</p></th>
+<th class="head"><p>Plot1D</p></th>
+<th class="head"><p>Plot2D</p></th>
+<th class="head"><p>PlotMesh</p></th>
+<th class="head"><p>Plot3D</p></th>
+<th class="head"><p>PlotBar</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_down</span></code></p></td>
+<td><p>✓ <br/> <em>(on mouseup,</em> <br/> <em>click-detection)</em></p></td>
+<td><p>✓ <br/> <em>(on mouseup,</em> <br/> <em>click-detection)</em></p></td>
+<td><p>✓ <br/> <em>(on mouseup,</em> <br/> <em>click-detection)</em></p></td>
+<td><p>✗ <br/> <em>(drag start,</em> <br/> <em>not emitted)</em></p></td>
+<td><p>✓ <br/> <em>(on mousedown)</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_up</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✗</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_move</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_enter</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_leave</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">double_click</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✗</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">wheel</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">key_down</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key_up</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="event-fields">
+<h3>Event fields<a class="headerlink" href="#event-fields" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 14.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Plot1D</p></th>
+<th class="head"><p>Plot2D</p></th>
+<th class="head"><p>PlotMesh</p></th>
+<th class="head"><p>Plot3D</p></th>
+<th class="head"><p>PlotBar</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> <em>(canvas px)</em></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">button</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">buttons</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">modifiers</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xdata</span></code>, <code class="docutils literal notranslate"><span class="pre">ydata</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✗ <em>(always None)</em></p></td>
+<td><p>✗ <em>(always None)</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ray</span></code></p></td>
+<td><p>✗ <em>(always None)</em></p></td>
+<td><p>✗ <em>(always None)</em></p></td>
+<td><p>✗ <em>(always None)</em></p></td>
+<td><p>✗ <em>(not yet impl.)</em></p></td>
+<td><p>✗ <em>(always None)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">line_id</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>n/a</p></td>
+<td><p>n/a</p></td>
+<td><p>n/a</p></td>
+<td><p>n/a</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dwell_ms</span></code></p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+<td><p>✓</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bar_index</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <br/> <code class="docutils literal notranslate"><span class="pre">x_label</span></code>, <code class="docutils literal notranslate"><span class="pre">group_index</span></code></p></td>
+<td><p>n/a</p></td>
+<td><p>n/a</p></td>
+<td><p>n/a</p></td>
+<td><p>n/a</p></td>
+<td><p>✓ <em>(pointer_down only)</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code></p></td>
+<td><p>✓ <em>(wheel only)</em></p></td>
+<td><p>✓ <em>(wheel only)</em></p></td>
+<td><p>✓ <em>(wheel only)</em></p></td>
+<td><p>✓ <em>(wheel only)</em></p></td>
+<td><p>✓ <em>(wheel only)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">last_widget_id</span></code></p></td>
+<td><p>✓ <em>(key events)</em></p></td>
+<td><p>✓ <em>(key events)</em></p></td>
+<td><p>✓ <em>(key events)</em></p></td>
+<td><p>✓ <em>(key events)</em></p></td>
+<td><p>✓ <em>(key events)</em></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="known-gaps-and-planned-work">
+<h3>Known gaps and planned work<a class="headerlink" href="#known-gaps-and-planned-work" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Gap</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Plot3D</strong> <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code> not emitted</p></td>
+<td><p>Mousedown starts azimuth/elevation drag; a separate
+<code class="docutils literal notranslate"><span class="pre">pointer_down</span></code> signal is not yet emitted. Tracked as a known
+limitation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Plot3D</strong> <code class="docutils literal notranslate"><span class="pre">double_click</span></code> not emitted</p></td>
+<td><p>The dblclick DOM listener is not attached to the 3-D canvas.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Plot3D</strong> <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code> emits on document <code class="docutils literal notranslate"><span class="pre">mouseup</span></code></p></td>
+<td><p>Works correctly but always emits even if the press started outside
+the panel.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ray</span></code> field not populated on Plot3D</p></td>
+<td><p>The <code class="docutils literal notranslate"><span class="pre">{&quot;origin&quot;:</span> <span class="pre">…,</span> <span class="pre">&quot;direction&quot;:</span> <span class="pre">…}</span></code> 3-D ray-cast is not yet
+computed; the field is always <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pointer_down</span></code> on Plot1D/2D/PlotMesh uses click-detection</p></td>
+<td><p>Fires on <code class="docutils literal notranslate"><span class="pre">mouseup</span></code> after a short-distance, short-duration
+gesture — not on the raw <code class="docutils literal notranslate"><span class="pre">mousedown</span></code>. This matches typical
+click semantics but differs from the DOM <code class="docutils literal notranslate"><span class="pre">mousedown</span></code> event.</p></td>
+</tr>
+<tr class="row-odd"><td><p>PlotBar <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code> not emitted</p></td>
+<td><p>The bar canvas has no <code class="docutils literal notranslate"><span class="pre">mouseup</span></code> listener; only <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code>
+(on <code class="docutils literal notranslate"><span class="pre">mousedown</span></code>) is emitted.</p></td>
+</tr>
+<tr class="row-even"><td><p>Touch events not supported</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pointer_down</span></code> / <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> / <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code> are currently
+mouse-only; touch and stylus events are not forwarded.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">#</a></h2>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="api/generated/anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.callbacks.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a></dt><dd><p>Full field reference for the event dataclass.</p>
+</dd>
+<dt><a class="reference internal" href="api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.CallbackRegistry" title="anyplotlib.CallbackRegistry"><code class="xref py py-class docutils literal notranslate"><span class="pre">CallbackRegistry</span></code></a></dt><dd><p>Low-level registry: <code class="docutils literal notranslate"><span class="pre">connect</span></code>, <code class="docutils literal notranslate"><span class="pre">disconnect</span></code>, <code class="docutils literal notranslate"><span class="pre">fire</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pause_events</span></code>, <code class="docutils literal notranslate"><span class="pre">hold_events</span></code>.</p>
+</dd>
+<dt><a class="reference internal" href="api/callbacks.html"><span class="doc">Callbacks</span></a></dt><dd><p>Autogenerated API documentation for both classes.</p>
+</dd>
+<dt><a class="reference internal" href="auto_examples/index.html"><span class="doc">Examples</span></a></dt><dd><p>Gallery of interactive examples using <code class="docutils literal notranslate"><span class="pre">add_event_handler</span></code>.</p>
+</dd>
+</dl>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="getting_started.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Getting Started</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="embedding.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Embedding outside Jupyter</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#event-types">Event types</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pointer-settled-thresholds"><code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code> thresholds</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#event-object">Event object</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#universal-fields-every-event">Universal fields (every event)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pointer-fields">Pointer fields</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#plotbar-additional-fields-on-pointer-down">PlotBar additional fields on <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#wheel-fields">Wheel fields</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#key-fields">Key fields</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#per-line-filtering-on-plot1d">Per-line filtering on Plot1D</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pause-and-hold">Pause and hold</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#priority-ordering">Priority ordering</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#comparison-with-matplotlib-and-pygfx">Comparison with Matplotlib and pygfx</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#api-mapping">API mapping</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#event-field-mapping">Event field mapping</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#implementation-status">Implementation status</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Event types</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#event-fields">Event fields</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#known-gaps-and-planned-work">Known gaps and planned work</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-reference">API Reference</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/events.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

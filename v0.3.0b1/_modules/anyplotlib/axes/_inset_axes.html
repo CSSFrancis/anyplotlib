@@ -1,0 +1,781 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>anyplotlib.axes._inset_axes &#8212; anyplotlib 0.3.0b1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/anywidget_overlay.css?v=a271c467" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=6a9e09cd" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../../_static/documentation_options.js?v=c574efb9"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../../_static/anywidget_config.js?v=cd5adc06"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../../_static/anywidget_bridge.js?v=a2d47ea1"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/axes/_inset_axes';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/v0.3.0b1/_modules/anyplotlib/axes/_inset_axes.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="../../../_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">anyplotlib.axes._inset_axes</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for anyplotlib.axes._inset_axes</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">axes/_inset_axes.py</span>
+<span class="sd">===================</span>
+<span class="sd">Floating overlay inset (not in the grid).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_uuid</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.axes._axes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Axes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plot1d</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlotBar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plot2d</span><span class="w"> </span><span class="kn">import</span> <span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plot3d</span><span class="w"> </span><span class="kn">import</span> <span class="n">Plot3D</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_plot_kind</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the JS panel-kind string for a plot object.</span>
+
+<span class="sd">    Used in ``Figure._push_layout()`` and ``InsetAxes.__repr__``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">Plot3D</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;3d&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="p">(</span><span class="n">Plot2D</span><span class="p">,</span> <span class="n">PlotMesh</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="s2">&quot;2d&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">PlotBar</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;bar&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;1d&quot;</span>
+
+
+<span class="n">_VALID_CORNERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="s2">&quot;top-left&quot;</span><span class="p">,</span> <span class="s2">&quot;bottom-right&quot;</span><span class="p">,</span> <span class="s2">&quot;bottom-left&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="InsetAxes">
+<a class="viewcode-back" href="../../../api/figure_plots.html#anyplotlib.axes.InsetAxes">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InsetAxes</span><span class="p">(</span><span class="n">Axes</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A floating inset sub-plot that overlays the main Figure grid.</span>
+
+<span class="sd">    Created via :meth:`Figure.add_inset`.  Supports the same plot-factory</span>
+<span class="sd">    methods as :class:`Axes` (``imshow``, ``plot``, ``pcolormesh``, etc.).</span>
+
+<span class="sd">    The inset is positioned at a corner of the figure and can be minimized</span>
+<span class="sd">    (title bar only), maximized (expanded to fill ~72% of the figure), or</span>
+<span class="sd">    restored to its normal size.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fig : Figure</span>
+<span class="sd">    w_frac, h_frac : float</span>
+<span class="sd">        Width and height as fractions of the figure dimensions (0–1).</span>
+<span class="sd">    corner : str, optional</span>
+<span class="sd">        One of ``&quot;top-right&quot;``, ``&quot;top-left&quot;``, ``&quot;bottom-right&quot;``,</span>
+<span class="sd">        ``&quot;bottom-left&quot;``.  Default ``&quot;top-right&quot;``.  Mutually exclusive with</span>
+<span class="sd">        *anchor* — pass exactly one.</span>
+<span class="sd">    anchor : (x_frac, y_frac), optional</span>
+<span class="sd">        Position of the inset&#39;s TOP-LEFT corner as fractions of the figure</span>
+<span class="sd">        size (0–1), measured from the figure&#39;s top-left.  When given, the</span>
+<span class="sd">        inset floats freely at that anchor instead of snapping to a corner</span>
+<span class="sd">        (``corner`` is then ignored / ``None``).  Minimize / maximize / restore</span>
+<span class="sd">        all still work: a minimized anchored inset collapses to its title bar</span>
+<span class="sd">        in place, a maximized one floats centred, and restore returns it to the</span>
+<span class="sd">        anchor.</span>
+<span class="sd">    title : str, optional</span>
+<span class="sd">        Text shown in the inset title bar.  Default ``&quot;&quot;``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; fig, ax = apl.subplots(1, 1, figsize=(640, 480))</span>
+<span class="sd">    &gt;&gt;&gt; ax.imshow(data)</span>
+<span class="sd">    &gt;&gt;&gt; inset = fig.add_inset(0.3, 0.25, corner=&quot;top-right&quot;, title=&quot;Zoom&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; inset.imshow(data[64:128, 64:128])</span>
+<span class="sd">    &gt;&gt;&gt; # arbitrary placement:</span>
+<span class="sd">    &gt;&gt;&gt; free = fig.add_inset(0.3, 0.25, anchor=(0.55, 0.1), title=&quot;Callout&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; free.imshow(data[64:128, 64:128])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">w_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">corner</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">anchor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax_</span><span class="p">,</span> <span class="n">ay_</span> <span class="o">=</span> <span class="n">anchor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">ax_</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">ay_</span><span class="p">))</span>
+            <span class="c1"># anchor placement supersedes corner; keep corner=None so both the</span>
+            <span class="c1"># layout math and the callout corner-pairing know it is free-floating.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">corner</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">corner</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_VALID_CORNERS</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;corner must be one of </span><span class="si">{</span><span class="n">_VALID_CORNERS</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">corner</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">corner</span> <span class="o">=</span> <span class="n">corner</span>
+        <span class="c1"># Pass a dummy SubplotSpec so Axes.__init__ doesn&#39;t fail — InsetAxes</span>
+        <span class="c1"># never occupies a grid cell, only overlays the figure.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.figure._gridspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubplotSpec</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">SubplotSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w_frac</span> <span class="o">=</span> <span class="n">w_frac</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_frac</span> <span class="o">=</span> <span class="n">h_frac</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span>  <span class="o">=</span> <span class="n">title</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;normal&quot;</span>
+        <span class="c1"># Region indication (mark_inset-style callout) tied to this inset, or</span>
+        <span class="c1"># None.  Set via :meth:`indicate_region`, cleared via</span>
+        <span class="c1"># :meth:`clear_indication`.  Persisted in Figure.layout_json.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indication</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># ── state API ─────────────────────────────────────────────────────────</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inset_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Current state: ``&quot;normal&quot;``, ``&quot;minimized&quot;``, or ``&quot;maximized&quot;``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span>
+
+<div class="viewcode-block" id="InsetAxes.minimize">
+<a class="viewcode-back" href="../../../api/figure_plots.html#anyplotlib.axes.InsetAxes.minimize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">minimize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Collapse the inset to its title bar only (idempotent).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span> <span class="o">==</span> <span class="s2">&quot;minimized&quot;</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span> <span class="o">=</span> <span class="s2">&quot;minimized&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="InsetAxes.maximize">
+<a class="viewcode-back" href="../../../api/figure_plots.html#anyplotlib.axes.InsetAxes.maximize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">maximize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Expand the inset to ~72 % of the figure, centred (idempotent).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span> <span class="o">==</span> <span class="s2">&quot;maximized&quot;</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span> <span class="o">=</span> <span class="s2">&quot;maximized&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="InsetAxes.restore">
+<a class="viewcode-back" href="../../../api/figure_plots.html#anyplotlib.axes.InsetAxes.restore">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the inset to its normal corner position (idempotent).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span> <span class="o">==</span> <span class="s2">&quot;normal&quot;</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span> <span class="o">=</span> <span class="s2">&quot;normal&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span></div>
+
+
+    <span class="c1"># ── region indication (mark_inset-style callout) ──────────────────────</span>
+
+<div class="viewcode-block" id="InsetAxes.indicate_region">
+<a class="viewcode-back" href="../../../api/figure_plots.html#anyplotlib.axes.InsetAxes.indicate_region">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">indicate_region</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent_plot</span><span class="p">,</span> <span class="n">region</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                        <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#ff9800&quot;</span><span class="p">,</span>
+                        <span class="n">linestyle</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;dashed&quot;</span><span class="p">,</span>
+                        <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;InsetAxes&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Draw a callout tying this inset to a region of *parent_plot*.</span>
+
+<span class="sd">        Renders — on the parent panel&#39;s overlay — a rectangle around *region*</span>
+<span class="sd">        (in the parent image&#39;s DATA coordinates) plus two leader lines joining</span>
+<span class="sd">        the rectangle&#39;s corners that face the inset to the inset&#39;s nearest</span>
+<span class="sd">        corners, the classic matplotlib ``mark_inset`` look.  The rectangle</span>
+<span class="sd">        tracks the parent&#39;s zoom / pan and the leaders follow the inset as it</span>
+<span class="sd">        moves or minimizes (leaders hide while the inset is minimized).</span>
+
+<span class="sd">        Calling ``indicate_region`` again REPLACES any previous indication for</span>
+<span class="sd">        this inset.  Remove it with :meth:`clear_indication`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parent_plot : Plot2D</span>
+<span class="sd">            The parent image plot the region lives on.  Must be a 2-D image</span>
+<span class="sd">            panel in the SAME figure as this inset (typically the panel the</span>
+<span class="sd">            inset overlays) — a plot registered on a different ``Figure``</span>
+<span class="sd">            raises ``ValueError``.</span>
+<span class="sd">        region : tuple of float</span>
+<span class="sd">            The source rectangle in the parent image&#39;s data coordinates, as</span>
+<span class="sd">            ``(x, y, w, h)``: top-left ``(x, y)`` plus width and height.  The</span>
+<span class="sd">            values follow the same convention as the parent&#39;s axes (pixel</span>
+<span class="sd">            indices for an uncalibrated image; physical units when the axes</span>
+<span class="sd">            are calibrated).</span>
+<span class="sd">            All four must be finite; ``w`` and ``h`` must be strictly</span>
+<span class="sd">            positive.  The rectangle MAY extend outside the parent&#39;s data</span>
+<span class="sd">            bounds (e.g. a region near an edge) — that is allowed by design</span>
+<span class="sd">            and simply clips visually; only degenerate/non-finite values are</span>
+<span class="sd">            rejected.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            Stroke colour of both the rectangle and the leader lines.</span>
+<span class="sd">            Default warm orange ``&quot;#ff9800&quot;``.</span>
+<span class="sd">        linestyle : str, optional</span>
+<span class="sd">            ``&quot;dashed&quot;`` (default), ``&quot;solid&quot;``, or ``&quot;dotted&quot;``.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Stroke width in CSS px.  Default ``1.5``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        InsetAxes</span>
+<span class="sd">            ``self``, for chaining.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``parent_plot`` has no panel id, is not registered on this</span>
+<span class="sd">            inset&#39;s Figure, or ``region`` is not 4 finite numbers with</span>
+<span class="sd">            ``w &gt; 0`` and ``h &gt; 0``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">parent_plot</span><span class="p">,</span> <span class="s2">&quot;_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;indicate_region: parent_plot has no panel id &quot;</span>
+                             <span class="s2">&quot;(attach it to the figure first)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">parent_plot</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;indicate_region: parent_plot is not registered on this &quot;</span>
+                <span class="s2">&quot;inset&#39;s Figure — pass a plot created on the same figure &quot;</span>
+                <span class="s2">&quot;as this inset (fig.add_inset / fig.subplots)&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">region</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;indicate_region: region must be 4 numbers (x, y, w, h), &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="n">region</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;indicate_region: region values must be finite, got &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(x=</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">, y=</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">, w=</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2">, h=</span><span class="si">{</span><span class="n">h</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">w</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">h</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;indicate_region: region width and height must be &gt; 0, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;got (w=</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2">, h=</span><span class="si">{</span><span class="n">h</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indication</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;parent_id&quot;</span><span class="p">:</span> <span class="n">pid</span><span class="p">,</span>
+            <span class="s2">&quot;region&quot;</span><span class="p">:</span>    <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">],</span>
+            <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">color</span><span class="p">,</span>
+            <span class="s2">&quot;linestyle&quot;</span><span class="p">:</span> <span class="n">linestyle</span><span class="p">,</span>
+            <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="InsetAxes.clear_indication">
+<a class="viewcode-back" href="../../../api/figure_plots.html#anyplotlib.axes.InsetAxes.clear_indication">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_indication</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove any region indication attached to this inset (idempotent).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indication</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indication</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">indication</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;dict | None&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The current region-indication spec (``dict``) or ``None``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indication</span>
+
+    <span class="c1"># ── internal ──────────────────────────────────────────────────────────</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_attach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register the plot on this inset via Figure._register_inset.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">panel_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">_id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">panel_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
+        <span class="n">plot</span><span class="o">.</span><span class="n">_id</span>  <span class="o">=</span> <span class="n">panel_id</span>
+        <span class="n">plot</span><span class="o">.</span><span class="n">_fig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="o">=</span> <span class="n">plot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_register_inset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">kind</span> <span class="o">=</span> <span class="n">_plot_kind</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="k">else</span> <span class="s2">&quot;empty&quot;</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;anchor=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">anchor</span><span class="si">!r}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+               <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;corner=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">corner</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;InsetAxes(</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;size=(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">w_frac</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_frac</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">), &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;state=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_inset_state</span><span class="si">!r}</span><span class="s2">, kind=</span><span class="si">{</span><span class="n">kind</span><span class="si">!r}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
