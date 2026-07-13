@@ -337,3 +337,99 @@ class TestFigureMarkerDispatch:
         assert m["x"] == 0.3 and m["y"] == 0.4
         # w/h unchanged (not in the drag payload)
         assert m["w"] == 0.2 and m["h"] == 0.1
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Batch 3.1 — panel drag-swap dispatch
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestPanelSwapDispatch:
+    def test_panel_swap_fires_figure_event_with_ids(self):
+        fig = apl.Figure(1, 2)
+        a0 = fig.add_subplot((0, 0)); v0 = a0.imshow(np.zeros((8, 8)))
+        a1 = fig.add_subplot((0, 1)); v1 = a1.imshow(np.zeros((8, 8)))
+        got = []
+        fig.add_event_handler(lambda e: got.append(e), "pointer_up")
+        fig._dispatch_event(json.dumps({
+            "source": "js", "panel_id": "", "event_type": "pointer_up",
+            "panel_swap": True,
+            "source_panel_id": v0._id, "target_panel_id": v1._id,
+        }))
+        assert len(got) == 1
+        e = got[0]
+        assert e.source is fig
+        assert e.source_panel_id == v0._id
+        assert e.target_panel_id == v1._id
+
+    def test_panel_swap_does_not_touch_panels_or_layout(self):
+        # anyplotlib performs NO layout change itself on a swap.
+        fig = apl.Figure(1, 2)
+        a0 = fig.add_subplot((0, 0)); v0 = a0.imshow(np.zeros((8, 8)))
+        a1 = fig.add_subplot((0, 1)); v1 = a1.imshow(np.zeros((8, 8)))
+        panel_got = []
+        v0.add_event_handler(lambda e: panel_got.append(e), "pointer_up")
+        v1.add_event_handler(lambda e: panel_got.append(e), "pointer_up")
+        before = fig.layout_json
+        fig._dispatch_event(json.dumps({
+            "source": "js", "panel_id": "", "event_type": "pointer_up",
+            "panel_swap": True,
+            "source_panel_id": v0._id, "target_panel_id": v1._id,
+        }))
+        # No per-panel callback fired, and layout is untouched.
+        assert panel_got == []
+        assert fig.layout_json == before
+
+    def test_panel_swap_ids_none_on_other_events(self):
+        # A non-swap figure event leaves the swap fields None.
+        fig, ax = apl.subplots(1, 1)
+        got = []
+        fig.add_event_handler(lambda e: got.append(e), "pointer_down")
+        fig._dispatch_event(json.dumps({
+            "source": "js", "panel_id": "", "event_type": "pointer_down",
+            "figure_background": True,
+        }))
+        assert got[0].source_panel_id is None
+        assert got[0].target_panel_id is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Batch 3.2 — arrow tail reshape / resize round-trip via _update_from_js
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestArrowTailReshapeSync:
+    def test_tail_reshape_updates_x_y_u_v(self):
+        # Simulate the JS resize_tail drag: tail moved by (+4, +3); the JS keeps
+        # the head anchored by also shifting u,v by the negative delta.  Python
+        # just applies whatever x/y/u/v the JS emits.
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_arrow_widget(x=6, y=6, u=20, v=20)
+        # original head = (26, 26); tail → (10, 9); head must stay (26, 26)
+        _simulate_js_event(fig, v, "pointer_up", widget_id=w,
+                           x=10.0, y=9.0, u=16.0, v=17.0)
+        d = w.to_dict()
+        assert (d["x"], d["y"]) == (10.0, 9.0)
+        # head = x+u, y+v stays anchored at the original (26, 26)
+        assert d["x"] + d["u"] == pytest.approx(26.0)
+        assert d["y"] + d["v"] == pytest.approx(26.0)
+
+
+class TestCircleRectResizeSync:
+    def test_circle_radius_resize_updates_r(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_circle_widget(cx=16, cy=16, r=5)
+        _simulate_js_event(fig, v, "pointer_up", widget_id=w,
+                           cx=16.0, cy=16.0, r=9.0)
+        d = w.to_dict()
+        assert d["r"] == 9.0 and d["cx"] == 16.0 and d["cy"] == 16.0
+
+    def test_rect_corner_resize_updates_wh_and_xy(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_rectangle_widget(x=4, y=4, w=10, h=8)
+        # top-left corner drag anchors the SE corner: x,y and w,h both change.
+        _simulate_js_event(fig, v, "pointer_up", widget_id=w,
+                           x=6.0, y=5.0, w=8.0, h=7.0)
+        d = w.to_dict()
+        assert (d["x"], d["y"], d["w"], d["h"]) == (6.0, 5.0, 8.0, 7.0)

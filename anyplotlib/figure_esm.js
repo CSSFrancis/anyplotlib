@@ -3,7 +3,7 @@
 // Each panel gets its own three-canvas stack (plot / overlay / markers).
 // Panels are drawn independently; only the changed panel's listener fires.
 
-function render({ model, el }) {
+function render({ model, el, onResize }) {
   const dpr = window.devicePixelRatio || 1;
 
   // ── shared plot-area padding (mirrors 1D drawing constants) ─────────────
@@ -1649,6 +1649,106 @@ function render({ model, el }) {
     e.preventDefault();
   }
 
+  // ── Panel drag-swap (edit mode) ───────────────────────────────────────────
+  // A ~16px "⋮⋮" move grip in each panel cell's top-left corner (edit mode
+  // only).  Dragging it starts a swap: the source panel dims, the panel under
+  // the cursor is highlighted as the drop target, and releasing over a
+  // DIFFERENT panel emits a figure-level {panel_swap} event.  anyplotlib does
+  // NOT reorder anything itself — the host swaps + rebuilds the layout.  The
+  // grip only exists / captures events under edit_chrome; off-edit it is
+  // display:none so it never steals a widget drag or a panel selection click.
+  const GRIP_PX = 16;
+  let _panelSwapDrag = null;   // {sourceId, startX, startY} while dragging
+
+  function _panelAt(clientX, clientY) {
+    // Topmost panel cell containing the point (grid cells don't overlap).
+    for (const p of panels.values()) {
+      const cell = p.cell; if (!cell) continue;
+      // Skip insets — swap is grid-panel only.
+      if (p.isInset) continue;
+      const r = cell.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right &&
+          clientY >= r.top  && clientY <= r.bottom) return p;
+    }
+    return null;
+  }
+
+  function _clearSwapFeedback() {
+    for (const p of panels.values()) {
+      if (!p.cell) continue;
+      p.cell.style.opacity = '';
+      // Restore the panel's normal chrome (selection/hover outline).
+    }
+    _applyPanelChrome();
+  }
+
+  function _ensureGrip(p) {
+    if (p.grip || !p.cell) return;
+    const g = document.createElement('div');
+    g.className = 'apl-panel-grip';
+    // Dark-theme dotted-grid affordance; grab cursor; sits above the canvas
+    // stack (canvases are z 5) but is display:none unless edit mode is on.
+    g.style.cssText =
+      `position:absolute;top:2px;left:2px;width:${GRIP_PX}px;height:${GRIP_PX}px;` +
+      `z-index:12;cursor:grab;display:none;border-radius:3px;` +
+      `align-items:center;justify-content:center;font-size:12px;line-height:1;` +
+      `color:${theme.fg||'#cdd6f4'};background:${theme.bg||'#1e1e2e'};` +
+      `border:1px solid ${theme.border||'#44475a'};` +
+      `box-shadow:0 1px 3px rgba(0,0,0,0.4);user-select:none;`;
+    g.textContent = '⠿';  // ⠿ braille dots — a clean "grab" grid glyph
+    g.title = 'Drag to swap this panel';
+    g.addEventListener('mousedown', (e) => {
+      if (!_editOn() || e.button !== 0) return;
+      // Grip wins over panel selection / marker grab within its own bounds.
+      e.preventDefault(); e.stopPropagation();
+      _panelSwapDrag = { sourceId: p.id, startX: e.clientX, startY: e.clientY };
+      g.style.cursor = 'grabbing';
+      p.cell.style.opacity = '0.4';   // ghost the source
+    });
+    p.cell.appendChild(g);
+    p.grip = g;
+  }
+
+  // Global move / up handlers for an in-progress panel swap.
+  document.addEventListener('mousemove', (e) => {
+    if (!_panelSwapDrag) return;
+    const target = _panelAt(e.clientX, e.clientY);
+    // Highlight the drop target (not the source) with a solid accent outline.
+    for (const p of panels.values()) {
+      if (!p.cell || p.isInset) continue;
+      if (p.id === _panelSwapDrag.sourceId) continue;
+      if (target && p.id === target.id) {
+        p.cell.style.outline = `2px solid ${EDIT_ACCENT}`;
+        p.cell.style.outlineOffset = '-2px';
+      } else {
+        // Clear any transient swap highlight (leave the source alone).
+        p.cell.style.outline = '';
+        p.cell.style.outlineOffset = '';
+      }
+    }
+    e.preventDefault();
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (!_panelSwapDrag) return;
+    const d = _panelSwapDrag; _panelSwapDrag = null;
+    if (d.sourceId && panels.get(d.sourceId) && panels.get(d.sourceId).grip)
+      panels.get(d.sourceId).grip.style.cursor = 'grab';
+    const target = _panelAt(e.clientX, e.clientY);
+    // Emit ONLY when released over a different, non-inset panel.
+    if (target && !target.isInset && target.id !== d.sourceId) {
+      _emitEvent('', 'pointer_up', null, {
+        panel_swap: true,
+        source_panel_id: d.sourceId,
+        target_panel_id: target.id,
+        ..._pointerFields(e), button: e.button,
+      });
+    }
+    // Released on the source panel / empty space → cancel cleanly (no emit).
+    _clearSwapFeedback();
+    e.preventDefault();
+  });
+
   // ── Edit chrome: per-panel hover + selection outlines ─────────────────────
   // Purely JS-local DOM styling; never exported.  Hover uses a dashed accent
   // outline via a data-attr-driven inline style; selection a solid one.
@@ -1657,10 +1757,18 @@ function render({ model, el }) {
     const sel = model.get('selected_panel') || '';
     for (const p of panels.values()) {
       const cell = p.cell; if (!cell) continue;
+      // Move grip: created lazily, shown only in edit mode on grid panels.
+      if (!p.isInset) {
+        _ensureGrip(p);
+        if (p.grip) p.grip.style.display = edit ? 'flex' : 'none';
+      }
       // Selection outline (persistent, solid) wins over hover.
+      // outline-offset is fully NEGATIVE (−width) so the whole ring is inset
+      // INSIDE the cell bounds — otherwise an edge/corner panel's outline is
+      // clipped at the figure's right/bottom edge (half the stroke spills out).
       if (edit && p.id === sel) {
         cell.style.outline = `2px solid ${EDIT_ACCENT}`;
-        cell.style.outlineOffset = '-1px';
+        cell.style.outlineOffset = '-2px';
       } else if (!p._editHover || !edit) {
         cell.style.outline = '';
         cell.style.outlineOffset = '';
@@ -1672,7 +1780,7 @@ function render({ model, el }) {
           p._editHover = true;
           if (_editOn() && p.id !== (model.get('selected_panel') || '')) {
             cell.style.outline = `2px dashed ${EDIT_ACCENT}`;
-            cell.style.outlineOffset = '-1px';
+            cell.style.outlineOffset = '-2px';
           }
         });
         cell.addEventListener('mouseleave', () => {
@@ -1722,6 +1830,12 @@ function render({ model, el }) {
   // A plain click inside a panel does neither (its own path handles it).
   outerDiv.addEventListener('mousedown', (e) => {
     if (!_editOn() || e.button !== 0) return;
+
+    // (0) A panel move-grip owns its own bounds — let its own mousedown handler
+    // start the swap; do not marker-grab or background-emit here.
+    if (e.target && e.target.classList &&
+        e.target.classList.contains('apl-panel-grip')) return;
+
     const [mx, my] = _figMarkerMouse(e);
 
     // (1) Marker grab — highest priority, even over a panel underneath.
@@ -2675,10 +2789,19 @@ function render({ model, el }) {
     }
   }
 
-  function drawOverlay2d(p) {
+  // opts (optional): { ctx, imgW, imgH, forceNoHandles }
+  //   ctx/imgW/imgH default to the panel's own live overlay canvas/dims — pass
+  //   an offscreen ctx + matching dims to redraw the SAME widgets elsewhere
+  //   (e.g. exportPNG's handle-free export redraw; see _drawOverlay2dNoHandles).
+  //   forceNoHandles suppresses the handle dots regardless of each widget's
+  //   own show_handles (mirrors _drawFigureMarkers(sizeOverride, forceNoHandles)).
+  function drawOverlay2d(p, opts) {
     const st=p.state; if(!st) return;
-    const {pw,ph,ovCtx} = p;
-    const imgW=p.imgW||Math.max(1,pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,ph-PAD_T-PAD_B);
+    const o = opts || {};
+    const {pw,ph} = p;
+    const ovCtx = o.ctx || p.ovCtx;
+    const imgW = o.imgW || p.imgW || Math.max(1,pw-PAD_L-PAD_R);
+    const imgH = o.imgH || p.imgH || Math.max(1,ph-PAD_T-PAD_B);
     ovCtx.clearRect(0,0,imgW,imgH);
     const widgets=st.overlay_widgets||[];
     const scale=_imgScale2d(st,imgW,imgH);
@@ -2687,14 +2810,18 @@ function render({ model, el }) {
     ovCtx.beginPath(); ovCtx.rect(vr.x, vr.y, vr.w, vr.h); ovCtx.clip();
     for(const w of widgets){
       if(w.visible === false) continue;
-      // Handle dots are drawn unless the widget opts out (show_handles:false).
-      // The body + hit-testing / drag are unaffected — this is purely cosmetic.
-      const _handles = w.show_handles !== false;
+      // Handle dots are drawn unless the widget opts out (show_handles:false),
+      // or the caller forces them off entirely (export redraw).
+      const _handles = !o.forceNoHandles && w.show_handles !== false;
       ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
       if(w.type==='circle'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath(); ovCtx.arc(ccx,ccy,w.r*scale,0,Math.PI*2); ovCtx.stroke();
-        if(_handles) _drawHandle2d(ovCtx,ccx+w.r*scale,ccy,w.color);
+        if(_handles){
+          // Centre node = move; east-point node = resize radius.
+          _drawHandle2d(ovCtx,ccx,ccy,w.color);
+          _drawHandle2d(ovCtx,ccx+w.r*scale,ccy,w.color);
+        }
       } else if(w.type==='annular'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath();ovCtx.arc(ccx,ccy,w.r_outer*scale,0,Math.PI*2);ovCtx.stroke();
@@ -6060,6 +6187,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           : (m==='resize_br'||m==='resize_tl') ? 'nwse-resize'
           : (m==='resize_bl'||m==='resize_tr') ? 'nesw-resize'
           : (m==='resize_r'||m==='resize_ir')  ? 'ew-resize'
+          : (m==='resize_head'||m==='resize_tail') ? 'crosshair'
           : m.startsWith('vertex_')            ? 'crosshair'
           : 'move';
       } else if(!p.isPanning){
@@ -6470,12 +6598,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if (w.type === 'arrow') {
         const [tx, ty] = _imgToCanvas2d(w.x, w.y, st, imgW, imgH);
         const [hx, hy] = _imgToCanvas2d(w.x + w.u, w.y + w.v, st, imgW, imgH);
-        // head handle → re-aim the arrow
+        // head handle → re-aim the arrow (head moves, tail fixed)
         if (Math.hypot(mx-hx, my-hy) <= HR)
           return { idx:i, mode:'resize_head', snapW:{...w}, startMX:mx, startMY:my };
-        // tail handle → move whole arrow
+        // tail handle → reshape (tail moves, HEAD stays anchored)
         if (Math.hypot(mx-tx, my-ty) <= HR)
-          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+          return { idx:i, mode:'resize_tail', snapW:{...w}, startMX:mx, startMY:my };
         // near the shaft → move whole arrow
         if (_distToSegment2d(mx, my, tx, ty, hx, hy) <= HR)
           return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
@@ -6574,8 +6702,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if (d.mode === 'move') {
         w.x = s.x + dix; w.y = s.y + diy;
       } else if (d.mode === 'resize_head') {
-        // head follows the cursor → u,v = imgMouse − tail
+        // head follows the cursor → u,v = imgMouse − tail (tail fixed)
         w.u = imgMX - s.x; w.v = imgMY - s.y;
+      } else if (d.mode === 'resize_tail') {
+        // tail follows the cursor, HEAD stays anchored: the fixed head is
+        // (s.x + s.u, s.y + s.v).  x,y = tail; u,v = head − tail so the head
+        // point is invariant under the drag.
+        w.x = s.x + dix; w.y = s.y + diy;
+        w.u = s.u - dix; w.v = s.v - diy;
       }
     }
 
@@ -7644,13 +7778,18 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // exact same output-pixel edge on both sides, instead of each picking up
     // an independent +/-1 px from its own width/height rounding — which is
     // what caused 1 px seams / overlaps at fractional scale (e.g. scale:1.25).
-    const _drawEl = (elm) => {
+    // `rectElm` (defaults to `elm`) supplies the on-screen position/visibility
+    // — used to blit an offscreen scratch canvas (no DOM rect of its own) at
+    // the position of the live element it stands in for (see
+    // _drawPanelWidgetsNoHandles below).
+    const _drawEl = (elm, rectElm) => {
       if (!elm) return;
-      const cs = window.getComputedStyle(elm);
+      const re = rectElm || elm;
+      const cs = window.getComputedStyle(re);
       if (cs.display === 'none' || cs.visibility === 'hidden') return;
       // A canvas with 0×0 backing store has nothing to blit.
       if (elm.width === 0 || elm.height === 0) return;
-      const r = elm.getBoundingClientRect();
+      const r = re.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
       const left   = (r.left   - rootRect.left) * outScale;
       const top    = (r.top    - rootRect.top)  * outScale;
@@ -7664,6 +7803,29 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       try { octx.drawImage(elm, dx, dy, dw, dh); } catch (_) {}
     };
 
+    // Widget handle/node dots are edit-mode chrome (like figure-marker handles
+    // — see _drawFigureMarkers(null, true) below), not exported content.  For
+    // includeWidgets:true, redraw the panel's widgets onto a scratch canvas
+    // (same backing size + DPR transform as the live overlayCanvas) with
+    // handles forced off, and blit THAT (positioned via the live
+    // overlayCanvas's own on-screen rect) instead of the live p.overlayCanvas
+    // — so the on-screen canvas (and any handles currently visible on it) is
+    // never touched, no flicker.
+    const _drawPanelWidgetsNoHandles = (p) => {
+      if (!p.overlayCanvas || !p.ovCtx) return null;
+      const oc = p.overlayCanvas;
+      if (oc.width === 0 || oc.height === 0) return null;
+      const scratch = document.createElement('canvas');
+      scratch.width = oc.width; scratch.height = oc.height;
+      const sctx = scratch.getContext('2d');
+      if (!sctx) return null;
+      sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      try {
+        drawOverlay2d(p, { ctx: sctx, imgW: p.imgW, imgH: p.imgH, forceNoHandles: true });
+      } catch (_) { return null; }
+      return scratch;
+    };
+
     // Per-panel canvas stack, in visual z-order (see _buildCanvasStack).
     const _drawPanel = (p) => {
       _drawEl(p.gpuCanvas);      // z 0 — GPU image raster (beneath)
@@ -7671,7 +7833,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       _drawEl(p.yAxisCanvas);    // physical axis gutters (no explicit z)
       _drawEl(p.xAxisCanvas);
       _drawEl(p.cbCanvas);       // colorbar strip + label
-      if (includeWidgets) _drawEl(p.overlayCanvas);  // z 5 — interactive widgets
+      if (includeWidgets) {      // z 5 — interactive widgets, handles suppressed
+        const scratch = _drawPanelWidgetsNoHandles(p);
+        if (scratch) _drawEl(scratch, p.overlayCanvas); else _drawEl(p.overlayCanvas);
+      }
       _drawEl(p.markersCanvas);  // z 6 — static marker groups
       _drawEl(p.scaleBar);       // z 7 — physical scale bar
       _drawEl(p.titleCanvas);    // z 8 — 2-D title strip
@@ -7768,13 +7933,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   if (typeof ResizeObserver !== 'undefined') {
     let _lastCellW = 0;
+    let _lastRoW = 0, _lastRoH = 0;
+    let _roTimer = null;
     new ResizeObserver(entries => {
-      // React only to width changes to avoid a feedback loop: our own
-      // scaleWrap height updates would otherwise re-trigger the observer.
-      const cellW = entries[0].contentRect.width;
-      if (cellW === _lastCellW) return;
-      _lastCellW = cellW;
-      requestAnimationFrame(_applyScale);
+      const cr = entries[0].contentRect;
+      const cellW = cr.width, cellH = cr.height;
+      // (1) Jupyter fit-to-cell down-scale — width-only to avoid a feedback
+      // loop (our own scaleWrap height updates would re-trigger the observer).
+      if (cellW !== _lastCellW) {
+        _lastCellW = cellW;
+        requestAnimationFrame(_applyScale);
+      }
+      // (2) Container-resize hook for an embedding host (SpyDE): fire onResize
+      // with the new root-container CSS px so the host can drive a real
+      // relayout (e.g. handle.resize(w,h) → fig_width/height → applyLayout).
+      // Debounced (rAF-coalesced trailing) so a drag-resize fires once on
+      // settle, not per-frame.  Fires on width OR height change; the host owns
+      // whether to scale, relayout, or ignore.
+      if (typeof onResize === 'function' &&
+          (Math.round(cellW) !== _lastRoW || Math.round(cellH) !== _lastRoH)) {
+        _lastRoW = Math.round(cellW); _lastRoH = Math.round(cellH);
+        if (_roTimer) cancelAnimationFrame(_roTimer);
+        _roTimer = requestAnimationFrame(() => {
+          _roTimer = null;
+          try { onResize({ width: _lastRoW, height: _lastRoH }); } catch (_) {}
+        });
+      }
     }).observe(el);
     requestAnimationFrame(_applyScale);
   }
@@ -7920,6 +8104,9 @@ export function createLocalModel(initialState) {
 // Mount a figure into *el* and return a control handle.
 //   opts.onEvent(ev)        — parsed interaction events (pointer/key/wheel …)
 //   opts.onSync(key, value) — raw outbound model writes, for a Python bridge
+//   opts.onResize({width,height}) — fired (debounced) when the ROOT CONTAINER
+//                             el resizes, so the host can relayout the figure
+//                             to its new box (e.g. call handle.resize(w,h)).
 export function mount(el, state, opts) {
   // Diagnostic marker: proves THIS (WebGPU-2D) build of figure_esm.js is loaded.
   try { globalThis.__apl_build = 'webgpu-2d'; } catch (_) {}
@@ -7935,8 +8122,10 @@ export function mount(el, state, opts) {
     });
   }
   // Capture render()'s internal API so the handle can reach the closure's
-  // panel map + drawing helpers (exportPNG / GPU dispose).
-  const api = render({ model, el }) || {};
+  // panel map + drawing helpers (exportPNG / GPU dispose).  opts.onResize (if
+  // given) is fired with {width,height} when the ROOT CONTAINER resizes, so an
+  // embedding host can relayout the figure to its new box.
+  const api = render({ model, el, onResize: o.onResize }) || {};
   return {
     model,
     api,               // internal render() API (panels, calloutCanvas, _drawCallouts, …)

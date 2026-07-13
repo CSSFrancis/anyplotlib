@@ -578,6 +578,14 @@ class Figure(anywidget.AnyWidget, _EventMixin):
             self._fire_figure_event(event_type, msg)
             return
 
+        # A panel drag-swap: the user dragged one panel's move-grip and released
+        # over a DIFFERENT panel.  anyplotlib performs NO layout change itself —
+        # it only fires a figure-level event carrying the two panel dispatch ids
+        # so the host (e.g. SpyDE) can swap + rebuild.
+        if msg.get("panel_swap"):
+            self._fire_figure_event(event_type, msg)
+            return
+
         # Inset state changes handled before regular plot dispatch
         if event_type == "inset_state_change":
             inset_ax = self._insets_map.get(panel_id)
@@ -655,10 +663,11 @@ class Figure(anywidget.AnyWidget, _EventMixin):
     def _fire_figure_event(self, event_type: str, msg: dict) -> None:
         """Fire the FIGURE-level callback registry with a flat Event.
 
-        Used for figure-background clicks and figure-marker pointer events —
-        events that belong to the figure as a whole, not to any one panel.
-        The marker id (if any) rides in ``last_widget_id`` so a host can tell
-        which annotation moved.
+        Used for figure-background clicks, figure-marker pointer events, and
+        panel drag-swaps — events that belong to the figure as a whole, not to
+        any one panel.  The marker id (if any) rides in ``last_widget_id`` so a
+        host can tell which annotation moved; a panel_swap carries the two panel
+        dispatch ids in ``source_panel_id`` / ``target_panel_id``.
         """
         event = Event(
             event_type=event_type,
@@ -672,6 +681,8 @@ class Figure(anywidget.AnyWidget, _EventMixin):
             xdata=msg.get("xdata"),
             ydata=msg.get("ydata"),
             last_widget_id=msg.get("marker_id"),
+            source_panel_id=msg.get("source_panel_id"),
+            target_panel_id=msg.get("target_panel_id"),
         )
         self.callbacks.fire(event)
 

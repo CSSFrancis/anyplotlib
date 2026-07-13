@@ -221,6 +221,115 @@ class TestExportBasic:
             "includeWidgets=True produced an identical image — overlay not drawn"
         )
 
+    def test_widget_handles_not_exported(self, mount_page):
+        """Panel-overlay widget grab-handle dots are edit-mode chrome (like the
+        figure-marker handles covered by test_edit_chrome_handles_not_exported)
+        and must never be baked into an exported PNG, even with
+        includeWidgets=True and show_handles=True (SpyDE's report edit mode
+        uses show_handles=True on circle/rect/arrow widgets).
+
+        Compares an includeWidgets export of a scene with show_handles=True
+        widgets against the identical scene with show_handles=False — these
+        must be pixel-identical: the widget BODY (circle outline, rect
+        outline, arrow shaft/head) must still export, only the white
+        handle-node dots are suppressed.
+        """
+        def _build(show_handles):
+            fig, ax = apl.subplots(1, 1, figsize=(360, 300))
+            plot = ax.imshow(np.zeros((32, 32), dtype=np.float32),
+                             cmap="gray", vmin=0.0, vmax=1.0)
+            plot.add_widget("circle", cx=8.0, cy=8.0, r=5.0,
+                            color="#ff0000", show_handles=show_handles)
+            plot.add_widget("rectangle", x=18.0, y=4.0, w=10.0, h=8.0,
+                            color="#00ff00", show_handles=show_handles)
+            plot.add_widget("arrow", x=4.0, y=24.0, u=10.0, v=5.0,
+                            color="#0000ff", show_handles=show_handles)
+            return fig
+
+        page_handles = mount_page(_build(True))
+        page_no_handles = mount_page(_build(False))
+        for pg in (page_handles, page_no_handles):
+            pg.evaluate(
+                "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+            )
+
+        arr_handles = _decode_data_url(
+            _export_via_handle(page_handles, {"includeWidgets": True})["dataUrl"])
+        arr_no_handles = _decode_data_url(
+            _export_via_handle(page_no_handles, {"includeWidgets": True})["dataUrl"])
+
+        assert arr_handles.shape == arr_no_handles.shape
+        # Widget body ink (coloured stroke) must be present in both — proves
+        # the export isn't just blank / widgets-excluded.
+        assert _is_nonblank(arr_handles) and _is_nonblank(arr_no_handles)
+        diff = np.abs(arr_handles.astype(np.int32) - arr_no_handles.astype(np.int32)).sum()
+        assert diff == 0, (
+            "show_handles=True export differs from show_handles=False — "
+            f"widget handle dots leaked into the exported image (diff={diff})"
+        )
+
+    def test_widget_body_still_exported_with_handles_suppressed(self, mount_page):
+        """Sanity check for the handle-suppression redraw: the widget BODY
+        (not just the handle dots) must still appear in the includeWidgets
+        export — i.e. the fix must not have blanked the overlay entirely.
+        (Handle-dot suppression itself is proven by the pixel-identical diff
+        in test_widget_handles_not_exported above; a global/local white-pixel
+        count is not a reliable signal here since the default light theme's
+        figure background is itself near white.)"""
+        fig, ax = apl.subplots(1, 1, figsize=(360, 300))
+        plot = ax.imshow(np.zeros((32, 32), dtype=np.float32),
+                         cmap="gray", vmin=0.0, vmax=1.0)
+        plot.add_widget("rectangle", x=6.0, y=6.0, w=18.0, h=18.0,
+                        color="#ff0000", show_handles=True)
+        page = mount_page(fig)
+        page.evaluate(
+            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+        res = _export_via_handle(page, {"includeWidgets": True})
+        assert "error" not in res, res.get("error")
+        arr = _decode_data_url(res["dataUrl"])
+        assert _closest_color(arr, (255, 0, 0)) > 10, (
+            "widget body stroke missing from includeWidgets export — "
+            "handle-suppression redraw dropped the widget entirely"
+        )
+
+        # Confirm the on-screen overlay canvas itself is untouched by the
+        # export redraw (no flicker): edit_chrome + a selected panel draws
+        # handles live, and that must be unaffected by having just exported.
+        fig2, ax2 = apl.subplots(1, 1, figsize=(360, 300))
+        plot2 = ax2.imshow(np.zeros((32, 32), dtype=np.float32),
+                          cmap="gray", vmin=0.0, vmax=1.0)
+        plot2.add_widget("rectangle", x=6.0, y=6.0, w=18.0, h=18.0,
+                         color="#ff0000", show_handles=True)
+        fig2.edit_chrome = True
+        fig2.selected_panel = list(fig2._plots_map)[0]
+        page2 = mount_page(fig2)
+        page2.evaluate(
+            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+        before = page2.evaluate(
+            """(pid) => {
+                const p = window._handle.api.panels.get(pid);
+                return p.overlayCanvas.toDataURL();
+            }""",
+            list(fig2._plots_map)[0],
+        )
+        page2.evaluate(
+            "() => window._handle.exportPNG({includeWidgets: true})"
+        )
+        after = page2.evaluate(
+            """(pid) => {
+                const p = window._handle.api.panels.get(pid);
+                return p.overlayCanvas.toDataURL();
+            }""",
+            list(fig2._plots_map)[0],
+        )
+        assert before == after, (
+            "exportPNG mutated the live on-screen overlayCanvas — "
+            "handle-suppression redraw must use a scratch canvas, not the "
+            "live one"
+        )
+
 
 # ---------------------------------------------------------------------------
 # 1c. Figure-level annotation layer export (always composited; edit chrome is
