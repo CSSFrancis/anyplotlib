@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>anyplotlib.plot2d._plot2d &#8212; anyplotlib 0.2.0 documentation</title>
+    <title>anyplotlib.plot2d._plot2d &#8212; anyplotlib 0.3.0b1 documentation</title>
   
   
   
@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
-    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
+    <script src="../../../_static/documentation_options.js?v=c574efb9"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script defer="defer" src="../../../_static/anywidget_config.js?v=cd5adc06"></script>
@@ -461,7 +461,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Widget</span><span class="p">,</span>
     <span class="n">RectangleWidget</span><span class="p">,</span> <span class="n">CircleWidget</span><span class="p">,</span> <span class="n">AnnularWidget</span><span class="p">,</span>
-    <span class="n">CrosshairWidget</span><span class="p">,</span> <span class="n">PolygonWidget</span><span class="p">,</span> <span class="n">LabelWidget</span><span class="p">,</span>
+    <span class="n">CrosshairWidget</span><span class="p">,</span> <span class="n">PolygonWidget</span><span class="p">,</span> <span class="n">LabelWidget</span><span class="p">,</span> <span class="n">ArrowWidget</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_normalize_image</span><span class="p">,</span> <span class="n">_build_colormap_lut</span><span class="p">,</span> <span class="n">_to_rgba_u8</span>
 
@@ -497,8 +497,34 @@
     <span class="c1">#: channel keys are eligible for the PLOTBIN binary route in _route_change — if it</span>
     <span class="c1">#: rode the light view trait instead, its &quot;\x00bin:&quot; token would never be resolved</span>
     <span class="c1">#: to bytes and the crisp zoom tile would never render (only the overview shows).</span>
-    <span class="n">_GEOM_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;image_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;colormap_data&quot;</span><span class="p">,</span> <span class="s2">&quot;overlay_mask_b64&quot;</span><span class="p">,</span>
-                            <span class="s2">&quot;detail_b64&quot;</span><span class="p">})</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: NB ``_GEOM_KEYS`` is a *property* (not a plain frozenset) because image LAYERS</span>
+    <span class="c1">#: add DYNAMIC pixel keys ``layer_&lt;id&gt;_b64`` — one per active layer — that must</span>
+    <span class="c1">#: also ride the geom channel (dedup-cached + PLOTBIN-eligible), exactly like the</span>
+    <span class="c1">#: base image. The property returns the fixed base set UNION the current layer</span>
+    <span class="c1">#: pixel keys, so ``Figure._push`` splits every layer&#39;s pixels off the light view</span>
+    <span class="c1">#: trait and the binary route recognises them. The consumers only ever iterate the</span>
+    <span class="c1">#: returned set, so a set-typed property is a drop-in for the old frozenset.</span>
+    <span class="n">_BASE_GEOM_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;image_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;colormap_data&quot;</span><span class="p">,</span> <span class="s2">&quot;overlay_mask_b64&quot;</span><span class="p">,</span>
+                                 <span class="s2">&quot;detail_b64&quot;</span><span class="p">})</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_GEOM_KEYS</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">:</span>
+        <span class="n">layer_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_keys</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">layer_keys</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BASE_GEOM_KEYS</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BASE_GEOM_KEYS</span> <span class="o">|</span> <span class="n">layer_keys</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_layer_pixel_key</span><span class="p">(</span><span class="n">layer_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The top-level state / geom key holding one layer&#39;s raw pixel bytes.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;layer_</span><span class="si">{</span><span class="n">layer_id</span><span class="si">}</span><span class="s2">_b64&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_layer_pixel_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The pixel geom keys for every currently-attached layer.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_key</span><span class="p">(</span><span class="n">lyr</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">lyr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">,</span> <span class="p">[]))</span>
 
     <span class="c1"># Logical image bigger than this (either side) uses the tile backend under</span>
     <span class="c1"># tile=&quot;auto&quot;: it sends a downsampled OVERVIEW as the base + streams a hi-res</span>
@@ -704,6 +730,12 @@
                                        <span class="c1"># a re-sampled tile even at the same size/region</span>
             <span class="s2">&quot;overlay_widgets&quot;</span><span class="p">:</span>   <span class="p">[],</span>
             <span class="s2">&quot;markers&quot;</span><span class="p">:</span>           <span class="p">[],</span>
+            <span class="c1"># Image LAYERS (see add_layer): each entry is a small metadata dict</span>
+            <span class="c1"># {id, cmap, clim_min, clim_max, alpha, visible, width, height, image_b64}</span>
+            <span class="c1"># drawn bottom-up OVER the base image. The heavy pixel bytes for a layer</span>
+            <span class="c1"># ride the DYNAMIC geom key layer_&lt;id&gt;_b64 (see _GEOM_KEYS); image_b64 in</span>
+            <span class="c1"># the entry is the base64 / &quot;\x00bin:&quot; TOKEN mirror the JS reads.</span>
+            <span class="s2">&quot;layers&quot;</span><span class="p">:</span>            <span class="p">[],</span>
             <span class="s2">&quot;pointer_settled_ms&quot;</span><span class="p">:</span>    <span class="mi">0</span><span class="p">,</span>
             <span class="s2">&quot;pointer_settled_delta&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
             <span class="c1"># Transparent mask overlay (set via set_overlay_mask)</span>
@@ -739,6 +771,13 @@
         <span class="c1"># this panel (via the gpu_status event → _set_gpu_active). Reflects the</span>
         <span class="c1"># actual render path, not just the requested gpu_mode.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_gpu_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Image layers (see add_layer). ``_layers`` holds the Layer handles in</span>
+        <span class="c1"># z-order; ``_layer_raw`` caches each layer&#39;s display-oriented raw frame</span>
+        <span class="c1"># (keyed by layer id) so a clim change can re-quantise without the caller</span>
+        <span class="c1"># re-supplying data — the layer analogue of ``self._data`` + ``set_clim``.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_layers</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_layer_raw</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">gpu_active</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -837,6 +876,12 @@
 <span class="sd">        (``&quot;mean&quot;|&quot;subsample&quot;|&quot;max&quot;``).  ``None`` keeps the current setting</span>
 <span class="sd">        (default ``&quot;mean&quot;`` from construction).  Use ``&quot;subsample&quot;`` to restore the</span>
 <span class="sd">        old fast nearest-neighbour path when a full-frame area-mean is too expensive.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;enable_tile is not supported on a plot with image layers — tile &quot;</span>
+                <span class="s2">&quot;mode streams detail tiles of a single image and cannot composite &quot;</span>
+                <span class="s2">&quot;independent layers. Remove all layers first (remove_layer), or &quot;</span>
+                <span class="s2">&quot;keep the plot untiled.&quot;</span><span class="p">)</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plot2d._tile_backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">as_tile_backend</span>
         <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_tile_backend</span> <span class="o">=</span> <span class="n">as_tile_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="p">)</span>
@@ -1136,16 +1181,45 @@
 <span class="sd">        base64 (materialised from the Figure&#39;s ``_raw_pixels`` side-table), in</span>
 <span class="sd">        place, and return *d*. Used by the COLD paths (save_html / standalone)</span>
 <span class="sd">        that have no PLOTBIN channel and need the pixels inline. A no-op for a</span>
-<span class="sd">        normal base64 string. See :meth:`to_state_dict`.&quot;&quot;&quot;</span>
+<span class="sd">        normal base64 string. See :meth:`to_state_dict`.</span>
+
+<span class="sd">        Also materialises every LAYER&#39;s pixels: each layer has a top-level geom</span>
+<span class="sd">        key ``layer_&lt;id&gt;_b64`` AND a mirror ``image_b64`` field inside its</span>
+<span class="sd">        ``layers`` entry — both are resolved so a ``save_html`` snapshot of a</span>
+<span class="sd">        layered plot is self-contained.&quot;&quot;&quot;</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
         <span class="n">fig</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_fig&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">raw_tbl</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">&quot;_raw_pixels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;image_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;overlay_mask_b64&quot;</span><span class="p">):</span>
-            <span class="n">val</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_resolve</span><span class="p">(</span><span class="n">store_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">val</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">bin:&quot;</span><span class="p">)):</span>
-                <span class="k">continue</span>
-            <span class="n">raw</span> <span class="o">=</span> <span class="n">raw_tbl</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span> <span class="k">if</span> <span class="n">raw_tbl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-            <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">raw</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">return</span> <span class="n">val</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">raw_tbl</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="n">store_key</span><span class="p">))</span> <span class="k">if</span> <span class="n">raw_tbl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">raw</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;image_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;overlay_mask_b64&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_resolve</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="c1"># Layer pixels: top-level layer_&lt;id&gt;_b64 key + the mirror in the entry.</span>
+        <span class="c1"># ``d`` is a SHALLOW copy of ``_state`` (to_state_dict), so ``d[&quot;layers&quot;]``</span>
+        <span class="c1"># shares the entry dicts with the live state. Rebuild the list with COPIED</span>
+        <span class="c1"># entries before rewriting ``image_b64`` so materialising base64 for a cold</span>
+        <span class="c1"># snapshot never mutates a live &quot;\x00bin:&quot; token back into base64 (which</span>
+        <span class="c1"># would corrupt the binary-transport dedup on the next push).</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">layers</span><span class="p">:</span>
+            <span class="n">new_layers</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">lyr</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+                <span class="n">lid</span> <span class="o">=</span> <span class="n">lyr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">lid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">new_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lyr</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="n">pk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_key</span><span class="p">(</span><span class="n">lid</span><span class="p">)</span>
+                <span class="n">resolved</span> <span class="o">=</span> <span class="n">_resolve</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="n">lyr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_b64&quot;</span><span class="p">)))</span>
+                <span class="k">if</span> <span class="n">pk</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">pk</span><span class="p">]</span> <span class="o">=</span> <span class="n">resolved</span>
+                <span class="n">new_layers</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="o">**</span><span class="n">lyr</span><span class="p">,</span> <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span> <span class="n">resolved</span><span class="p">})</span>
+            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;layers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_layers</span>
         <span class="k">return</span> <span class="n">d</span></div>
 
 
@@ -1194,6 +1268,17 @@
 <span class="sd">        stretched over its full data range (wrong contrast) and the second</span>
 <span class="sd">        corrects it, producing a one-frame flash on every update.  Passing</span>
 <span class="sd">        ``clim`` here makes data + contrast a single atomic frame (no flash).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``data`` has an invalid shape/ndim, or if this plot has image</span>
+<span class="sd">            layers (:meth:`add_layer`) and ``data``&#39;s ``(H, W)`` differs from</span>
+<span class="sd">            the current image shape.  A layer keeps the size it had when it</span>
+<span class="sd">            was added/last updated, so a shape-changing base update would</span>
+<span class="sd">            silently stretch stale-sized layer pixels over the new image.</span>
+<span class="sd">            Remove all layers (``remove_layer``) before changing the base</span>
+<span class="sd">            image&#39;s shape, then re-add them at the new size.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="n">is_rgb</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
@@ -1204,6 +1289,25 @@
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data must be 2-D or (H x W x 3|4), got </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># A shape-changing set_data on a plot with image layers would silently</span>
+        <span class="c1"># corrupt the display: each layer keeps the (h, w) it had at add_layer /</span>
+        <span class="c1"># its last Layer.set_data time (see _encode_layer_pixels), but JS fits</span>
+        <span class="c1"># every layer&#39;s bitmap into the BASE image&#39;s CURRENT fit-rect</span>
+        <span class="c1"># (_drawLayers2d → _imgFitRect(iw, ih, ...) uses the new image_width/</span>
+        <span class="c1"># image_height) — so a stale-sized layer would be stretched over the new</span>
+        <span class="c1"># base image instead of erroring. Mirrors the tile-mode guard above:</span>
+        <span class="c1"># refuse instead of corrupting, and tell the caller how to proceed.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">):</span>
+            <span class="n">old_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_height&quot;</span><span class="p">)</span>
+            <span class="n">old_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_width&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">old_h</span><span class="p">,</span> <span class="n">old_w</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;set_data: new frame shape (</span><span class="si">{</span><span class="n">h</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2">) does not match the &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;current image shape (</span><span class="si">{</span><span class="n">old_h</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">old_w</span><span class="si">}</span><span class="s2">) while this plot has &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;image layers — remove all layers (remove_layer) before &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;changing the base image shape, then re-add them at the &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;new size.&quot;</span><span class="p">)</span>
 
         <span class="c1"># ── Tile mode: a live consumer (e.g. a movie navigator) calls set_data with</span>
         <span class="c1"># each new frame. Route it through the tile pipeline instead of clobbering the</span>
@@ -1217,7 +1321,15 @@
         <span class="c1"># RGB frames don&#39;t tile — fall through to the plain path.</span>
         <span class="c1"># Per-call `tile` override wins; else the construction preference decides.</span>
         <span class="n">eff_pref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_pref</span> <span class="k">if</span> <span class="n">tile</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tile</span>
-        <span class="n">want_tile</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="n">is_rgb</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="c1"># Layers + tiling are mutually exclusive (a layer can&#39;t be tiled against</span>
+        <span class="c1"># the same streamed view). A plot with layers ALWAYS takes the plain path:</span>
+        <span class="c1"># honour an explicit tile=True by refusing, and never auto-enable.</span>
+        <span class="n">_has_layers</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">_has_layers</span> <span class="ow">and</span> <span class="n">tile</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;set_data(tile=True) is not supported on a plot with image layers &quot;</span>
+                <span class="s2">&quot;— remove all layers (remove_layer) before enabling tile mode.&quot;</span><span class="p">)</span>
+        <span class="n">want_tile</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="n">is_rgb</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">_has_layers</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="n">eff_pref</span> <span class="ow">is</span> <span class="kc">True</span>
             <span class="ow">or</span> <span class="p">(</span><span class="n">eff_pref</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span> <span class="ow">and</span> <span class="nb">max</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">TILE_THRESHOLD</span><span class="p">))</span>
         <span class="c1"># tile=False FORCES the plain path even on an already-tiled plot (the caller is</span>
@@ -1462,6 +1574,229 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;overlay_mask_b64&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">u8</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;overlay_mask_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;overlay_mask_alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Image layers (multi-image overlay)</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">layers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The list of :class:`~anyplotlib.plot2d._layer.Layer` handles, in</span>
+<span class="sd">        z-order (index 0 drawn first, above the base image).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_layers</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_norm_clim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clim</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse a ``(vmin, vmax)`` clim → ``(lo, hi)`` floats, or ``(None, None)``</span>
+<span class="sd">        for auto. A degenerate (non-increasing) range falls back to auto.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">clim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">clim</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">clim</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">hi</span> <span class="o">&gt;</span> <span class="n">lo</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_encode_layer_pixels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">clim</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Quantise a 2-D layer frame → uint8, store the bytes under the layer&#39;s</span>
+<span class="sd">        geom key (base64 or PLOTBIN token via _encode_pixels), and return</span>
+<span class="sd">        ``(token, height, width, vmin, vmax)``.</span>
+
+<span class="sd">        Requires ``frame.shape == (image_height, image_width)`` — raises</span>
+<span class="sd">        ``ValueError`` otherwise (a layer must line up pixel-for-pixel with the</span>
+<span class="sd">        base image, since it shares the base&#39;s image→screen transform).&quot;&quot;&quot;</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
+        <span class="n">iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;layer data must be 2-D (H x W), got shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">ih</span><span class="p">,</span> <span class="n">iw</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;layer data shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match the base image &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">ih</span><span class="si">}</span><span class="s2"> x </span><span class="si">{</span><span class="n">iw</span><span class="si">}</span><span class="s2">); a layer must be the same size as the base image&quot;</span><span class="p">)</span>
+        <span class="c1"># origin=&#39;lower&#39; flips the base data for display; flip layers to match so</span>
+        <span class="c1"># they line up with the base pixels.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+        <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_norm_clim</span><span class="p">(</span><span class="n">clim</span><span class="p">)</span>
+        <span class="n">parsed</span> <span class="o">=</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span> <span class="k">if</span> <span class="n">lo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">clim</span><span class="o">=</span><span class="n">parsed</span><span class="p">)</span>
+        <span class="n">pk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_key</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_pixels</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">img_u8</span><span class="p">))</span>
+        <span class="c1"># Cache the (display-oriented) raw frame so a later clim change can</span>
+        <span class="c1"># re-quantise without the caller re-supplying data (mirrors self._data</span>
+        <span class="c1"># for the base image + set_clim).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_layer_raw</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+        <span class="k">return</span> <span class="n">token</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
+
+<div class="viewcode-block" id="Plot2D.add_layer">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_layer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cmap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;magma&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+                  <span class="n">clim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">visible</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an image LAYER drawn over the base image.</span>
+
+<span class="sd">        Each layer has its OWN colormap, display range (``clim``), and opacity</span>
+<span class="sd">        (``alpha``), and is composited on top of the base image (and previously</span>
+<span class="sd">        added layers) with the SAME zoom/pan transform, so it tracks the base</span>
+<span class="sd">        exactly.  This is the multi-image overlay primitive; for a single-colour</span>
+<span class="sd">        boolean mask use :meth:`set_overlay_mask` instead.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : ndarray, shape (H, W)</span>
+<span class="sd">            2-D scalar array, the same size as the base image.  Normalised to</span>
+<span class="sd">            uint8 via ``clim`` → LUT exactly like the base image.  A shape</span>
+<span class="sd">            mismatch raises ``ValueError``.</span>
+<span class="sd">        cmap : str, optional</span>
+<span class="sd">            Colormap name (default ``&quot;magma&quot;``).</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Opacity in [0, 1] (default ``0.5``).</span>
+<span class="sd">        clim : (vmin, vmax) or None, optional</span>
+<span class="sd">            Display range; ``None`` (default) auto-scales to the data min/max.</span>
+<span class="sd">        visible : bool, optional</span>
+<span class="sd">            Whether the layer is drawn (default ``True``).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Layer</span>
+<span class="sd">            A handle with ``.set(...)`` / ``.set_data(frame)`` / ``.remove()``.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            If the plot is in TILE mode — layers are incompatible with tiling</span>
+<span class="sd">            (a layer would have to be tiled independently against the same view).</span>
+<span class="sd">            Load the plot with ``tile=False`` to use layers.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``data`` is not 2-D or does not match the base image size.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_on</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;add_layer is not supported in tile mode — a tiled plot streams &quot;</span>
+                <span class="s2">&quot;detail tiles of a single image and cannot composite independent &quot;</span>
+                <span class="s2">&quot;layers. Create the plot with tile=False to use layers.&quot;</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plot2d._layer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Layer</span><span class="p">,</span> <span class="n">_next_layer_id</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;alpha must be in [0, 1], got </span><span class="si">{</span><span class="n">alpha</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">layer_id</span> <span class="o">=</span> <span class="n">_next_layer_id</span><span class="p">()</span>
+        <span class="n">token</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_layer_pixels</span><span class="p">(</span><span class="n">layer_id</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">clim</span><span class="p">)</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span>       <span class="n">layer_id</span><span class="p">,</span>
+            <span class="s2">&quot;cmap&quot;</span><span class="p">:</span>     <span class="n">cmap</span><span class="p">,</span>
+            <span class="s2">&quot;clim_min&quot;</span><span class="p">:</span> <span class="n">vmin</span><span class="p">,</span>
+            <span class="s2">&quot;clim_max&quot;</span><span class="p">:</span> <span class="n">vmax</span><span class="p">,</span>
+            <span class="s2">&quot;alpha&quot;</span><span class="p">:</span>    <span class="n">alpha</span><span class="p">,</span>
+            <span class="s2">&quot;visible&quot;</span><span class="p">:</span>  <span class="nb">bool</span><span class="p">(</span><span class="n">visible</span><span class="p">),</span>
+            <span class="s2">&quot;width&quot;</span><span class="p">:</span>    <span class="n">w</span><span class="p">,</span>
+            <span class="s2">&quot;height&quot;</span><span class="p">:</span>   <span class="n">h</span><span class="p">,</span>
+            <span class="c1"># The layer&#39;s colormap LUT (256 [r,g,b]); the JS composites via this.</span>
+            <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span> <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="n">cmap</span><span class="p">),</span>
+            <span class="c1"># Mirror of the pixel token so the JS reads bytes for this layer even</span>
+            <span class="c1"># when it only sees the light `layers` list (the heavy bytes ride the</span>
+            <span class="c1"># geom key layer_&lt;id&gt;_b64, spliced into the panel state by the binary /</span>
+            <span class="c1"># geom machinery under the same key).</span>
+            <span class="s2">&quot;image_b64&quot;</span><span class="p">:</span> <span class="n">token</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="c1"># Also stash the pixels as a TOP-LEVEL geom key so Figure._push splits it</span>
+        <span class="c1"># onto the geom channel (dedup-cached) and the binary route ships it.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_key</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">Layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">layer</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_layer_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">lyr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="k">if</span> <span class="n">lyr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">layer_id</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">lyr</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;no layer </span><span class="si">{</span><span class="n">layer_id</span><span class="si">!r}</span><span class="s2"> on this plot&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_layer_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">visible</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_entry</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;cmap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cmap</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;colormap_data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_build_colormap_lut</span><span class="p">(</span><span class="n">cmap</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">a</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;alpha must be in [0, 1], got </span><span class="si">{</span><span class="n">alpha</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="k">if</span> <span class="n">visible</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">visible</span><span class="p">)</span>
+        <span class="c1"># clim=None means &quot;leave unchanged&quot; (no-op) — the historical behaviour,</span>
+        <span class="c1"># kept as-is. clim=&quot;auto&quot; is the sentinel to explicitly RESET to auto</span>
+        <span class="c1"># (recompute from the layer&#39;s current data min/max, like add_layer&#39;s</span>
+        <span class="c1"># clim=None-at-creation path) — see Layer.set / _layer.py docstring.</span>
+        <span class="k">if</span> <span class="n">clim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># A clim change must RE-QUANTISE the cached frame (like set_clim on the</span>
+            <span class="c1"># base), because the 8-bit codes are quantised over the old range and</span>
+            <span class="c1"># can&#39;t be re-windowed past it in the LUT alone. We keep the raw frame</span>
+            <span class="c1"># in _layer_raw for exactly this.</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">clim</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">clim</span> <span class="o">!=</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;clim must be a (vmin, vmax) tuple or the string &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;&#39;auto&#39;, got </span><span class="si">{</span><span class="n">clim</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">parsed</span> <span class="o">=</span> <span class="kc">None</span>   <span class="c1"># None → _normalize_image auto-ranges to data min/max</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_norm_clim</span><span class="p">(</span><span class="n">clim</span><span class="p">)</span>
+                <span class="n">parsed</span> <span class="o">=</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span> <span class="k">if</span> <span class="n">lo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">img_u8</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">clim</span><span class="o">=</span><span class="n">parsed</span><span class="p">)</span>
+                <span class="n">pk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_key</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+                <span class="n">token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_pixels</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">img_u8</span><span class="p">))</span>
+                <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;clim_min&quot;</span><span class="p">],</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;clim_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
+                <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;image_b64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">token</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="n">pk</span><span class="p">]</span> <span class="o">=</span> <span class="n">token</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No cached frame (unusual) — just record the requested endpoints</span>
+                <span class="c1"># (auto with no raw frame to compute from leaves them at None).</span>
+                <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;clim_min&quot;</span><span class="p">],</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;clim_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">parsed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parsed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_layer_set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_entry</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+        <span class="c1"># Re-quantise over the layer&#39;s CURRENT clim so a live frame keeps its</span>
+        <span class="c1"># contrast window (None endpoints → auto per-frame, matching the base).</span>
+        <span class="n">cur_clim</span> <span class="o">=</span> <span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;clim_min&quot;</span><span class="p">),</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;clim_max&quot;</span><span class="p">))</span>
+        <span class="n">clim</span> <span class="o">=</span> <span class="n">cur_clim</span> <span class="k">if</span> <span class="n">cur_clim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">token</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_layer_pixels</span><span class="p">(</span><span class="n">layer_id</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">clim</span><span class="p">)</span>
+        <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">],</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span>
+        <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;clim_min&quot;</span><span class="p">],</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;clim_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span>
+        <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;image_b64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_key</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Plot2D.remove_layer">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.remove_layer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove *layer* (a :class:`Layer` handle or its id string).&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plot2d._layer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Layer</span>
+        <span class="n">layer_id</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">id</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">Layer</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;layers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layers&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">layer_id</span><span class="p">]</span>
+        <span class="n">pk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_pixel_key</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_layer_raw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">layer_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># Drop the raw-pixel side-table entry so a removed layer&#39;s bytes aren&#39;t</span>
+        <span class="c1"># retained (and can&#39;t be re-shipped).</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_fig&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">raw_tbl</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">&quot;_raw_pixels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">raw_tbl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">raw_tbl</span><span class="o">.</span><span class="n">pop</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="n">pk</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_layers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">h</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">layer_id</span><span class="p">:</span>
+                <span class="n">h</span><span class="o">.</span><span class="n">_removed</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_layers</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
@@ -1716,7 +2051,10 @@
 
 <span class="sd">        Dispatches to the dedicated ``add_&lt;kind&gt;_widget`` method.</span>
 <span class="sd">        Supported kinds: ``&quot;circle&quot;``, ``&quot;rectangle&quot;``, ``&quot;annular&quot;``,</span>
-<span class="sd">        ``&quot;polygon&quot;``, ``&quot;crosshair&quot;``, ``&quot;label&quot;``.</span>
+<span class="sd">        ``&quot;polygon&quot;``, ``&quot;crosshair&quot;``, ``&quot;label&quot;``, ``&quot;arrow&quot;``.</span>
+
+<span class="sd">        Every kind also accepts ``show_handles`` (default ``True``) to toggle</span>
+<span class="sd">        the grab-handle dots without changing hit-testing / draggability.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dispatch</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;circle&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">add_circle_widget</span><span class="p">,</span>
@@ -1725,6 +2063,7 @@
             <span class="s2">&quot;polygon&quot;</span><span class="p">:</span>   <span class="bp">self</span><span class="o">.</span><span class="n">add_polygon_widget</span><span class="p">,</span>
             <span class="s2">&quot;crosshair&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_crosshair_widget</span><span class="p">,</span>
             <span class="s2">&quot;label&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">add_label_widget</span><span class="p">,</span>
+            <span class="s2">&quot;arrow&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">add_arrow_widget</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="n">key</span> <span class="o">=</span> <span class="n">kind</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dispatch</span><span class="p">:</span>
@@ -1735,14 +2074,15 @@
 <div class="viewcode-block" id="Plot2D.add_circle_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_circle_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_circle_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                          <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CircleWidget</span><span class="p">:</span>
+                          <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                          <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CircleWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable circle overlay.&quot;&quot;&quot;</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">CircleWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                               <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span> <span class="k">if</span> <span class="n">cx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                               <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">)</span> <span class="k">if</span> <span class="n">cy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                               <span class="n">r</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
-                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1753,7 +2093,8 @@
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_rectangle_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_rectangle_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                               <span class="n">w</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                              <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RectangleWidget</span><span class="p">:</span>
+                              <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                              <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RectangleWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable rectangle overlay.&quot;&quot;&quot;</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">RectangleWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -1761,7 +2102,7 @@
                                  <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
                                  <span class="n">w</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">,</span>
                                  <span class="n">h</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="k">if</span> <span class="n">h</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">,</span>
-                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1772,7 +2113,8 @@
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_annular_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_annular_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                            <span class="n">r_outer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">r_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                           <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnnularWidget</span><span class="p">:</span>
+                           <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                           <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnnularWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable annular (ring) overlay.&quot;&quot;&quot;</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">AnnularWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -1780,7 +2122,7 @@
                                <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">)</span> <span class="k">if</span> <span class="n">cy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                                <span class="n">r_outer</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_outer</span><span class="p">)</span> <span class="k">if</span> <span class="n">r_outer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.2</span><span class="p">,</span>
                                <span class="n">r_inner</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_inner</span><span class="p">)</span> <span class="k">if</span> <span class="n">r_inner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
-                               <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                               <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1789,13 +2131,15 @@
 
 <div class="viewcode-block" id="Plot2D.add_polygon_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_polygon_widget">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_polygon_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PolygonWidget</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_polygon_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                           <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PolygonWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable polygon overlay.&quot;&quot;&quot;</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">vertices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">vertices</span> <span class="o">=</span> <span class="p">[[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">],</span> <span class="p">[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">],</span>
                         <span class="p">[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">],</span> <span class="p">[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">]]</span>
-        <span class="n">widget</span> <span class="o">=</span> <span class="n">PolygonWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">PolygonWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                               <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1805,13 +2149,14 @@
 <div class="viewcode-block" id="Plot2D.add_crosshair_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_crosshair_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_crosshair_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                              <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CrosshairWidget</span><span class="p">:</span>
+                              <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                              <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CrosshairWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable crosshair overlay.&quot;&quot;&quot;</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">CrosshairWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                                  <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span> <span class="k">if</span> <span class="n">cx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                                  <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">)</span> <span class="k">if</span> <span class="n">cy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1822,13 +2167,39 @@
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_label_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_label_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                           <span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Label&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">14</span><span class="p">,</span>
-                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LabelWidget</span><span class="p">:</span>
+                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                          <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LabelWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable text label overlay.&quot;&quot;&quot;</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">LabelWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                              <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
                              <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
-                             <span class="n">text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">fontsize</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                             <span class="n">text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">fontsize</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                             <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.add_arrow_widget">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_arrow_widget">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_arrow_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                         <span class="n">u</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                         <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArrowWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable arrow overlay (tail at ``(x, y)``, head at</span>
+<span class="sd">        ``(x + u, y + v)``). Defaults place the tail at 25 %, 25 % of the image</span>
+<span class="sd">        with a vector of 15 % of the image size, mirroring</span>
+<span class="sd">        :meth:`add_label_widget`&#39;s defaulting.&quot;&quot;&quot;</span>
+        <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">ArrowWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                             <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
+                             <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
+                             <span class="n">u</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.15</span><span class="p">,</span>
+                             <span class="n">v</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.15</span><span class="p">,</span>
+                             <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
+                             <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>

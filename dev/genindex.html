@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Index &#8212; anyplotlib 0.2.0 documentation</title>
+    <title>Index &#8212; anyplotlib 0.3.0b1 documentation</title>
   
   
   
@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
-    <script src="_static/documentation_options.js?v=938c9ccc"></script>
+    <script src="_static/documentation_options.js?v=c574efb9"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script defer="defer" src="_static/anywidget_config.js?v=cd5adc06"></script>
@@ -441,6 +441,8 @@
 </li>
       <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.add_annular_widget">add_annular_widget() (anyplotlib.Plot2D method)</a>
 </li>
+      <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.add_arrow_widget">add_arrow_widget() (anyplotlib.Plot2D method)</a>
+</li>
       <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.add_arrows">add_arrows() (anyplotlib.Plot1D method)</a>
 
       <ul>
@@ -478,6 +480,8 @@
       <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.add_inset">add_inset() (anyplotlib.Figure method)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.add_label_widget">add_label_widget() (anyplotlib.Plot2D method)</a>
+</li>
+      <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.add_layer">add_layer() (anyplotlib.Plot2D method)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.add_line">add_line() (anyplotlib.Plot1D method)</a>
 </li>
@@ -626,8 +630,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.CallbackRegistry">CallbackRegistry (class in anyplotlib)</a>
 </li>
-      <li><a href="api/generated/anyplotlib.Widget.html#anyplotlib.Widget.callbacks">callbacks (anyplotlib.Widget attribute)</a>
+      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.callbacks">callbacks (anyplotlib.Figure attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/anyplotlib.Widget.html#anyplotlib.Widget.callbacks">(anyplotlib.Widget attribute)</a>
 </li>
+      </ul></li>
       <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.center_x">center_x (anyplotlib.Event attribute)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.center_y">center_y (anyplotlib.Event attribute)</a>
@@ -638,10 +646,10 @@
 </li>
       <li><a href="api/generated/anyplotlib.Plot3D.html#anyplotlib.Plot3D.clear_highlight">clear_highlight() (anyplotlib.Plot3D method)</a>
 </li>
-      <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.clear_lines">clear_lines() (anyplotlib.Plot1D method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.clear_lines">clear_lines() (anyplotlib.Plot1D method)</a>
+</li>
       <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.clear_spans">clear_spans() (anyplotlib.Plot1D method)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Plot3D.html#anyplotlib.Plot3D.clear_sphere">clear_sphere() (anyplotlib.Plot3D method)</a>
@@ -696,6 +704,8 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.edit_chrome">edit_chrome (anyplotlib.Figure attribute)</a>
+</li>
       <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.enable_tile">enable_tile() (anyplotlib.Plot2D method)</a>
 </li>
       <li><a href="embedding.html#anyplotlib.embed.esm_path">esm_path() (in module anyplotlib.embed)</a>
@@ -720,8 +730,12 @@
 </li>
       <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure">Figure (class in anyplotlib)</a>
 </li>
+      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.figure_markers">figure_markers (anyplotlib.Figure property)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.figure_markers_json">figure_markers_json (anyplotlib.Figure attribute)</a>
+</li>
       <li><a href="embedding.html#anyplotlib.embed.figure_state">figure_state() (in module anyplotlib.embed)</a>
 </li>
       <li><a href="embedding.html#anyplotlib.embed.FigureBridge">FigureBridge (class in anyplotlib.embed)</a>
@@ -834,10 +848,12 @@
 </li>
       <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.last_widget_id">last_widget_id (anyplotlib.Event attribute)</a>
 </li>
-      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.layout_json">layout_json (anyplotlib.Figure attribute)</a>
+      <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.layers">layers (anyplotlib.Plot2D property)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.layout_json">layout_json (anyplotlib.Figure attribute)</a>
+</li>
       <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.line">line (anyplotlib.Plot1D property)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.line_id">line_id (anyplotlib.Event attribute)</a>
@@ -935,6 +951,8 @@
         <li><a href="api/generated/anyplotlib.markers.MarkerRegistry.html#anyplotlib.markers.MarkerRegistry.remove">(anyplotlib.markers.MarkerRegistry method)</a>
 </li>
       </ul></li>
+      <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.remove_layer">remove_layer() (anyplotlib.Plot2D method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.remove_line">remove_line() (anyplotlib.Plot1D method)</a>
@@ -968,6 +986,8 @@
 </li>
       </ul></li>
       <li><a href="api/generated/anyplotlib.Axes.html#anyplotlib.Axes.scatter3d">scatter3d() (anyplotlib.Axes method)</a>
+</li>
+      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.selected_panel">selected_panel (anyplotlib.Figure attribute)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Axes.html#anyplotlib.Axes.semilogy">semilogy() (anyplotlib.Axes method)</a>
 </li>
@@ -1021,6 +1041,8 @@
 </li>
       <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.set_extent">set_extent() (anyplotlib.Plot2D method)</a>
 </li>
+      <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.set_figure_markers">set_figure_markers() (anyplotlib.Figure method)</a>
+</li>
       <li><a href="api/generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar.set_group_labels">set_group_labels() (anyplotlib.PlotBar method)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.set_help">set_help() (anyplotlib.Figure method)</a>
@@ -1035,10 +1057,10 @@
 </li>
       <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.set_marker">set_marker() (anyplotlib.Plot1D method)</a>
 </li>
-      <li><a href="api/generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar.set_orient">set_orient() (anyplotlib.PlotBar method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar.set_orient">set_orient() (anyplotlib.PlotBar method)</a>
+</li>
       <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.set_overlay_mask">set_overlay_mask() (anyplotlib.Plot2D method)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Plot3D.html#anyplotlib.Plot3D.set_point_colors">set_point_colors() (anyplotlib.Plot3D method)</a>
@@ -1107,6 +1129,8 @@
 </li>
       <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.source">source (anyplotlib.Event attribute)</a>
 </li>
+      <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.source_panel_id">source_panel_id (anyplotlib.Event attribute)</a>
+</li>
       <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.stop_propagation">stop_propagation (anyplotlib.Event attribute)</a>
 </li>
       <li><a href="api/generated/anyplotlib.subplots.html#anyplotlib.subplots">subplots() (in module anyplotlib)</a>
@@ -1121,6 +1145,8 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.target_panel_id">target_panel_id (anyplotlib.Event attribute)</a>
+</li>
       <li><a href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.TILE_THRESHOLD">TILE_THRESHOLD (anyplotlib.Plot2D attribute)</a>
 </li>
       <li><a href="api/generated/anyplotlib.Event.html#anyplotlib.Event.time_stamp">time_stamp (anyplotlib.Event attribute)</a>
@@ -1133,6 +1159,8 @@
         <li><a href="embedding.html#anyplotlib.embed.to_html">(in module anyplotlib.embed)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/anyplotlib.Plot1D.html#anyplotlib.Plot1D.to_state_dict">to_state_dict() (anyplotlib.Plot1D method)</a>
 
       <ul>
@@ -1143,8 +1171,6 @@
         <li><a href="api/generated/anyplotlib.PlotBar.html#anyplotlib.PlotBar.to_state_dict">(anyplotlib.PlotBar method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/anyplotlib.markers.MarkerGroup.html#anyplotlib.markers.MarkerGroup.to_wire">to_wire() (anyplotlib.markers.MarkerGroup method)</a>
 </li>
       <li><a href="api/generated/anyplotlib.markers.MarkerRegistry.html#anyplotlib.markers.MarkerRegistry.to_wire_list">to_wire_list() (anyplotlib.markers.MarkerRegistry method)</a>

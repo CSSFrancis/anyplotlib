@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Figure &#8212; anyplotlib 0.2.0 documentation</title>
+    <title>Figure &#8212; anyplotlib 0.3.0b1 documentation</title>
   
   
   
@@ -45,7 +45,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
-    <script src="../_static/documentation_options.js?v=938c9ccc"></script>
+    <script src="../_static/documentation_options.js?v=c574efb9"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script defer="defer" src="../_static/anywidget_config.js?v=cd5adc06"></script>
@@ -524,7 +524,7 @@
 <dl class="py class">
 <dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.figure.</span></span><span class="sig-name descname"><span class="pre">Figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnyWidget</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnyWidget</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_EventMixin</span></code></p>
 <p>Multi-panel interactive figure widget.</p>
 <p>The top-level container for all plots and the only <code class="docutils literal notranslate"><span class="pre">anywidget.AnyWidget</span></code>
 subclass in anyplotlib. It owns all traitlets and acts as the Python ↔
@@ -566,6 +566,24 @@ Default False (independent pan/zoom per panel).</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">event_json</span></span></dt>
+<dd><p>A trait for unicode strings.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">edit_chrome</span></span></dt>
+<dd><p>A boolean (True, False) trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">selected_panel</span></span></dt>
+<dd><p>A trait for unicode strings.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">figure_markers_json</span></span></dt>
 <dd><p>A trait for unicode strings.</p>
 </dd></dl>
 
@@ -685,14 +703,18 @@ kernels where every push crosses a comm boundary.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_inset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_frac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_frac</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">corner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top-right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure.add_inset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_inset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_frac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_frac</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">corner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top-right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure.add_inset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Create and return a floating inset axes.</p>
-<p>The inset overlays the figure at the specified corner.  Call
-plot-factory methods on the returned <code class="xref py py-class docutils literal notranslate"><span class="pre">InsetAxes</span></code> to attach
-data:</p>
+<p>The inset overlays the figure at the specified corner (default) or at
+an arbitrary <em>anchor</em> position.  Call plot-factory methods on the
+returned <code class="xref py py-class docutils literal notranslate"><span class="pre">InsetAxes</span></code> to attach data:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inset</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_inset</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">corner</span><span class="o">=</span><span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Zoom&quot;</span><span class="p">)</span>
 <span class="n">inset</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>    <span class="c1"># returns Plot2D</span>
 <span class="n">inset</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">profile</span><span class="p">)</span>   <span class="c1"># returns Plot1D</span>
+
+<span class="c1"># arbitrary placement (top-left corner at 55% across, 10% down):</span>
+<span class="n">free</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_inset</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">))</span>
+<span class="n">free</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -701,7 +723,12 @@ data:</p>
 <li><p><strong>w_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
 <li><p><strong>h_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
 <li><p><strong>corner</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Positioning corner: <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;top-left&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;bottom-right&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;bottom-left&quot;</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">&quot;bottom-right&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;bottom-left&quot;</span></code>.  Mutually exclusive with
+<em>anchor</em>.</p></li>
+<li><p><strong>anchor</strong> (<em>(</em><em>x_frac</em><em>, </em><em>y_frac</em><em>)</em><em>, </em><em>optional</em>) – Position of the inset’s TOP-LEFT corner as fractions of the figure
+size (0–1), from the figure’s top-left.  When given, the inset
+floats at that anchor and <em>corner</em> is ignored.  Use this for
+free placement (e.g. a callout panel next to the region it marks).</p></li>
 <li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Text displayed in the inset title bar.</p></li>
 </ul>
 </dd>
@@ -709,6 +736,43 @@ data:</p>
 <dd class="field-even"><p>InsetAxes</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_figure_markers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">markers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure.set_figure_markers"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Set the figure-level annotation layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>markers</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – <p>Each dict is <code class="docutils literal notranslate"><span class="pre">{&quot;id&quot;?,</span> <span class="pre">&quot;kind&quot;,</span> <span class="pre">...}</span></code> with positions/sizes in
+FIGURE FRACTIONS (0..1, origin top-left).  <code class="docutils literal notranslate"><span class="pre">kind</span></code> is one of:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;text&quot;</span></code>   — <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">text</span></code>; optional <code class="docutils literal notranslate"><span class="pre">color</span></code>, <code class="docutils literal notranslate"><span class="pre">fontsize</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;circle&quot;</span></code> — <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">r</span></code> (<code class="docutils literal notranslate"><span class="pre">r</span></code> as a fraction of
+<code class="docutils literal notranslate"><span class="pre">min(fig_width,</span> <span class="pre">fig_height)</span></code>); optional <code class="docutils literal notranslate"><span class="pre">color</span></code>, <code class="docutils literal notranslate"><span class="pre">linewidth</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;rect&quot;</span></code>   — <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y</span></code> (centre), <code class="docutils literal notranslate"><span class="pre">w,</span> <span class="pre">h</span></code>; optional <code class="docutils literal notranslate"><span class="pre">color</span></code>,
+<code class="docutils literal notranslate"><span class="pre">linewidth</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;arrow&quot;</span></code>  — <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y</span></code> (tail), <code class="docutils literal notranslate"><span class="pre">u,</span> <span class="pre">v</span></code> (vector); optional
+<code class="docutils literal notranslate"><span class="pre">color</span></code>, <code class="docutils literal notranslate"><span class="pre">linewidth</span></code></p></li>
+</ul>
+<p>Any dict missing an <code class="docutils literal notranslate"><span class="pre">id</span></code> is assigned a fresh one.</p>
+</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If a marker has an unrecognised <code class="docutils literal notranslate"><span class="pre">kind</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">figure_markers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></dt>
+<dd><p>The current figure-level annotation list (list of dicts, fractions).</p>
+<p>Returns a shallow copy so external mutation doesn’t desync the trait;
+call <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_figure_markers()</span></code> to change it.</p>
 </dd></dl>
 
 <dl class="py method">

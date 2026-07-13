@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>anyplotlib.figure._figure &#8212; anyplotlib 0.2.0 documentation</title>
+    <title>anyplotlib.figure._figure &#8212; anyplotlib 0.3.0b1 documentation</title>
   
   
   
@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
-    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
+    <script src="../../../_static/documentation_options.js?v=c574efb9"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script defer="defer" src="../../../_static/anywidget_config.js?v=cd5adc06"></script>
@@ -449,11 +449,19 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">anywidget</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">traitlets</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_uuid</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.axes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">InsetAxes</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.axes._inset_axes</span><span class="w"> </span><span class="kn">import</span> <span class="n">_plot_kind</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.figure._gridspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubplotSpec</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span><span class="p">,</span> <span class="n">Event</span><span class="p">,</span> <span class="n">_EventMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._repr_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">repr_html_iframe</span>
+
+
+<span class="c1"># Recognised figure-level annotation kinds and the fields each carries (beyond</span>
+<span class="c1"># ``id`` + ``kind``). Positions/sizes are all in FIGURE FRACTIONS (0..1, origin</span>
+<span class="c1"># top-left), so a marker keeps its relative place across figure resizes.</span>
+<span class="n">_FIGURE_MARKER_KINDS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;circle&quot;</span><span class="p">,</span> <span class="s2">&quot;rect&quot;</span><span class="p">,</span> <span class="s2">&quot;arrow&quot;</span><span class="p">}</span>
 
 <span class="n">_HERE</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
 <span class="n">_ESM_SOURCE</span> <span class="o">=</span> <span class="p">(</span><span class="n">_HERE</span> <span class="o">/</span> <span class="s2">&quot;figure_esm.js&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
@@ -471,7 +479,7 @@
 
 <div class="viewcode-block" id="Figure">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Figure</span><span class="p">(</span><span class="n">anywidget</span><span class="o">.</span><span class="n">AnyWidget</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Figure</span><span class="p">(</span><span class="n">anywidget</span><span class="o">.</span><span class="n">AnyWidget</span><span class="p">,</span> <span class="n">_EventMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-panel interactive figure widget.</span>
 
 <span class="sd">    The top-level container for all plots and the only ``anywidget.AnyWidget``</span>
@@ -514,6 +522,18 @@
     <span class="c1"># Figure-level help text shown in a &#39;?&#39; badge overlay in JS.</span>
     <span class="c1"># Empty string means no badge.  Gated by apl.show_help at the Python level.</span>
     <span class="n">help_text</span>      <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># ── Edit-mode chrome (Report Builder) ─────────────────────────────────────</span>
+    <span class="c1"># edit_chrome     — when True the JS renderer shows per-panel hover outlines,</span>
+    <span class="c1">#                   makes figure-level markers hit-testable/draggable, and</span>
+    <span class="c1">#                   emits figure-background clicks.  When False all of this</span>
+    <span class="c1">#                   is inert — normal interaction is untouched.</span>
+    <span class="c1"># selected_panel  — a panel id (or &quot;&quot;) that gets a persistent solid outline;</span>
+    <span class="c1">#                   all others clear.  Pure JS-local DOM styling, no export.</span>
+    <span class="n">edit_chrome</span>    <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">selected_panel</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Figure-level annotation layer: a JSON list of marker dicts positioned in</span>
+    <span class="c1"># FIGURE FRACTIONS, drawn over all panels.  See set_figure_markers.</span>
+    <span class="n">figure_markers_json</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;[]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">_esm</span> <span class="o">=</span> <span class="n">_ESM_SOURCE</span>
     <span class="c1"># Static CSS injected by anywidget alongside _esm.</span>
     <span class="c1"># .apl-scale-wrap  — outer container; width:100% means it always fills</span>
@@ -579,6 +599,12 @@
         <span class="c1"># ships them straight to a PLOTBIN frame with NO base64 encode/decode</span>
         <span class="c1"># and NO megabyte JSON. Empty (and ignored) on every non-Electron path.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_raw_pixels</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Figure-level (not per-panel) callback registry + the _EventMixin API</span>
+        <span class="c1"># (add_event_handler / remove_handler / pause_events / hold_events).</span>
+        <span class="c1"># Fired for figure-background clicks and figure-marker pointer events.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="p">:</span> <span class="n">CallbackRegistry</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
+        <span class="c1"># Authoritative Python-side copy of the figure-level annotation list.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_figure_markers</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_trait_notifications</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>     <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span>    <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -856,6 +882,7 @@
             <span class="p">})</span>
 
         <span class="n">inset_specs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">indications</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">inset_ax</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insets_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
             <span class="n">pw</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>  <span class="o">*</span> <span class="n">inset_ax</span><span class="o">.</span><span class="n">w_frac</span><span class="p">))</span>
@@ -865,12 +892,21 @@
                 <span class="s2">&quot;kind&quot;</span><span class="p">:</span>         <span class="n">_plot_kind</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span> <span class="k">if</span> <span class="n">plot</span> <span class="k">else</span> <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;w_frac&quot;</span><span class="p">:</span>       <span class="n">inset_ax</span><span class="o">.</span><span class="n">w_frac</span><span class="p">,</span>
                 <span class="s2">&quot;h_frac&quot;</span><span class="p">:</span>       <span class="n">inset_ax</span><span class="o">.</span><span class="n">h_frac</span><span class="p">,</span>
+                <span class="c1"># corner is None for anchor-placed insets; anchor is None for</span>
+                <span class="c1"># corner-placed ones.  JS picks the placement mode by which is set.</span>
                 <span class="s2">&quot;corner&quot;</span><span class="p">:</span>       <span class="n">inset_ax</span><span class="o">.</span><span class="n">corner</span><span class="p">,</span>
+                <span class="s2">&quot;anchor&quot;</span><span class="p">:</span>       <span class="nb">list</span><span class="p">(</span><span class="n">inset_ax</span><span class="o">.</span><span class="n">anchor</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">inset_ax</span><span class="p">,</span> <span class="s2">&quot;anchor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="s2">&quot;title&quot;</span><span class="p">:</span>        <span class="n">inset_ax</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
                 <span class="s2">&quot;panel_width&quot;</span><span class="p">:</span>  <span class="n">pw</span><span class="p">,</span>
                 <span class="s2">&quot;panel_height&quot;</span><span class="p">:</span> <span class="n">ph</span><span class="p">,</span>
                 <span class="s2">&quot;inset_state&quot;</span><span class="p">:</span>  <span class="n">inset_ax</span><span class="o">.</span><span class="n">_inset_state</span><span class="p">,</span>
             <span class="p">})</span>
+            <span class="c1"># Region indication (mark_inset callout) is keyed by the inset id.</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">inset_ax</span><span class="p">,</span> <span class="s2">&quot;_indication&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ind</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">indications</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;inset_id&quot;</span><span class="p">:</span> <span class="n">pid</span><span class="p">,</span> <span class="o">**</span><span class="n">ind</span><span class="p">})</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">layout_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
             <span class="s2">&quot;nrows&quot;</span><span class="p">:</span>          <span class="bp">self</span><span class="o">.</span><span class="n">_nrows</span><span class="p">,</span>
@@ -882,6 +918,7 @@
             <span class="s2">&quot;panel_specs&quot;</span><span class="p">:</span>    <span class="n">panel_specs</span><span class="p">,</span>
             <span class="s2">&quot;share_groups&quot;</span><span class="p">:</span>   <span class="n">share_groups</span><span class="p">,</span>
             <span class="s2">&quot;inset_specs&quot;</span><span class="p">:</span>    <span class="n">inset_specs</span><span class="p">,</span>
+            <span class="s2">&quot;indications&quot;</span><span class="p">:</span>    <span class="n">indications</span><span class="p">,</span>
             <span class="s2">&quot;hspace&quot;</span><span class="p">:</span>         <span class="bp">self</span><span class="o">.</span><span class="n">_hspace</span><span class="p">,</span>
             <span class="s2">&quot;wspace&quot;</span><span class="p">:</span>         <span class="bp">self</span><span class="o">.</span><span class="n">_wspace</span><span class="p">,</span>
         <span class="p">})</span>
@@ -890,16 +927,21 @@
 <div class="viewcode-block" id="Figure.add_inset">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.add_inset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_inset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
-                  <span class="n">corner</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;InsetAxes&quot;</span><span class="p">:</span>
+                  <span class="n">corner</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;top-right&quot;</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;InsetAxes&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and return a floating inset axes.</span>
 
-<span class="sd">        The inset overlays the figure at the specified corner.  Call</span>
-<span class="sd">        plot-factory methods on the returned :class:`InsetAxes` to attach</span>
-<span class="sd">        data::</span>
+<span class="sd">        The inset overlays the figure at the specified corner (default) or at</span>
+<span class="sd">        an arbitrary *anchor* position.  Call plot-factory methods on the</span>
+<span class="sd">        returned :class:`InsetAxes` to attach data::</span>
 
 <span class="sd">            inset = fig.add_inset(0.3, 0.25, corner=&quot;top-right&quot;, title=&quot;Zoom&quot;)</span>
 <span class="sd">            inset.imshow(data)    # returns Plot2D</span>
 <span class="sd">            inset.plot(profile)   # returns Plot1D</span>
+
+<span class="sd">            # arbitrary placement (top-left corner at 55% across, 10% down):</span>
+<span class="sd">            free = fig.add_inset(0.3, 0.25, anchor=(0.55, 0.10))</span>
+<span class="sd">            free.imshow(data)</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -907,7 +949,13 @@
 <span class="sd">            Width and height as fractions of the figure size (0–1).</span>
 <span class="sd">        corner : str, optional</span>
 <span class="sd">            Positioning corner: ``&quot;top-right&quot;`` (default), ``&quot;top-left&quot;``,</span>
-<span class="sd">            ``&quot;bottom-right&quot;``, or ``&quot;bottom-left&quot;``.</span>
+<span class="sd">            ``&quot;bottom-right&quot;``, or ``&quot;bottom-left&quot;``.  Mutually exclusive with</span>
+<span class="sd">            *anchor*.</span>
+<span class="sd">        anchor : (x_frac, y_frac), optional</span>
+<span class="sd">            Position of the inset&#39;s TOP-LEFT corner as fractions of the figure</span>
+<span class="sd">            size (0–1), from the figure&#39;s top-left.  When given, the inset</span>
+<span class="sd">            floats at that anchor and *corner* is ignored.  Use this for</span>
+<span class="sd">            free placement (e.g. a callout panel next to the region it marks).</span>
 <span class="sd">        title : str, optional</span>
 <span class="sd">            Text displayed in the inset title bar.</span>
 
@@ -915,7 +963,8 @@
 <span class="sd">        -------</span>
 <span class="sd">        InsetAxes</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">InsetAxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_frac</span><span class="p">,</span> <span class="n">h_frac</span><span class="p">,</span> <span class="n">corner</span><span class="o">=</span><span class="n">corner</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">InsetAxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_frac</span><span class="p">,</span> <span class="n">h_frac</span><span class="p">,</span> <span class="n">corner</span><span class="o">=</span><span class="n">corner</span><span class="p">,</span>
+                         <span class="n">anchor</span><span class="o">=</span><span class="n">anchor</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_register_inset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inset_ax</span><span class="p">:</span> <span class="s2">&quot;InsetAxes&quot;</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -966,6 +1015,28 @@
         <span class="n">panel_id</span>   <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;panel_id&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
         <span class="n">event_type</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;event_type&quot;</span><span class="p">,</span> <span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
         <span class="n">widget_id</span>  <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;widget_id&quot;</span><span class="p">)</span>
+
+        <span class="c1"># ── Figure-level events (edit mode) — handled BEFORE per-panel lookup ──</span>
+        <span class="c1"># A click on the bare figure background (no panel underneath).</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;figure_background&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fire_figure_event</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># A drag/click on a figure-level annotation marker.  On pointer_up the</span>
+        <span class="c1"># JS ships the marker&#39;s updated FRACTION fields; merge them into the</span>
+        <span class="c1"># stored list so Python state converges, then fire figure callbacks.</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;figure_marker&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_figure_marker_event</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fire_figure_event</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># A panel drag-swap: the user dragged one panel&#39;s move-grip and released</span>
+        <span class="c1"># over a DIFFERENT panel.  anyplotlib performs NO layout change itself —</span>
+        <span class="c1"># it only fires a figure-level event carrying the two panel dispatch ids</span>
+        <span class="c1"># so the host (e.g. SpyDE) can swap + rebuild.</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;panel_swap&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fire_figure_event</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+            <span class="k">return</span>
 
         <span class="c1"># Inset state changes handled before regular plot dispatch</span>
         <span class="k">if</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s2">&quot;inset_state_change&quot;</span><span class="p">:</span>
@@ -1039,6 +1110,106 @@
                 <span class="n">last_widget_id</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;last_widget_id&quot;</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="n">plot</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+    <span class="c1"># ── figure-level annotation layer ─────────────────────────────────────────</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fire_figure_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fire the FIGURE-level callback registry with a flat Event.</span>
+
+<span class="sd">        Used for figure-background clicks, figure-marker pointer events, and</span>
+<span class="sd">        panel drag-swaps — events that belong to the figure as a whole, not to</span>
+<span class="sd">        any one panel.  The marker id (if any) rides in ``last_widget_id`` so a</span>
+<span class="sd">        host can tell which annotation moved; a panel_swap carries the two panel</span>
+<span class="sd">        dispatch ids in ``source_panel_id`` / ``target_panel_id``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">(</span>
+            <span class="n">event_type</span><span class="o">=</span><span class="n">event_type</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">time_stamp</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;time_stamp&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()),</span>
+            <span class="n">modifiers</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modifiers&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">),</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">),</span>
+            <span class="n">button</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">),</span>
+            <span class="n">buttons</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;buttons&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">xdata</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;xdata&quot;</span><span class="p">),</span>
+            <span class="n">ydata</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ydata&quot;</span><span class="p">),</span>
+            <span class="n">last_widget_id</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;marker_id&quot;</span><span class="p">),</span>
+            <span class="n">source_panel_id</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source_panel_id&quot;</span><span class="p">),</span>
+            <span class="n">target_panel_id</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target_panel_id&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_figure_marker_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge a figure-marker drag&#39;s updated FRACTION fields into the stored</span>
+<span class="sd">        marker list (matched by ``marker_id``) and re-sync the trait.</span>
+
+<span class="sd">        The JS side already wrote ``figure_markers_json`` back on mouseup, but</span>
+<span class="sd">        we converge Python&#39;s authoritative ``_figure_markers`` here too so a</span>
+<span class="sd">        host reading ``fig.figure_markers`` inside its callback sees the new</span>
+<span class="sd">        position immediately (and the two never drift).&quot;&quot;&quot;</span>
+        <span class="n">marker_id</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;marker_id&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">marker_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="c1"># Fraction fields the JS emits per kind.</span>
+        <span class="n">_pos_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_figure_markers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">marker_id</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_pos_keys</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+                        <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="k">break</span>
+        <span class="c1"># Re-sync the trait from the authoritative list (source:&quot;python&quot; is not</span>
+        <span class="c1"># relevant here — figure_markers_json is a plain state trait, not the</span>
+        <span class="c1"># event bus, so this does not echo back through _dispatch_event).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figure_markers_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_figure_markers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Figure.set_figure_markers">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.set_figure_markers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_figure_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">markers</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the figure-level annotation layer.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        markers : list of dict</span>
+<span class="sd">            Each dict is ``{&quot;id&quot;?, &quot;kind&quot;, ...}`` with positions/sizes in</span>
+<span class="sd">            FIGURE FRACTIONS (0..1, origin top-left).  ``kind`` is one of:</span>
+
+<span class="sd">            - ``&quot;text&quot;``   — ``x, y, text``; optional ``color``, ``fontsize``</span>
+<span class="sd">            - ``&quot;circle&quot;`` — ``x, y, r`` (``r`` as a fraction of</span>
+<span class="sd">              ``min(fig_width, fig_height)``); optional ``color``, ``linewidth``</span>
+<span class="sd">            - ``&quot;rect&quot;``   — ``x, y`` (centre), ``w, h``; optional ``color``,</span>
+<span class="sd">              ``linewidth``</span>
+<span class="sd">            - ``&quot;arrow&quot;``  — ``x, y`` (tail), ``u, v`` (vector); optional</span>
+<span class="sd">              ``color``, ``linewidth``</span>
+
+<span class="sd">            Any dict missing an ``id`` is assigned a fresh one.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If a marker has an unrecognised ``kind``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">markers</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;kind&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_FIGURE_MARKER_KINDS</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;figure marker kind must be one of &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_FIGURE_MARKER_KINDS</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">kind</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">):</span>
+                <span class="n">m</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_figure_markers</span> <span class="o">=</span> <span class="n">out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figure_markers_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">figure_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The current figure-level annotation list (list of dicts, fractions).</span>
+
+<span class="sd">        Returns a shallow copy so external mutation doesn&#39;t desync the trait;</span>
+<span class="sd">        call :meth:`set_figure_markers` to change it.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_figure_markers</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_push_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">panel_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">widget_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Send a targeted widget-position update to JS (no image data).&quot;&quot;&quot;</span>
