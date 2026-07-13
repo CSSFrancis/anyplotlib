@@ -90,6 +90,10 @@ class Event:
     # Key
     key: str | None = None
     last_widget_id: str | None = None
+    # Panel drag-swap (figure-level panel_swap events): the two panel dispatch
+    # ids the user dragged between.  Set only on panel_swap; None otherwise.
+    source_panel_id: str | None = None
+    target_panel_id: str | None = None
     # Propagation (not repr'd)
     stop_propagation: bool = field(default=False, repr=False)
 

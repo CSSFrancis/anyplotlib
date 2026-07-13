@@ -3,7 +3,7 @@
 // Each panel gets its own three-canvas stack (plot / overlay / markers).
 // Panels are drawn independently; only the changed panel's listener fires.
 
-function render({ model, el }) {
+function render({ model, el, onResize }) {
   const dpr = window.devicePixelRatio || 1;
 
   // ── shared plot-area padding (mirrors 1D drawing constants) ─────────────
@@ -519,6 +519,32 @@ function render({ model, el }) {
     'position:absolute;top:8px;left:8px;pointer-events:none;z-index:20;overflow:visible;';
   outerDiv.appendChild(insetsContainer);
 
+  // ── Callout overlay canvas ────────────────────────────────────────────────
+  // A figure-level canvas covering the grid content area (inside gridDiv's
+  // 8 px padding), used to draw mark_inset-style region indications: a dashed
+  // source rectangle on the parent panel + leader lines out to the inset.
+  // It spans the whole figure because leaders cross panel boundaries.  Sits
+  // ABOVE panel content / insets but BELOW the maximized-inset float (z 45) and
+  // the resize handle (z 100); pointer-events:none so it never eats clicks.
+  const calloutCanvas = document.createElement('canvas');
+  calloutCanvas.style.cssText =
+    'position:absolute;top:8px;left:8px;pointer-events:none;z-index:30;';
+  outerDiv.appendChild(calloutCanvas);
+  const calloutCtx = calloutCanvas.getContext('2d');
+
+  // ── Figure-level annotation overlay canvas ────────────────────────────────
+  // Content annotations (text / circle / rect / arrow) positioned in FIGURE
+  // FRACTIONS, drawn OVER all panels + insets + callouts.  These are CONTENT
+  // (always exported), unlike the hover/selection outlines (DOM chrome, never
+  // exported).  pointer-events default OFF so normal panel interaction is
+  // untouched; toggled ON only while edit_chrome is active so the markers can
+  // be dragged.  Sits above callouts (z 30) but below the resize handle (z 100).
+  const figMarkerCanvas = document.createElement('canvas');
+  figMarkerCanvas.style.cssText =
+    'position:absolute;top:8px;left:8px;pointer-events:none;z-index:35;';
+  outerDiv.appendChild(figMarkerCanvas);
+  const figMarkerCtx = figMarkerCanvas.getContext('2d');
+
   // Inset layout constants
   const INSET_TITLE_H = 22;   // px — title bar height
   const INSET_GAP     = 8;    // px — gap between stacked insets in same corner
@@ -780,6 +806,18 @@ function render({ model, el }) {
     insetsContainer.style.width  = (layout.fig_width  || 640) + 'px';
     insetsContainer.style.height = (layout.fig_height || 480) + 'px';
     if (insetSpecs.length) _applyAllInsetStates(layout);
+    // Region indications depend on the browser having laid out the panels +
+    // insets (getBoundingClientRect must be real). During the synchronous
+    // applyLayout the DOM isn't measured yet, so draw once on the next frame.
+    if ((layout.indications || []).length) {
+      requestAnimationFrame(() => _drawCallouts());
+    } else {
+      _drawCallouts();  // clears any stale indication canvas
+    }
+    // Figure-level annotation layer tracks the figure size (fractions → px) and
+    // re-binds per-panel edit-chrome hover handlers for any newly-created cells.
+    _drawFigureMarkers();
+    _applyPanelChrome();
   }
 
   // ── _buildCanvasStack ─────────────────────────────────────────────────────
@@ -1201,9 +1239,10 @@ function render({ model, el }) {
 
   // ── _applyAllInsetStates ──────────────────────────────────────────────────
   // Positions every inset for the given layout snapshot.
-  // Groups insets by corner, stacks with INSET_GAP spacing.
-  // Minimized insets contribute only INSET_TITLE_H to the stack height.
-  // Maximized insets float centred at z-index:45, outside the stack.
+  // Corner-placed insets are grouped by corner and stacked with INSET_GAP
+  // spacing (minimized ones contribute only INSET_TITLE_H to the stack).
+  // Anchor-placed insets (spec.anchor != null) float at their anchor fraction.
+  // Maximized insets float centred at z-index:45, outside any stack.
   function _applyAllInsetStates(layout) {
     const insetSpecs = layout.inset_specs || [];
     const fw = layout.fig_width  || 640;
@@ -1212,10 +1251,60 @@ function render({ model, el }) {
     insetsContainer.style.width  = fw + 'px';
     insetsContainer.style.height = fh + 'px';
 
-    // Group by corner, preserving insertion order
+    // Split anchored insets from corner insets. Anchored ones are placed
+    // directly at their fraction; corner ones stack per-corner as before.
+    const anchored = [];
     const byCorner = {};
     for (const spec of insetSpecs) {
+      if (spec.anchor) { anchored.push(spec); continue; }
       (byCorner[spec.corner] = byCorner[spec.corner] || []).push(spec);
+    }
+
+    // ── anchor-placed insets ────────────────────────────────────────────────
+    for (const spec of anchored) {
+      const p = panels.get(spec.id);
+      if (!p || !p.isInset) continue;
+      const pw = spec.panel_width;
+      const ph = spec.panel_height;
+      const state = spec.inset_state;
+      const stackH = state === 'minimized' ? INSET_TITLE_H : INSET_TITLE_H + ph;
+
+      // Maximized floats centred (same treatment as corner insets below).
+      if (state === 'maximized') {
+        const mw = Math.round(fw * 0.72), mh = Math.round(fh * 0.72);
+        p.insetDiv.style.left = Math.round((fw - mw) / 2) + 'px';
+        p.insetDiv.style.top  = Math.round((fh - mh) / 2) + 'px';
+        p.insetDiv.style.width  = mw + 'px';
+        p.insetDiv.style.height = (INSET_TITLE_H + mh) + 'px';
+        p.insetDiv.style.zIndex = '45';
+        p.contentDiv.style.display = 'block';
+        p.contentDiv.style.height  = mh + 'px';
+        if (p.pw !== mw || p.ph !== mh) {
+          p.pw = mw; p.ph = mh; _resizePanelDOM(spec.id, mw, mh); _redrawPanel(p);
+        }
+        continue;
+      }
+
+      // Normal / minimized: top-left corner sits at the anchor fraction,
+      // clamped so the inset stays inside the figure.
+      let left = Math.round(spec.anchor[0] * fw);
+      let top  = Math.round(spec.anchor[1] * fh);
+      left = Math.max(0, Math.min(left, fw - pw));
+      top  = Math.max(0, Math.min(top,  fh - stackH));
+      p.insetDiv.style.left   = left + 'px';
+      p.insetDiv.style.top    = top  + 'px';
+      p.insetDiv.style.width  = pw   + 'px';
+      p.insetDiv.style.height = stackH + 'px';
+      p.insetDiv.style.zIndex = '25';
+      if (state === 'minimized') {
+        p.contentDiv.style.display = 'none';
+      } else {
+        p.contentDiv.style.display = 'block';
+        p.contentDiv.style.height  = ph + 'px';
+        if (p.pw !== pw || p.ph !== ph) {
+          p.pw = pw; p.ph = ph; _resizePanelDOM(spec.id, pw, ph); _redrawPanel(p);
+        }
+      }
     }
 
     for (const [corner, group] of Object.entries(byCorner)) {
@@ -1261,7 +1350,537 @@ function render({ model, el }) {
         offset += stackH + INSET_GAP;
       }
     }
+    // Inset positions changed → refresh leader lines / rects.  Use the layout's
+    // own size (may be a live-resize snapshot ahead of the model).
+    _drawCallouts([fw, fh]);
   }
+
+  // ── _drawCallouts ─────────────────────────────────────────────────────────
+  // Draw every mark_inset-style region indication onto the figure-level
+  // calloutCanvas.  Called after any parent redraw / inset move / resize, so
+  // the dashed source rect tracks the parent's zoom+pan (region is mapped
+  // through _imgToCanvas2d every draw) and the leaders follow the inset's
+  // current DOM rect (leaders hide while the inset is minimized).
+  //
+  // Coordinate space: everything is mapped into calloutCanvas CSS px via each
+  // element's getBoundingClientRect relative to the canvas's own rect — so no
+  // layout math is duplicated and the leaders line up across panel boundaries.
+  function _drawCallouts(sizeOverride) {
+    let layout;
+    try { layout = JSON.parse(model.get('layout_json')); } catch (_) { return; }
+    const inds = layout.indications || [];
+
+    // Nothing to draw → collapse the overlay to a 0×0 backing store instead of
+    // sizing it to the full figure. An empty full-figure transparent canvas
+    // would otherwise be the LARGEST canvas in the DOM (it spans the whole
+    // figure, wider than any single panel), shadowing the panel content for
+    // any consumer/test that samples "the largest canvas". Setting width/height
+    // to 0 also clears any prior drawing, so no clearRect is needed here.
+    if (!inds.length) {
+      if (calloutCanvas.width || calloutCanvas.height) {
+        calloutCanvas.width = 0; calloutCanvas.height = 0;
+        calloutCanvas.style.width = '0px'; calloutCanvas.style.height = '0px';
+      }
+      return;
+    }
+
+    // Size the canvas to the figure content (fig size + no padding — it is
+    // already offset by 8 px like insetsContainer).  During a live figure
+    // resize the model hasn't been written yet, so accept an explicit size.
+    const fw = sizeOverride ? sizeOverride[0]
+             : (Number(model.get('fig_width'))  || layout.fig_width  || 640);
+    const fh = sizeOverride ? sizeOverride[1]
+             : (Number(model.get('fig_height')) || layout.fig_height || 480);
+    if (calloutCanvas.width !== Math.round(fw * dpr) ||
+        calloutCanvas.height !== Math.round(fh * dpr)) {
+      calloutCanvas.style.width  = fw + 'px';
+      calloutCanvas.style.height = fh + 'px';
+      calloutCanvas.width  = Math.round(fw * dpr);
+      calloutCanvas.height = Math.round(fh * dpr);
+    }
+    calloutCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    calloutCtx.clearRect(0, 0, fw, fh);
+
+    const base = calloutCanvas.getBoundingClientRect();
+
+    for (const ind of inds) {
+      const parent = panels.get(ind.parent_id);
+      const inset  = panels.get(ind.inset_id);
+      if (!parent || !parent.state || !inset || !inset.isInset) continue;
+
+      // ── source rectangle in parent-canvas px → figure px ─────────────────
+      // Map the region's four data-space corners through the parent's
+      // data→canvas transform (tracks zoom/pan), then offset by the parent
+      // markers canvas's position relative to the callout canvas.
+      const st = parent.state;
+      const imgW = parent.imgW || 1, imgH = parent.imgH || 1;
+      const [rx, ry, rw, rh] = ind.region;
+      const mkRect = (parent.markersCanvas || parent.plotCanvas).getBoundingClientRect();
+      const offX = mkRect.left - base.left;
+      const offY = mkRect.top  - base.top;
+      const toFig = (dx, dy) => {
+        const [cx, cy] = _imgToCanvas2d(dx, dy, st, imgW, imgH);
+        return [offX + cx, offY + cy];
+      };
+      const [x0, y0] = toFig(rx,      ry);
+      const [x1, y1] = toFig(rx + rw, ry);
+      const [x2, y2] = toFig(rx + rw, ry + rh);
+      const [x3, y3] = toFig(rx,      ry + rh);
+      // Axis-aligned bounds of the (untransformed) rect in figure px.
+      const rL = Math.min(x0, x1, x2, x3), rR = Math.max(x0, x1, x2, x3);
+      const rT = Math.min(y0, y1, y2, y3), rB = Math.max(y0, y1, y2, y3);
+
+      const color = ind.color || '#ff9800';
+      const lw    = ind.linewidth != null ? ind.linewidth : 1.5;
+      const dash  = ind.linestyle === 'solid'  ? []
+                  : ind.linestyle === 'dotted' ? [2, 3]
+                  : [6, 4];  // dashed (default)
+
+      calloutCtx.save();
+      calloutCtx.strokeStyle = color;
+      calloutCtx.lineWidth   = lw;
+      calloutCtx.setLineDash(dash);
+
+      // Dashed source rectangle (drawn as the 4 transformed corners so it
+      // stays correct even if a future transform rotates/skews it).  Clipped
+      // to the parent's image area so a zoomed-in region that runs off the
+      // panel doesn't paint over neighbouring panels (the leaders below are
+      // intentionally NOT clipped — they cross panel boundaries).
+      calloutCtx.save();
+      calloutCtx.beginPath();
+      calloutCtx.rect(offX, offY, imgW, imgH);
+      calloutCtx.clip();
+      calloutCtx.beginPath();
+      calloutCtx.moveTo(x0, y0);
+      calloutCtx.lineTo(x1, y1);
+      calloutCtx.lineTo(x2, y2);
+      calloutCtx.lineTo(x3, y3);
+      calloutCtx.closePath();
+      calloutCtx.stroke();
+      calloutCtx.restore();
+
+      // ── leader lines to the inset (skip while minimized) ─────────────────
+      const insSpec = (layout.inset_specs || []).find(s => s.id === ind.inset_id);
+      const minimized = insSpec && insSpec.inset_state === 'minimized';
+      if (!minimized) {
+        const iRect = inset.insetDiv.getBoundingClientRect();
+        const iL = iRect.left - base.left, iT = iRect.top  - base.top;
+        const iR = iL + iRect.width,       iB = iT + iRect.height;
+
+        // Pick which pair of rect corners face the inset (mark_inset loc1/loc2
+        // auto): compare the inset's centre to the rect's centre and connect
+        // the two corners on the facing side(s).  Deterministic and simple.
+        const rcx = (rL + rR) / 2, rcy = (rT + rB) / 2;
+        const icx = (iL + iR) / 2, icy = (iT + iB) / 2;
+        const dxc = icx - rcx, dyc = icy - rcy;
+
+        // Rect corners (TL, TR, BR, BL) paired with the inset corner nearest
+        // to each, so each leader is short and non-crossing.
+        const rectCorners = {
+          TL: [rL, rT], TR: [rR, rT], BR: [rR, rB], BL: [rL, rB],
+        };
+        const insCorners = {
+          TL: [iL, iT], TR: [iR, iT], BR: [iR, iB], BL: [iL, iB],
+        };
+        // Choose the two rect corners on the side facing the inset.
+        let pair;
+        if (Math.abs(dxc) >= Math.abs(dyc)) {
+          // Inset predominantly left/right of the rect → connect that vertical edge.
+          pair = dxc >= 0 ? [['TR', 'TL'], ['BR', 'BL']]
+                          : [['TL', 'TR'], ['BL', 'BR']];
+        } else {
+          // Inset predominantly above/below → connect that horizontal edge.
+          pair = dyc >= 0 ? [['BL', 'TL'], ['BR', 'TR']]
+                          : [['TL', 'BL'], ['TR', 'BR']];
+        }
+        for (const [rc, ic] of pair) {
+          const [px, py] = rectCorners[rc];
+          const [qx, qy] = insCorners[ic];
+          calloutCtx.beginPath();
+          calloutCtx.moveTo(px, py);
+          calloutCtx.lineTo(qx, qy);
+          calloutCtx.stroke();
+        }
+      }
+      calloutCtx.restore();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Figure-level annotation layer + edit chrome (Report Builder edit mode)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const EDIT_ACCENT = '#4b78d2';   // outline / handle accent for edit chrome
+  let _figMarkers = [];            // parsed figure_markers_json (fractions)
+  let _figMarkerDrag = null;       // active drag: {id, mode, snap, startMX/MY}
+
+  function _editOn() { return !!model.get('edit_chrome'); }
+
+  function _loadFigMarkers() {
+    try { _figMarkers = JSON.parse(model.get('figure_markers_json') || '[]') || []; }
+    catch (_) { _figMarkers = []; }
+    if (!Array.isArray(_figMarkers)) _figMarkers = [];
+  }
+
+  // Current figure content size in CSS px (grid content, no padding).
+  function _figSizePx() {
+    const fw = Number(model.get('fig_width'))  || 640;
+    const fh = Number(model.get('fig_height')) || 480;
+    return [fw, fh];
+  }
+
+  // Fraction (0..1) → figure-content CSS px.
+  function _fracToFigPx(fx, fy, fw, fh) { return [fx * fw, fy * fh]; }
+
+  // ── _drawFigureMarkers ────────────────────────────────────────────────────
+  // Draw every figure-level annotation onto figMarkerCanvas.  Fraction→px uses
+  // the figure content size; circle radius scales with min(fw,fh) so it stays
+  // round under a non-square figure.  Handles are drawn only in edit mode.
+  function _drawFigureMarkers(sizeOverride, forceNoHandles) {
+    const [fw, fh] = sizeOverride || _figSizePx();
+    // No markers → collapse the overlay to a 0×0 backing store rather than
+    // sizing it to the full figure (same rationale as _drawCallouts: an empty
+    // full-figure transparent canvas is the largest canvas in the DOM and
+    // shadows panel content for "largest canvas" pixel probes). Zeroing the
+    // size also clears any prior drawing.
+    if (!_figMarkers.length) {
+      if (figMarkerCanvas.width || figMarkerCanvas.height) {
+        figMarkerCanvas.width = 0; figMarkerCanvas.height = 0;
+        figMarkerCanvas.style.width = '0px'; figMarkerCanvas.style.height = '0px';
+      }
+      return;
+    }
+    if (figMarkerCanvas.width !== Math.round(fw * dpr) ||
+        figMarkerCanvas.height !== Math.round(fh * dpr)) {
+      figMarkerCanvas.style.width  = fw + 'px';
+      figMarkerCanvas.style.height = fh + 'px';
+      figMarkerCanvas.width  = Math.round(fw * dpr);
+      figMarkerCanvas.height = Math.round(fh * dpr);
+    }
+    figMarkerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    figMarkerCtx.clearRect(0, 0, fw, fh);
+    const rmin = Math.min(fw, fh);
+    const edit = _editOn() && !forceNoHandles;
+
+    for (const m of _figMarkers) {
+      const color = m.color || EDIT_ACCENT;
+      const lw = m.linewidth != null ? m.linewidth : 2;
+      figMarkerCtx.save();
+      figMarkerCtx.strokeStyle = color;
+      figMarkerCtx.fillStyle   = color;
+      figMarkerCtx.lineWidth   = lw;
+      if (m.kind === 'text') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        const fs = m.fontsize || 16;
+        figMarkerCtx.font = `${fs}px sans-serif`;
+        figMarkerCtx.textAlign = 'left';
+        figMarkerCtx.textBaseline = 'top';
+        figMarkerCtx.fillText(m.text || '', px, py);
+        if (edit) _drawHandle2d(figMarkerCtx, px, py, color);
+      } else if (m.kind === 'circle') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        const r = (m.r || 0) * rmin;
+        figMarkerCtx.beginPath(); figMarkerCtx.arc(px, py, r, 0, Math.PI*2); figMarkerCtx.stroke();
+        if (edit) _drawHandle2d(figMarkerCtx, px, py, color);
+      } else if (m.kind === 'rect') {
+        // x,y = CENTRE; w,h = fractions of figure size.
+        const [cx, cy] = _fracToFigPx(m.x, m.y, fw, fh);
+        const rw = (m.w || 0) * fw, rh = (m.h || 0) * fh;
+        figMarkerCtx.strokeRect(cx - rw/2, cy - rh/2, rw, rh);
+        if (edit) _drawHandle2d(figMarkerCtx, cx, cy, color);
+      } else if (m.kind === 'arrow') {
+        const [tx, ty] = _fracToFigPx(m.x, m.y, fw, fh);
+        const [hx, hy] = _fracToFigPx(m.x + (m.u||0), m.y + (m.v||0), fw, fh);
+        const ang = Math.atan2(hy-ty, hx-tx), HL = 12;
+        figMarkerCtx.beginPath(); figMarkerCtx.moveTo(tx, ty); figMarkerCtx.lineTo(hx, hy); figMarkerCtx.stroke();
+        figMarkerCtx.beginPath(); figMarkerCtx.moveTo(hx, hy);
+        figMarkerCtx.lineTo(hx-HL*Math.cos(ang-Math.PI/6), hy-HL*Math.sin(ang-Math.PI/6));
+        figMarkerCtx.lineTo(hx-HL*Math.cos(ang+Math.PI/6), hy-HL*Math.sin(ang+Math.PI/6));
+        figMarkerCtx.closePath(); figMarkerCtx.fill();
+        if (edit) { _drawHandle2d(figMarkerCtx, tx, ty, color); _drawHandle2d(figMarkerCtx, hx, hy, color); }
+      }
+      figMarkerCtx.restore();
+    }
+  }
+
+  // Mouse (figMarkerCanvas CSS px) for a pointer event.
+  function _figMarkerMouse(e) {
+    const r = figMarkerCanvas.getBoundingClientRect();
+    const sx = r.width  ? figMarkerCanvas.width  / dpr / r.width  : 1;
+    const sy = r.height ? figMarkerCanvas.height / dpr / r.height : 1;
+    return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
+  }
+
+  // Hit-test the figure markers (topmost first). Returns {id, mode} or null.
+  function _figMarkerHitTest(mx, my) {
+    const [fw, fh] = _figSizePx();
+    const rmin = Math.min(fw, fh);
+    const HR = 9;
+    for (let i = _figMarkers.length - 1; i >= 0; i--) {
+      const m = _figMarkers[i];
+      if (m.kind === 'arrow') {
+        const [tx, ty] = _fracToFigPx(m.x, m.y, fw, fh);
+        const [hx, hy] = _fracToFigPx(m.x + (m.u||0), m.y + (m.v||0), fw, fh);
+        if (Math.hypot(mx-hx, my-hy) <= HR) return { id: m.id, mode: 'resize_head' };
+        if (Math.hypot(mx-tx, my-ty) <= HR) return { id: m.id, mode: 'move' };
+        if (_distToSegment2d(mx, my, tx, ty, hx, hy) <= HR) return { id: m.id, mode: 'move' };
+      } else if (m.kind === 'circle') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        const r = (m.r || 0) * rmin;
+        if (Math.abs(Math.hypot(mx-px, my-py) - r) <= Math.max(HR, r*0.18) ||
+            Math.hypot(mx-px, my-py) <= HR) return { id: m.id, mode: 'move' };
+      } else if (m.kind === 'rect') {
+        const [cx, cy] = _fracToFigPx(m.x, m.y, fw, fh);
+        const rw = (m.w||0) * fw, rh = (m.h||0) * fh;
+        if (mx >= cx-rw/2-HR && mx <= cx+rw/2+HR && my >= cy-rh/2-HR && my <= cy+rh/2+HR)
+          return { id: m.id, mode: 'move' };
+      } else if (m.kind === 'text') {
+        const [px, py] = _fracToFigPx(m.x, m.y, fw, fh);
+        // Approximate text box: measure width, one line tall.
+        figMarkerCtx.save();
+        figMarkerCtx.font = `${m.fontsize||16}px sans-serif`;
+        const tw = figMarkerCtx.measureText(m.text || '').width;
+        figMarkerCtx.restore();
+        const th = m.fontsize || 16;
+        if (mx >= px-HR && mx <= px+tw+HR && my >= py-HR && my <= py+th+HR)
+          return { id: m.id, mode: 'move' };
+      }
+    }
+    return null;
+  }
+
+  function _figMarkerById(id) { return _figMarkers.find(m => m.id === id) || null; }
+
+  // Persist the current _figMarkers to the model (no event emission).
+  function _writeFigMarkers() {
+    model.set('figure_markers_json', JSON.stringify(_figMarkers));
+    model.save_changes();
+  }
+
+  // Apply a drag delta (in figure fractions) to the dragged marker.
+  function _doFigMarkerDrag(e) {
+    const d = _figMarkerDrag; if (!d) return;
+    const [fw, fh] = _figSizePx();
+    const [mx, my] = _figMarkerMouse(e);
+    const m = _figMarkerById(d.id); if (!m) return;
+    const s = d.snap;
+    const dfx = (mx - d.startMX) / fw, dfy = (my - d.startMY) / fh;
+    if (d.mode === 'move') {
+      m.x = s.x + dfx; m.y = s.y + dfy;
+    } else if (d.mode === 'resize_head' && m.kind === 'arrow') {
+      m.u = (mx / fw) - m.x; m.v = (my / fh) - m.y;
+    }
+    _drawFigureMarkers();
+    e.preventDefault();
+  }
+
+  // ── Panel drag-swap (edit mode) ───────────────────────────────────────────
+  // A ~16px "⋮⋮" move grip in each panel cell's top-left corner (edit mode
+  // only).  Dragging it starts a swap: the source panel dims, the panel under
+  // the cursor is highlighted as the drop target, and releasing over a
+  // DIFFERENT panel emits a figure-level {panel_swap} event.  anyplotlib does
+  // NOT reorder anything itself — the host swaps + rebuilds the layout.  The
+  // grip only exists / captures events under edit_chrome; off-edit it is
+  // display:none so it never steals a widget drag or a panel selection click.
+  const GRIP_PX = 16;
+  let _panelSwapDrag = null;   // {sourceId, startX, startY} while dragging
+
+  function _panelAt(clientX, clientY) {
+    // Topmost panel cell containing the point (grid cells don't overlap).
+    for (const p of panels.values()) {
+      const cell = p.cell; if (!cell) continue;
+      // Skip insets — swap is grid-panel only.
+      if (p.isInset) continue;
+      const r = cell.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right &&
+          clientY >= r.top  && clientY <= r.bottom) return p;
+    }
+    return null;
+  }
+
+  function _clearSwapFeedback() {
+    for (const p of panels.values()) {
+      if (!p.cell) continue;
+      p.cell.style.opacity = '';
+      // Restore the panel's normal chrome (selection/hover outline).
+    }
+    _applyPanelChrome();
+  }
+
+  function _ensureGrip(p) {
+    if (p.grip || !p.cell) return;
+    const g = document.createElement('div');
+    g.className = 'apl-panel-grip';
+    // Dark-theme dotted-grid affordance; grab cursor; sits above the canvas
+    // stack (canvases are z 5) but is display:none unless edit mode is on.
+    g.style.cssText =
+      `position:absolute;top:2px;left:2px;width:${GRIP_PX}px;height:${GRIP_PX}px;` +
+      `z-index:12;cursor:grab;display:none;border-radius:3px;` +
+      `align-items:center;justify-content:center;font-size:12px;line-height:1;` +
+      `color:${theme.fg||'#cdd6f4'};background:${theme.bg||'#1e1e2e'};` +
+      `border:1px solid ${theme.border||'#44475a'};` +
+      `box-shadow:0 1px 3px rgba(0,0,0,0.4);user-select:none;`;
+    g.textContent = '⠿';  // ⠿ braille dots — a clean "grab" grid glyph
+    g.title = 'Drag to swap this panel';
+    g.addEventListener('mousedown', (e) => {
+      if (!_editOn() || e.button !== 0) return;
+      // Grip wins over panel selection / marker grab within its own bounds.
+      e.preventDefault(); e.stopPropagation();
+      _panelSwapDrag = { sourceId: p.id, startX: e.clientX, startY: e.clientY };
+      g.style.cursor = 'grabbing';
+      p.cell.style.opacity = '0.4';   // ghost the source
+    });
+    p.cell.appendChild(g);
+    p.grip = g;
+  }
+
+  // Global move / up handlers for an in-progress panel swap.
+  document.addEventListener('mousemove', (e) => {
+    if (!_panelSwapDrag) return;
+    const target = _panelAt(e.clientX, e.clientY);
+    // Highlight the drop target (not the source) with a solid accent outline.
+    for (const p of panels.values()) {
+      if (!p.cell || p.isInset) continue;
+      if (p.id === _panelSwapDrag.sourceId) continue;
+      if (target && p.id === target.id) {
+        p.cell.style.outline = `2px solid ${EDIT_ACCENT}`;
+        p.cell.style.outlineOffset = '-2px';
+      } else {
+        // Clear any transient swap highlight (leave the source alone).
+        p.cell.style.outline = '';
+        p.cell.style.outlineOffset = '';
+      }
+    }
+    e.preventDefault();
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (!_panelSwapDrag) return;
+    const d = _panelSwapDrag; _panelSwapDrag = null;
+    if (d.sourceId && panels.get(d.sourceId) && panels.get(d.sourceId).grip)
+      panels.get(d.sourceId).grip.style.cursor = 'grab';
+    const target = _panelAt(e.clientX, e.clientY);
+    // Emit ONLY when released over a different, non-inset panel.
+    if (target && !target.isInset && target.id !== d.sourceId) {
+      _emitEvent('', 'pointer_up', null, {
+        panel_swap: true,
+        source_panel_id: d.sourceId,
+        target_panel_id: target.id,
+        ..._pointerFields(e), button: e.button,
+      });
+    }
+    // Released on the source panel / empty space → cancel cleanly (no emit).
+    _clearSwapFeedback();
+    e.preventDefault();
+  });
+
+  // ── Edit chrome: per-panel hover + selection outlines ─────────────────────
+  // Purely JS-local DOM styling; never exported.  Hover uses a dashed accent
+  // outline via a data-attr-driven inline style; selection a solid one.
+  function _applyPanelChrome() {
+    const edit = _editOn();
+    const sel = model.get('selected_panel') || '';
+    for (const p of panels.values()) {
+      const cell = p.cell; if (!cell) continue;
+      // Move grip: created lazily, shown only in edit mode on grid panels.
+      if (!p.isInset) {
+        _ensureGrip(p);
+        if (p.grip) p.grip.style.display = edit ? 'flex' : 'none';
+      }
+      // Selection outline (persistent, solid) wins over hover.
+      // outline-offset is fully NEGATIVE (−width) so the whole ring is inset
+      // INSIDE the cell bounds — otherwise an edge/corner panel's outline is
+      // clipped at the figure's right/bottom edge (half the stroke spills out).
+      if (edit && p.id === sel) {
+        cell.style.outline = `2px solid ${EDIT_ACCENT}`;
+        cell.style.outlineOffset = '-2px';
+      } else if (!p._editHover || !edit) {
+        cell.style.outline = '';
+        cell.style.outlineOffset = '';
+      }
+      // (Re)bind hover handlers exactly once per cell.
+      if (!p._editHoverBound) {
+        p._editHoverBound = true;
+        cell.addEventListener('mouseenter', () => {
+          p._editHover = true;
+          if (_editOn() && p.id !== (model.get('selected_panel') || '')) {
+            cell.style.outline = `2px dashed ${EDIT_ACCENT}`;
+            cell.style.outlineOffset = '-2px';
+          }
+        });
+        cell.addEventListener('mouseleave', () => {
+          p._editHover = false;
+          if (p.id !== (model.get('selected_panel') || '')) {
+            cell.style.outline = '';
+            cell.style.outlineOffset = '';
+          }
+        });
+      }
+    }
+  }
+
+  // Edit mode redraws the marker layer (so handles appear/disappear) and the
+  // panel chrome.  figMarkerCanvas ALWAYS stays pointer-events:none — a
+  // full-figure canvas set to `auto` would sit above every panel's overlay
+  // (z 35 > z 5) and swallow all panel interaction.  Instead the outerDiv
+  // capture handler below hit-tests markers itself, so a marker is grabbable
+  // where it lies and panels stay fully interactive everywhere else.
+  function _applyEditMode() {
+    _applyPanelChrome();
+    _drawFigureMarkers();
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    if (!_figMarkerDrag) return;
+    _doFigMarkerDrag(e);
+  });
+  document.addEventListener('mouseup', (e) => {
+    if (!_figMarkerDrag) return;
+    const d = _figMarkerDrag; _figMarkerDrag = null;
+    const m = _figMarkerById(d.id);
+    // Persist + emit a figure_marker pointer_up carrying the updated FRACTIONS.
+    _writeFigMarkers();
+    const upd = { figure_marker: true, marker_id: d.id };
+    if (m) { for (const k of ['x','y','u','v','r','w','h']) if (m[k] !== undefined) upd[k] = m[k]; }
+    _emitEvent('', 'pointer_up', null, { ...upd, ..._pointerFields(e), button: e.button });
+    e.preventDefault();
+  });
+
+  // ── Edit-mode mousedown capture on outerDiv ───────────────────────────────
+  // Runs BEFORE any panel handler (capture phase).  Two jobs, both edit-only:
+  //   1. If a figure marker is under the cursor → start a marker drag and
+  //      STOP propagation so the panel underneath doesn't also react.
+  //   2. Else, if the target is NOT inside any panel cell / inset / chrome →
+  //      emit a figure-background pointer_down.
+  // A plain click inside a panel does neither (its own path handles it).
+  outerDiv.addEventListener('mousedown', (e) => {
+    if (!_editOn() || e.button !== 0) return;
+
+    // (0) A panel move-grip owns its own bounds — let its own mousedown handler
+    // start the swap; do not marker-grab or background-emit here.
+    if (e.target && e.target.classList &&
+        e.target.classList.contains('apl-panel-grip')) return;
+
+    const [mx, my] = _figMarkerMouse(e);
+
+    // (1) Marker grab — highest priority, even over a panel underneath.
+    const hit = _figMarkerHitTest(mx, my);
+    if (hit) {
+      const m = _figMarkerById(hit.id);
+      _figMarkerDrag = { id: hit.id, mode: hit.mode, snap: {...m},
+                         startMX: mx, startMY: my };
+      e.preventDefault(); e.stopPropagation();
+      return;
+    }
+
+    // (2) Background detection.
+    const t = e.target;
+    for (const p of panels.values()) {
+      if (p.cell && p.cell.contains(t)) return;   // inside a panel / inset
+    }
+    if (t === resizeHandle || (helpBtn && helpBtn.contains(t)) ||
+        (helpCard && helpCard.contains(t))) return;
+    _emitEvent('', 'pointer_down', null, { figure_background: true, ..._pointerFields(e), button: e.button });
+  }, true);
 
   function _resizePanelDOM(id, pw, ph) {
     const p = panels.get(id);
@@ -2194,10 +2813,19 @@ function render({ model, el }) {
     }
   }
 
-  function drawOverlay2d(p) {
+  // opts (optional): { ctx, imgW, imgH, forceNoHandles }
+  //   ctx/imgW/imgH default to the panel's own live overlay canvas/dims — pass
+  //   an offscreen ctx + matching dims to redraw the SAME widgets elsewhere
+  //   (e.g. exportPNG's handle-free export redraw; see _drawOverlay2dNoHandles).
+  //   forceNoHandles suppresses the handle dots regardless of each widget's
+  //   own show_handles (mirrors _drawFigureMarkers(sizeOverride, forceNoHandles)).
+  function drawOverlay2d(p, opts) {
     const st=p.state; if(!st) return;
-    const {pw,ph,ovCtx} = p;
-    const imgW=p.imgW||Math.max(1,pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,ph-PAD_T-PAD_B);
+    const o = opts || {};
+    const {pw,ph} = p;
+    const ovCtx = o.ctx || p.ovCtx;
+    const imgW = o.imgW || p.imgW || Math.max(1,pw-PAD_L-PAD_R);
+    const imgH = o.imgH || p.imgH || Math.max(1,ph-PAD_T-PAD_B);
     ovCtx.clearRect(0,0,imgW,imgH);
     const widgets=st.overlay_widgets||[];
     const scale=_imgScale2d(st,imgW,imgH);
@@ -2206,28 +2834,39 @@ function render({ model, el }) {
     ovCtx.beginPath(); ovCtx.rect(vr.x, vr.y, vr.w, vr.h); ovCtx.clip();
     for(const w of widgets){
       if(w.visible === false) continue;
+      // Handle dots are drawn unless the widget opts out (show_handles:false),
+      // or the caller forces them off entirely (export redraw).
+      const _handles = !o.forceNoHandles && w.show_handles !== false;
       ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
       if(w.type==='circle'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath(); ovCtx.arc(ccx,ccy,w.r*scale,0,Math.PI*2); ovCtx.stroke();
-        _drawHandle2d(ovCtx,ccx+w.r*scale,ccy,w.color);
+        if(_handles){
+          // Centre node = move; east-point node = resize radius.
+          _drawHandle2d(ovCtx,ccx,ccy,w.color);
+          _drawHandle2d(ovCtx,ccx+w.r*scale,ccy,w.color);
+        }
       } else if(w.type==='annular'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath();ovCtx.arc(ccx,ccy,w.r_outer*scale,0,Math.PI*2);ovCtx.stroke();
         ovCtx.beginPath();ovCtx.arc(ccx,ccy,w.r_inner*scale,0,Math.PI*2);ovCtx.stroke();
-        _drawHandle2d(ovCtx,ccx+w.r_outer*scale,ccy,w.color);
-        _drawHandle2d(ovCtx,ccx+w.r_inner*scale,ccy-w.r_inner*scale*0.3,w.color);
+        if(_handles){
+          _drawHandle2d(ovCtx,ccx+w.r_outer*scale,ccy,w.color);
+          _drawHandle2d(ovCtx,ccx+w.r_inner*scale,ccy-w.r_inner*scale*0.3,w.color);
+        }
       } else if(w.type==='rectangle'){
         const [rx,ry]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
         const rw=w.w*scale, rh=w.h*scale;
         ovCtx.strokeRect(rx,ry,rw,rh);
-        _drawHandle2d(ovCtx,rx,ry,w.color);_drawHandle2d(ovCtx,rx+rw,ry,w.color);
-        _drawHandle2d(ovCtx,rx,ry+rh,w.color);_drawHandle2d(ovCtx,rx+rw,ry+rh,w.color);
+        if(_handles){
+          _drawHandle2d(ovCtx,rx,ry,w.color);_drawHandle2d(ovCtx,rx+rw,ry,w.color);
+          _drawHandle2d(ovCtx,rx,ry+rh,w.color);_drawHandle2d(ovCtx,rx+rw,ry+rh,w.color);
+        }
       } else if(w.type==='crosshair'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath();ovCtx.moveTo(0,ccy);ovCtx.lineTo(imgW,ccy);ovCtx.stroke();
         ovCtx.beginPath();ovCtx.moveTo(ccx,0);ovCtx.lineTo(ccx,imgH);ovCtx.stroke();
-        ovCtx.beginPath();ovCtx.arc(ccx,ccy,4,0,Math.PI*2);ovCtx.fillStyle=w.color||'#00e5ff';ovCtx.fill();
+        if(_handles){ovCtx.beginPath();ovCtx.arc(ccx,ccy,4,0,Math.PI*2);ovCtx.fillStyle=w.color||'#00e5ff';ovCtx.fill();}
       } else if(w.type==='polygon'){
         const verts=w.vertices||[];
         if(verts.length>=2){
@@ -2236,13 +2875,27 @@ function render({ model, el }) {
           ovCtx.moveTo(px0,py0);
           for(let k=1;k<verts.length;k++){const[px,py]=_imgToCanvas2d(verts[k][0],verts[k][1],st,imgW,imgH);ovCtx.lineTo(px,py);}
           ovCtx.closePath();ovCtx.stroke();
-          for(const v of verts){const[px,py]=_imgToCanvas2d(v[0],v[1],st,imgW,imgH);_drawHandle2d(ovCtx,px,py,w.color);}
+          if(_handles) for(const v of verts){const[px,py]=_imgToCanvas2d(v[0],v[1],st,imgW,imgH);_drawHandle2d(ovCtx,px,py,w.color);}
         }
       } else if(w.type==='label'){
         const [lx,ly]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
         ovCtx.font=`${w.fontsize||14}px sans-serif`;ovCtx.fillStyle=w.color||'#00e5ff';
         ovCtx.textAlign='left';ovCtx.textBaseline='top';ovCtx.fillText(w.text||'',lx,ly);
-        _drawHandle2d(ovCtx,lx,ly,w.color);
+        if(_handles) _drawHandle2d(ovCtx,lx,ly,w.color);
+      } else if(w.type==='arrow'){
+        // Shaft from tail (x,y) to head (x+u,y+v), then a filled arrowhead —
+        // reusing the head math from the static 'arrows' marker branch.
+        const [tx,ty]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
+        const [hx,hy]=_imgToCanvas2d(w.x+w.u,w.y+w.v,st,imgW,imgH);
+        ovCtx.lineWidth=(w.linewidth!=null?w.linewidth:2);
+        ovCtx.fillStyle=w.color||'#00e5ff';
+        const ang=Math.atan2(hy-ty,hx-tx), HL=10;
+        ovCtx.beginPath();ovCtx.moveTo(tx,ty);ovCtx.lineTo(hx,hy);ovCtx.stroke();
+        ovCtx.beginPath();ovCtx.moveTo(hx,hy);
+        ovCtx.lineTo(hx-HL*Math.cos(ang-Math.PI/6),hy-HL*Math.sin(ang-Math.PI/6));
+        ovCtx.lineTo(hx-HL*Math.cos(ang+Math.PI/6),hy-HL*Math.sin(ang+Math.PI/6));
+        ovCtx.closePath();ovCtx.fill();
+        if(_handles){_drawHandle2d(ovCtx,tx,ty,w.color);_drawHandle2d(ovCtx,hx,hy,w.color);}
       }
       ovCtx.restore();
     }
@@ -5558,6 +6211,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           : (m==='resize_br'||m==='resize_tl') ? 'nwse-resize'
           : (m==='resize_bl'||m==='resize_tr') ? 'nesw-resize'
           : (m==='resize_r'||m==='resize_ir')  ? 'ew-resize'
+          : (m==='resize_head'||m==='resize_tail') ? 'crosshair'
           : m.startsWith('vertex_')            ? 'crosshair'
           : 'move';
       } else if(!p.isPanning){
@@ -5964,9 +6618,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const [lx, ly] = _imgToCanvas2d(w.x, w.y, st, imgW, imgH);
         if (Math.hypot(mx-lx, my-ly) <= HR + 6)
           return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'arrow') {
+        const [tx, ty] = _imgToCanvas2d(w.x, w.y, st, imgW, imgH);
+        const [hx, hy] = _imgToCanvas2d(w.x + w.u, w.y + w.v, st, imgW, imgH);
+        // head handle → re-aim the arrow (head moves, tail fixed)
+        if (Math.hypot(mx-hx, my-hy) <= HR)
+          return { idx:i, mode:'resize_head', snapW:{...w}, startMX:mx, startMY:my };
+        // tail handle → reshape (tail moves, HEAD stays anchored)
+        if (Math.hypot(mx-tx, my-ty) <= HR)
+          return { idx:i, mode:'resize_tail', snapW:{...w}, startMX:mx, startMY:my };
+        // near the shaft → move whole arrow
+        if (_distToSegment2d(mx, my, tx, ty, hx, hy) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
       }
     }
     return null;
+  }
+
+  // Perpendicular distance from point (px,py) to the segment (ax,ay)-(bx,by).
+  function _distToSegment2d(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx*dx + dy*dy;
+    if (len2 === 0) return Math.hypot(px-ax, py-ay);
+    let t = ((px-ax)*dx + (py-ay)*dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (ax + t*dx), py - (ay + t*dy));
   }
 
   function _pointInPolygon2d(mx, my, verts, st, imgW, imgH) {
@@ -6045,6 +6722,19 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
     } else if (w.type === 'label') {
       w.x = s.x + dix; w.y = s.y + diy;
+    } else if (w.type === 'arrow') {
+      if (d.mode === 'move') {
+        w.x = s.x + dix; w.y = s.y + diy;
+      } else if (d.mode === 'resize_head') {
+        // head follows the cursor → u,v = imgMouse − tail (tail fixed)
+        w.u = imgMX - s.x; w.v = imgMY - s.y;
+      } else if (d.mode === 'resize_tail') {
+        // tail follows the cursor, HEAD stays anchored: the fixed head is
+        // (s.x + s.u, s.y + s.v).  x,y = tail; u,v = head − tail so the head
+        // point is invariant under the drag.
+        w.x = s.x + dix; w.y = s.y + diy;
+        w.u = s.u - dix; w.v = s.v - diy;
+      }
     }
 
     drawOverlay2d(p);
@@ -6330,6 +7020,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       _resizePanelDOM(p.id, p.pw, p.ph);
       _redrawPanel(p);
     }
+    _drawFigureMarkers([nfw, nfh]);
   }
 
   document.addEventListener('mousemove', (e) => {
@@ -6346,6 +7037,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _rafPending = false;
         if (!isResizing) return;
         _applyFigResizeDOM(_pendingNfw, _pendingNfh);
+        // Track the figure-marker overlay to the live drag size.
+        _drawFigureMarkers([_pendingNfw, _pendingNfh]);
       });
     }
     e.preventDefault();
@@ -7025,10 +7718,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     else if(p.kind==='3d') draw3d(p);
     else if(p.kind==='bar') drawBar(p);
     else                   draw1d(p);
+    // Region indications track the parent's zoom/pan: any panel redraw
+    // refreshes ALL callouts (cheap no-op when there are none). Redrawing all
+    // (not just this panel's) keeps rect + leaders consistent when a parent
+    // and its inset live in different panels.
+    _drawCallouts();
   }
 
   function redrawAll() {
     for(const p of panels.values()) _redrawPanel(p);
+    _drawCallouts();
   }
 
   // ── PNG export ────────────────────────────────────────────────────────────
@@ -7095,19 +7794,60 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Skips hidden (display:none) or zero-area elements; catches per-element
     // draw failures (a tainted / uninitialised canvas) so one bad layer never
     // aborts the whole export.
-    const _drawEl = (elm) => {
+    //
+    // Coordinates are SNAPPED to output pixels: dx/dy round the element's
+    // top-left, and dw/dh are derived from the ROUNDED right/bottom edges
+    // (not by rounding width/height directly). Two adjacent elements that
+    // share a boundary (e.g. neighbouring grid panels) therefore round to the
+    // exact same output-pixel edge on both sides, instead of each picking up
+    // an independent +/-1 px from its own width/height rounding — which is
+    // what caused 1 px seams / overlaps at fractional scale (e.g. scale:1.25).
+    // `rectElm` (defaults to `elm`) supplies the on-screen position/visibility
+    // — used to blit an offscreen scratch canvas (no DOM rect of its own) at
+    // the position of the live element it stands in for (see
+    // _drawPanelWidgetsNoHandles below).
+    const _drawEl = (elm, rectElm) => {
       if (!elm) return;
-      const cs = window.getComputedStyle(elm);
+      const re = rectElm || elm;
+      const cs = window.getComputedStyle(re);
       if (cs.display === 'none' || cs.visibility === 'hidden') return;
       // A canvas with 0×0 backing store has nothing to blit.
       if (elm.width === 0 || elm.height === 0) return;
-      const r = elm.getBoundingClientRect();
+      const r = re.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
-      const dx = (r.left - rootRect.left) * outScale;
-      const dy = (r.top  - rootRect.top)  * outScale;
-      const dw = r.width  * outScale;
-      const dh = r.height * outScale;
+      const left   = (r.left   - rootRect.left) * outScale;
+      const top    = (r.top    - rootRect.top)  * outScale;
+      const right  = (r.right  - rootRect.left) * outScale;
+      const bottom = (r.bottom - rootRect.top)  * outScale;
+      const dx = Math.round(left);
+      const dy = Math.round(top);
+      const dw = Math.round(right)  - dx;
+      const dh = Math.round(bottom) - dy;
+      if (dw <= 0 || dh <= 0) return;
       try { octx.drawImage(elm, dx, dy, dw, dh); } catch (_) {}
+    };
+
+    // Widget handle/node dots are edit-mode chrome (like figure-marker handles
+    // — see _drawFigureMarkers(null, true) below), not exported content.  For
+    // includeWidgets:true, redraw the panel's widgets onto a scratch canvas
+    // (same backing size + DPR transform as the live overlayCanvas) with
+    // handles forced off, and blit THAT (positioned via the live
+    // overlayCanvas's own on-screen rect) instead of the live p.overlayCanvas
+    // — so the on-screen canvas (and any handles currently visible on it) is
+    // never touched, no flicker.
+    const _drawPanelWidgetsNoHandles = (p) => {
+      if (!p.overlayCanvas || !p.ovCtx) return null;
+      const oc = p.overlayCanvas;
+      if (oc.width === 0 || oc.height === 0) return null;
+      const scratch = document.createElement('canvas');
+      scratch.width = oc.width; scratch.height = oc.height;
+      const sctx = scratch.getContext('2d');
+      if (!sctx) return null;
+      sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      try {
+        drawOverlay2d(p, { ctx: sctx, imgW: p.imgW, imgH: p.imgH, forceNoHandles: true });
+      } catch (_) { return null; }
+      return scratch;
     };
 
     // Per-panel canvas stack, in visual z-order (see _buildCanvasStack).
@@ -7117,16 +7857,58 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       _drawEl(p.yAxisCanvas);    // physical axis gutters (no explicit z)
       _drawEl(p.xAxisCanvas);
       _drawEl(p.cbCanvas);       // colorbar strip + label
-      if (includeWidgets) _drawEl(p.overlayCanvas);  // z 5 — interactive widgets
+      if (includeWidgets) {      // z 5 — interactive widgets, handles suppressed
+        const scratch = _drawPanelWidgetsNoHandles(p);
+        if (scratch) _drawEl(scratch, p.overlayCanvas); else _drawEl(p.overlayCanvas);
+      }
       _drawEl(p.markersCanvas);  // z 6 — static marker groups
       _drawEl(p.scaleBar);       // z 7 — physical scale bar
       _drawEl(p.titleCanvas);    // z 8 — 2-D title strip
       // (statusBar / statsDiv are hover chrome — intentionally excluded.)
     };
 
+    // Inset title bars are plain DOM (titleSpan text node), not a canvas, so
+    // _drawEl (which only blits drawImage-able elements) never captures them.
+    // Draw the title text directly onto the output canvas, positioned at the
+    // titleBar's on-screen rect, approximating the CSS declared in
+    // _createInsetDOM (11px sans-serif, theme.tickText colour, left-padded).
+    const _drawInsetTitle = (p) => {
+      if (!p.isInset || !p.titleBar || !p.insetSpec) return;
+      const title = p.insetSpec.title;
+      if (!title) return;
+      const cs = window.getComputedStyle(p.titleBar);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      const r = p.titleBar.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      const left = (r.left - rootRect.left) * outScale;
+      const top  = (r.top  - rootRect.top)  * outScale;
+      octx.save();
+      octx.fillStyle = theme.tickText;
+      octx.textBaseline = 'middle';
+      octx.textAlign = 'left';
+      // 8px left padding matches titleBar's `padding:0 5px 0 8px`.
+      _drawTex(octx, title, left + 8 * outScale, top + r.height * outScale / 2,
+               11 * outScale, { align: 'left' });
+      octx.restore();
+    };
+
     // Grid panels first, then insets on top (insets sit above grid content).
     for (const p of panels.values()) if (!p.isInset) _drawPanel(p);
-    for (const p of panels.values()) if (p.isInset)  _drawPanel(p);
+    for (const p of panels.values()) if (p.isInset)  { _drawPanel(p); _drawInsetTitle(p); }
+
+    // Callout indications (dashed source rects + leader lines) sit above panel
+    // content and insets — composite them last so they overlay everything.
+    // Force a fresh draw first so the canvas reflects the current view.
+    try { _drawCallouts(); } catch (_) {}
+    _drawEl(calloutCanvas);
+
+    // Figure-level annotation layer is CONTENT — always composited (handles
+    // suppressed for export). Hover/selection outlines are DOM styles and are
+    // never on a canvas, so they are inherently excluded.
+    try { _drawFigureMarkers(null, true); } catch (_) {}
+    _drawEl(figMarkerCanvas);
+    // Restore the on-screen draw (handles visible again if in edit mode).
+    try { _drawFigureMarkers(); } catch (_) {}
 
     let dataUrl;
     try {
@@ -7175,13 +7957,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
   if (typeof ResizeObserver !== 'undefined') {
     let _lastCellW = 0;
+    let _lastRoW = 0, _lastRoH = 0;
+    let _roTimer = null;
     new ResizeObserver(entries => {
-      // React only to width changes to avoid a feedback loop: our own
-      // scaleWrap height updates would otherwise re-trigger the observer.
-      const cellW = entries[0].contentRect.width;
-      if (cellW === _lastCellW) return;
-      _lastCellW = cellW;
-      requestAnimationFrame(_applyScale);
+      const cr = entries[0].contentRect;
+      const cellW = cr.width, cellH = cr.height;
+      // (1) Jupyter fit-to-cell down-scale — width-only to avoid a feedback
+      // loop (our own scaleWrap height updates would re-trigger the observer).
+      if (cellW !== _lastCellW) {
+        _lastCellW = cellW;
+        requestAnimationFrame(_applyScale);
+      }
+      // (2) Container-resize hook for an embedding host (SpyDE): fire onResize
+      // with the new root-container CSS px so the host can drive a real
+      // relayout (e.g. handle.resize(w,h) → fig_width/height → applyLayout).
+      // Debounced (rAF-coalesced trailing) so a drag-resize fires once on
+      // settle, not per-frame.  Fires on width OR height change; the host owns
+      // whether to scale, relayout, or ignore.
+      if (typeof onResize === 'function' &&
+          (Math.round(cellW) !== _lastRoW || Math.round(cellH) !== _lastRoH)) {
+        _lastRoW = Math.round(cellW); _lastRoH = Math.round(cellH);
+        if (_roTimer) cancelAnimationFrame(_roTimer);
+        _roTimer = requestAnimationFrame(() => {
+          _roTimer = null;
+          try { onResize({ width: _lastRoW, height: _lastRoH }); } catch (_) {}
+        });
+      }
     }).observe(el);
     requestAnimationFrame(_applyScale);
   }
@@ -7225,8 +8026,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     } catch(_) {}
   });
 
+  // ── edit-chrome / figure-marker listeners ─────────────────────────────────
+  model.on('change:edit_chrome',    () => { _applyEditMode(); });
+  model.on('change:selected_panel', () => { _applyPanelChrome(); });
+  model.on('change:figure_markers_json', () => { _loadFigMarkers(); _drawFigureMarkers(); });
+
   // ── initial render ────────────────────────────────────────────────────────
+  _loadFigMarkers();
   applyLayout();
+  _applyEditMode();
 
   // Internal API surface returned to mount().  anywidget ignores render()'s
   // return value; mount() captures it so its handle can reach the closure's
@@ -7235,6 +8043,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   return {
     panels,
     exportPNG,
+    calloutCanvas,      // figure-level region-indication overlay
+    _drawCallouts,      // force a callout redraw (tests / external layout sync)
+    figMarkerCanvas,    // figure-level annotation overlay (content, exported)
+    _drawFigureMarkers, // force a figure-marker redraw (tests / external sync)
     _gpuDisposeImagePanel,
     _gpuDisposePanel,
   };
@@ -7316,6 +8128,9 @@ export function createLocalModel(initialState) {
 // Mount a figure into *el* and return a control handle.
 //   opts.onEvent(ev)        — parsed interaction events (pointer/key/wheel …)
 //   opts.onSync(key, value) — raw outbound model writes, for a Python bridge
+//   opts.onResize({width,height}) — fired (debounced) when the ROOT CONTAINER
+//                             el resizes, so the host can relayout the figure
+//                             to its new box (e.g. call handle.resize(w,h)).
 export function mount(el, state, opts) {
   // Diagnostic marker: proves THIS (WebGPU-2D) build of figure_esm.js is loaded.
   try { globalThis.__apl_build = 'webgpu-2d'; } catch (_) {}
@@ -7331,10 +8146,13 @@ export function mount(el, state, opts) {
     });
   }
   // Capture render()'s internal API so the handle can reach the closure's
-  // panel map + drawing helpers (exportPNG / GPU dispose).
-  const api = render({ model, el }) || {};
+  // panel map + drawing helpers (exportPNG / GPU dispose).  opts.onResize (if
+  // given) is fired with {width,height} when the ROOT CONTAINER resizes, so an
+  // embedding host can relayout the figure to its new box.
+  const api = render({ model, el, onResize: o.onResize }) || {};
   return {
     model,
+    api,               // internal render() API (panels, calloutCanvas, _drawCallouts, …)
     get(key) { return model.get(key); },
     set(key, value) { model.set(key, value); model.save_changes(); },
     // Replace one panel's full state (object or pre-serialised JSON string).

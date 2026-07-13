@@ -26,7 +26,7 @@ from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
 )
 from anyplotlib._utils import _normalize_image, _build_colormap_lut, _to_rgba_u8
 
@@ -817,6 +817,17 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         stretched over its full data range (wrong contrast) and the second
         corrects it, producing a one-frame flash on every update.  Passing
         ``clim`` here makes data + contrast a single atomic frame (no flash).
+
+        Raises
+        ------
+        ValueError
+            If ``data`` has an invalid shape/ndim, or if this plot has image
+            layers (:meth:`add_layer`) and ``data``'s ``(H, W)`` differs from
+            the current image shape.  A layer keeps the size it had when it
+            was added/last updated, so a shape-changing base update would
+            silently stretch stale-sized layer pixels over the new image.
+            Remove all layers (``remove_layer``) before changing the base
+            image's shape, then re-add them at the new size.
         """
         data = np.asarray(data)
         is_rgb = data.ndim == 3 and data.shape[2] in (3, 4)
@@ -827,6 +838,25 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if data.ndim not in (2, 3):
             raise ValueError(f"data must be 2-D or (H x W x 3|4), got {data.shape}")
         h, w = data.shape[:2]
+
+        # A shape-changing set_data on a plot with image layers would silently
+        # corrupt the display: each layer keeps the (h, w) it had at add_layer /
+        # its last Layer.set_data time (see _encode_layer_pixels), but JS fits
+        # every layer's bitmap into the BASE image's CURRENT fit-rect
+        # (_drawLayers2d → _imgFitRect(iw, ih, ...) uses the new image_width/
+        # image_height) — so a stale-sized layer would be stretched over the new
+        # base image instead of erroring. Mirrors the tile-mode guard above:
+        # refuse instead of corrupting, and tell the caller how to proceed.
+        if self._state.get("layers"):
+            old_h = self._state.get("image_height")
+            old_w = self._state.get("image_width")
+            if (old_h, old_w) != (h, w):
+                raise ValueError(
+                    f"set_data: new frame shape ({h}, {w}) does not match the "
+                    f"current image shape ({old_h}, {old_w}) while this plot has "
+                    f"image layers — remove all layers (remove_layer) before "
+                    f"changing the base image shape, then re-add them at the "
+                    f"new size.")
 
         # ── Tile mode: a live consumer (e.g. a movie navigator) calls set_data with
         # each new frame. Route it through the tile pipeline instead of clobbering the
@@ -1242,15 +1272,26 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             entry["alpha"] = a
         if visible is not None:
             entry["visible"] = bool(visible)
+        # clim=None means "leave unchanged" (no-op) — the historical behaviour,
+        # kept as-is. clim="auto" is the sentinel to explicitly RESET to auto
+        # (recompute from the layer's current data min/max, like add_layer's
+        # clim=None-at-creation path) — see Layer.set / _layer.py docstring.
         if clim is not None:
             # A clim change must RE-QUANTISE the cached frame (like set_clim on the
             # base), because the 8-bit codes are quantised over the old range and
             # can't be re-windowed past it in the LUT alone. We keep the raw frame
             # in _layer_raw for exactly this.
             raw = self._layer_raw.get(layer_id)
-            lo, hi = self._norm_clim(clim)
-            if raw is not None:
+            if isinstance(clim, str):
+                if clim != "auto":
+                    raise ValueError(
+                        f"clim must be a (vmin, vmax) tuple or the string "
+                        f"'auto', got {clim!r}")
+                parsed = None   # None → _normalize_image auto-ranges to data min/max
+            else:
+                lo, hi = self._norm_clim(clim)
                 parsed = (lo, hi) if lo is not None else None
+            if raw is not None:
                 img_u8, vmin, vmax = _normalize_image(raw, clim=parsed)
                 pk = self._layer_pixel_key(layer_id)
                 token = self._encode_pixels(pk, np.ascontiguousarray(img_u8))
@@ -1258,8 +1299,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                 entry["image_b64"] = token
                 self._state[pk] = token
             else:
-                # No cached frame (unusual) — just record the requested endpoints.
-                entry["clim_min"], entry["clim_max"] = lo, hi
+                # No cached frame (unusual) — just record the requested endpoints
+                # (auto with no raw frame to compute from leaves them at None).
+                entry["clim_min"], entry["clim_max"] = (
+                    (None, None) if parsed is None else parsed)
         self._push()
 
     def _layer_set_data(self, layer_id: str, frame) -> None:
@@ -1500,7 +1543,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
         Dispatches to the dedicated ``add_<kind>_widget`` method.
         Supported kinds: ``"circle"``, ``"rectangle"``, ``"annular"``,
-        ``"polygon"``, ``"crosshair"``, ``"label"``.
+        ``"polygon"``, ``"crosshair"``, ``"label"``, ``"arrow"``.
+
+        Every kind also accepts ``show_handles`` (default ``True``) to toggle
+        the grab-handle dots without changing hit-testing / draggability.
         """
         dispatch = {
             "circle":    self.add_circle_widget,
@@ -1509,6 +1555,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "polygon":   self.add_polygon_widget,
             "crosshair": self.add_crosshair_widget,
             "label":     self.add_label_widget,
+            "arrow":     self.add_arrow_widget,
         }
         key = kind.lower()
         if key not in dispatch:
@@ -1516,14 +1563,15 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         return dispatch[key](color=color, **kwargs)
 
     def add_circle_widget(self, cx: float | None = None, cy: float | None = None,
-                          r: float | None = None, color: str = "#00e5ff") -> CircleWidget:
+                          r: float | None = None, color: str = "#00e5ff",
+                          show_handles: bool = True) -> CircleWidget:
         """Add a draggable circle overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CircleWidget(lambda: None,
                               cx=float(cx) if cx is not None else iw / 2,
                               cy=float(cy) if cy is not None else ih / 2,
                               r=float(r) if r is not None else iw * 0.1,
-                              color=color)
+                              color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1531,7 +1579,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_rectangle_widget(self, x: float | None = None, y: float | None = None,
                               w: float | None = None, h: float | None = None,
-                              color: str = "#00e5ff") -> RectangleWidget:
+                              color: str = "#00e5ff",
+                              show_handles: bool = True) -> RectangleWidget:
         """Add a draggable rectangle overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = RectangleWidget(lambda: None,
@@ -1539,7 +1588,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                  y=float(y) if y is not None else ih * 0.25,
                                  w=float(w) if w is not None else iw * 0.5,
                                  h=float(h) if h is not None else ih * 0.5,
-                                 color=color)
+                                 color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1547,7 +1596,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_annular_widget(self, cx: float | None = None, cy: float | None = None,
                            r_outer: float | None = None, r_inner: float | None = None,
-                           color: str = "#00e5ff") -> AnnularWidget:
+                           color: str = "#00e5ff",
+                           show_handles: bool = True) -> AnnularWidget:
         """Add a draggable annular (ring) overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = AnnularWidget(lambda: None,
@@ -1555,32 +1605,35 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                cy=float(cy) if cy is not None else ih / 2,
                                r_outer=float(r_outer) if r_outer is not None else iw * 0.2,
                                r_inner=float(r_inner) if r_inner is not None else iw * 0.1,
-                               color=color)
+                               color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
-    def add_polygon_widget(self, vertices=None, color: str = "#00e5ff") -> PolygonWidget:
+    def add_polygon_widget(self, vertices=None, color: str = "#00e5ff",
+                           show_handles: bool = True) -> PolygonWidget:
         """Add a draggable polygon overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         if vertices is None:
             vertices = [[iw * .25, ih * .25], [iw * .75, ih * .25],
                         [iw * .75, ih * .75], [iw * .25, ih * .75]]
-        widget = PolygonWidget(lambda: None, vertices=vertices, color=color)
+        widget = PolygonWidget(lambda: None, vertices=vertices, color=color,
+                               show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
     def add_crosshair_widget(self, cx: float | None = None, cy: float | None = None,
-                              color: str = "#00e5ff") -> CrosshairWidget:
+                              color: str = "#00e5ff",
+                              show_handles: bool = True) -> CrosshairWidget:
         """Add a draggable crosshair overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CrosshairWidget(lambda: None,
                                  cx=float(cx) if cx is not None else iw / 2,
                                  cy=float(cy) if cy is not None else ih / 2,
-                                 color=color)
+                                 color=color, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1588,13 +1641,36 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_label_widget(self, x: float | None = None, y: float | None = None,
                           text: str = "Label", fontsize: int = 14,
-                          color: str = "#00e5ff") -> LabelWidget:
+                          color: str = "#00e5ff",
+                          show_handles: bool = True) -> LabelWidget:
         """Add a draggable text label overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = LabelWidget(lambda: None,
                              x=float(x) if x is not None else iw * 0.1,
                              y=float(y) if y is not None else ih * 0.1,
-                             text=str(text), fontsize=int(fontsize), color=color)
+                             text=str(text), fontsize=int(fontsize), color=color,
+                             show_handles=show_handles)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_arrow_widget(self, x: float | None = None, y: float | None = None,
+                         u: float | None = None, v: float | None = None,
+                         color: str = "#00e5ff", linewidth: float = 2,
+                         show_handles: bool = True) -> ArrowWidget:
+        """Add a draggable arrow overlay (tail at ``(x, y)``, head at
+        ``(x + u, y + v)``). Defaults place the tail at 25 %, 25 % of the image
+        with a vector of 15 % of the image size, mirroring
+        :meth:`add_label_widget`'s defaulting."""
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = ArrowWidget(lambda: None,
+                             x=float(x) if x is not None else iw * 0.25,
+                             y=float(y) if y is not None else ih * 0.25,
+                             u=float(u) if u is not None else iw * 0.15,
+                             v=float(v) if v is not None else ih * 0.15,
+                             color=color, linewidth=linewidth,
+                             show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()

@@ -14,11 +14,19 @@ import time
 import anywidget
 import traitlets
 
+import uuid as _uuid
+
 from anyplotlib.axes import Axes, InsetAxes
 from anyplotlib.axes._inset_axes import _plot_kind
 from anyplotlib.figure._gridspec import SubplotSpec
-from anyplotlib.callbacks import Event
+from anyplotlib.callbacks import CallbackRegistry, Event, _EventMixin
 from anyplotlib._repr_utils import repr_html_iframe
+
+
+# Recognised figure-level annotation kinds and the fields each carries (beyond
+# ``id`` + ``kind``). Positions/sizes are all in FIGURE FRACTIONS (0..1, origin
+# top-left), so a marker keeps its relative place across figure resizes.
+_FIGURE_MARKER_KINDS = {"text", "circle", "rect", "arrow"}
 
 _HERE = pathlib.Path(__file__).parent.parent
 _ESM_SOURCE = (_HERE / "figure_esm.js").read_text(encoding="utf-8")
@@ -34,7 +42,7 @@ def _binary_wire() -> bool:
     return os.environ.get("APL_BINARY_TRANSPORT") == "1"
 
 
-class Figure(anywidget.AnyWidget):
+class Figure(anywidget.AnyWidget, _EventMixin):
     """Multi-panel interactive figure widget.
 
     The top-level container for all plots and the only ``anywidget.AnyWidget``
@@ -77,6 +85,18 @@ class Figure(anywidget.AnyWidget):
     # Figure-level help text shown in a '?' badge overlay in JS.
     # Empty string means no badge.  Gated by apl.show_help at the Python level.
     help_text      = traitlets.Unicode("").tag(sync=True)
+    # ── Edit-mode chrome (Report Builder) ─────────────────────────────────────
+    # edit_chrome     — when True the JS renderer shows per-panel hover outlines,
+    #                   makes figure-level markers hit-testable/draggable, and
+    #                   emits figure-background clicks.  When False all of this
+    #                   is inert — normal interaction is untouched.
+    # selected_panel  — a panel id (or "") that gets a persistent solid outline;
+    #                   all others clear.  Pure JS-local DOM styling, no export.
+    edit_chrome    = traitlets.Bool(False).tag(sync=True)
+    selected_panel = traitlets.Unicode("").tag(sync=True)
+    # Figure-level annotation layer: a JSON list of marker dicts positioned in
+    # FIGURE FRACTIONS, drawn over all panels.  See set_figure_markers.
+    figure_markers_json = traitlets.Unicode("[]").tag(sync=True)
     _esm = _ESM_SOURCE
     # Static CSS injected by anywidget alongside _esm.
     # .apl-scale-wrap  — outer container; width:100% means it always fills
@@ -142,6 +162,12 @@ class Figure(anywidget.AnyWidget):
         # ships them straight to a PLOTBIN frame with NO base64 encode/decode
         # and NO megabyte JSON. Empty (and ignored) on every non-Electron path.
         self._raw_pixels: dict = {}
+        # Figure-level (not per-panel) callback registry + the _EventMixin API
+        # (add_event_handler / remove_handler / pause_events / hold_events).
+        # Fired for figure-background clicks and figure-marker pointer events.
+        self.callbacks: CallbackRegistry = CallbackRegistry()
+        # Authoritative Python-side copy of the figure-level annotation list.
+        self._figure_markers: list = []
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -407,6 +433,7 @@ class Figure(anywidget.AnyWidget):
             })
 
         inset_specs = []
+        indications = []
         for pid, inset_ax in self._insets_map.items():
             plot = self._plots_map.get(pid)
             pw = max(64, round(self.fig_width  * inset_ax.w_frac))
@@ -416,12 +443,21 @@ class Figure(anywidget.AnyWidget):
                 "kind":         _plot_kind(plot) if plot else "1d",
                 "w_frac":       inset_ax.w_frac,
                 "h_frac":       inset_ax.h_frac,
+                # corner is None for anchor-placed insets; anchor is None for
+                # corner-placed ones.  JS picks the placement mode by which is set.
                 "corner":       inset_ax.corner,
+                "anchor":       list(inset_ax.anchor)
+                                if getattr(inset_ax, "anchor", None) is not None
+                                else None,
                 "title":        inset_ax.title,
                 "panel_width":  pw,
                 "panel_height": ph,
                 "inset_state":  inset_ax._inset_state,
             })
+            # Region indication (mark_inset callout) is keyed by the inset id.
+            ind = getattr(inset_ax, "_indication", None)
+            if ind is not None:
+                indications.append({"inset_id": pid, **ind})
 
         self.layout_json = json.dumps({
             "nrows":          self._nrows,
@@ -433,22 +469,28 @@ class Figure(anywidget.AnyWidget):
             "panel_specs":    panel_specs,
             "share_groups":   share_groups,
             "inset_specs":    inset_specs,
+            "indications":    indications,
             "hspace":         self._hspace,
             "wspace":         self._wspace,
         })
 
     # ── inset creation ────────────────────────────────────────────────────────
     def add_inset(self, w_frac: float, h_frac: float, *,
-                  corner: str = "top-right", title: str = "") -> "InsetAxes":
+                  corner: str = "top-right", anchor=None,
+                  title: str = "") -> "InsetAxes":
         """Create and return a floating inset axes.
 
-        The inset overlays the figure at the specified corner.  Call
-        plot-factory methods on the returned :class:`InsetAxes` to attach
-        data::
+        The inset overlays the figure at the specified corner (default) or at
+        an arbitrary *anchor* position.  Call plot-factory methods on the
+        returned :class:`InsetAxes` to attach data::
 
             inset = fig.add_inset(0.3, 0.25, corner="top-right", title="Zoom")
             inset.imshow(data)    # returns Plot2D
             inset.plot(profile)   # returns Plot1D
+
+            # arbitrary placement (top-left corner at 55% across, 10% down):
+            free = fig.add_inset(0.3, 0.25, anchor=(0.55, 0.10))
+            free.imshow(data)
 
         Parameters
         ----------
@@ -456,7 +498,13 @@ class Figure(anywidget.AnyWidget):
             Width and height as fractions of the figure size (0–1).
         corner : str, optional
             Positioning corner: ``"top-right"`` (default), ``"top-left"``,
-            ``"bottom-right"``, or ``"bottom-left"``.
+            ``"bottom-right"``, or ``"bottom-left"``.  Mutually exclusive with
+            *anchor*.
+        anchor : (x_frac, y_frac), optional
+            Position of the inset's TOP-LEFT corner as fractions of the figure
+            size (0–1), from the figure's top-left.  When given, the inset
+            floats at that anchor and *corner* is ignored.  Use this for
+            free placement (e.g. a callout panel next to the region it marks).
         title : str, optional
             Text displayed in the inset title bar.
 
@@ -464,7 +512,8 @@ class Figure(anywidget.AnyWidget):
         -------
         InsetAxes
         """
-        return InsetAxes(self, w_frac, h_frac, corner=corner, title=title)
+        return InsetAxes(self, w_frac, h_frac, corner=corner,
+                         anchor=anchor, title=title)
 
     def _register_inset(self, inset_ax: "InsetAxes", plot) -> None:
         """Register an inset plot, allocating its trait and updating layout."""
@@ -514,6 +563,28 @@ class Figure(anywidget.AnyWidget):
         panel_id   = msg.get("panel_id", "")
         event_type = msg.get("event_type", "pointer_move")
         widget_id  = msg.get("widget_id")
+
+        # ── Figure-level events (edit mode) — handled BEFORE per-panel lookup ──
+        # A click on the bare figure background (no panel underneath).
+        if msg.get("figure_background"):
+            self._fire_figure_event(event_type, msg)
+            return
+
+        # A drag/click on a figure-level annotation marker.  On pointer_up the
+        # JS ships the marker's updated FRACTION fields; merge them into the
+        # stored list so Python state converges, then fire figure callbacks.
+        if msg.get("figure_marker"):
+            self._apply_figure_marker_event(msg)
+            self._fire_figure_event(event_type, msg)
+            return
+
+        # A panel drag-swap: the user dragged one panel's move-grip and released
+        # over a DIFFERENT panel.  anyplotlib performs NO layout change itself —
+        # it only fires a figure-level event carrying the two panel dispatch ids
+        # so the host (e.g. SpyDE) can swap + rebuild.
+        if msg.get("panel_swap"):
+            self._fire_figure_event(event_type, msg)
+            return
 
         # Inset state changes handled before regular plot dispatch
         if event_type == "inset_state_change":
@@ -587,6 +658,103 @@ class Figure(anywidget.AnyWidget):
                 last_widget_id=msg.get("last_widget_id"),
             )
             plot.callbacks.fire(event)
+
+    # ── figure-level annotation layer ─────────────────────────────────────────
+    def _fire_figure_event(self, event_type: str, msg: dict) -> None:
+        """Fire the FIGURE-level callback registry with a flat Event.
+
+        Used for figure-background clicks, figure-marker pointer events, and
+        panel drag-swaps — events that belong to the figure as a whole, not to
+        any one panel.  The marker id (if any) rides in ``last_widget_id`` so a
+        host can tell which annotation moved; a panel_swap carries the two panel
+        dispatch ids in ``source_panel_id`` / ``target_panel_id``.
+        """
+        event = Event(
+            event_type=event_type,
+            source=self,
+            time_stamp=msg.get("time_stamp", time.perf_counter()),
+            modifiers=msg.get("modifiers", []),
+            x=msg.get("x"),
+            y=msg.get("y"),
+            button=msg.get("button"),
+            buttons=msg.get("buttons", 0),
+            xdata=msg.get("xdata"),
+            ydata=msg.get("ydata"),
+            last_widget_id=msg.get("marker_id"),
+            source_panel_id=msg.get("source_panel_id"),
+            target_panel_id=msg.get("target_panel_id"),
+        )
+        self.callbacks.fire(event)
+
+    def _apply_figure_marker_event(self, msg: dict) -> None:
+        """Merge a figure-marker drag's updated FRACTION fields into the stored
+        marker list (matched by ``marker_id``) and re-sync the trait.
+
+        The JS side already wrote ``figure_markers_json`` back on mouseup, but
+        we converge Python's authoritative ``_figure_markers`` here too so a
+        host reading ``fig.figure_markers`` inside its callback sees the new
+        position immediately (and the two never drift)."""
+        marker_id = msg.get("marker_id")
+        if marker_id is None:
+            return
+        # Fraction fields the JS emits per kind.
+        _pos_keys = ("x", "y", "u", "v", "r", "w", "h")
+        for m in self._figure_markers:
+            if m.get("id") == marker_id:
+                for k in _pos_keys:
+                    if k in msg:
+                        m[k] = msg[k]
+                break
+        # Re-sync the trait from the authoritative list (source:"python" is not
+        # relevant here — figure_markers_json is a plain state trait, not the
+        # event bus, so this does not echo back through _dispatch_event).
+        self.figure_markers_json = json.dumps(self._figure_markers)
+
+    def set_figure_markers(self, markers: list) -> None:
+        """Set the figure-level annotation layer.
+
+        Parameters
+        ----------
+        markers : list of dict
+            Each dict is ``{"id"?, "kind", ...}`` with positions/sizes in
+            FIGURE FRACTIONS (0..1, origin top-left).  ``kind`` is one of:
+
+            - ``"text"``   — ``x, y, text``; optional ``color``, ``fontsize``
+            - ``"circle"`` — ``x, y, r`` (``r`` as a fraction of
+              ``min(fig_width, fig_height)``); optional ``color``, ``linewidth``
+            - ``"rect"``   — ``x, y`` (centre), ``w, h``; optional ``color``,
+              ``linewidth``
+            - ``"arrow"``  — ``x, y`` (tail), ``u, v`` (vector); optional
+              ``color``, ``linewidth``
+
+            Any dict missing an ``id`` is assigned a fresh one.
+
+        Raises
+        ------
+        ValueError
+            If a marker has an unrecognised ``kind``.
+        """
+        out = []
+        for m in markers:
+            m = dict(m)
+            kind = m.get("kind")
+            if kind not in _FIGURE_MARKER_KINDS:
+                raise ValueError(
+                    f"figure marker kind must be one of "
+                    f"{sorted(_FIGURE_MARKER_KINDS)}, got {kind!r}")
+            if not m.get("id"):
+                m["id"] = str(_uuid.uuid4())[:8]
+            out.append(m)
+        self._figure_markers = out
+        self.figure_markers_json = json.dumps(out)
+
+    @property
+    def figure_markers(self) -> list:
+        """The current figure-level annotation list (list of dicts, fractions).
+
+        Returns a shallow copy so external mutation doesn't desync the trait;
+        call :meth:`set_figure_markers` to change it."""
+        return [dict(m) for m in self._figure_markers]
 
     def _push_widget(self, panel_id: str, widget_id: str, fields: dict) -> None:
         """Send a targeted widget-position update to JS (no image data)."""
