@@ -6,6 +6,7 @@ Floating overlay inset (not in the grid).
 
 from __future__ import annotations
 
+import math
 import uuid as _uuid
 
 from anyplotlib.axes._axes import Axes
@@ -150,12 +151,19 @@ class InsetAxes(Axes):
         ----------
         parent_plot : Plot2D
             The parent image plot the region lives on.  Must be a 2-D image
-            panel in the same figure (typically the panel the inset overlays).
+            panel in the SAME figure as this inset (typically the panel the
+            inset overlays) — a plot registered on a different ``Figure``
+            raises ``ValueError``.
         region : (x, y, w, h)
             The source rectangle in the parent image's data coordinates:
             top-left ``(x, y)`` plus width and height.  The values follow the
             same convention as the parent's axes (pixel indices for an
             uncalibrated image; physical units when the axes are calibrated).
+            All four must be finite; ``w`` and ``h`` must be strictly
+            positive.  The rectangle MAY extend outside the parent's data
+            bounds (e.g. a region near an edge) — that is allowed by design
+            and simply clips visually; only degenerate/non-finite values are
+            rejected.
         color : str, optional
             Stroke colour of both the rectangle and the leader lines.
             Default warm orange ``"#ff9800"``.
@@ -168,15 +176,40 @@ class InsetAxes(Axes):
         -------
         InsetAxes
             ``self``, for chaining.
+
+        Raises
+        ------
+        ValueError
+            If ``parent_plot`` has no panel id, is not registered on this
+            inset's Figure, or ``region`` is not 4 finite numbers with
+            ``w > 0`` and ``h > 0``.
         """
         pid = getattr(parent_plot, "_id", None)
         if pid is None:
             raise ValueError("indicate_region: parent_plot has no panel id "
                              "(attach it to the figure first)")
-        x, y, w, h = region
+        if self._fig._plots_map.get(pid) is not parent_plot:
+            raise ValueError(
+                "indicate_region: parent_plot is not registered on this "
+                "inset's Figure — pass a plot created on the same figure "
+                "as this inset (fig.add_inset / fig.subplots)")
+        try:
+            x, y, w, h = (float(v) for v in region)
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"indicate_region: region must be 4 numbers (x, y, w, h), "
+                f"got {region!r}") from None
+        if not all(math.isfinite(v) for v in (x, y, w, h)):
+            raise ValueError(
+                f"indicate_region: region values must be finite, got "
+                f"(x={x}, y={y}, w={w}, h={h})")
+        if not (w > 0 and h > 0):
+            raise ValueError(
+                f"indicate_region: region width and height must be > 0, "
+                f"got (w={w}, h={h})")
         self._indication = {
             "parent_id": pid,
-            "region":    [float(x), float(y), float(w), float(h)],
+            "region":    [x, y, w, h],
             "color":     color,
             "linestyle": linestyle,
             "linewidth": float(linewidth),

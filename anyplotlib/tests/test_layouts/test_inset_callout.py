@@ -187,6 +187,73 @@ def test_indicate_region_bad_parent_raises():
         inset.indicate_region(_NoId(), (0, 0, 1, 1))
 
 
+def test_indicate_region_foreign_figure_parent_raises():
+    """A parent_plot registered on a DIFFERENT Figure must be rejected — it
+    has a real panel id (so it passes the earlier no-id check) but isn't one
+    of this inset's own figure's panels."""
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+    other_fig, other_ax = _make_fig()  # a second, unrelated figure
+
+    with pytest.raises(ValueError, match="not registered"):
+        inset.indicate_region(other_ax._plot, (0, 0, 1, 1))
+    # And the inset's own indication is untouched by the rejected call.
+    assert inset.indication is None
+
+
+def test_indicate_region_foreign_inset_parent_raises():
+    """Same check, but the foreign parent is itself an inset (on the other
+    figure) rather than a grid panel — _plots_map covers both."""
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+    other_fig, _ = _make_fig()
+    other_inset = other_fig.add_inset(0.2, 0.2, anchor=(0.1, 0.1))
+    other_plot = other_inset.imshow(np.zeros((8, 8), dtype=np.float32))
+
+    with pytest.raises(ValueError, match="not registered"):
+        inset.indicate_region(other_plot, (0, 0, 1, 1))
+
+
+@pytest.mark.parametrize("region", [
+    (0, 0, 0, 10),        # w == 0
+    (0, 0, 10, 0),        # h == 0
+    (0, 0, -5, 10),       # w < 0
+    (0, 0, 10, -5),       # h < 0
+    (float("nan"), 0, 10, 10),
+    (0, float("nan"), 10, 10),
+    (0, 0, float("nan"), 10),
+    (0, 0, 10, float("nan")),
+    (0, 0, float("inf"), 10),
+    (0, 0, 10, 10, 99),   # wrong length (too many)
+    (0, 0, 10),           # wrong length (too few)
+])
+def test_indicate_region_degenerate_region_raises(region):
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+    with pytest.raises(ValueError):
+        inset.indicate_region(ax._plot, region)
+
+
+def test_indicate_region_out_of_bounds_is_allowed():
+    """A region that extends outside the parent's data bounds is allowed BY
+    DESIGN (clipping is a visual concern, not a validation error) — only
+    degenerate/non-finite values are rejected."""
+    fig, ax = _make_fig()   # parent image is 64x64
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+    # Region far outside the 64x64 parent image bounds — must NOT raise.
+    inset.indicate_region(ax._plot, (1000, 1000, 50, 50))
+    assert inset.indication is not None
+    assert inset.indication["region"] == [1000.0, 1000.0, 50.0, 50.0]
+
+
 def test_two_insets_two_indications():
     fig, ax = _make_fig()
     i1 = fig.add_inset(0.25, 0.25, anchor=(0.6, 0.05))

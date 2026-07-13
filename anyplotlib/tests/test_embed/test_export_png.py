@@ -63,7 +63,7 @@ def mount_page(_pw_browser):
     """Open a figure via the public mount() API; return the live Page."""
     pages, paths = [], []
 
-    def _open(fig):
+    def _open(fig, device_scale_factor=None):
         html = (_MOUNT_PAGE
                 .replace("__STATE__", json.dumps(figure_state(fig)))
                 .replace("__ESM__", json.dumps(esm_path().read_text(encoding="utf-8"))))
@@ -73,7 +73,10 @@ def mount_page(_pw_browser):
             fh.write(html)
             tmp = pathlib.Path(fh.name)
         paths.append(tmp)
-        page = _pw_browser.new_page()
+        new_page_kwargs = {}
+        if device_scale_factor is not None:
+            new_page_kwargs["device_scale_factor"] = device_scale_factor
+        page = _pw_browser.new_page(**new_page_kwargs)
         pages.append(page)
         page.goto(tmp.as_uri())
         page.wait_for_function("() => window._aplReady === true", timeout=15_000)
@@ -220,6 +223,90 @@ class TestExportBasic:
 
 
 # ---------------------------------------------------------------------------
+# 1b. Inset title bar export (exportPNG must draw the DOM title text)
+# ---------------------------------------------------------------------------
+
+def _inset_titlebar_rect(page, plot_id):
+    """CSS-px rect of an inset's titleBar, relative to the figure origin.
+
+    calloutCanvas shares the same 8px-padding offset from outerDiv as
+    gridDiv/insetsContainer (see figure_esm.js), so its rect is a stable,
+    API-exposed proxy for the figure content origin exportPNG measures from
+    (mirrors _inset_dom_rect in test_inset_callout.py).
+    """
+    return page.evaluate(
+        """(pid) => {
+            const p = window._handle.api.panels.get(pid);
+            const r = p.titleBar.getBoundingClientRect();
+            const base = window._handle.api.calloutCanvas.getBoundingClientRect();
+            return {left: r.left - base.left, top: r.top - base.top,
+                    width: r.width, height: r.height};
+        }""",
+        plot_id,
+    )
+
+
+class TestExportInsetTitle:
+    def test_inset_title_drawn_in_titlebar_band(self, mount_page):
+        """A non-empty inset title must leave title-text-coloured ink in the
+        titlebar row band; an otherwise-identical inset with an empty title
+        must NOT — ruling out a false positive from the titlebar's own flat
+        fill colour (which both figures share) rather than actual text."""
+        dpr = None
+        GRID_PAD = 8
+
+        def _titlebar_band(fig_factory, title):
+            fig, ax = fig_factory()
+            ax.imshow(np.zeros((32, 32), dtype=np.float32), cmap="gray",
+                     vmin=0.0, vmax=1.0)
+            inset = fig.add_inset(0.35, 0.35, corner="top-right", title=title)
+            plot = inset.imshow(np.zeros((16, 16), dtype=np.float32),
+                                cmap="gray", vmin=0.0, vmax=1.0)
+            page = mount_page(fig)
+            rect = _inset_titlebar_rect(page, plot._id)
+            res = _export_via_handle(page)
+            assert "error" not in res, res.get("error")
+            arr = _decode_data_url(res["dataUrl"])
+            dpr_ = page.evaluate("() => window.devicePixelRatio || 1")
+            y0 = max(0, round((rect["top"] + GRID_PAD) * dpr_))
+            y1 = min(arr.shape[0], round((rect["top"] + rect["height"] + GRID_PAD) * dpr_))
+            x0 = max(0, round((rect["left"] + GRID_PAD) * dpr_))
+            x1 = min(arr.shape[1], round((rect["left"] + rect["width"] + GRID_PAD) * dpr_))
+            return arr[y0:y1, x0:x1, :3], dpr_
+
+        def _make_fig():
+            return apl.subplots(1, 1, figsize=(400, 300))
+
+        band_titled, dpr = _titlebar_band(_make_fig, "Zoom View")
+        band_empty, _ = _titlebar_band(_make_fig, "")
+        assert band_titled.size > 0 and band_empty.size > 0, (
+            f"empty titlebar band(s): titled={band_titled.shape} "
+            f"empty={band_empty.shape}"
+        )
+        assert band_titled.shape == band_empty.shape, (
+            "titlebar bands differ in size between the two figures — "
+            f"titled={band_titled.shape} empty={band_empty.shape}"
+        )
+
+        # Both bands share the identical titlebar chrome (same theme, corner,
+        # size — including its border-bottom row), so any per-pixel
+        # difference between the two must be the drawn title TEXT.
+        diff = np.abs(band_titled.astype(np.int32) - band_empty.astype(np.int32))
+        changed_px = int((diff.sum(axis=-1) > 20).sum())
+        assert changed_px > 0, (
+            "titled and empty-title exports are pixel-identical in the "
+            "titlebar band — exportPNG is not drawing the inset title text"
+        )
+        # The border-bottom row (~1 CSS px) is the only chrome difference a
+        # mis-measured band could pick up; text ink should account for far
+        # more than one scaled row's worth of pixels.
+        assert changed_px > band_titled.shape[1] * dpr, (
+            f"only {changed_px} px differ — looks like border noise, not text "
+            f"(band width {band_titled.shape[1]})"
+        )
+
+
+# ---------------------------------------------------------------------------
 # 2. Multi-panel export
 # ---------------------------------------------------------------------------
 
@@ -256,6 +343,88 @@ class TestExportMultiPanel:
         )
         # And they must NOT be swapped (right colour should be rare on the left).
         assert _closest_color(left_half, right_hi) < _closest_color(right_half, right_hi)
+
+    def test_fractional_scale_no_seam_between_panels(self, mount_page):
+        """exportPNG at a fractional effective scale (devicePixelRatio ×
+        opts.scale) on touching (wspace=0) panels must not leave a
+        background-coloured seam between their interior content areas at
+        the shared boundary.
+
+        Reproduced with device_scale_factor=1.5 (a real fractional-DPR
+        display, e.g. 150% Windows scaling) and a panel width whose CSS
+        boundary lands exactly on a half-pixel (250px figure → two 125px
+        panels stretched by DPR 1.5 → boundary at 187.5 output px): with
+        unrounded per-element dx/dw, the two neighbouring canvases (each
+        independently measuring its own getBoundingClientRect() * outScale)
+        can round their shared edge to different output pixels, opening a
+        1px background gap exactly at the seam. Confirmed to fail before
+        the _drawEl edge-rounding fix and pass after.
+        """
+        fig, axes = apl.subplots(1, 2, figsize=(250, 200))
+        fig.subplots_adjust(wspace=0)
+        # Full-bleed constant-colour panels (no axes/title/colorbar → each
+        # plotCanvas fills its entire grid cell, so the panels' image content
+        # touches directly at the shared boundary with no letterboxing).
+        axes[0].imshow(np.full((24, 24), 0.0, dtype=np.float32),
+                       cmap="viridis", vmin=0.0, vmax=1.0)
+        axes[1].imshow(np.full((24, 24), 1.0, dtype=np.float32),
+                       cmap="viridis", vmin=0.0, vmax=1.0)
+
+        page = mount_page(fig, device_scale_factor=1.5)
+        scale = 1.0
+        info = page.evaluate(
+            """(sc) => {
+                const ps = [...window._handle.api.panels.values()]
+                    .filter(p => !p.isInset)
+                    .sort((a, b) => a.plotCanvas.getBoundingClientRect().left
+                                  - b.plotCanvas.getBoundingClientRect().left);
+                const outScale = (window.devicePixelRatio || 1) * sc;
+                const l = ps[0].plotCanvas.getBoundingClientRect();
+                const r = ps[1].plotCanvas.getBoundingClientRect();
+                return {
+                    leftRight: l.right * outScale,
+                    rightLeft: r.left  * outScale,
+                    top: Math.max(l.top, r.top) * outScale,
+                    bottom: Math.min(l.bottom, r.bottom) * outScale,
+                    dpr: window.devicePixelRatio,
+                };
+            }""",
+            scale,
+        )
+        res = _export_via_handle(page, {"scale": scale})
+        assert "error" not in res, res.get("error")
+        arr = _decode_data_url(res["dataUrl"])
+
+        boundary = round(info["leftRight"])
+        assert abs(info["leftRight"] - info["rightLeft"]) < 1.0, (
+            "test precondition failed: panels aren't actually touching "
+            f"({info})"
+        )
+        y0 = max(0, round(info["top"]) + 2)
+        y1 = min(arr.shape[0], round(info["bottom"]) - 2)
+        assert y1 > y0, f"degenerate row range: {info}"
+
+        bg_rgb = page.evaluate(
+            """() => {
+                const el = [...document.querySelectorAll('div')]
+                    .find(d => getComputedStyle(d).display === 'grid');
+                const m = getComputedStyle(el).backgroundColor
+                    .match(/(\\d+),\\s*(\\d+),\\s*(\\d+)/);
+                return m ? [+m[1], +m[2], +m[3]] : [240, 240, 240];
+            }"""
+        )
+        bg = np.array(bg_rgb)
+
+        # A window of a few columns straddling the rounded boundary must
+        # contain no background-coloured pixel (a gap) — the two panels'
+        # distinct colours must butt together directly.
+        band = arr[y0:y1, max(0, boundary - 2):boundary + 3, :3]
+        is_bg = np.abs(band.astype(np.int32) - bg).sum(axis=-1) < 20
+        assert not is_bg.any(), (
+            f"background-coloured pixel(s) at the panel boundary "
+            f"(x≈{boundary}, dpr={info['dpr']}) — seam between touching "
+            f"panels at scale={scale}: band={band.tolist()}"
+        )
 
 
 # ---------------------------------------------------------------------------

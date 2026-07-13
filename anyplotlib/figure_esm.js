@@ -7314,6 +7314,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Skips hidden (display:none) or zero-area elements; catches per-element
     // draw failures (a tainted / uninitialised canvas) so one bad layer never
     // aborts the whole export.
+    //
+    // Coordinates are SNAPPED to output pixels: dx/dy round the element's
+    // top-left, and dw/dh are derived from the ROUNDED right/bottom edges
+    // (not by rounding width/height directly). Two adjacent elements that
+    // share a boundary (e.g. neighbouring grid panels) therefore round to the
+    // exact same output-pixel edge on both sides, instead of each picking up
+    // an independent +/-1 px from its own width/height rounding — which is
+    // what caused 1 px seams / overlaps at fractional scale (e.g. scale:1.25).
     const _drawEl = (elm) => {
       if (!elm) return;
       const cs = window.getComputedStyle(elm);
@@ -7322,10 +7330,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if (elm.width === 0 || elm.height === 0) return;
       const r = elm.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
-      const dx = (r.left - rootRect.left) * outScale;
-      const dy = (r.top  - rootRect.top)  * outScale;
-      const dw = r.width  * outScale;
-      const dh = r.height * outScale;
+      const left   = (r.left   - rootRect.left) * outScale;
+      const top    = (r.top    - rootRect.top)  * outScale;
+      const right  = (r.right  - rootRect.left) * outScale;
+      const bottom = (r.bottom - rootRect.top)  * outScale;
+      const dx = Math.round(left);
+      const dy = Math.round(top);
+      const dw = Math.round(right)  - dx;
+      const dh = Math.round(bottom) - dy;
+      if (dw <= 0 || dh <= 0) return;
       try { octx.drawImage(elm, dx, dy, dw, dh); } catch (_) {}
     };
 
@@ -7343,9 +7356,34 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // (statusBar / statsDiv are hover chrome — intentionally excluded.)
     };
 
+    // Inset title bars are plain DOM (titleSpan text node), not a canvas, so
+    // _drawEl (which only blits drawImage-able elements) never captures them.
+    // Draw the title text directly onto the output canvas, positioned at the
+    // titleBar's on-screen rect, approximating the CSS declared in
+    // _createInsetDOM (11px sans-serif, theme.tickText colour, left-padded).
+    const _drawInsetTitle = (p) => {
+      if (!p.isInset || !p.titleBar || !p.insetSpec) return;
+      const title = p.insetSpec.title;
+      if (!title) return;
+      const cs = window.getComputedStyle(p.titleBar);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      const r = p.titleBar.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      const left = (r.left - rootRect.left) * outScale;
+      const top  = (r.top  - rootRect.top)  * outScale;
+      octx.save();
+      octx.fillStyle = theme.tickText;
+      octx.textBaseline = 'middle';
+      octx.textAlign = 'left';
+      // 8px left padding matches titleBar's `padding:0 5px 0 8px`.
+      _drawTex(octx, title, left + 8 * outScale, top + r.height * outScale / 2,
+               11 * outScale, { align: 'left' });
+      octx.restore();
+    };
+
     // Grid panels first, then insets on top (insets sit above grid content).
     for (const p of panels.values()) if (!p.isInset) _drawPanel(p);
-    for (const p of panels.values()) if (p.isInset)  _drawPanel(p);
+    for (const p of panels.values()) if (p.isInset)  { _drawPanel(p); _drawInsetTitle(p); }
 
     // Callout indications (dashed source rects + leader lines) sit above panel
     // content and insets — composite them last so they overlay everything.

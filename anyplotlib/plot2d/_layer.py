@@ -81,11 +81,24 @@ class Layer:
     def set(self, *, cmap=None, alpha=None, clim=None, visible=None) -> "Layer":
         """Partial update of this layer's appearance (any subset of fields).
 
-        ``cmap`` — colormap name.  ``alpha`` — opacity in [0, 1].  ``clim`` —
-        ``(vmin, vmax)`` display range, or ``None`` to auto (data min/max).
-        ``visible`` — draw or hide.  A pixel re-encode happens only when ``clim``
-        changes (it re-quantises the cached frame); ``cmap``/``alpha``/``visible``
-        are cheap LUT/compositor-only changes.
+        ``cmap`` — colormap name.  ``alpha`` — opacity in [0, 1].  ``visible``
+        — draw or hide.
+
+        ``clim`` — display range, with three distinct meanings:
+
+        - ``None`` (default) — leave the current clim UNCHANGED (this call
+          doesn't touch it).  This is a no-op, not "reset to auto" — pass
+          ``"auto"`` for that.
+        - ``(vmin, vmax)`` — set an explicit display range; re-quantises the
+          cached frame over it.
+        - ``"auto"`` — RESET to auto: recompute the display range from this
+          layer's current data min/max (the same auto-ranging ``add_layer``
+          does when it's given ``clim=None`` at creation time), discarding
+          any previously-set explicit clim.
+
+        A pixel re-encode happens only when ``clim`` is a tuple or ``"auto"``
+        (it re-quantises the cached frame); ``cmap``/``alpha``/``visible`` are
+        cheap LUT/compositor-only changes.
         """
         self._plot._layer_set(self._id, cmap=cmap, alpha=alpha, clim=clim,
                               visible=visible)

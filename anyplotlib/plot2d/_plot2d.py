@@ -817,6 +817,17 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         stretched over its full data range (wrong contrast) and the second
         corrects it, producing a one-frame flash on every update.  Passing
         ``clim`` here makes data + contrast a single atomic frame (no flash).
+
+        Raises
+        ------
+        ValueError
+            If ``data`` has an invalid shape/ndim, or if this plot has image
+            layers (:meth:`add_layer`) and ``data``'s ``(H, W)`` differs from
+            the current image shape.  A layer keeps the size it had when it
+            was added/last updated, so a shape-changing base update would
+            silently stretch stale-sized layer pixels over the new image.
+            Remove all layers (``remove_layer``) before changing the base
+            image's shape, then re-add them at the new size.
         """
         data = np.asarray(data)
         is_rgb = data.ndim == 3 and data.shape[2] in (3, 4)
@@ -827,6 +838,25 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if data.ndim not in (2, 3):
             raise ValueError(f"data must be 2-D or (H x W x 3|4), got {data.shape}")
         h, w = data.shape[:2]
+
+        # A shape-changing set_data on a plot with image layers would silently
+        # corrupt the display: each layer keeps the (h, w) it had at add_layer /
+        # its last Layer.set_data time (see _encode_layer_pixels), but JS fits
+        # every layer's bitmap into the BASE image's CURRENT fit-rect
+        # (_drawLayers2d → _imgFitRect(iw, ih, ...) uses the new image_width/
+        # image_height) — so a stale-sized layer would be stretched over the new
+        # base image instead of erroring. Mirrors the tile-mode guard above:
+        # refuse instead of corrupting, and tell the caller how to proceed.
+        if self._state.get("layers"):
+            old_h = self._state.get("image_height")
+            old_w = self._state.get("image_width")
+            if (old_h, old_w) != (h, w):
+                raise ValueError(
+                    f"set_data: new frame shape ({h}, {w}) does not match the "
+                    f"current image shape ({old_h}, {old_w}) while this plot has "
+                    f"image layers — remove all layers (remove_layer) before "
+                    f"changing the base image shape, then re-add them at the "
+                    f"new size.")
 
         # ── Tile mode: a live consumer (e.g. a movie navigator) calls set_data with
         # each new frame. Route it through the tile pipeline instead of clobbering the
@@ -1242,15 +1272,26 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             entry["alpha"] = a
         if visible is not None:
             entry["visible"] = bool(visible)
+        # clim=None means "leave unchanged" (no-op) — the historical behaviour,
+        # kept as-is. clim="auto" is the sentinel to explicitly RESET to auto
+        # (recompute from the layer's current data min/max, like add_layer's
+        # clim=None-at-creation path) — see Layer.set / _layer.py docstring.
         if clim is not None:
             # A clim change must RE-QUANTISE the cached frame (like set_clim on the
             # base), because the 8-bit codes are quantised over the old range and
             # can't be re-windowed past it in the LUT alone. We keep the raw frame
             # in _layer_raw for exactly this.
             raw = self._layer_raw.get(layer_id)
-            lo, hi = self._norm_clim(clim)
-            if raw is not None:
+            if isinstance(clim, str):
+                if clim != "auto":
+                    raise ValueError(
+                        f"clim must be a (vmin, vmax) tuple or the string "
+                        f"'auto', got {clim!r}")
+                parsed = None   # None → _normalize_image auto-ranges to data min/max
+            else:
+                lo, hi = self._norm_clim(clim)
                 parsed = (lo, hi) if lo is not None else None
+            if raw is not None:
                 img_u8, vmin, vmax = _normalize_image(raw, clim=parsed)
                 pk = self._layer_pixel_key(layer_id)
                 token = self._encode_pixels(pk, np.ascontiguousarray(img_u8))
@@ -1258,8 +1299,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                 entry["image_b64"] = token
                 self._state[pk] = token
             else:
-                # No cached frame (unusual) — just record the requested endpoints.
-                entry["clim_min"], entry["clim_max"] = lo, hi
+                # No cached frame (unusual) — just record the requested endpoints
+                # (auto with no raw frame to compute from leaves them at None).
+                entry["clim_min"], entry["clim_max"] = (
+                    (None, None) if parsed is None else parsed)
         self._push()
 
     def _layer_set_data(self, layer_id: str, frame) -> None:

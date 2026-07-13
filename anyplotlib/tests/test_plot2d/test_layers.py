@@ -127,6 +127,54 @@ class TestSet:
         lyr = p.add_layer(np.ones((32, 32), np.float32))
         assert lyr.set(alpha=0.3).set(cmap="viridis") is lyr
 
+    def test_set_clim_none_is_a_noop(self):
+        """clim=None means 'leave unchanged' — NOT reset to auto. Regression
+        guard for the (fixed) misleading docstring/behaviour gap."""
+        _fig, p = _imshow()
+        data = np.full((32, 32), 5.0, np.float32)
+        lyr = p.add_layer(data, clim=(0, 10))
+        tok0 = p._state["layers"][0]["image_b64"]
+        lyr.set(clim=None)  # explicit no-op call
+        assert lyr.clim == (0.0, 10.0)
+        assert p._state["layers"][0]["image_b64"] == tok0
+
+    def test_set_clim_auto_resets_to_data_range(self):
+        """clim='auto' is the new sentinel: recompute the display range from
+        the layer's CURRENT data min/max, discarding the previous explicit
+        clim — the only way back to auto after an explicit clim was set."""
+        _fig, p = _imshow()
+        data = np.linspace(2.0, 6.0, 32 * 32, dtype=np.float32).reshape(32, 32)
+        lyr = p.add_layer(data, clim=(0, 100))  # explicit clim, far from data range
+        assert lyr.clim == (0.0, 100.0)
+        tok_explicit = p._state["layers"][0]["image_b64"]
+
+        lyr.set(clim="auto")
+        assert lyr.clim == (pytest.approx(2.0), pytest.approx(6.0))
+        # And the pixels were re-quantised (not just the metadata) — different
+        # window means a different code for the same data.
+        assert p._state["layers"][0]["image_b64"] != tok_explicit
+
+    def test_set_clim_auto_matches_add_layer_auto(self):
+        """clim='auto' after set(...) must reproduce exactly what add_layer's
+        own clim=None auto-ranging would have produced for the same data."""
+        _fig, p1 = _imshow()
+        data = np.linspace(-3.0, 9.0, 32 * 32, dtype=np.float32).reshape(32, 32)
+        lyr1 = p1.add_layer(data, clim=(0, 1))
+        lyr1.set(clim="auto")
+
+        _fig2, p2 = _imshow()
+        lyr2 = p2.add_layer(data, clim=None)  # auto from creation
+
+        assert lyr1.clim == lyr2.clim
+        assert (p1._state["layers"][0]["image_b64"]
+                == p2._state["layers"][0]["image_b64"])
+
+    def test_set_clim_invalid_string_raises(self):
+        _fig, p = _imshow()
+        lyr = p.add_layer(np.ones((32, 32), np.float32))
+        with pytest.raises(ValueError):
+            lyr.set(clim="not-a-valid-sentinel")
+
 
 class TestSetData:
     def test_set_data_swaps_pixels_one_push(self):
@@ -227,17 +275,67 @@ class TestTileGuards:
             p.enable_tile(np.zeros((2048, 2048), np.float32))
 
     def test_set_data_tile_true_on_layered_raises(self):
-        _fig, p = _imshow(n=64)
-        p.add_layer(np.ones((64, 64), np.float32))
+        # Same-shape frame (2048x2048 base + layer, 2048x2048 new frame) so
+        # this exercises ONLY the tile-mode guard, not the (separate) shape
+        # guard from TestTileGuards/TestShapeChangeNoLayers below. tile=False
+        # on construction keeps the base itself plain (not auto-tiled) so
+        # add_layer is allowed.
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        p = ax.imshow(np.zeros((2048, 2048), np.float32), cmap="gray",
+                      vmin=0, vmax=1, gpu=False, tile=False)
+        p.add_layer(np.ones((2048, 2048), np.float32))
         with pytest.raises(RuntimeError, match="image layers"):
             p.set_data(np.zeros((2048, 2048), np.float32), tile=True)
 
     def test_large_set_data_on_layered_stays_plain(self):
-        _fig, p = _imshow(n=64)
-        p.add_layer(np.ones((64, 64), np.float32))
+        # Same-shape (base already 2048x2048, above TILE_THRESHOLD) so the new
+        # frame's shape matches — isolates the tile-auto-enable guard from the
+        # shape guard. tile=False on construction keeps the base plain so
+        # add_layer is allowed; the guard under test is set_data's OWN
+        # auto-tile decision on a later call, not the constructor's.
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        p = ax.imshow(np.zeros((2048, 2048), np.float32), cmap="gray",
+                      vmin=0, vmax=1, gpu=False, tile=False)
+        p.add_layer(np.ones((2048, 2048), np.float32))
         # A large frame that would normally auto-enable tiling must stay plain.
-        p.set_data(np.zeros((2048, 2048), np.float32))
+        p.set_data(np.full((2048, 2048), 0.5, np.float32))
         assert p._tile_on is False
+
+    def test_shape_changing_set_data_on_layered_plot_raises(self):
+        """A layer keeps the (H, W) it had at add_layer time; JS fits every
+        layer's bitmap into the base image's CURRENT fit-rect, so a
+        shape-changing base set_data would silently stretch a stale-sized
+        layer over the new image. Must raise instead of corrupting."""
+        _fig, p = _imshow(n=32)
+        p.add_layer(np.ones((32, 32), np.float32))
+        with pytest.raises(ValueError, match="image layers"):
+            p.set_data(np.zeros((16, 16), np.float32))
+        # And the plot's own image is untouched by the rejected call.
+        assert p._state["image_width"] == 32
+        assert p._state["image_height"] == 32
+
+    def test_same_shape_set_data_on_layered_plot_is_fine(self):
+        """The guard only fires on an actual shape CHANGE — same-size updates
+        (the common live-update case) must keep working."""
+        _fig, p = _imshow(n=32)
+        p.add_layer(np.ones((32, 32), np.float32))
+        p.set_data(np.full((32, 32), 0.5, np.float32))  # must not raise
+        assert p._state["image_width"] == 32
+        assert p._state["image_height"] == 32
+
+
+class TestShapeChangeNoLayers:
+    """A plain (layer-free) plot must always accept a shape-changing
+    set_data and refresh image_width/image_height to the new frame size —
+    the ValueError guard in TestTileGuards is layers-only."""
+
+    def test_shape_changing_set_data_updates_image_dims(self):
+        _fig, p = _imshow(n=32)
+        assert p._state["image_width"] == 32
+        assert p._state["image_height"] == 32
+        p.set_data(np.zeros((16, 24), np.float32))
+        assert p._state["image_height"] == 16
+        assert p._state["image_width"] == 24
 
 
 class TestBinaryTransportRoute:

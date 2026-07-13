@@ -167,6 +167,35 @@ zoom/pan), at the end of `_applyAllInsetStates` (inset moved), on `applyLayout`
 (forced fresh draw, then `calloutCanvas` composited last). All coordinates go
 through element bounding rects relative to the callout canvas, so no layout math
 is duplicated. Cheap no-op when `indications` is empty (just clears the canvas).
+The `if (!parent || !parent.state || !inset || !inset.isInset) continue;` guard
+per indication is defensive/permanent — kept even though a foreign-figure
+`parent_plot` can no longer reach this array at all (see validation below); it
+still protects against other edge cases (e.g. a panel mid-teardown).
+
+**`InsetAxes.indicate_region(parent_plot, region, …)` validates both arguments**
+before recording an indication: `parent_plot` must be a panel registered on
+THIS inset's own `Figure` (`self._fig._plots_map.get(pid) is parent_plot` —
+not just "has some `_id`", which is the pre-existing check for "never attached
+to any figure") — a plot that belongs to a *different* `Figure` raises
+`ValueError`. `region` must be exactly 4 finite numbers `(x, y, w, h)` with
+`w > 0` and `h > 0` — `NaN`/`inf`, a degenerate/negative size, or the wrong
+number of values raises `ValueError`. A region that extends OUTSIDE the
+parent's data bounds is explicitly **allowed** (clipping is a visual concern
+handled by `_drawCallouts`'s clip-to-image-area, not a validation error). See
+`test_indicate_region_foreign_figure_parent_raises`,
+`test_indicate_region_foreign_inset_parent_raises`,
+`test_indicate_region_degenerate_region_raises`, and
+`test_indicate_region_out_of_bounds_is_allowed` in
+`tests/test_layouts/test_inset_callout.py`.
+
+**Inset removal**: as of this writing there is no `remove_inset` (or
+equivalent) API — `Figure._insets_map` / `_plots_map` are only ever appended
+to, never deleted from, so `indications` (rebuilt fresh from `_insets_map` on
+every `_push_layout()` call) cannot go stale from a removed inset today. If a
+removal API is added later, it MUST also delete the inset's entry from both
+maps — otherwise `layout.indications` would keep emitting an entry whose
+`inset_id` no longer resolves to a live panel (caught by the `_drawCallouts`
+guard above, but a dangling entry all the same).
 
 #### `_createPanelDOM(id, kind, pw, ph, spec)` (line 763)
 Builds all canvas/DOM elements for one panel (via `_buildCanvasStack`),
@@ -237,6 +266,35 @@ mask). `Layer.set(...)`, `Layer.set_data(frame)`, `Layer.remove()`,
 `Plot2D.layers`, `Plot2D.remove_layer(layer)`. **Layers and tile mode are mutually
 exclusive** (guard raises in both directions: `add_layer` on a tiled plot, and
 `enable_tile` / `set_data(tile=True)` / auto-tile on a layered plot).
+
+**A shape-changing `Plot2D.set_data` on a plot with layers raises `ValueError`.**
+Each layer entry keeps the `(width, height)` it had at `add_layer` / its last
+`Layer.set_data` time (`_encode_layer_pixels`), but `_drawLayers2d` always fits
+every layer's bitmap into the BASE image's *current* `_imgFitRect(iw, ih, …)`
+(`iw`/`ih` = the live `image_width`/`image_height`). So a base `set_data` that
+changes shape while a stale-sized layer is still attached would silently stretch
+that layer's old pixels over the new image instead of erroring — `set_data`
+now checks `data.shape[:2]` against the current `image_height`/`image_width`
+whenever `st.layers` is non-empty and raises before touching any state if they
+differ (same-shape updates, the common live-update case, are unaffected). Remove
+all layers first (`remove_layer`), change the base shape, then re-add them at the
+new size. A layer-FREE plot's shape-changing `set_data` is unaffected and always
+refreshes `image_width`/`image_height` (they're set unconditionally in the
+pushed `fields` dict). See `TestTileGuards` / `TestShapeChangeNoLayers` in
+`tests/test_plot2d/test_layers.py`.
+
+**`Layer.set(clim=…)` has three distinct meanings** — `None` (default) leaves
+the clim UNCHANGED (a no-op on that field, not "reset to auto"); a `(vmin, vmax)`
+tuple sets an explicit range and re-quantises the cached frame over it;
+`"auto"` is the sentinel to explicitly RESET to auto — recomputes the display
+range from the layer's own current data (`self._layer_raw[layer_id]`) min/max,
+the same auto-ranging `add_layer(..., clim=None)` does at creation time, and
+re-quantises. Before this, `clim=None` was documented as "auto" but actually
+behaved as a no-op, and there was no way to get back to auto range after
+setting an explicit clim short of `remove()` + `add_layer()` again. See
+`TestSet::test_set_clim_auto_resets_to_data_range` /
+`test_set_clim_auto_matches_add_layer_auto` /
+`test_set_clim_none_is_a_noop` in `tests/test_plot2d/test_layers.py`.
 
 ### State + transport (dynamic per-layer pixel keys)
 
@@ -446,8 +504,26 @@ figure onto one offscreen canvas at `devicePixelRatio × scale`:
   `getBoundingClientRect()` relative to the root): gpuCanvas (z0) → plotCanvas
   (z1) → x/yAxisCanvas → cbCanvas → [overlayCanvas z5 only if `includeWidgets`]
   → markersCanvas (z6) → scaleBar (z7) → titleCanvas (z8). Grid panels first,
-  then insets (`p.isInset`) on top, then the figure-level `calloutCanvas`
-  (region indications) composited LAST. Status bars / stats overlays are excluded.
+  then insets (`p.isInset`) on top — **each titled inset's title bar text is
+  drawn directly onto the output canvas right after its canvas stack**
+  (`_drawInsetTitle`; the title bar is plain DOM — a `<div>`/`<span>`, not a
+  canvas — so `_drawEl` alone never captures it; approximates the on-screen
+  CSS: 11px sans-serif, `theme.tickText` colour, left-padded to the titleBar's
+  rect) — then the figure-level `calloutCanvas` (region indications) composited
+  LAST. Status bars / stats overlays are excluded.
+- **Coordinate snapping** (`_drawEl`): `dx`/`dy` are `Math.round()`ed from the
+  element's `left`/`top`, and `dw`/`dh` are the ROUNDED `right`/`bottom` edge
+  minus the rounded `dx`/`dy` — never `Math.round(width)` directly. This makes
+  two elements that share a CSS edge (e.g. adjacent grid panels, or a
+  panel's axis-gutter canvas against its plotCanvas) round that shared edge to
+  the *same* output pixel on both sides. Without it, at a fractional effective
+  scale (`devicePixelRatio × opts.scale` — e.g. a real 150% Windows display, or
+  `scale: 1.25`), each element's `dx`/`dw` were computed independently as raw
+  floats, and adjacent elements could round their common boundary to different
+  output pixels — a 1px background-coloured seam (or overlap) exactly at the
+  join. See `TestExportMultiPanel::test_fractional_scale_no_seam_between_panels`
+  in `tests/test_embed/test_export_png.py` (reproduced with
+  `device_scale_factor=1.5`).
 - Ends with `out.toDataURL('image/png')`; rejects the promise with a message on
   failure (no 2-D context, `toDataURL` throw).
 
