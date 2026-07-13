@@ -553,6 +553,50 @@ class TestCalloutRendering:
             f"before={before} after={after}"
         )
 
+    def test_empty_overlays_do_not_shadow_panel_content(self, mount_page):
+        """A figure with NO indication (and no figure markers) must keep both
+        figure-level overlay canvases (callout + figMarker) collapsed to a 0×0
+        backing store.
+
+        Regression: those overlays used to size themselves to the FULL figure
+        even when empty, making them the largest transparent canvases in the
+        DOM — which shadowed the panel content for any consumer/test that
+        samples "the largest canvas" (this is exactly what broke the tiled-image
+        render tests). The largest canvas must be a panel content canvas, and
+        it must have real (non-transparent) pixels.
+        """
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        ax.imshow(np.tile(np.linspace(0, 1, 64, dtype=np.float32), (64, 1)),
+                  cmap="gray", vmin=0.0, vmax=1.0)
+        page = mount_page(fig)
+
+        info = page.evaluate(
+            """() => {
+                const co = window._handle.api.calloutCanvas;
+                const fm = window._handle.api.figMarkerCanvas;
+                const cs = Array.from(document.querySelectorAll('canvas'))
+                    .sort((a, b) => b.width * b.height - a.width * a.height);
+                const largest = cs[0];
+                const px = largest.getContext('2d').getImageData(
+                    (largest.width * 0.5) | 0, (largest.height * 0.5) | 0, 1, 1).data[0];
+                return {
+                    callout: [co.width, co.height],
+                    figMarker: [fm.width, fm.height],
+                    largest: [largest.width, largest.height],
+                    isOverlay: largest === co || largest === fm,
+                    largestPx: px,
+                };
+            }"""
+        )
+        assert info["callout"] == [0, 0], (
+            f"empty callout canvas not collapsed: {info}")
+        assert info["figMarker"] == [0, 0], (
+            f"empty figMarker canvas not collapsed: {info}")
+        assert not info["isOverlay"], (
+            f"an empty overlay is the largest canvas (shadows panels): {info}")
+        assert info["largestPx"] > 0, (
+            f"largest canvas has no rendered content: {info}")
+
 
 class TestCalloutExport:
     def _decode(self, data_url):

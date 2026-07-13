@@ -1370,6 +1370,20 @@ function render({ model, el, onResize }) {
     try { layout = JSON.parse(model.get('layout_json')); } catch (_) { return; }
     const inds = layout.indications || [];
 
+    // Nothing to draw → collapse the overlay to a 0×0 backing store instead of
+    // sizing it to the full figure. An empty full-figure transparent canvas
+    // would otherwise be the LARGEST canvas in the DOM (it spans the whole
+    // figure, wider than any single panel), shadowing the panel content for
+    // any consumer/test that samples "the largest canvas". Setting width/height
+    // to 0 also clears any prior drawing, so no clearRect is needed here.
+    if (!inds.length) {
+      if (calloutCanvas.width || calloutCanvas.height) {
+        calloutCanvas.width = 0; calloutCanvas.height = 0;
+        calloutCanvas.style.width = '0px'; calloutCanvas.style.height = '0px';
+      }
+      return;
+    }
+
     // Size the canvas to the figure content (fig size + no padding — it is
     // already offset by 8 px like insetsContainer).  During a live figure
     // resize the model hasn't been written yet, so accept an explicit size.
@@ -1386,7 +1400,6 @@ function render({ model, el, onResize }) {
     }
     calloutCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     calloutCtx.clearRect(0, 0, fw, fh);
-    if (!inds.length) return;
 
     const base = calloutCanvas.getBoundingClientRect();
 
@@ -1524,6 +1537,18 @@ function render({ model, el, onResize }) {
   // round under a non-square figure.  Handles are drawn only in edit mode.
   function _drawFigureMarkers(sizeOverride, forceNoHandles) {
     const [fw, fh] = sizeOverride || _figSizePx();
+    // No markers → collapse the overlay to a 0×0 backing store rather than
+    // sizing it to the full figure (same rationale as _drawCallouts: an empty
+    // full-figure transparent canvas is the largest canvas in the DOM and
+    // shadows panel content for "largest canvas" pixel probes). Zeroing the
+    // size also clears any prior drawing.
+    if (!_figMarkers.length) {
+      if (figMarkerCanvas.width || figMarkerCanvas.height) {
+        figMarkerCanvas.width = 0; figMarkerCanvas.height = 0;
+        figMarkerCanvas.style.width = '0px'; figMarkerCanvas.style.height = '0px';
+      }
+      return;
+    }
     if (figMarkerCanvas.width !== Math.round(fw * dpr) ||
         figMarkerCanvas.height !== Math.round(fh * dpr)) {
       figMarkerCanvas.style.width  = fw + 'px';
@@ -1533,7 +1558,6 @@ function render({ model, el, onResize }) {
     }
     figMarkerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     figMarkerCtx.clearRect(0, 0, fw, fh);
-    if (!_figMarkers.length) return;
     const rmin = Math.min(fw, fh);
     const edit = _editOn() && !forceNoHandles;
 
