@@ -170,6 +170,57 @@ Short examples of using widgets in anyplotlib
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A free-moving (x, y) control point on a 1-D panel, with an optional crosshair.  Unlike the vertical / horizontal line widgets it moves in both directions, so it is handy as a draggable data cursor or a control handle for an interactive fit.  Add it with add_point_widget.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_point_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_point`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Point Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable arrow overlay on a 2-D image panel.  The tail sits at (x, y) and the head at (x + u, y + v) in data coordinates.  Drag the body to move the whole arrow; drag the head handle to re-aim it (updating u / v). Add it with add_arrow_widget.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_arrow_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_arrow`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Arrow Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable axis-aligned plane in a 3-D panel, rendered as a translucent quad spanning the panel&#x27;s bounds.  Drag it in the browser to slide it along its normal — ideal as a slice selector through a volume or point cloud.  Add it with plot.add_widget(&quot;plane&quot;, axis=..., position=...).">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget3d_plane_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget3d_plane`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3D Plane Widget</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -189,4 +240,7 @@ Short examples of using widgets in anyplotlib
    /auto_examples/Widgets/plot_widget2d_annular
    /auto_examples/Widgets/plot_widget2d_label
    /auto_examples/Widgets/plot_widget2d_polygon
+   /auto_examples/Widgets/plot_widget1d_point
+   /auto_examples/Widgets/plot_widget2d_arrow
+   /auto_examples/Widgets/plot_widget3d_plane
 

@@ -204,6 +204,23 @@ A collection of short examples using markers
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Every add_* marker method takes a transform that decides which coordinate system its positions live in:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_transform_markers_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_transform_markers`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Coordinate transforms — pin markers to the axes or the screen</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -225,4 +242,5 @@ A collection of short examples using markers
    /auto_examples/Markers/plot_ellipses
    /auto_examples/Markers/plot_squares
    /auto_examples/Markers/plot_polygons
+   /auto_examples/Markers/plot_transform_markers
 

@@ -58,7 +58,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="1D Spectra" href="plot_spectra1d.html" />
-    <link rel="prev" title="3D Plotting" href="plot_3d.html" />
+    <link rel="prev" title="GPU-accelerated voxels" href="plot_gpu_voxels.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -400,6 +400,7 @@
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_figure_annotations.html">Interactive figure annotations — double-click to add, drag to place</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_threshold_explorer.html">Live intensity thresholding on a multi-phase STEM image.</a></li>
@@ -428,11 +429,15 @@
 <li class="toctree-l2"><a class="reference internal" href="../Markers/plot_ellipses.html">Ellipses</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Markers/plot_squares.html">Squares</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Markers/plot_polygons.html">Polygons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_transform_markers.html">Coordinate transforms — pin markers to the axes or the screen</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Plot Types</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="plot_step_and_log.html">Step lines and log-scale spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_twinx.html">Twinned (secondary) y-axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_label_formatting.html">Label Sizes and Scientific (TeX) Formatting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_gpu_voxels.html">GPU-accelerated voxels</a></li>
 <li class="toctree-l2 current active"><a class="current reference internal" href="#">pcolormesh — non-linear axes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_inset.html">Inset Plots</a></li>
@@ -440,6 +445,7 @@
 <li class="toctree-l2"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_gridspec_custom.html">Custom Grid Layouts with GridSpec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tile_backend.html">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../Widgets/index.html">Widgets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -452,6 +458,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_annular.html">2D Annular Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_label.html">2D Label Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_polygon.html">2D Polygon Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_point.html">1D Point Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_arrow.html">2D Arrow Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget3d_plane.html">3D Plane Widget</a></li>
 </ul>
 </details></li>
 </ul>
@@ -584,7 +593,7 @@ Only <code class="docutils literal notranslate"><span class="pre">add_circles</s
 <span class="n">fig</span>
 </pre></div>
 </div>
-<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_pcolormesh_003" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_pcolormesh_003" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_pcolormesh_003.html" data-awi-fig="sphx_glr_plot_pcolormesh_003" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_pcolormesh_003'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 2.115 seconds)</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_pcolormesh_003" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_pcolormesh_003" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:476px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_pcolormesh_003.html" data-awi-fig="sphx_glr_plot_pcolormesh_003" frameborder="0" scrolling="no" style="width:576px;height:476px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_pcolormesh_003'),ifr=wrap.querySelector('iframe'),nw=576,nh=476;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 2.145 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plottypes-plot-pcolormesh-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/382e48916a761fe17d68d8255acf9ff7/plot_pcolormesh.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_pcolormesh.ipynb</span></code></a></p>
@@ -611,12 +620,12 @@ Only <code class="docutils literal notranslate"><span class="pre">add_circles</s
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="plot_3d.html"
+       href="plot_gpu_voxels.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">3D Plotting</p>
+        <p class="prev-next-title">GPU-accelerated voxels</p>
       </div>
     </a>
     <a class="right-next"

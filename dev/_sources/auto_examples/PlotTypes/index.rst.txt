@@ -19,6 +19,40 @@ A collection of short examples showing different plot types.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Two 1-D options that suit spectral data: a mid-riser step line (constant within each bin, jumping at bin midpoints) via linestyle=&quot;step-mid&quot;, and a logarithmic y-axis via semilogy (or ax.plot(..., yscale=&quot;log&quot;)).">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_step_and_log_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_step_and_log`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Step lines and log-scale spectra</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Overlay two series that live on very different scales on a single Plot1D panel, each with its own y-axis.  Enable the right-hand axis with add_right_axis, then add curves to it with add_line(..., axis=&quot;right&quot;) — they are scaled and labelled independently of the left axis.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_twinx_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_twinx`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Twinned (secondary) y-axis</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Axis labels, titles, and the colorbar label accept an optional fontsize (in CSS pixels) and support a small TeX subset inside $...$ for scientific notation — superscripts, subscripts, Greek letters, and common symbols — rendered directly on the canvas with no MathJax dependency:">
 
 .. only:: html
@@ -48,6 +82,23 @@ A collection of short examples showing different plot types.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">3D Plotting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="voxels renders shaded translucent cubes for a volumetric field.  With gpu=&quot;auto&quot; (the default) anyplotlib uses WebGPU instancing when a GPU is available and the cube count is large, so hundreds of thousands of voxels stay interactive; otherwise it falls back to the Canvas2D path.  Read gpu_active after the first frame to see which path was chosen.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_gpu_voxels_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_gpu_voxels`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">GPU-accelerated voxels</div>
     </div>
 
 
@@ -170,6 +221,23 @@ A collection of short examples showing different plot types.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="For a very large image, anyplotlib does not need the whole array.  It asks a TileBackend for a downsampled overview to use as the base texture, and then — on every zoom / pan — for a crisp detail tile of just the visible region at the panel&#x27;s resolution. anyplotlib owns that zoom/pan → re-tile lifecycle; the backend owns the data.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_tile_backend_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_tile_backend`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Custom Tile Backend — pan & zoom a huge image you never hold in memory</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -180,8 +248,11 @@ A collection of short examples showing different plot types.
 .. toctree::
    :hidden:
 
+   /auto_examples/PlotTypes/plot_step_and_log
+   /auto_examples/PlotTypes/plot_twinx
    /auto_examples/PlotTypes/plot_label_formatting
    /auto_examples/PlotTypes/plot_3d
+   /auto_examples/PlotTypes/plot_gpu_voxels
    /auto_examples/PlotTypes/plot_pcolormesh
    /auto_examples/PlotTypes/plot_spectra1d
    /auto_examples/PlotTypes/plot_inset
@@ -189,4 +260,5 @@ A collection of short examples showing different plot types.
    /auto_examples/PlotTypes/plot_line_styles
    /auto_examples/PlotTypes/plot_bar
    /auto_examples/PlotTypes/plot_gridspec_custom
+   /auto_examples/PlotTypes/plot_tile_backend
 

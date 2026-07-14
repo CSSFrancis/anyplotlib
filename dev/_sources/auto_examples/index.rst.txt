@@ -87,6 +87,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="anyplotlib has a figure-level annotation layer that floats above the panels, positioned in figure fractions (0…1, origin top-left) rather than any panel&#x27;s data coordinates.  Set it with set_figure_markers; the supported kinds are &quot;text&quot;, &quot;circle&quot;, &quot;rect&quot; and &quot;arrow&quot;.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_figure_annotations_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_figure_annotations`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive figure annotations — double-click to add, drag to place</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the PointWidget on a 1-D panel.">
 
 .. only:: html
@@ -531,6 +548,23 @@ A collection of short examples using markers
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Every add_* marker method takes a transform that decides which coordinate system its positions live in:">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_transform_markers_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_transform_markers`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Coordinate transforms — pin markers to the axes or the screen</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -551,6 +585,40 @@ A collection of short examples showing different plot types.
     <div class="sphx-glr-thumbnails">
 
 .. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Two 1-D options that suit spectral data: a mid-riser step line (constant within each bin, jumping at bin midpoints) via linestyle=&quot;step-mid&quot;, and a logarithmic y-axis via semilogy (or ax.plot(..., yscale=&quot;log&quot;)).">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_step_and_log_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_step_and_log`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Step lines and log-scale spectra</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Overlay two series that live on very different scales on a single Plot1D panel, each with its own y-axis.  Enable the right-hand axis with add_right_axis, then add curves to it with add_line(..., axis=&quot;right&quot;) — they are scaled and labelled independently of the left axis.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_twinx_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_twinx`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Twinned (secondary) y-axis</div>
+    </div>
+
 
 .. raw:: html
 
@@ -583,6 +651,23 @@ A collection of short examples showing different plot types.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">3D Plotting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="voxels renders shaded translucent cubes for a volumetric field.  With gpu=&quot;auto&quot; (the default) anyplotlib uses WebGPU instancing when a GPU is available and the cube count is large, so hundreds of thousands of voxels stay interactive; otherwise it falls back to the Canvas2D path.  Read gpu_active after the first frame to see which path was chosen.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_gpu_voxels_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_gpu_voxels`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">GPU-accelerated voxels</div>
     </div>
 
 
@@ -702,6 +787,23 @@ A collection of short examples showing different plot types.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">Custom Grid Layouts with GridSpec</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="For a very large image, anyplotlib does not need the whole array.  It asks a TileBackend for a downsampled overview to use as the base texture, and then — on every zoom / pan — for a crisp detail tile of just the visible region at the panel&#x27;s resolution. anyplotlib owns that zoom/pan → re-tile lifecycle; the backend owns the data.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_tile_backend_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_tile_backend`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Custom Tile Backend — pan & zoom a huge image you never hold in memory</div>
     </div>
 
 
@@ -876,6 +978,57 @@ Short examples of using widgets in anyplotlib
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">2D Polygon Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A free-moving (x, y) control point on a 1-D panel, with an optional crosshair.  Unlike the vertical / horizontal line widgets it moves in both directions, so it is handy as a draggable data cursor or a control handle for an interactive fit.  Add it with add_point_widget.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget1d_point_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget1d_point`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">1D Point Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable arrow overlay on a 2-D image panel.  The tail sits at (x, y) and the head at (x + u, y + v) in data coordinates.  Drag the body to move the whole arrow; drag the head handle to re-aim it (updating u / v). Add it with add_arrow_widget.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget2d_arrow_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget2d_arrow`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">2D Arrow Widget</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A draggable axis-aligned plane in a 3-D panel, rendered as a translucent quad spanning the panel&#x27;s bounds.  Drag it in the browser to slide it along its normal — ideal as a slice selector through a volume or point cloud.  Add it with plot.add_widget(&quot;plane&quot;, axis=..., position=...).">
+
+.. only:: html
+
+  .. image:: /auto_examples/Widgets/images/thumb/sphx_glr_plot_widget3d_plane_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Widgets/plot_widget3d_plane`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3D Plane Widget</div>
     </div>
 
 

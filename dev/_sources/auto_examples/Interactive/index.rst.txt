@@ -23,6 +23,23 @@ interactions to live Python computations.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="anyplotlib has a figure-level annotation layer that floats above the panels, positioned in figure fractions (0…1, origin top-left) rather than any panel&#x27;s data coordinates.  Set it with set_figure_markers; the supported kinds are &quot;text&quot;, &quot;circle&quot;, &quot;rect&quot; and &quot;arrow&quot;.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_figure_annotations_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_figure_annotations`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Interactive figure annotations — double-click to add, drag to place</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Demonstrates the PointWidget on a 1-D panel.">
 
 .. only:: html
@@ -269,6 +286,7 @@ interactions to live Python computations.
 .. toctree::
    :hidden:
 
+   /auto_examples/Interactive/plot_figure_annotations
    /auto_examples/Interactive/plot_point_widget
    /auto_examples/Interactive/plot_key_bindings
    /auto_examples/Interactive/plot_threshold_explorer

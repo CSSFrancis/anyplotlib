@@ -57,8 +57,8 @@
     <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/dev/auto_examples/PlotTypes/index.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Label Sizes and Scientific (TeX) Formatting" href="plot_label_formatting.html" />
-    <link rel="prev" title="Polygons" href="../Markers/plot_polygons.html" />
+    <link rel="next" title="Step lines and log-scale spectra" href="plot_step_and_log.html" />
+    <link rel="prev" title="Coordinate transforms — pin markers to the axes or the screen" href="../Markers/plot_transform_markers.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -400,6 +400,7 @@
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_figure_annotations.html">Interactive figure annotations — double-click to add, drag to place</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_threshold_explorer.html">Live intensity thresholding on a multi-phase STEM image.</a></li>
@@ -428,11 +429,15 @@
 <li class="toctree-l2"><a class="reference internal" href="../Markers/plot_ellipses.html">Ellipses</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Markers/plot_squares.html">Squares</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Markers/plot_polygons.html">Polygons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_transform_markers.html">Coordinate transforms — pin markers to the axes or the screen</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">Plot Types</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="plot_step_and_log.html">Step lines and log-scale spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_twinx.html">Twinned (secondary) y-axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_label_formatting.html">Label Sizes and Scientific (TeX) Formatting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_gpu_voxels.html">GPU-accelerated voxels</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_inset.html">Inset Plots</a></li>
@@ -440,6 +445,7 @@
 <li class="toctree-l2"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_gridspec_custom.html">Custom Grid Layouts with GridSpec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tile_backend.html">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../Widgets/index.html">Widgets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -452,6 +458,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_annular.html">2D Annular Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_label.html">2D Label Widget</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_polygon.html">2D Polygon Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_point.html">1D Point Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_arrow.html">2D Arrow Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget3d_plane.html">3D Plane Widget</a></li>
 </ul>
 </details></li>
 </ul>
@@ -517,12 +526,21 @@
   <section id="plot-types">
 <span id="sphx-glr-auto-examples-plottypes"></span><h1>Plot Types<a class="headerlink" href="#plot-types" title="Link to this heading">#</a></h1>
 <p>A collection of short examples showing different plot types.</p>
-<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Axis labels, titles, and the colorbar label accept an optional fontsize (in CSS pixels) and support a small TeX subset inside $...$ for scientific notation — superscripts, subscripts, Greek letters, and common symbols — rendered directly on the canvas with no MathJax dependency:"><img alt="" src="../../_images/sphx_glr_plot_label_formatting_thumb.png" />
+<div id='sg-tag-list' class='sphx-glr-tag-list'></div><div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Two 1-D options that suit spectral data: a mid-riser step line (constant within each bin, jumping at bin midpoints) via linestyle=&quot;step-mid&quot;, and a logarithmic y-axis via semilogy (or ax.plot(..., yscale=&quot;log&quot;))."><img alt="" src="../../_images/sphx_glr_plot_step_and_log_thumb.png" />
+<p><a class="reference internal" href="plot_step_and_log.html"><span class="doc">Step lines and log-scale spectra</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Step lines and log-scale spectra</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Overlay two series that live on very different scales on a single Plot1D panel, each with its own y-axis.  Enable the right-hand axis with add_right_axis, then add curves to it with add_line(..., axis=&quot;right&quot;) — they are scaled and labelled independently of the left axis."><img alt="" src="../../_images/sphx_glr_plot_twinx_thumb.png" />
+<p><a class="reference internal" href="plot_twinx.html"><span class="doc">Twinned (secondary) y-axis</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Twinned (secondary) y-axis</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Axis labels, titles, and the colorbar label accept an optional fontsize (in CSS pixels) and support a small TeX subset inside $...$ for scientific notation — superscripts, subscripts, Greek letters, and common symbols — rendered directly on the canvas with no MathJax dependency:"><img alt="" src="../../_images/sphx_glr_plot_label_formatting_thumb.png" />
 <p><a class="reference internal" href="plot_label_formatting.html"><span class="doc">Label Sizes and Scientific (TeX) Formatting</span></a></p>
   <div class="sphx-glr-thumbnail-title">Label Sizes and Scientific (TeX) Formatting</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate the three 3-D geometry types supported by plot_surface, scatter3d, and plot3d. Drag to rotate, scroll to zoom, press R to reset the view."><img alt="" src="../../_images/sphx_glr_plot_3d_thumb.png" />
 <p><a class="reference internal" href="plot_3d.html"><span class="doc">3D Plotting</span></a></p>
   <div class="sphx-glr-thumbnail-title">3D Plotting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="voxels renders shaded translucent cubes for a volumetric field.  With gpu=&quot;auto&quot; (the default) anyplotlib uses WebGPU instancing when a GPU is available and the cube count is large, so hundreds of thousands of voxels stay interactive; otherwise it falls back to the Canvas2D path.  Read gpu_active after the first frame to see which path was chosen."><img alt="" src="../../_images/sphx_glr_plot_gpu_voxels_thumb.png" />
+<p><a class="reference internal" href="plot_gpu_voxels.html"><span class="doc">GPU-accelerated voxels</span></a></p>
+  <div class="sphx-glr-thumbnail-title">GPU-accelerated voxels</div>
 </div><div class="sphx-glr-thumbcontainer" tooltip="Demonstrate pcolormesh with non-uniform (log-spaced) x-edges and irregularly-spaced y-edges, mirroring matplotlib.axes.Axes.pcolormesh."><img alt="" src="../../_images/sphx_glr_plot_pcolormesh_thumb.png" />
 <p><a class="reference internal" href="plot_pcolormesh.html"><span class="doc">pcolormesh — non-linear axes</span></a></p>
   <div class="sphx-glr-thumbnail-title">pcolormesh — non-linear axes</div>
@@ -544,6 +562,9 @@
 </div><div class="sphx-glr-thumbcontainer" tooltip="GridSpec lets you build multi-panel figures where panels have different sizes and span multiple grid cells.  This gallery shows the most common patterns."><img alt="" src="../../_images/sphx_glr_plot_gridspec_custom_thumb.png" />
 <p><a class="reference internal" href="plot_gridspec_custom.html"><span class="doc">Custom Grid Layouts with GridSpec</span></a></p>
   <div class="sphx-glr-thumbnail-title">Custom Grid Layouts with GridSpec</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="For a very large image, anyplotlib does not need the whole array.  It asks a TileBackend for a downsampled overview to use as the base texture, and then — on every zoom / pan — for a crisp detail tile of just the visible region at the panel&#x27;s resolution. anyplotlib owns that zoom/pan → re-tile lifecycle; the backend owns the data."><img alt="" src="../../_images/sphx_glr_plot_tile_backend_thumb.png" />
+<p><a class="reference internal" href="plot_tile_backend.html"><span class="doc">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Custom Tile Backend — pan & zoom a huge image you never hold in memory</div>
 </div></div><div class="toctree-wrapper compound">
 </div>
 </section>
@@ -559,20 +580,20 @@
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../Markers/plot_polygons.html"
+       href="../Markers/plot_transform_markers.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Polygons</p>
+        <p class="prev-next-title">Coordinate transforms — pin markers to the axes or the screen</p>
       </div>
     </a>
     <a class="right-next"
-       href="plot_label_formatting.html"
+       href="plot_step_and_log.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Label Sizes and Scientific (TeX) Formatting</p>
+        <p class="prev-next-title">Step lines and log-scale spectra</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

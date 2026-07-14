@@ -432,9 +432,12 @@
 <li class="toctree-l1"><a class="reference internal" href="anyplotlib.CrosshairWidget.html">anyplotlib.CrosshairWidget</a></li>
 <li class="toctree-l1"><a class="reference internal" href="anyplotlib.PolygonWidget.html">anyplotlib.PolygonWidget</a></li>
 <li class="toctree-l1"><a class="reference internal" href="anyplotlib.LabelWidget.html">anyplotlib.LabelWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="anyplotlib.ArrowWidget.html">anyplotlib.ArrowWidget</a></li>
 <li class="toctree-l1"><a class="reference internal" href="anyplotlib.VLineWidget.html">anyplotlib.VLineWidget</a></li>
 <li class="toctree-l1"><a class="reference internal" href="anyplotlib.HLineWidget.html">anyplotlib.HLineWidget</a></li>
 <li class="toctree-l1"><a class="reference internal" href="anyplotlib.RangeWidget.html">anyplotlib.RangeWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="anyplotlib.PointWidget.html">anyplotlib.PointWidget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="anyplotlib.PlaneWidget.html">anyplotlib.PlaneWidget</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="anyplotlib.CallbackRegistry.html">anyplotlib.CallbackRegistry</a></li>
@@ -512,13 +515,13 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">'scatter'</span></code>  – point cloud; single colour or per-point <code class="docutils literal notranslate"><span class="pre">colors</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'line'</span></code>     – connected line through 3-D points.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'voxels'</span></code>   – shaded translucent cubes at the given centres;
-voxels lying on a <code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code> slice render more
+voxels lying on a <a class="reference internal" href="anyplotlib.PlaneWidget.html#anyplotlib.PlaneWidget" title="anyplotlib.PlaneWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code></a> slice render more
 opaque.</p></li>
 </ul>
 <p>A single point can be emphasised with <a class="reference internal" href="#anyplotlib.Plot3D.set_highlight" title="anyplotlib.Plot3D.set_highlight"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_highlight()</span></code></a> (e.g. the
 “current” orientation in an IPF explorer), and <code class="docutils literal notranslate"><span class="pre">bounds=</span></code> fixes the
 axes extents for origin-true geometry such as unit vectors on a sphere.
-Draggable <code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code> slice selectors are added
+Draggable <a class="reference internal" href="anyplotlib.PlaneWidget.html#anyplotlib.PlaneWidget" title="anyplotlib.PlaneWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code></a> slice selectors are added
 with <a class="reference internal" href="#anyplotlib.Plot3D.add_widget" title="anyplotlib.Plot3D.add_widget"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_widget()</span></code></a>.</p>
 <p>Created by <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes.plot_surface" title="anyplotlib.Axes.plot_surface"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Axes.plot_surface()</span></code></a>, <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes.scatter3d" title="anyplotlib.Axes.scatter3d"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Axes.scatter3d()</span></code></a>,
 and <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes.plot3d" title="anyplotlib.Axes.plot3d"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Axes.plot3d()</span></code></a>.</p>
@@ -549,7 +552,7 @@ calls <code class="docutils literal notranslate"><span class="pre">_push()</span
 <span class="sig-name descname"><span class="pre">add_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D.add_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot3D.add_widget" title="Link to this definition">#</a></dt>
 <dd><p>Add an interactive overlay widget to this 3-D panel.</p>
 <p>Currently supports <code class="docutils literal notranslate"><span class="pre">&quot;plane&quot;</span></code> — a draggable axis-aligned slice
-plane (see <code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code>):</p>
+plane (see <a class="reference internal" href="anyplotlib.PlaneWidget.html#anyplotlib.PlaneWidget" title="anyplotlib.PlaneWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code></a>):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pw</span> <span class="o">=</span> <span class="n">vol</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;plane&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
 
 <span class="nd">@pw</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
@@ -594,7 +597,7 @@ plane (see <code class="xref py py-class docutils literal notranslate"><span cla
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Base opacity (0–1) for voxels not on any plane widget.</p></li>
-<li><p><strong>slice_alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity for voxels lying on a <code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code>
+<li><p><strong>slice_alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity for voxels lying on a <a class="reference internal" href="anyplotlib.PlaneWidget.html#anyplotlib.PlaneWidget" title="anyplotlib.PlaneWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlaneWidget</span></code></a>
 slice.  <code class="docutils literal notranslate"><span class="pre">None</span></code> keeps the current value (default 0.95).</p></li>
 </ul>
 </dd>
