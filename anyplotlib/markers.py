@@ -225,6 +225,9 @@ class MarkerGroup:
             segs = np.asarray(d["segments"], dtype=float)
             if segs.ndim == 2 and segs.shape == (2, 2):
                 segs = segs[np.newaxis]
+            elif segs.size == 0:
+                # Empty collection (zero line segments) — valid, renders nothing.
+                segs = segs.reshape(0, 2, 2)
             if segs.ndim != 3 or segs.shape[1:] != (2, 2):
                 raise ValueError("segments must be shape (N,2,2)")
             wire = {

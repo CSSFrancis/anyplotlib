@@ -5100,7 +5100,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // the identical box — matplotlib's transData derives from the adjusted axes box.
   // Extra right-hand gutter reserved for a secondary (twinx) y-axis so its
   // tick labels and rotated units clear the panel edge.
-  const PAD_R_TWIN=46;
+  // Right gutter for a twinx axis: tick numbers (fmtVal caps them at ~6 chars,
+  // e.g. "1.0e+6") plus the rotated units label.  ~58px clears both.
+  const PAD_R_TWIN=58;
   function _plotRect1d(p){
     const pw=p.pw, ph=p.ph, st=p.state;
     const padR=(st && st.right_axis) ? PAD_R_TWIN : PAD_R;
@@ -5450,13 +5452,17 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       ctx.strokeStyle=rColor; ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(rx,r.y);ctx.lineTo(rx,r.y+r.h);ctx.stroke();
       ctx.font=(st.tick_size||10)+'px monospace';ctx.textAlign='left';ctx.textBaseline='middle';
-      const rRange=(rMax-rMin)||1;
+      // Iterate the ordered range so ticks render regardless of whether the
+      // caller pinned set_right_ylim(lo,hi) or an inverted (hi,lo); _valToPy1d
+      // still maps against the raw rMin/rMax so a deliberate flip is preserved.
+      const rLo=Math.min(rMin,rMax), rHi=Math.max(rMin,rMax);
+      const rRange=(rHi-rLo)||1;
       const rStep=findNice(rRange/Math.max(2,Math.floor(r.h/40)));
       let rMaxTW=0;
-      for(let v=Math.ceil(rMin/rStep)*rStep;v<=rMax+rStep*0.01;v+=rStep){
+      for(let v=Math.ceil(rLo/rStep)*rStep;v<=rHi+rStep*0.01;v+=rStep){
         const tw=ctx.measureText(fmtVal(v)).width;if(tw>rMaxTW)rMaxTW=tw;
       }
-      for(let v=Math.ceil(rMin/rStep)*rStep;v<=rMax+rStep*0.01;v+=rStep){
+      for(let v=Math.ceil(rLo/rStep)*rStep;v<=rHi+rStep*0.01;v+=rStep){
         const py=_valToPy1d(v,rMin,rMax,r);
         if(py<r.y||py>r.y+r.h) continue;
         ctx.strokeStyle=rColor;ctx.beginPath();ctx.moveTo(rx,py);ctx.lineTo(rx+5,py);ctx.stroke();
@@ -5466,7 +5472,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if(rUnits){
         ctx.save();
         const rylpx=st.y_label_size||9;
-        // Rotated label near the panel's right edge, clear of the tick numbers.
+        // Place the rotated units label just past the widest tick number, but
+        // never past the panel edge — clamp keeps it on-canvas even when the
+        // fixed right gutter is too narrow for very wide tick strings.
         const rcx=Math.min(pw-Math.ceil(rylpx*0.62)-1, rx+8+rMaxTW+Math.ceil(rylpx*0.9));
         ctx.translate(rcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
         ctx.textBaseline='middle';

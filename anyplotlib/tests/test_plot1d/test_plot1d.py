@@ -467,6 +467,83 @@ class TestPlot1DTwinx:
         assert wire["extra_lines"][-1]["axis"] == "right"
         assert wire["right_axis"] is True
 
+    def test_right_line_set_data_recomputes_right_range(self):
+        """Updating a right-axis overlay must refresh right_data_min/max."""
+        p = _plot()
+        line = p.add_line(np.linspace(0.0, 100.0, 128), axis="right")
+        assert p._state["right_data_max"] < 200.0
+        line.set_data(np.linspace(0.0, 5000.0, 128))
+        assert p._state["right_data_max"] > 4000.0  # tracked the new magnitude
+
+    def test_left_line_set_data_does_not_touch_right_range(self):
+        p = _plot()
+        p.add_line(np.linspace(0.0, 100.0, 128), axis="right")
+        rmax_before = p._state["right_data_max"]
+        left = p.add_line(np.full(128, 9999.0), axis="left")
+        left.set_data(np.full(128, 12345.0))
+        assert p._state["right_data_max"] == pytest.approx(rmax_before)
+
+
+class TestLine1DAccessors:
+    """Line1D property accessors used by the HyperSpy backend's line-props path."""
+
+    def test_x_and_data_read_back(self):
+        p = _plot()
+        x = np.linspace(0.0, 5.0, 128)
+        line = p.add_line(np.cos(t), x_axis=x)
+        np.testing.assert_allclose(line.x, x)
+        np.testing.assert_allclose(line.data, np.cos(t))
+
+    def test_color_get_set(self):
+        p = _plot()
+        line = p.add_line(np.cos(t), color="#111111")
+        assert line.color == "#111111"
+        line.color = "#abcdef"
+        assert line.color == "#abcdef"
+        assert p._state["extra_lines"][-1]["color"] == "#abcdef"
+
+    def test_linewidth_get_set(self):
+        p = _plot()
+        line = p.add_line(np.cos(t), linewidth=2.0)
+        assert line.linewidth == pytest.approx(2.0)
+        line.linewidth = 4.5
+        assert line.linewidth == pytest.approx(4.5)
+
+    def test_linestyle_get_set_normalises(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        line.linestyle = "--"
+        assert line.linestyle == "dashed"  # normalised
+
+    def test_alpha_get_set(self):
+        p = _plot()
+        line = p.add_line(np.cos(t), alpha=0.5)
+        assert line.alpha == pytest.approx(0.5)
+        line.alpha = 0.25
+        assert line.alpha == pytest.approx(0.25)
+
+    def test_accessor_after_remove_raises(self):
+        p = _plot()
+        line = p.add_line(np.cos(t))
+        line.remove()
+        with pytest.raises(KeyError):
+            _ = line.color
+
+
+class TestEmptyLinesCollection:
+    """Empty line collections must be valid (zero segments), not raise."""
+
+    def test_empty_lines_segments(self):
+        p2 = _make_plot2d_for_markers()
+        g = p2.markers.add("lines", segments=[])
+        wire = g.to_wire("gid")
+        assert wire["segments"] == []
+
+
+def _make_plot2d_for_markers():
+    fig, ax = apl.subplots(1, 1)
+    return ax.imshow(np.zeros((8, 8)))
+
 
 # ===========================================================================
 # add_line() field parity
