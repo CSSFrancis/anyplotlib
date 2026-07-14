@@ -188,7 +188,7 @@ gallery page is built headlessly).  Force a path with ``gpu=True`` /
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 2.889 seconds)
+   **Total running time of the script:** (0 minutes 2.375 seconds)
 
 
 .. _sphx_glr_download_auto_examples_PlotTypes_plot_gpu_voxels.py:

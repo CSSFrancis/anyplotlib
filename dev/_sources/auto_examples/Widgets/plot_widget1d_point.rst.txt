@@ -102,7 +102,7 @@ curve with :meth:`~anyplotlib.Widget.set` — a one-line "snap to data" cursor.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.374 seconds)
+   **Total running time of the script:** (0 minutes 1.148 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Widgets_plot_widget1d_point.py:
