@@ -17,8 +17,8 @@ from anyplotlib import embed
 from anyplotlib.markers import MarkerRegistry, MarkerGroup
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget,
-    VLineWidget, HLineWidget, RangeWidget, PlaneWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
+    VLineWidget, HLineWidget, RangeWidget, PointWidget, PlaneWidget,
 )
 
 # ── Global help flag ──────────────────────────────────────────────────────
@@ -45,8 +45,8 @@ __all__ = [
     "CallbackRegistry", "Event",
     "MarkerRegistry", "MarkerGroup",
     "Widget", "RectangleWidget", "CircleWidget", "AnnularWidget",
-    "CrosshairWidget", "PolygonWidget", "LabelWidget",
-    "VLineWidget", "HLineWidget", "RangeWidget", "PlaneWidget",
+    "CrosshairWidget", "PolygonWidget", "LabelWidget", "ArrowWidget",
+    "VLineWidget", "HLineWidget", "RangeWidget", "PointWidget", "PlaneWidget",
     "show_help", "get_color_cycle",
     "embed",
     "__version__",

@@ -105,6 +105,7 @@ Axes & Plots
 
    Axes
    Plot1D
+   Line1D
    Plot2D
    PlotMesh
    Plot3D
@@ -155,9 +156,12 @@ Interactive Widgets
    CrosshairWidget
    PolygonWidget
    LabelWidget
+   ArrowWidget
    VLineWidget
    HLineWidget
    RangeWidget
+   PointWidget
+   PlaneWidget
 
 
 Callbacks
