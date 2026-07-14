@@ -155,9 +155,12 @@ Interactive Widgets
    CrosshairWidget
    PolygonWidget
    LabelWidget
+   ArrowWidget
    VLineWidget
    HLineWidget
    RangeWidget
+   PointWidget
+   PlaneWidget
 
 
 Callbacks

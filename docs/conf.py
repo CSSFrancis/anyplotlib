@@ -50,6 +50,15 @@ napoleon_numpy_docstring = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 
+# Several classes legitimately share short member names — e.g. an ``Event``
+# carries ``x``/``y`` pixel fields while ``Plot1D`` exposes ``x``/``y`` data
+# properties.  Autodoc then reports "more than one target found for
+# cross-reference 'x'" for the bare names.  These are unambiguous in context
+# (each is documented on its own class page) and harmless, so quiet just the
+# ambiguous-reference warning.  Genuinely *missing* refs still fail because
+# ``nitpicky`` stays off and this only touches the ``ref.python`` resolver.
+suppress_warnings = ["ref.python"]
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable", None),

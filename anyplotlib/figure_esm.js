@@ -3079,7 +3079,11 @@ function render({ model, el, onResize }) {
   // GPU; draw3d draws them over a transparent plotCanvas when GPU is active.
   // ═══════════════════════════════════════════════════════════════════════
   const GPU_POINT_THRESHOLD = 20000;
-  const GPU_VOXEL_THRESHOLD = 8000;   // cubes cost ~6× a point on canvas
+  const GPU_VOXEL_THRESHOLD = 1000;   // cubes cost ~6× a point on canvas, and
+                                      // re-slicing (set_data on drag) redraws
+                                      // them every frame, so switch to the GPU
+                                      // early — a few thousand cubes already
+                                      // stutter on Canvas2D.
   // A 2-D scalar image goes to the GPU (shader-LUT colormap on a texture) above
   // this many pixels — below it the Canvas2D atob+LUT loop is already instant.
   // ~1 megapixel: a 1024² image and up (a large in-situ movie frame is 16-64 Mpx).

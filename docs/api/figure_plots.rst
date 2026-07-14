@@ -18,6 +18,7 @@ Axes, Plots & Layout
    :nosignatures:
 
    Plot1D
+   Line1D
    Plot2D
    PlotMesh
    Plot3D
@@ -46,6 +47,12 @@ Axes, Plots & Layout
    :no-index:
 
 .. autoclass:: anyplotlib.plot1d.Plot1D
+   :members:
+   :show-inheritance:
+   :member-order: bysource
+   :no-index:
+
+.. autoclass:: anyplotlib.plot1d.Line1D
    :members:
    :show-inheritance:
    :member-order: bysource
