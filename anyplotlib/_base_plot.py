@@ -179,6 +179,37 @@ class _PanelMixin:
         self._push()
 
 
+class _TextHandle:
+    """Handle for a single text annotation created by :meth:`add_text`.
+
+    Wraps the underlying single-text :class:`~anyplotlib.markers.MarkerGroup`
+    and exposes label-oriented mutators (``set_text`` / ``set_color`` /
+    ``remove``) so callers do not need to know it is backed by a texts
+    marker collection.
+    """
+
+    __slots__ = ("_group",)
+
+    def __init__(self, group):
+        self._group = group
+
+    def set_text(self, s: str) -> None:
+        """Replace the displayed string."""
+        self._group.set(texts=[s])
+
+    def set_color(self, color: str) -> None:
+        """Change the text colour."""
+        self._group.set(color=color)
+
+    def remove(self) -> None:
+        """Remove the annotation from its panel."""
+        self._group.remove()
+
+    def __repr__(self) -> str:  # pragma: no cover
+        texts = self._group._data.get("texts") or [""]
+        return f"_TextHandle(text={texts[0]!r})"
+
+
 class _MarkerMixin:
     """Mixin for panels that support static marker collections.
 
@@ -196,6 +227,44 @@ class _MarkerMixin:
 
     def _add_marker(self, mtype: str, name, **kwargs):
         return self.markers.add(mtype, name, **kwargs)
+
+    def add_text(self, x, y, s, name=None, *, color="#ff0000",
+                 fontsize=12, transform="data", **kwargs) -> "_TextHandle":
+        """Add a single text annotation at ``(x, y)``.
+
+        A convenience wrapper over :meth:`add_texts` for the common
+        single-label case (e.g. a navigation index or scale-bar label).
+        The returned handle exposes ``set_text``, ``set_color`` and
+        ``remove`` so callers can mutate the label after creation.
+
+        Parameters
+        ----------
+        x, y : float
+            Anchor position.  Interpreted in the coordinate system named
+            by ``transform`` (``"data"``, ``"axes"``, or ``"display"``).
+        s : str
+            The text to display.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        color : str, optional
+            Text colour.  Default ``"#ff0000"``.
+        fontsize : int, optional
+            Font size in pixels.  Default ``12``.
+        transform : str, optional
+            Coordinate system for ``(x, y)``.  Default ``"data"``.
+        **kwargs : dict
+            Forwarded to :meth:`add_texts` (e.g. ``clip_display``).
+
+        Returns
+        -------
+        _TextHandle
+            Handle wrapping the underlying single-text marker group.
+        """
+        group = self.add_texts(
+            offsets=[(x, y)], texts=[s], name=name,
+            color=color, fontsize=fontsize, transform=transform, **kwargs,
+        )
+        return _TextHandle(group)
 
     def remove_marker(self, marker_type: str, name: str) -> None:
         """Remove a named marker collection by type and name.

@@ -4291,7 +4291,28 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const gpuGeomChanged = p._gpuObj && p._gpuObj.geom !== geom;
     if (gpuGeomChanged) { _gpuDisposePanel(p); p._gpu = undefined; }
     if (p.kind === '3d' && _gpuWanted(st)) {
-      if (p._gpu === undefined) {
+      // Zero-drawable-size guard: SpyDE (and any host) mounts a 3-D panel HIDDEN
+      // (display:none) and reveals it later, so the FIRST draw3d can run with
+      // pw/ph == 0 (a zero-size layout) and the gpuCanvas collapsed to 0 client
+      // px.  _gpuInitPanel configures the WebGPU swapchain and every draw pass
+      // calls getCurrentTexture() against that canvas — on a zero-drawable-size
+      // surface this is undefined behaviour: some drivers throw (→ the mid-draw
+      // catch latches p._gpu='unavailable', TERMINAL) and others configure a
+      // dead 0×0 context that silently draws nothing.  Either way the panel is
+      // then stuck on Canvas2D forever because the `_gpu === undefined` guard
+      // never re-runs.  So DON'T init at zero size: leave _gpu === undefined and
+      // let the canvas path render (a hidden panel isn't visible anyway).  When
+      // the panel is revealed/resized, the layout/fig-size change fires a
+      // redrawAll() → this draw3d re-runs at the real size → init re-attempts.
+      // Gate on pw/ph (the LOGICAL panel size that drives the gpuCanvas backing
+      // store in _gpuDrawPoints/_gpuEnsureSize and every getCurrentTexture()).
+      // NB: don't test the gpuCanvas' own client size — it starts display:none
+      // until GPU activates, so clientWidth is 0 even for a fully-visible panel;
+      // that would wrongly block the normal case.  A panel revealed by a pure
+      // display toggle (pw/ph already non-zero, only client size was 0) is
+      // handled by the ResizeObserver reveal branch, which redraws it.
+      const hasDrawableSize = (pw || 0) > 0 && (ph || 0) > 0;
+      if (p._gpu === undefined && hasDrawableSize) {
         p._gpu = 'pending';
         const initGeom = geom;
         _gpuDevice().then((device) => {
@@ -5077,9 +5098,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // unit spans equal pixels on x and y (an IPF triangle etc. must not stretch).
   // Baked in here so EVERY consumer (draw1d / markers / overlay / hit-test) uses
   // the identical box — matplotlib's transData derives from the adjusted axes box.
+  // Extra right-hand gutter reserved for a secondary (twinx) y-axis so its
+  // tick labels and rotated units clear the panel edge.
+  // Right gutter for a twinx axis: tick numbers (fmtVal caps them at ~6 chars,
+  // e.g. "1.0e+6") plus the rotated units label.  ~58px clears both.
+  const PAD_R_TWIN=58;
   function _plotRect1d(p){
     const pw=p.pw, ph=p.ph, st=p.state;
-    const r={x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-PAD_R),h:Math.max(1,ph-PAD_T-PAD_B)};
+    const padR=(st && st.right_axis) ? PAD_R_TWIN : PAD_R;
+    const r={x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-padR),h:Math.max(1,ph-PAD_T-PAD_B)};
     if(!st || st.aspect!=='equal') return r;
     const xArr=p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
@@ -5134,6 +5161,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     function _toPlotY(v) {
       return _valToPy1d(isLog ? Math.log10(Math.max(_logEps, v)) : v, effDMin, effDMax, r);
     }
+
+    // ── secondary (right-hand) y-axis scale ──
+    // A twinx line maps against right_y_range (explicit) or the auto range
+    // derived from the right-axis overlays.  Always linear.
+    const hasRightAxis = st.right_axis === true;
+    let rMin = 0, rMax = 1;
+    if (hasRightAxis) {
+      if (st.right_y_range && st.right_y_range.length === 2) {
+        rMin = st.right_y_range[0]; rMax = st.right_y_range[1];
+      } else {
+        rMin = st.right_data_min != null ? st.right_data_min : 0;
+        rMax = st.right_data_max != null ? st.right_data_max : 1;
+      }
+    }
+    function _toRightY(v) { return _valToPy1d(v, rMin, rMax, r); }
 
     ctx.clearRect(0,0,pw,ph);
     ctx.fillStyle=theme.bg; ctx.fillRect(0,0,pw,ph);
@@ -5236,8 +5278,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Stroke-only markers (no meaningful fill area)
     const _MARKER_STROKE_ONLY = new Set(['+', 'x']);
 
-    function _drawLine(yData, lineXArr, color, lw, linestyle, alpha, marker, markersize) {
+    function _drawLine(yData, lineXArr, color, lw, linestyle, alpha, marker, markersize, yMap) {
       if (!yData || !yData.length) return;
+      const _yMap = yMap || _toPlotY;   // left scale by default; right lines pass _toRightY
       const n = yData.length;
       const isStepMid = linestyle === 'step-mid';
       const dash = isStepMid ? [] : (_LINESTYLE_DASH[linestyle || 'solid'] || []);
@@ -5252,7 +5295,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           ? (lineXArr[i] - lineXArr[0]) / ((lineXArr[lineXArr.length - 1] - lineXArr[0]) || 1)
           : i / ((n - 1) || 1);
         allPx[i] = _fracToPx1d(xFrac, x0, x1, r);
-        allPy[i] = _toPlotY(yData[i]);
+        allPy[i] = _yMap(yData[i]);
       }
 
       ctx.save();
@@ -5305,11 +5348,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     for (const ex of (st.extra_lines || [])) {
       const exY = ex.data_b64   ? _decodeF64(ex.data_b64)   : (ex.data   || []);
       const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
+      const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
       _drawLine(exY, exX,
         ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth || 1.5,
         ex.linestyle || 'solid',
         ex.alpha != null ? ex.alpha : 1.0,
-        ex.marker || 'none', ex.markersize || 4);
+        ex.marker || 'none', ex.markersize || 4, exMap);
     }
     // ── hovered-line highlight: redraw on top with brightened colour + thicker stroke ──
     const _hovId = p._lineHoverId;
@@ -5324,10 +5368,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           if (ex.id === _hovId) {
             const exY = ex.data_b64 ? _decodeF64(ex.data_b64) : (ex.data||[]);
             const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis?ex.x_axis:xArr);
+            const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
             _drawLine(exY, exX,
               _brightenColor(ex.color||(theme.dark?'#fff':'#333')), (ex.linewidth||1.5)+1,
               ex.linestyle||'solid', ex.alpha!=null?ex.alpha:1.0,
-              ex.marker||'none', ex.markersize||4);
+              ex.marker||'none', ex.markersize||4, exMap);
             break;
           }
         }
@@ -5395,6 +5440,46 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         ctx.textBaseline='middle';
         ctx.fillStyle=theme.unitText;
         _drawTex(ctx, yUnits, 0, 0, ylpx1d, {align:'center',family:'monospace'});
+        ctx.restore();
+      }
+    }
+
+    // ── secondary (right-hand) y-axis: spine, ticks, label ──
+    if(hasRightAxis&&axisVis1d&&yTicksVis1d){
+      const rColor=st.right_axis_color||theme.tickText;
+      const rx=r.x+r.w;
+      // Axis spine on the right edge of the plot rect.
+      ctx.strokeStyle=rColor; ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(rx,r.y);ctx.lineTo(rx,r.y+r.h);ctx.stroke();
+      ctx.font=(st.tick_size||10)+'px monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+      // Iterate the ordered range so ticks render regardless of whether the
+      // caller pinned set_right_ylim(lo,hi) or an inverted (hi,lo); _valToPy1d
+      // still maps against the raw rMin/rMax so a deliberate flip is preserved.
+      const rLo=Math.min(rMin,rMax), rHi=Math.max(rMin,rMax);
+      const rRange=(rHi-rLo)||1;
+      const rStep=findNice(rRange/Math.max(2,Math.floor(r.h/40)));
+      let rMaxTW=0;
+      for(let v=Math.ceil(rLo/rStep)*rStep;v<=rHi+rStep*0.01;v+=rStep){
+        const tw=ctx.measureText(fmtVal(v)).width;if(tw>rMaxTW)rMaxTW=tw;
+      }
+      for(let v=Math.ceil(rLo/rStep)*rStep;v<=rHi+rStep*0.01;v+=rStep){
+        const py=_valToPy1d(v,rMin,rMax,r);
+        if(py<r.y||py>r.y+r.h) continue;
+        ctx.strokeStyle=rColor;ctx.beginPath();ctx.moveTo(rx,py);ctx.lineTo(rx+5,py);ctx.stroke();
+        ctx.fillStyle=rColor;ctx.fillText(fmtVal(v),rx+8,py);
+      }
+      const rUnits=st.right_y_units||'';
+      if(rUnits){
+        ctx.save();
+        const rylpx=st.y_label_size||9;
+        // Place the rotated units label just past the widest tick number, but
+        // never past the panel edge — clamp keeps it on-canvas even when the
+        // fixed right gutter is too narrow for very wide tick strings.
+        const rcx=Math.min(pw-Math.ceil(rylpx*0.62)-1, rx+8+rMaxTW+Math.ceil(rylpx*0.9));
+        ctx.translate(rcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
+        ctx.textBaseline='middle';
+        ctx.fillStyle=rColor;
+        _drawTex(ctx, rUnits, 0, 0, rylpx, {align:'center',family:'monospace'});
         ctx.restore();
       }
     }
@@ -7959,9 +8044,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     let _lastCellW = 0;
     let _lastRoW = 0, _lastRoH = 0;
     let _roTimer = null;
+    let _wasZeroSize = true;
     new ResizeObserver(entries => {
       const cr = entries[0].contentRect;
       const cellW = cr.width, cellH = cr.height;
+      // (0) Reveal detection: a host (SpyDE) can mount a panel HIDDEN
+      // (display:none) and reveal it later by toggling display alone, WITHOUT
+      // any layout_json / fig_width change (so neither model listener below
+      // fires a redraw).  A 3-D GPU panel that skipped init while zero-size
+      // (see the hasDrawableSize guard in draw3d) would then stay on Canvas2D
+      // forever.  When the observed element transitions from zero-size to a
+      // real size, re-attempt GPU init on any 3-D panel still on the canvas
+      // path and redraw it, so the reveal actually flips it to WebGPU.
+      const _nowZero = !(cellW > 0 && cellH > 0);
+      if (_wasZeroSize && !_nowZero) {
+        _wasZeroSize = false;
+        requestAnimationFrame(() => {
+          let _need = false;
+          for (const p of panels.values()) {
+            if (p.kind === '3d' && p._gpu === undefined && p.state
+                && _gpuWanted(p.state)) { _need = true; break; }
+          }
+          if (_need) redrawAll();
+        });
+      } else if (_nowZero) {
+        _wasZeroSize = true;
+      }
       // (1) Jupyter fit-to-cell down-scale — width-only to avoid a feedback
       // loop (our own scaleWrap height updates would re-trigger the observer).
       if (cellW !== _lastCellW) {

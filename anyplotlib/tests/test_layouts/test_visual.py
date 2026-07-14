@@ -154,6 +154,26 @@ class TestVisual:
         arr = take_screenshot(fig)
         _check("plot1d_multi", arr, update_baselines)
 
+    def test_plot1d_twinx(self, take_screenshot, update_baselines):
+        """Secondary right y-axis — exercises add_right_axis + axis='right' line.
+
+        The right line spans a very different range (0..1000) than the left
+        sine (-1..1); a correct render scales each against its own axis and
+        draws a coloured right-hand tick column + rotated label.
+        """
+        fig, ax = apl.subplots(1, 1, figsize=(480, 300))
+        x = np.linspace(0.0, 10.0, 200)
+        plot = ax.plot(np.sin(x), axes=[x], color="#4fc3f7", label="signal")
+        plot.set_ylabel("Amplitude")
+        plot.add_right_axis(color="#e05a2b")
+        plot.add_line(
+            300.0 + 350.0 * np.cos(x / 2.0),
+            x_axis=x, color="#e05a2b", axis="right", label="temp",
+        )
+        plot.set_right_ylabel("Temp (K)")
+        arr = take_screenshot(fig)
+        _check("plot1d_twinx", arr, update_baselines)
+
     def test_plot1d_dashed(self, take_screenshot, update_baselines):
         """Dashed primary line — exercises linestyle→setLineDash path."""
         fig, ax = apl.subplots(1, 1, figsize=(400, 240))
