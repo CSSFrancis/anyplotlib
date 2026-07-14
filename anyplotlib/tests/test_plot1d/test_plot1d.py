@@ -388,6 +388,87 @@ class TestPlot1DOverlayLines:
 
 
 # ===========================================================================
+# Secondary (right-hand) y-axis / twinx
+# ===========================================================================
+
+class TestPlot1DTwinx:
+
+    def test_right_axis_off_by_default(self):
+        p = _plot()
+        assert p._state["right_axis"] is False
+
+    def test_add_right_axis_enables_and_sets_color(self):
+        p = _plot()
+        p.add_right_axis(color="#e05a2b")
+        assert p._state["right_axis"] is True
+        assert p._state["right_axis_color"] == "#e05a2b"
+
+    def test_add_line_right_sets_axis_field(self):
+        p = _plot()
+        p.add_right_axis()
+        p.add_line(np.cos(t) * 100, axis="right")
+        assert p._state["extra_lines"][-1]["axis"] == "right"
+
+    def test_add_line_right_implies_right_axis(self):
+        p = _plot()
+        p.add_line(np.cos(t) * 100, axis="right")  # no explicit add_right_axis
+        assert p._state["right_axis"] is True
+
+    def test_add_line_default_axis_is_left(self):
+        p = _plot()
+        p.add_line(np.cos(t))
+        assert p._state["extra_lines"][-1]["axis"] == "left"
+
+    def test_add_line_bad_axis_raises(self):
+        p = _plot()
+        with pytest.raises(ValueError, match="axis must be"):
+            p.add_line(np.cos(t), axis="top")
+
+    def test_right_line_excluded_from_left_range(self):
+        """A large-scale right line must not stretch the left y-range."""
+        p = _plot()  # sine, roughly -1..1
+        left_max_before = p._state["data_max"]
+        p.add_line(np.full(128, 1000.0), axis="right")
+        # left range unchanged (right line does not participate)
+        assert p._state["data_max"] == pytest.approx(left_max_before)
+
+    def test_right_range_auto_from_right_lines(self):
+        p = _plot()
+        p.add_line(np.linspace(0.0, 500.0, 128), axis="right")
+        assert p._state["right_data_min"] < 50.0
+        assert p._state["right_data_max"] > 450.0
+
+    def test_set_right_ylim_overrides_auto(self):
+        p = _plot()
+        p.add_line(np.linspace(0.0, 500.0, 128), axis="right")
+        p.set_right_ylim(0.0, 100.0)
+        assert p.get_right_ylim() == (0.0, 100.0)
+
+    def test_set_right_ylabel(self):
+        p = _plot()
+        p.add_right_axis()
+        p.set_right_ylabel("Temp (K)")
+        assert p._state["right_y_units"] == "Temp (K)"
+
+    def test_remove_right_axis_drops_right_lines(self):
+        p = _plot()
+        p.add_line(np.cos(t), axis="left")
+        p.add_line(np.cos(t) * 100, axis="right")
+        p.remove_right_axis()
+        assert p._state["right_axis"] is False
+        # left line survives; right line removed
+        axes = [e.get("axis", "left") for e in p._state["extra_lines"]]
+        assert axes == ["left"]
+
+    def test_axis_field_survives_wire(self):
+        p = _plot()
+        p.add_line(np.cos(t) * 100, axis="right")
+        wire = p.to_state_dict()
+        assert wire["extra_lines"][-1]["axis"] == "right"
+        assert wire["right_axis"] is True
+
+
+# ===========================================================================
 # add_line() field parity
 # ===========================================================================
 

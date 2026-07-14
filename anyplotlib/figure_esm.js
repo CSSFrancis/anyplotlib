@@ -5098,9 +5098,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // unit spans equal pixels on x and y (an IPF triangle etc. must not stretch).
   // Baked in here so EVERY consumer (draw1d / markers / overlay / hit-test) uses
   // the identical box — matplotlib's transData derives from the adjusted axes box.
+  // Extra right-hand gutter reserved for a secondary (twinx) y-axis so its
+  // tick labels and rotated units clear the panel edge.
+  const PAD_R_TWIN=46;
   function _plotRect1d(p){
     const pw=p.pw, ph=p.ph, st=p.state;
-    const r={x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-PAD_R),h:Math.max(1,ph-PAD_T-PAD_B)};
+    const padR=(st && st.right_axis) ? PAD_R_TWIN : PAD_R;
+    const r={x:PAD_L,y:PAD_T,w:Math.max(1,pw-PAD_L-padR),h:Math.max(1,ph-PAD_T-PAD_B)};
     if(!st || st.aspect!=='equal') return r;
     const xArr=p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0, x1=st.view_x1||1;
@@ -5155,6 +5159,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     function _toPlotY(v) {
       return _valToPy1d(isLog ? Math.log10(Math.max(_logEps, v)) : v, effDMin, effDMax, r);
     }
+
+    // ── secondary (right-hand) y-axis scale ──
+    // A twinx line maps against right_y_range (explicit) or the auto range
+    // derived from the right-axis overlays.  Always linear.
+    const hasRightAxis = st.right_axis === true;
+    let rMin = 0, rMax = 1;
+    if (hasRightAxis) {
+      if (st.right_y_range && st.right_y_range.length === 2) {
+        rMin = st.right_y_range[0]; rMax = st.right_y_range[1];
+      } else {
+        rMin = st.right_data_min != null ? st.right_data_min : 0;
+        rMax = st.right_data_max != null ? st.right_data_max : 1;
+      }
+    }
+    function _toRightY(v) { return _valToPy1d(v, rMin, rMax, r); }
 
     ctx.clearRect(0,0,pw,ph);
     ctx.fillStyle=theme.bg; ctx.fillRect(0,0,pw,ph);
@@ -5257,8 +5276,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Stroke-only markers (no meaningful fill area)
     const _MARKER_STROKE_ONLY = new Set(['+', 'x']);
 
-    function _drawLine(yData, lineXArr, color, lw, linestyle, alpha, marker, markersize) {
+    function _drawLine(yData, lineXArr, color, lw, linestyle, alpha, marker, markersize, yMap) {
       if (!yData || !yData.length) return;
+      const _yMap = yMap || _toPlotY;   // left scale by default; right lines pass _toRightY
       const n = yData.length;
       const isStepMid = linestyle === 'step-mid';
       const dash = isStepMid ? [] : (_LINESTYLE_DASH[linestyle || 'solid'] || []);
@@ -5273,7 +5293,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           ? (lineXArr[i] - lineXArr[0]) / ((lineXArr[lineXArr.length - 1] - lineXArr[0]) || 1)
           : i / ((n - 1) || 1);
         allPx[i] = _fracToPx1d(xFrac, x0, x1, r);
-        allPy[i] = _toPlotY(yData[i]);
+        allPy[i] = _yMap(yData[i]);
       }
 
       ctx.save();
@@ -5326,11 +5346,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     for (const ex of (st.extra_lines || [])) {
       const exY = ex.data_b64   ? _decodeF64(ex.data_b64)   : (ex.data   || []);
       const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
+      const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
       _drawLine(exY, exX,
         ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth || 1.5,
         ex.linestyle || 'solid',
         ex.alpha != null ? ex.alpha : 1.0,
-        ex.marker || 'none', ex.markersize || 4);
+        ex.marker || 'none', ex.markersize || 4, exMap);
     }
     // ── hovered-line highlight: redraw on top with brightened colour + thicker stroke ──
     const _hovId = p._lineHoverId;
@@ -5345,10 +5366,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           if (ex.id === _hovId) {
             const exY = ex.data_b64 ? _decodeF64(ex.data_b64) : (ex.data||[]);
             const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis?ex.x_axis:xArr);
+            const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
             _drawLine(exY, exX,
               _brightenColor(ex.color||(theme.dark?'#fff':'#333')), (ex.linewidth||1.5)+1,
               ex.linestyle||'solid', ex.alpha!=null?ex.alpha:1.0,
-              ex.marker||'none', ex.markersize||4);
+              ex.marker||'none', ex.markersize||4, exMap);
             break;
           }
         }
@@ -5416,6 +5438,40 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         ctx.textBaseline='middle';
         ctx.fillStyle=theme.unitText;
         _drawTex(ctx, yUnits, 0, 0, ylpx1d, {align:'center',family:'monospace'});
+        ctx.restore();
+      }
+    }
+
+    // ── secondary (right-hand) y-axis: spine, ticks, label ──
+    if(hasRightAxis&&axisVis1d&&yTicksVis1d){
+      const rColor=st.right_axis_color||theme.tickText;
+      const rx=r.x+r.w;
+      // Axis spine on the right edge of the plot rect.
+      ctx.strokeStyle=rColor; ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(rx,r.y);ctx.lineTo(rx,r.y+r.h);ctx.stroke();
+      ctx.font=(st.tick_size||10)+'px monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+      const rRange=(rMax-rMin)||1;
+      const rStep=findNice(rRange/Math.max(2,Math.floor(r.h/40)));
+      let rMaxTW=0;
+      for(let v=Math.ceil(rMin/rStep)*rStep;v<=rMax+rStep*0.01;v+=rStep){
+        const tw=ctx.measureText(fmtVal(v)).width;if(tw>rMaxTW)rMaxTW=tw;
+      }
+      for(let v=Math.ceil(rMin/rStep)*rStep;v<=rMax+rStep*0.01;v+=rStep){
+        const py=_valToPy1d(v,rMin,rMax,r);
+        if(py<r.y||py>r.y+r.h) continue;
+        ctx.strokeStyle=rColor;ctx.beginPath();ctx.moveTo(rx,py);ctx.lineTo(rx+5,py);ctx.stroke();
+        ctx.fillStyle=rColor;ctx.fillText(fmtVal(v),rx+8,py);
+      }
+      const rUnits=st.right_y_units||'';
+      if(rUnits){
+        ctx.save();
+        const rylpx=st.y_label_size||9;
+        // Rotated label near the panel's right edge, clear of the tick numbers.
+        const rcx=Math.min(pw-Math.ceil(rylpx*0.62)-1, rx+8+rMaxTW+Math.ceil(rylpx*0.9));
+        ctx.translate(rcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
+        ctx.textBaseline='middle';
+        ctx.fillStyle=rColor;
+        _drawTex(ctx, rUnits, 0, 0, rylpx, {align:'center',family:'monospace'});
         ctx.restore();
       }
     }

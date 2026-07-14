@@ -297,6 +297,14 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             "title":             "",
             # Explicit y-range override: [ymin, ymax] or None (auto)
             "y_range":           None,
+            # Secondary (right-hand) y-axis.  Enabled on demand via
+            # add_right_axis(); lines opt in with add_line(..., axis="right").
+            "right_axis":        False,
+            "right_y_range":     None,   # [ymin, ymax] or None (auto)
+            "right_data_min":    0.0,    # auto right scale (from right lines)
+            "right_data_max":    1.0,
+            "right_y_units":     "",     # right-axis label
+            "right_axis_color":  "#000000",
             # Visibility toggles
             "axis_visible":      True,
             "x_ticks_visible":   True,
@@ -414,13 +422,16 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._push()
 
     def _recompute_data_range(self) -> None:
-        """Recompute data_min/data_max across the primary line and all overlays.
+        """Recompute data_min/data_max across the primary line and left overlays.
 
         Called automatically whenever the set of lines changes so that every
-        curve stays fully visible.
+        left-axis curve stays fully visible.  Right-axis overlays are excluded
+        here — they scale independently via :meth:`_recompute_right_range`.
         """
         all_vals = [self._state["data"]]   # already a numpy float64 array
         for ex in self._state["extra_lines"]:
+            if ex.get("axis", "left") == "right":
+                continue
             d = ex.get("data")
             if d is not None and len(d):
                 all_vals.append(d)
@@ -431,6 +442,28 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._state["data_min"] = dmin - pad
         self._state["data_max"] = dmax + pad
 
+    def _recompute_right_range(self) -> None:
+        """Recompute the auto right-axis range from all right-axis overlays.
+
+        No-op when ``right_y_range`` is set explicitly (that overrides the
+        auto range) or when there are no right-axis lines yet.
+        """
+        if self._state.get("right_y_range") is not None:
+            return
+        vals = [ex["data"] for ex in self._state["extra_lines"]
+                if ex.get("axis", "left") == "right"
+                and ex.get("data") is not None and len(ex["data"])]
+        if not vals:
+            self._state["right_data_min"] = 0.0
+            self._state["right_data_max"] = 1.0
+            return
+        combined = np.concatenate(vals)
+        dmin = float(np.nanmin(combined))
+        dmax = float(np.nanmax(combined))
+        pad  = (dmax - dmin) * 0.05 if dmax > dmin else 0.5
+        self._state["right_data_min"] = dmin - pad
+        self._state["right_data_max"] = dmax + pad
+
     # ------------------------------------------------------------------
     # Extra lines
     # ------------------------------------------------------------------
@@ -439,7 +472,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                  linestyle: str = "solid", ls: str | None = None,
                  alpha: float = 1.0,
                  marker: str = "none", markersize: float = 4.0,
-                 label: str = "") -> "Line1D":
+                 label: str = "", axis: str = "left") -> "Line1D":
         """Overlay an additional curve on this panel.
 
         The y-axis range is automatically expanded to include the new data so
@@ -484,6 +517,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         data = np.asarray(data, dtype=float)
         if data.ndim != 1:
             raise ValueError("data must be 1-D")
+        if axis not in ("left", "right"):
+            raise ValueError(f"axis must be 'left' or 'right', got {axis!r}")
         xa = (np.asarray(x_axis, dtype=float) if x_axis is not None
               else self._state["x_axis"])
         lid = str(_uuid.uuid4())[:8]
@@ -498,8 +533,14 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             "marker":     marker if marker is not None else "none",
             "markersize": float(markersize),
             "label":      label,
+            "axis":       axis,
         })
-        self._recompute_data_range()
+        if axis == "right":
+            # A right-axis line implies a secondary axis exists.
+            self._state["right_axis"] = True
+            self._recompute_right_range()
+        else:
+            self._recompute_data_range()
         self._push()
         return Line1D(self, lid)
 
@@ -526,6 +567,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         if len(self._state["extra_lines"]) == before:
             raise KeyError(lid)
         self._recompute_data_range()
+        self._recompute_right_range()
         self._push()
 
     def clear_lines(self) -> None:
@@ -535,6 +577,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         """
         self._state["extra_lines"] = []
         self._recompute_data_range()
+        self._recompute_right_range()
         self._push()
 
     # ------------------------------------------------------------------
@@ -859,6 +902,55 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         if yr is not None:
             return (float(yr[0]), float(yr[1]))
         return (float(self._state["data_min"]), float(self._state["data_max"]))
+
+    # ------------------------------------------------------------------
+    # Secondary (right-hand) y-axis
+    # ------------------------------------------------------------------
+    def add_right_axis(self, color: str = "#000000") -> None:
+        """Enable a secondary y-axis on the right-hand side of the panel.
+
+        Lines added with ``add_line(..., axis="right")`` are scaled against
+        and labelled by this axis, independently of the left y-axis.  Calling
+        this more than once just updates the axis colour.
+
+        Parameters
+        ----------
+        color : str, optional
+            Tick and label colour for the right axis.  Default ``"#000000"``.
+        """
+        self._state["right_axis"] = True
+        self._state["right_axis_color"] = color
+        self._recompute_right_range()
+        self._push()
+
+    def remove_right_axis(self) -> None:
+        """Remove the secondary y-axis and any lines anchored to it."""
+        self._state["extra_lines"] = [
+            ex for ex in self._state["extra_lines"]
+            if ex.get("axis", "left") != "right"
+        ]
+        self._state["right_axis"] = False
+        self._state["right_y_range"] = None
+        self._state["right_y_units"] = ""
+        self._recompute_right_range()
+        self._push()
+
+    def set_right_ylabel(self, label: str) -> None:
+        """Set the label (units) shown on the secondary y-axis."""
+        self._state["right_y_units"] = label
+        self._push()
+
+    def set_right_ylim(self, ymin: float, ymax: float) -> None:
+        """Pin the secondary y-axis range explicitly (overrides auto-scaling)."""
+        self._state["right_y_range"] = [float(ymin), float(ymax)]
+        self._push()
+
+    def get_right_ylim(self) -> tuple:
+        yr = self._state.get("right_y_range")
+        if yr is not None:
+            return (float(yr[0]), float(yr[1]))
+        return (float(self._state["right_data_min"]),
+                float(self._state["right_data_max"]))
 
     def get_xlim(self) -> tuple:
         xarr = np.asarray(self._state["x_axis"])
