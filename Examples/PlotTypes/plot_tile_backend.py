@@ -115,9 +115,20 @@ class MandelbrotTileBackend:
 # Wire it into a plot
 # -------------------
 # Pass the backend as ``tile_backend=``.  The ``data`` argument is just a
-# placeholder — the backend's ``full_shape`` / ``extent`` drive the axes, and
-# ``tile=True`` forces the tiled path.  Zoom and pan to stream sharp detail
-# tiles; anyplotlib computes only what is on screen.
+# placeholder — the backend's ``full_shape`` drives the axes, and ``tile=True``
+# forces the tiled path.  Zoom and pan to stream sharp detail tiles; anyplotlib
+# computes only what is on screen.
+#
+# **Tiling and the GPU cooperate.** With ``gpu="auto"`` (the default) and a
+# WebGPU-capable browser, the downsampled overview is uploaded once as a GPU
+# texture and drawn by the shader-side colormap, and the crisp detail tile for
+# the visible region is stitched on top of it each frame.  The logical image
+# here is 4.3 gigapixels, which is far above the ~1-megapixel threshold that
+# switches the WebGPU image path on under ``"auto"`` — so the base raster is
+# GPU-composited rather than blitted on the CPU.  (Headless/off-screen renders,
+# like this gallery's static thumbnail, have no WebGPU and fall back to
+# Canvas2D; the live "Run in browser" version above uses the GPU when your
+# browser supports it.)
 
 backend = MandelbrotTileBackend()
 
@@ -132,6 +143,7 @@ v = ax.imshow(
     axes=[x_axis, y_axis],
     tile_backend=backend,
     tile=True,
+    gpu="auto",                # WebGPU texture path when available (see above)
     cmap="inferno",
     units="Re / Im",
 )
@@ -142,6 +154,18 @@ fig.set_help(
 )
 
 fig  # Interactive
+
+# %%
+# Is the GPU actually painting?
+# -----------------------------
+# Read :attr:`~anyplotlib.Plot2D.gpu_active` to see which path ran.  anyplotlib
+# updates it automatically once the browser reports back after the first frame:
+# ``True`` when the WebGPU image path is live, ``False`` on the Canvas2D
+# fallback.  It is ``False`` here because the gallery build is headless (no
+# WebGPU); open the live "Run in browser" version above and read ``v.gpu_active``
+# to confirm the accelerated path on your own machine.
+
+print("gpu_active:", v.gpu_active)
 
 # %%
 # Swap in a real source
