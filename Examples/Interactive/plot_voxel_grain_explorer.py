@@ -29,7 +29,7 @@ import anyplotlib as apl
 rng = np.random.default_rng(11)
 
 # ── 1. Synthetic 3-D polycrystal: nearest-seed voxel grain map ──────────────
-N = 48                       # volume is N³ voxels, indexed V[z, y, x]
+N = 24                       # volume is N³ voxels, indexed V[z, y, x]
 N_GRAINS = 40
 
 seeds = rng.uniform(0, N, size=(N_GRAINS, 3))            # (z, y, x)
@@ -76,7 +76,8 @@ grain_rgb_u8 = (rgb * 255).astype(np.uint8)               # (N_GRAINS, 3)
 # planes.  This anchors the highlight exactly where the slices intersect,
 # shows real slice contents in 3-D, and scales: the on-plane count is
 # ~3·(N/step)² regardless of N, so it stays fast even for a 256³ volume.
-VSTEP = max(1, N // 48)        # in-plane downsample → ~48² cubes per plane
+VSTEP = max(1, N // 48)        # in-plane downsample, capping at ~48² cubes/plane
+                               # for large N (no downsampling at this N=24)
 
 # Voxel cube size in data units.  A touch larger than VSTEP so the three
 # slabs read as solid sheets rather than a dotted grid.
@@ -140,7 +141,7 @@ v_vol = ax_vol.voxels(
     size=VOXSIZE, alpha=0.55,
     x_label="x", y_label="y", z_label="z",
     bounds=((0, N - 1),) * 3, zoom=1.1,
-    # gpu="auto" (default): ~7k cubes is over the ~1k voxel threshold, so the
+    # gpu="auto" (default): ~1.7k cubes is over the ~1k voxel threshold, so the
     # WebGPU instanced path handles each drag re-slice when WebGPU is present.
 )
 v_vol.set_title("Grain volume — drag a plane to re-slice")
