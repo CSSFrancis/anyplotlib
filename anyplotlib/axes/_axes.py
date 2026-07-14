@@ -202,7 +202,7 @@ class Axes:
         selected slice pops out of the translucent volume.
 
         **Large volumes** With WebGPU (``gpu="auto"``, the default, active
-        above ~8k cubes when a GPU is present) hundreds of thousands of
+        above ~1k cubes when a GPU is present) hundreds of thousands of
         voxels render interactively via instancing.  On the Canvas2D
         fallback the budget is ~20k cubes (~3–6 µs each); a warning is
         emitted above that *only when* ``gpu=False``.  For volumes too large
@@ -230,7 +230,7 @@ class Axes:
             Fix the axes bounds instead of fitting them to the data.
         gpu : ``"auto"`` | bool, optional
             WebGPU acceleration policy.  ``"auto"`` (default) renders cubes
-            on the GPU when available and the set exceeds ~8k; ``True`` always
+            on the GPU when available and the set exceeds ~1k; ``True`` always
             attempts GPU; ``False`` forces Canvas2D.  Falls back silently when
             WebGPU is unavailable — see :attr:`Plot3D.gpu_active`.
 

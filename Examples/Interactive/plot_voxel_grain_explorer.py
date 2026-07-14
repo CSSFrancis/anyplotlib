@@ -140,6 +140,8 @@ v_vol = ax_vol.voxels(
     size=VOXSIZE, alpha=0.55,
     x_label="x", y_label="y", z_label="z",
     bounds=((0, N - 1),) * 3, zoom=1.1,
+    # gpu="auto" (default): ~7k cubes is over the ~1k voxel threshold, so the
+    # WebGPU instanced path handles each drag re-slice when WebGPU is present.
 )
 v_vol.set_title("Grain volume — drag a plane to re-slice")
 
