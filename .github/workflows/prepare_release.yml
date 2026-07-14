@@ -11,12 +11,13 @@ on:
         required: true
         type: choice
         options:
+          - finalize      # drop the bN suffix: release the current beta's base as stable (0.3.0b2 -> 0.3.0)
           - minor
           - bugfix
           - major
           - pre-release   # increments the bN counter on the current base version
       beta:
-        description: "Mark as beta pre-release (adds bN suffix; always true for pre-release)"
+        description: "Mark as beta pre-release (adds bN suffix). Ignored for 'pre-release' (always beta) and 'finalize' (always stable)."
         required: false
         type: boolean
         default: false
@@ -67,17 +68,42 @@ jobs:
           minor  = int(m.group(2))
           patch  = int(m.group(3))
           beta_n = int(m.group(4)) if m.group(4) else None
+          on_beta = beta_n is not None
 
-          if bump == "major":
+          if bump == "finalize":
+              # Release the current beta's base as stable: just drop the bN
+              # suffix, keep major.minor.patch. e.g. 0.3.0b2 -> 0.3.0.
+              if not on_beta:
+                  raise SystemExit(
+                      f"'finalize' requires a beta base version, but current "
+                      f"version {current!r} has no bN suffix. Use minor / bugfix "
+                      f"/ major to start a new release instead."
+                  )
+              is_beta = False
+          elif bump == "pre-release":
+              # Keep the same base; just walk the beta counter forward.
+              is_beta = True
+              beta_n  = (beta_n or 0) + 1
+          elif on_beta:
+              # We are on a beta of the NEXT release (e.g. 0.3.0b2). The base
+              # major.minor.patch is that upcoming version, so minor/bugfix/major
+              # must bump relative to the LAST STABLE (base - the in-progress
+              # component), not skip a whole version. The common intent from a
+              # beta is 'finalize', so steer the user there rather than guess.
+              raise SystemExit(
+                  f"Current version {current!r} is a beta of the upcoming "
+                  f"{major}.{minor}.{patch} release. To ship it, use bump="
+                  f"'finalize' (-> {major}.{minor}.{patch}). A '{bump}' bump from "
+                  f"a beta would skip {major}.{minor}.{patch} entirely "
+                  f"(e.g. -> {'%d.%d.0' % (major, minor + 1) if bump == 'minor' else '...'}); "
+                  f"that is almost never intended."
+              )
+          elif bump == "major":
               major, minor, patch = major + 1, 0, 0
           elif bump == "minor":
               minor, patch = minor + 1, 0
           elif bump == "bugfix":
               patch += 1
-          elif bump == "pre-release":
-              # Keep the same base; just walk the beta counter forward.
-              is_beta = True
-              beta_n  = (beta_n or 0) + 1
 
           if is_beta:
               if bump != "pre-release":
@@ -88,10 +114,15 @@ jobs:
           PYEOF
           )
 
+          # Derive is_beta from the COMPUTED version (ends in bN?), not the raw
+          # input — so 'finalize' is always treated as stable and a mismatched
+          # beta checkbox can't mislabel the switcher / skip the root redirect.
+          if [[ "$NEW_VERSION" =~ b[0-9]+$ ]]; then IS_BETA_OUT=true; else IS_BETA_OUT=false; fi
+
           echo "new_version=$NEW_VERSION"                  >> "$GITHUB_OUTPUT"
           echo "tag=v$NEW_VERSION"                         >> "$GITHUB_OUTPUT"
           echo "branch=release/v$NEW_VERSION"              >> "$GITHUB_OUTPUT"
-          echo "is_beta=${{ inputs.beta }}"                >> "$GITHUB_OUTPUT"
+          echo "is_beta=$IS_BETA_OUT"                      >> "$GITHUB_OUTPUT"
           echo "Bumping (${{ inputs.bump }}): $CURRENT → $NEW_VERSION"
 
       # ── Bump version strings ─────────────────────────────────────────────
@@ -118,7 +149,7 @@ jobs:
       - name: Update docs/switcher.json
         env:
           VERSION_TAG: ${{ steps.version.outputs.tag }}
-          IS_BETA: ${{ inputs.beta }}
+          IS_BETA: ${{ steps.version.outputs.is_beta }}
         shell: python
         run: |
           import json, re, pathlib, os
@@ -144,7 +175,7 @@ jobs:
 
       # ── Update root redirect for stable releases ─────────────────────────
       - name: Update root redirect (stable releases only)
-        if: ${{ inputs.beta == false && inputs.bump != 'pre-release' }}
+        if: ${{ steps.version.outputs.is_beta == 'false' && inputs.bump != 'pre-release' }}
         env:
           VERSION_TAG: ${{ steps.version.outputs.tag }}
         shell: python
@@ -200,7 +231,7 @@ jobs:
           - Version bumped to \`${TAG}\` in \`pyproject.toml\` and \`docs/conf.py\`
           - \`CHANGELOG.rst\` updated from towncrier fragments
           - \`docs/_root/switcher.json\` updated with the new version entry
-          $([ '${{ inputs.beta }}' = 'false' ] && echo '- Root redirect updated to point to this release' || echo '')
+          $([ '${{ steps.version.outputs.is_beta }}' = 'false' ] && echo '- Root redirect updated to point to this release' || echo '')
 
           ### Review checklist
           - [ ] \`CHANGELOG.rst\` reads well — edit the fragment text directly if needed
