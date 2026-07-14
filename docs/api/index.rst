@@ -105,7 +105,6 @@ Axes & Plots
 
    Axes
    Plot1D
-   Line1D
    Plot2D
    PlotMesh
    Plot3D
