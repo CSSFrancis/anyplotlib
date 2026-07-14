@@ -724,3 +724,80 @@ class TestTopLevelExports:
         p = ax.plot(np.linspace(0, 1, 64))
         wire = p.to_state_dict()
         assert "data_length" not in wire
+
+
+class TestAddTextSingular:
+    """Plot.add_text() — single-annotation convenience wrapper.
+
+    Backs the HyperSpy anyplotlib backend's ``add_text`` (nav index and
+    scale-bar labels), which relies on the handle's set_text / set_color /
+    remove methods.
+    """
+
+    def test_add_text_returns_handle_plot1d(self):
+        p = _make_plot1d()
+        h = p.add_text(0.5, 0.5, "hi")
+        assert hasattr(h, "set_text")
+        assert hasattr(h, "set_color")
+        assert hasattr(h, "remove")
+
+    def test_add_text_returns_handle_plot2d(self):
+        p = _make_plot2d()
+        h = p.add_text(1.0, 1.0, "hi")
+        assert hasattr(h, "set_text")
+
+    def test_add_text_creates_texts_group(self):
+        p = _make_plot1d()
+        p.add_text(0.5, 0.5, "peak")
+        markers = p.list_markers()
+        assert any(m["type"] == "texts" and m["n"] == 1 for m in markers)
+
+    def test_add_text_stores_string_and_offset(self):
+        p = _make_plot1d()
+        h = p.add_text(2.0, 3.0, "label")
+        assert h._group._data["texts"] == ["label"]
+        assert list(h._group._data["offsets"][0]) == [2.0, 3.0]
+
+    def test_add_text_default_transform_is_data(self):
+        p = _make_plot1d()
+        h = p.add_text(0.5, 0.5, "x")
+        assert h._group._data["transform"] == "data"
+
+    def test_add_text_axes_transform_round_trips(self):
+        p = _make_plot1d()
+        h = p.add_text(0.05, 0.95, "(3, 7)", transform="axes")
+        assert h._group._data["transform"] == "axes"
+
+    def test_add_text_display_transform_round_trips(self):
+        p = _make_plot2d()
+        h = p.add_text(8, 8, "10 nm", transform="display")
+        assert h._group._data["transform"] == "display"
+
+    def test_set_text_updates_string(self):
+        p = _make_plot1d()
+        h = p.add_text(0.5, 0.5, "(3, 7)")
+        h.set_text("(4, 7)")
+        assert h._group._data["texts"] == ["(4, 7)"]
+
+    def test_set_color_updates_color(self):
+        p = _make_plot1d()
+        h = p.add_text(0.5, 0.5, "x", color="red")
+        h.set_color("#00ff00")
+        assert h._group._data["color"] == "#00ff00"
+
+    def test_remove_deletes_group(self):
+        p = _make_plot1d()
+        h = p.add_text(0.5, 0.5, "x")
+        assert p.list_markers()
+        h.remove()
+        assert not p.list_markers()
+
+    def test_invalid_transform_raises(self):
+        p = _make_plot1d()
+        with pytest.raises(ValueError):
+            p.add_text(0.5, 0.5, "x", transform="bogus")
+
+    def test_named_text_uses_name(self):
+        p = _make_plot1d()
+        h = p.add_text(0.5, 0.5, "x", name="nav_index")
+        assert h._group._name == "nav_index"
