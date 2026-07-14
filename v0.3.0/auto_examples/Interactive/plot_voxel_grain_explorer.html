@@ -1,0 +1,947 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>3-D Voxel Grain Explorer &#8212; anyplotlib 0.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../_static/documentation_options.js?v=e259d695"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../_static/anywidget_config.js?v=cd5adc06"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../_static/anywidget_bridge.js?v=a2d47ea1"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/Interactive/plot_voxel_grain_explorer';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/v0.3.0/auto_examples/Interactive/plot_voxel_grain_explorer.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Interactive 1-D Gaussian Fitting" href="plot_interactive_fitting.html" />
+    <link rel="prev" title="Inverse Pole Figure (IPF) Density Map" href="plot_ipf_density_map.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Benchmarks/index.html">Benchmarks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Benchmarks/plot_benchmark_comparison.html">Plot Update Comparison</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Interactive Examples</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="plot_figure_annotations.html">Interactive figure annotations — double-click to add, drag to place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_point_widget.html">Draggable Point Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_key_bindings.html">Key-Press Widget Placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_threshold_explorer.html">Live intensity thresholding on a multi-phase STEM image.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_ipf_explorer.html">Inverse Pole Figure (IPF) Explorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_eels_explorer.html">EELS multi-spectrum explorer.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_3d_spectral_viewer.html">Interactive 3D Spectral Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_particle_picker.html">HAADF STEM nanoparticle picker.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_spectra_roi_inspector.html">ROI-to-spectrum inspector for a 3-D EDS hyperspectral dataset.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_ipf_density_map.html">Inverse Pole Figure (IPF) Density Map</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">3-D Voxel Grain Explorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_segment_by_contrast_advanced.html">Advanced Interactive Contrast Segmentation (3 × 3 Grid)</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Markers/index.html">Markers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_horizontal_lines.html">Horizontal Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_vertical_lines.html">Vertical Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_points.html">Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_texts.html">Text Labels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_arrows.html">Arrows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_circles.html">Circles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_rectangles.html">Rectangles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_line_segments.html">Line Segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_ellipses.html">Ellipses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_squares.html">Squares</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_polygons.html">Polygons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_transform_markers.html">Coordinate transforms — pin markers to the axes or the screen</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../PlotTypes/index.html">Plot Types</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_step_and_log.html">Step lines and log-scale spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_twinx.html">Twinned (secondary) y-axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_label_formatting.html">Label Sizes and Scientific (TeX) Formatting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_3d.html">3D Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_gpu_voxels.html">GPU-accelerated voxels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_spectra1d.html">1D Spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_inset.html">Inset Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_image2d.html">2D Image with Histogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_line_styles.html">1D Line Styles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_bar.html">Bar Chart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_gridspec_custom.html">Custom Grid Layouts with GridSpec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../PlotTypes/plot_tile_backend.html">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Widgets/index.html">Widgets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_hline.html">1D Horizontal Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_vline.html">1D Vertical Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_range.html">1D Range Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_crosshair.html">2D Crosshair Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_circle.html">2D Circle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_rectangle.html">2D Rectangle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_annular.html">2D Annular Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_label.html">2D Label Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_polygon.html">2D Polygon Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_point.html">1D Point Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_arrow.html">2D Arrow Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget3d_plane.html">3D Plane Widget</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Interactive Examples</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">3-D Voxel Grain Explorer</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-interactive-plot-voxel-grain-explorer-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="d-voxel-grain-explorer">
+<span id="sphx-glr-auto-examples-interactive-plot-voxel-grain-explorer-py"></span><h1>3-D Voxel Grain Explorer<a class="headerlink" href="#d-voxel-grain-explorer" title="Link to this heading">#</a></h1>
+<p>An orthoslice viewer for a synthetic 3-D polycrystal (voxel grain map),
+in the style of EBSD/tomography volume browsers:</p>
+<ul class="simple">
+<li><p><strong>Top row</strong> — the three orthogonal slices (XY, XZ, YZ) through the
+current voxel, rendered as true-colour IPF-RGB images.  Each carries a
+draggable crosshair; the three crosshairs are <strong>linked</strong>: dragging one
+moves the slice planes of the other two views.</p></li>
+<li><p><strong>Bottom left</strong> — the grain volume rendered as <strong>translucent shaded
+voxels</strong> with three draggable <strong>plane widgets</strong> (the slice selectors in
+3-D).  Voxels lying on a selected plane render more opaque, so the
+current slices glow inside the volume.  Drag a plane along its normal to
+re-slice — the 2-D views follow.</p></li>
+<li><p><strong>Bottom right</strong> — the <em>reduced 3-D inverse pole figure</em>: the selected
+voxel’s grain orientation is highlighted on the wireframed unit sphere,
+which <strong>rotates to face that crystal direction</strong>.</p></li>
+</ul>
+<p>Everything is bidirectionally linked: drag a crosshair OR a 3-D plane and
+the other views re-cut, the voxel highlight moves, and the IPF re-aims.
+Drag empty space on either 3-D panel to orbit it freely.</p>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_voxel_grain_explorer_001" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_voxel_grain_explorer_001" style="display:inline-block;overflow:hidden;position:relative;width:684px;height:460px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_voxel_grain_explorer_001.html" data-awi-fig="sphx_glr_plot_voxel_grain_explorer_001" frameborder="0" scrolling="no" style="width:976px;height:656px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(0.70082);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_voxel_grain_explorer_001"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_voxel_grain_explorer_001" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_voxel_grain_explorer_001'),ifr=wrap.querySelector('iframe'),nw=976,nh=656;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_voxel_grain_explorer_001" data-fig-index="0" data-src-file="plot_voxel_grain_explorer" data-src="&quot;\&quot;\&quot;\&quot;\n3-D Voxel Grain Explorer\n========================\n\nAn orthoslice viewer for a synthetic 3-D polycrystal (voxel grain map),\nin the style of EBSD/tomography volume browsers:\n\n* **Top row** \u2014 the three orthogonal slices (XY, XZ, YZ) through the\n  current voxel, rendered as true-colour IPF-RGB images.  Each carries a\n  draggable crosshair; the three crosshairs are **linked**: dragging one\n  moves the slice planes of the other two views.\n* **Bottom left** \u2014 the grain volume rendered as **translucent shaded\n  voxels** with three draggable **plane widgets** (the slice selectors in\n  3-D).  Voxels lying on a selected plane render more opaque, so the\n  current slices glow inside the volume.  Drag a plane along its normal to\n  re-slice \u2014 the 2-D views follow.\n* **Bottom right** \u2014 the *reduced 3-D inverse pole figure*: the selected\n  voxel&#x27;s grain orientation is highlighted on the wireframed unit sphere,\n  which **rotates to face that crystal direction**.\n\nEverything is bidirectionally linked: drag a crosshair OR a 3-D plane and\nthe other views re-cut, the voxel highlight moves, and the IPF re-aims.\nDrag empty space on either 3-D panel to orbit it freely.\n\&quot;\&quot;\&quot;\n\nimport numpy as np\nimport anyplotlib as apl\n\nrng = np.random.default_rng(11)\n\n# \u2500\u2500 1. Synthetic 3-D polycrystal: nearest-seed voxel grain map \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nN = 24                       # volume is N\u00b3 voxels, indexed V[z, y, x]\nN_GRAINS = 40\n\nseeds = rng.uniform(0, N, size=(N_GRAINS, 3))            # (z, y, x)\nzz, yy, xx = np.mgrid[0:N, 0:N, 0:N]\ngid  = np.zeros((N, N, N), dtype=np.int32)\nbest = np.full((N, N, N), np.inf)\nfor g, (sz, sy, sx) in enumerate(seeds):\n    d = (zz - sz) ** 2 + (yy - sy) ** 2 + (xx - sx) ** 2\n    closer = d &lt; best\n    gid[closer] = g\n    best[closer] = d[closer]\n\n\n# \u2500\u2500 2. Orientations, cubic fundamental-sector reduction, IPF colours \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\ndef random_rotations(n):\n    \&quot;\&quot;\&quot;Uniform random rotation matrices, shape (n, 3, 3) (Shoemake method).\&quot;\&quot;\&quot;\n    u1, u2, u3 = rng.random((3, n))\n    q = np.stack([\n        np.sqrt(1 - u1) * np.sin(2 * np.pi * u2),\n        np.sqrt(1 - u1) * np.cos(2 * np.pi * u2),\n        np.sqrt(u1) * np.sin(2 * np.pi * u3),\n        np.sqrt(u1) * np.cos(2 * np.pi * u3),\n    ], axis=1)\n    x, y, z, w = q.T\n    return np.stack([\n        np.stack([1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)], -1),\n        np.stack([2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)], -1),\n        np.stack([2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)], -1),\n    ], axis=1)\n\n\nrotations = random_rotations(N_GRAINS)\ndirs      = rotations[:, 2, :]                            # R\u1d40\u00b7\u1e91 per grain\nreduced   = np.sort(np.abs(dirs), axis=1)                 # cubic 001\u2013011\u2013111\na, b, c   = reduced.T\nrgb = np.stack([c - b, b - a, a], axis=1)\nrgb /= rgb.max(axis=1, keepdims=True) + 1e-12\ngrain_rgb_u8 = (rgb * 255).astype(np.uint8)               # (N_GRAINS, 3)\n\n# \u2500\u2500 3. Voxels for the 3-D volume view \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# Rather than a sparse random subsample of the whole volume (where the\n# highlight marker floats in empty space because almost no cube sits at the\n# selected voxel), render the voxels that actually lie ON the three slice\n# planes.  This anchors the highlight exactly where the slices intersect,\n# shows real slice contents in 3-D, and scales: the on-plane count is\n# ~3\u00b7(N/step)\u00b2 regardless of N, so it stays fast even for a 256\u00b3 volume.\nVSTEP = max(1, N // 48)        # in-plane downsample, capping at ~48\u00b2 cubes/plane\n                               # for large N (no downsampling at this N=24)\n\n# Voxel cube size in data units.  A touch larger than VSTEP so the three\n# slabs read as solid sheets rather than a dotted grid.\nVOXSIZE = float(VSTEP) * 1.3\n\n\ndef slice_voxels(ix, iy, iz):\n    \&quot;\&quot;\&quot;Voxel centres + colours lying on the x=ix, y=iy, z=iz planes.\&quot;\&quot;\&quot;\n    s = VSTEP\n    rng_ax = np.arange(0, N, s)\n    parts = []\n    # z = iz plane  (vary x, y)\n    yy2, xx2 = np.meshgrid(rng_ax, rng_ax, indexing=\&quot;ij\&quot;)\n    parts.append(np.column_stack([xx2.ravel(), yy2.ravel(),\n                                  np.full(xx2.size, iz)]))\n    # y = iy plane  (vary x, z)\n    zz2, xx2 = np.meshgrid(rng_ax, rng_ax, indexing=\&quot;ij\&quot;)\n    parts.append(np.column_stack([xx2.ravel(), np.full(xx2.size, iy),\n                                  zz2.ravel()]))\n    # x = ix plane  (vary y, z)\n    zz2, yy2 = np.meshgrid(rng_ax, rng_ax, indexing=\&quot;ij\&quot;)\n    parts.append(np.column_stack([np.full(yy2.size, ix), yy2.ravel(),\n                                  zz2.ravel()]))\n    pts = np.vstack(parts)                                   # (M, 3) as (x,y,z)\n    cols = grain_rgb_u8[gid[pts[:, 2], pts[:, 1], pts[:, 0]]]  # gid[z,y,x]\n    return pts, cols\n\n# \u2500\u2500 4. Figure: 3 slices on top, volume + IPF below \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\ngs  = apl.GridSpec(2, 3)\nfig = apl.Figure(figsize=(960, 640),\n                 help=\&quot;Drag a crosshair: the other two slices re-cut, the\\n\&quot;\n                      \&quot;3-D voxel highlight moves, and the IPF sphere rotates\\n\&quot;\n                      \&quot;to the selected grain&#x27;s crystal direction.\\n\&quot;\n                      \&quot;Drag the 3-D panels to orbit them freely.\&quot;)\n\nax_xy  = fig.add_subplot(gs[0, 0])\nax_xz  = fig.add_subplot(gs[0, 1])\nax_yz  = fig.add_subplot(gs[0, 2])\nax_vol = fig.add_subplot(gs[1, 0])\nax_ipf = fig.add_subplot(gs[1, 1:3])\n\nix, iy, iz = N // 2, N // 2, N // 2                       # integer slice indices\nfx, fy, fz = float(ix), float(iy), float(iz)              # smooth highlight pos\n\npx = [np.arange(N)] * 2                                   # pixel axes \u2192 gutters\n\nv_xy = ax_xy.imshow(grain_rgb_u8[gid[iz]],       axes=px, units=\&quot;vox\&quot;)\nv_xz = ax_xz.imshow(grain_rgb_u8[gid[:, iy, :]], axes=px, units=\&quot;vox\&quot;)\nv_yz = ax_yz.imshow(grain_rgb_u8[gid[:, :, ix]], axes=px, units=\&quot;vox\&quot;)\nv_xy.set_xlabel(\&quot;x\&quot;); v_xy.set_ylabel(\&quot;y\&quot;)\nv_xz.set_xlabel(\&quot;x\&quot;); v_xz.set_ylabel(\&quot;z\&quot;)\nv_yz.set_xlabel(\&quot;y\&quot;); v_yz.set_ylabel(\&quot;z\&quot;)\n\ncw_xy = v_xy.add_widget(\&quot;crosshair\&quot;, cx=ix, cy=iy, color=\&quot;#ffffff\&quot;)\ncw_xz = v_xz.add_widget(\&quot;crosshair\&quot;, cx=ix, cy=iz, color=\&quot;#ffffff\&quot;)\ncw_yz = v_yz.add_widget(\&quot;crosshair\&quot;, cx=iy, cy=iz, color=\&quot;#ffffff\&quot;)\n\n_vpts, _vcols = slice_voxels(ix, iy, iz)\nv_vol = ax_vol.voxels(\n    _vpts[:, 0], _vpts[:, 1], _vpts[:, 2], colors=_vcols,\n    size=VOXSIZE, alpha=0.55,\n    x_label=\&quot;x\&quot;, y_label=\&quot;y\&quot;, z_label=\&quot;z\&quot;,\n    bounds=((0, N - 1),) * 3, zoom=1.1,\n    # gpu=\&quot;auto\&quot; (default): ~1.7k cubes is over the ~1k voxel threshold, so the\n    # WebGPU instanced path handles each drag re-slice when WebGPU is present.\n)\nv_vol.set_title(\&quot;Grain volume \u2014 drag a plane to re-slice\&quot;)\n\n# Three draggable slice-selector planes; on-plane voxels render opaque\npw_yz = v_vol.add_widget(\&quot;plane\&quot;, axis=\&quot;x\&quot;, position=ix, color=\&quot;#ff5252\&quot;, alpha=0.18)\npw_xz = v_vol.add_widget(\&quot;plane\&quot;, axis=\&quot;y\&quot;, position=iy, color=\&quot;#69f0ae\&quot;, alpha=0.18)\npw_xy = v_vol.add_widget(\&quot;plane\&quot;, axis=\&quot;z\&quot;, position=iz, color=\&quot;#40c4ff\&quot;, alpha=0.18)\n\nv_ipf = ax_ipf.scatter3d(\n    reduced[:, 0], reduced[:, 1], reduced[:, 2],\n    colors=grain_rgb_u8, point_size=6,\n    x_label=\&quot;[100]\&quot;, y_label=\&quot;[010]\&quot;, z_label=\&quot;[001]\&quot;,\n    bounds=((-1, 1),) * 3, zoom=1.4,\n)\nv_ipf.set_title(\&quot;Reduced 3D IPF\&quot;)\nv_ipf.set_sphere(1.0)\n\n\n# \u2500\u2500 5. Linked updates \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\ndef face_camera(v):\n    \&quot;\&quot;\&quot;Turntable (az\u00b0, el\u00b0) aiming the camera straight down unit vector v.\&quot;\&quot;\&quot;\n    el = np.degrees(np.arcsin(np.clip(v[2], -1.0, 1.0)))\n    az = np.degrees(np.arctan2(v[0], -v[1]))\n    return az, el\n\n\n_busy = [False]   # programmatic widget.set() fires callbacks \u2014 guard re-entry\n\n\ndef update(source: str) -&gt; None:\n    \&quot;\&quot;\&quot;Re-cut the other slices, move crosshairs/highlights, re-aim the IPF.\&quot;\&quot;\&quot;\n    _busy[0] = True\n    try:\n      # Coalesce every panel mutation below into one push per panel \u2014 without\n      # this, a single crosshair drag fires ~8 full-state pushes across the\n      # comm boundary, which is the main source of Pyodide lag.\n      with fig.batch():\n        if source != \&quot;xy\&quot;:\n            v_xy.set_data(grain_rgb_u8[gid[iz]])\n            cw_xy.set(cx=ix, cy=iy)\n        if source != \&quot;xz\&quot;:\n            v_xz.set_data(grain_rgb_u8[gid[:, iy, :]])\n            cw_xz.set(cx=ix, cy=iz)\n        if source != \&quot;yz\&quot;:\n            v_yz.set_data(grain_rgb_u8[gid[:, :, ix]])\n            cw_yz.set(cx=iy, cy=iz)\n        v_xy.set_title(f\&quot;XY slice \u2014 z={iz}\&quot;)\n        v_xz.set_title(f\&quot;XZ slice \u2014 y={iy}\&quot;)\n        v_yz.set_title(f\&quot;YZ slice \u2014 x={ix}\&quot;)\n\n        # 3-D slice-selector planes follow at the SMOOTH position (skipped for\n        # the one being dragged, so its own live position isn&#x27;t overwritten).\n        if source != \&quot;px\&quot;:\n            pw_yz.set(position=fx)\n        if source != \&quot;py\&quot;:\n            pw_xz.set(position=fy)\n        if source != \&quot;pz\&quot;:\n            pw_xy.set(position=fz)\n\n        # Re-cut the 3-D slab voxels to the new slice indices so the volume\n        # view shows the actual slice contents (bounded ~3\u00b7(N/VSTEP)\u00b2 voxels).\n        _p, _c = slice_voxels(ix, iy, iz)\n        v_vol.set_data(_p[:, 0], _p[:, 1], _p[:, 2])\n        v_vol.set_point_colors(_c)\n\n        # Highlight tracks the SMOOTH plane positions (fx,fy,fz) so the marker\n        # glides with the planes instead of jumping by whole voxels.\n        v_vol.set_highlight(fx, fy, fz, color=\&quot;#ffffff\&quot;, size=7)\n\n        g = int(gid[iz, iy, ix])\n        v_ipf.set_highlight(*reduced[g], color=\&quot;#ffffff\&quot;, size=8)\n        az, el = face_camera(reduced[g])\n        v_ipf.set_view(azimuth=az, elevation=el)\n    finally:\n        _busy[0] = False\n\n\ndef _clipf(v):\n    \&quot;\&quot;\&quot;Clamp a float position to the volume range (kept smooth for the marker).\&quot;\&quot;\&quot;\n    return float(np.clip(v, 0.0, N - 1))\n\n\ndef _i(v):\n    \&quot;\&quot;\&quot;Round a float position to the nearest integer slice index.\&quot;\&quot;\&quot;\n    return int(round(v))\n\n\n@cw_xy.add_event_handler(\&quot;pointer_move\&quot;)\ndef _moved_xy(event):\n    global ix, iy, fx, fy\n    if _busy[0]:\n        return\n    fx, fy = _clipf(cw_xy.cx), _clipf(cw_xy.cy)\n    ix, iy = _i(fx), _i(fy)\n    update(\&quot;xy\&quot;)\n\n\n@cw_xz.add_event_handler(\&quot;pointer_move\&quot;)\ndef _moved_xz(event):\n    global ix, iz, fx, fz\n    if _busy[0]:\n        return\n    fx, fz = _clipf(cw_xz.cx), _clipf(cw_xz.cy)\n    ix, iz = _i(fx), _i(fz)\n    update(\&quot;xz\&quot;)\n\n\n@cw_yz.add_event_handler(\&quot;pointer_move\&quot;)\ndef _moved_yz(event):\n    global iy, iz, fy, fz\n    if _busy[0]:\n        return\n    fy, fz = _clipf(cw_yz.cx), _clipf(cw_yz.cy)\n    iy, iz = _i(fy), _i(fz)\n    update(\&quot;yz\&quot;)\n\n\n@pw_yz.add_event_handler(\&quot;pointer_move\&quot;)\ndef _plane_x(event):\n    global ix, fx\n    if _busy[0]:\n        return\n    fx = _clipf(pw_yz.position)\n    ix = _i(fx)\n    update(\&quot;px\&quot;)\n\n\n@pw_xz.add_event_handler(\&quot;pointer_move\&quot;)\ndef _plane_y(event):\n    global iy, fy\n    if _busy[0]:\n        return\n    fy = _clipf(pw_xz.position)\n    iy = _i(fy)\n    update(\&quot;py\&quot;)\n\n\n@pw_xy.add_event_handler(\&quot;pointer_move\&quot;)\ndef _plane_z(event):\n    global iz, fz\n    if _busy[0]:\n        return\n    fz = _clipf(pw_xy.position)\n    iz = _i(fz)\n    update(\&quot;pz\&quot;)\n\n\nupdate(\&quot;none\&quot;)\n\nfig  # Interactive\n&quot;"></script><div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+
+<a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="numpy.random.Generator" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng" title="numpy.random.default_rng" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span></a><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+
+<span class="c1"># ── 1. Synthetic 3-D polycrystal: nearest-seed voxel grain map ──────────────</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">=</span> <span class="mi">24</span>                       <span class="c1"># volume is N³ voxels, indexed V[z, y, x]</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N_GRAINS</span></a> <span class="o">=</span> <span class="mi">40</span>
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">seeds</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.uniform.html#numpy.random.Generator.uniform" title="numpy.random.Generator.uniform" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span></a><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N_GRAINS</span></a><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>            <span class="c1"># (z, y, x)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">zz</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">yy</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xx</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.mgrid.html#numpy.mgrid" title="numpy.mgrid" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-data"><span class="n">np</span><span class="o">.</span><span class="n">mgrid</span></a><span class="p">[</span><span class="mi">0</span><span class="p">:</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">]</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a>  <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html#numpy.zeros" title="numpy.zeros" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">((</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.int32" title="numpy.int32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">int32</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">best</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.full.html#numpy.full" title="numpy.full" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">full</span></a><span class="p">((</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">),</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">inf</span></a><span class="p">)</span>
+<span class="k">for</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">g</span></a><span class="p">,</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">sz</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">sy</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">sx</span></a><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">seeds</span></a><span class="p">):</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">d</span></a> <span class="o">=</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">zz</span></a> <span class="o">-</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">sz</span></a><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">yy</span></a> <span class="o">-</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">sy</span></a><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xx</span></a> <span class="o">-</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">sx</span></a><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">closer</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">d</span></a> <span class="o">&lt;</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">best</span></a>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">closer</span></a><span class="p">]</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">g</span></a>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">best</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">closer</span></a><span class="p">]</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">d</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">closer</span></a><span class="p">]</span>
+
+
+<span class="c1"># ── 2. Orientations, cubic fundamental-sector reduction, IPF colours ────────</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">random_rotations</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Uniform random rotation matrices, shape (n, 3, 3) (Shoemake method).&quot;&quot;&quot;</span>
+    <span class="n">u1</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="n">u3</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.random.html#numpy.random.Generator.random" title="numpy.random.Generator.random" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-method"><span class="n">rng</span><span class="o">.</span><span class="n">random</span></a><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+    <span class="n">q</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack" title="numpy.stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">stack</span></a><span class="p">([</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span></a><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">u1</span><span class="p">)</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">pi</span></a> <span class="o">*</span> <span class="n">u2</span><span class="p">),</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span></a><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">u1</span><span class="p">)</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">cos</span></a><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">pi</span></a> <span class="o">*</span> <span class="n">u2</span><span class="p">),</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span></a><span class="p">(</span><span class="n">u1</span><span class="p">)</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">pi</span></a> <span class="o">*</span> <span class="n">u3</span><span class="p">),</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span></a><span class="p">(</span><span class="n">u1</span><span class="p">)</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">cos</span></a><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">pi</span></a> <span class="o">*</span> <span class="n">u3</span><span class="p">),</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack" title="numpy.stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">stack</span></a><span class="p">([</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack" title="numpy.stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">stack</span></a><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span><span class="p">),</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span> <span class="o">-</span> <span class="n">z</span> <span class="o">*</span> <span class="n">w</span><span class="p">),</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">z</span> <span class="o">+</span> <span class="n">y</span> <span class="o">*</span> <span class="n">w</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack" title="numpy.stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">stack</span></a><span class="p">([</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">w</span><span class="p">),</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span><span class="p">),</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">z</span> <span class="o">-</span> <span class="n">x</span> <span class="o">*</span> <span class="n">w</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack" title="numpy.stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">stack</span></a><span class="p">([</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">z</span> <span class="o">-</span> <span class="n">y</span> <span class="o">*</span> <span class="n">w</span><span class="p">),</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">z</span> <span class="o">+</span> <span class="n">x</span> <span class="o">*</span> <span class="n">w</span><span class="p">),</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">*</span> <span class="n">y</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rotations</span></a> <span class="o">=</span> <span class="n">random_rotations</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N_GRAINS</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dirs</span></a>      <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rotations</span></a><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>                            <span class="c1"># Rᵀ·ẑ per grain</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reduced</span></a>   <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.sort.html#numpy.sort" title="numpy.sort" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sort</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">abs</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dirs</span></a><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>                 <span class="c1"># cubic 001–011–111</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">b</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">c</span></a>   <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reduced</span><span class="o">.</span><span class="n">T</span></a>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rgb</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack" title="numpy.stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">stack</span></a><span class="p">([</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">c</span></a> <span class="o">-</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">b</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">b</span></a> <span class="o">-</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a</span></a><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rgb</span></a> <span class="o">/=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rgb</span></a><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-12</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a> <span class="o">=</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rgb</span></a> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.uint8" title="numpy.uint8" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">uint8</span></a><span class="p">)</span>               <span class="c1"># (N_GRAINS, 3)</span>
+
+<span class="c1"># ── 3. Voxels for the 3-D volume view ───────────────────────────────────────</span>
+<span class="c1"># Rather than a sparse random subsample of the whole volume (where the</span>
+<span class="c1"># highlight marker floats in empty space because almost no cube sits at the</span>
+<span class="c1"># selected voxel), render the voxels that actually lie ON the three slice</span>
+<span class="c1"># planes.  This anchors the highlight exactly where the slices intersect,</span>
+<span class="c1"># shows real slice contents in 3-D, and scales: the on-plane count is</span>
+<span class="c1"># ~3·(N/step)² regardless of N, so it stays fast even for a 256³ volume.</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">VSTEP</span></a> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">//</span> <span class="mi">48</span><span class="p">)</span>        <span class="c1"># in-plane downsample, capping at ~48² cubes/plane</span>
+                               <span class="c1"># for large N (no downsampling at this N=24)</span>
+
+<span class="c1"># Voxel cube size in data units.  A touch larger than VSTEP so the three</span>
+<span class="c1"># slabs read as solid sheets rather than a dotted grid.</span>
+<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">VOXSIZE</span></a> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">VSTEP</span></a><span class="p">)</span> <span class="o">*</span> <span class="mf">1.3</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">slice_voxels</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Voxel centres + colours lying on the x=ix, y=iy, z=iz planes.&quot;&quot;&quot;</span>
+    <span class="n">s</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">VSTEP</span></a>
+    <span class="n">rng_ax</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># z = iz plane  (vary x, y)</span>
+    <span class="n">yy2</span><span class="p">,</span> <span class="n">xx2</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html#numpy.meshgrid" title="numpy.meshgrid" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span></a><span class="p">(</span><span class="n">rng_ax</span><span class="p">,</span> <span class="n">rng_ax</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">)</span>
+    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html#numpy.column_stack" title="numpy.column_stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span></a><span class="p">([</span><span class="n">xx2</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">yy2</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+                                  <a href="https://numpy.org/doc/stable/reference/generated/numpy.full.html#numpy.full" title="numpy.full" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">full</span></a><span class="p">(</span><span class="n">xx2</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">)]))</span>
+    <span class="c1"># y = iy plane  (vary x, z)</span>
+    <span class="n">zz2</span><span class="p">,</span> <span class="n">xx2</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html#numpy.meshgrid" title="numpy.meshgrid" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span></a><span class="p">(</span><span class="n">rng_ax</span><span class="p">,</span> <span class="n">rng_ax</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">)</span>
+    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html#numpy.column_stack" title="numpy.column_stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span></a><span class="p">([</span><span class="n">xx2</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.full.html#numpy.full" title="numpy.full" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">full</span></a><span class="p">(</span><span class="n">xx2</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">),</span>
+                                  <span class="n">zz2</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]))</span>
+    <span class="c1"># x = ix plane  (vary y, z)</span>
+    <span class="n">zz2</span><span class="p">,</span> <span class="n">yy2</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html#numpy.meshgrid" title="numpy.meshgrid" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span></a><span class="p">(</span><span class="n">rng_ax</span><span class="p">,</span> <span class="n">rng_ax</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">)</span>
+    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html#numpy.column_stack" title="numpy.column_stack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span></a><span class="p">([</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.full.html#numpy.full" title="numpy.full" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">full</span></a><span class="p">(</span><span class="n">yy2</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">),</span> <span class="n">yy2</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+                                  <span class="n">zz2</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]))</span>
+    <span class="n">pts</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.vstack.html#numpy.vstack" title="numpy.vstack" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">vstack</span></a><span class="p">(</span><span class="n">parts</span><span class="p">)</span>                                   <span class="c1"># (M, 3) as (x,y,z)</span>
+    <span class="n">cols</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]]</span>  <span class="c1"># gid[z,y,x]</span>
+    <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">cols</span>
+
+<span class="c1"># ── 4. Figure: 3 slices on top, volume + IPF below ──────────────────────────</span>
+<span class="n">gs</span>  <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">960</span><span class="p">,</span> <span class="mi">640</span><span class="p">),</span>
+                 <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Drag a crosshair: the other two slices re-cut, the</span><span class="se">\n</span><span class="s2">&quot;</span>
+                      <span class="s2">&quot;3-D voxel highlight moves, and the IPF sphere rotates</span><span class="se">\n</span><span class="s2">&quot;</span>
+                      <span class="s2">&quot;to the selected grain&#39;s crystal direction.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                      <span class="s2">&quot;Drag the 3-D panels to orbit them freely.&quot;</span><span class="p">)</span>
+
+<span class="n">ax_xy</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="n">ax_xz</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">ax_yz</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+<span class="n">ax_vol</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="n">ax_ipf</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
+
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">//</span> <span class="mi">2</span>                       <span class="c1"># integer slice indices</span>
+<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">)</span>              <span class="c1"># smooth highlight pos</span>
+
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">px</span></a> <span class="o">=</span> <span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a><span class="p">)]</span> <span class="o">*</span> <span class="mi">2</span>                                   <span class="c1"># pixel axes → gutters</span>
+
+<span class="n">v_xy</span> <span class="o">=</span> <span class="n">ax_xy</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">]],</span>       <span class="n">axes</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">px</span></a><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;vox&quot;</span><span class="p">)</span>
+<span class="n">v_xz</span> <span class="o">=</span> <span class="n">ax_xz</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[:,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <span class="p">:]],</span> <span class="n">axes</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">px</span></a><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;vox&quot;</span><span class="p">)</span>
+<span class="n">v_yz</span> <span class="o">=</span> <span class="n">ax_yz</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[:,</span> <span class="p">:,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">]],</span> <span class="n">axes</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">px</span></a><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;vox&quot;</span><span class="p">)</span>
+<span class="n">v_xy</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">);</span> <span class="n">v_xy</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<span class="n">v_xz</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">);</span> <span class="n">v_xz</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">)</span>
+<span class="n">v_yz</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">);</span> <span class="n">v_yz</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">)</span>
+
+<span class="n">cw_xy</span> <span class="o">=</span> <span class="n">v_xy</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffffff&quot;</span><span class="p">)</span>
+<span class="n">cw_xz</span> <span class="o">=</span> <span class="n">v_xz</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffffff&quot;</span><span class="p">)</span>
+<span class="n">cw_yz</span> <span class="o">=</span> <span class="n">v_yz</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffffff&quot;</span><span class="p">)</span>
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_vpts</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_vcols</span></a> <span class="o">=</span> <span class="n">slice_voxels</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">)</span>
+<span class="n">v_vol</span> <span class="o">=</span> <span class="n">ax_vol</span><span class="o">.</span><span class="n">voxels</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_vpts</span></a><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_vpts</span></a><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_vpts</span></a><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_vcols</span></a><span class="p">,</span>
+    <span class="n">size</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">VOXSIZE</span></a><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.55</span><span class="p">,</span>
+    <span class="n">x_label</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">y_label</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">z_label</span><span class="o">=</span><span class="s2">&quot;z&quot;</span><span class="p">,</span>
+    <span class="n">bounds</span><span class="o">=</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">-</span> <span class="mi">1</span><span class="p">),)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span>
+    <span class="c1"># gpu=&quot;auto&quot; (default): ~1.7k cubes is over the ~1k voxel threshold, so the</span>
+    <span class="c1"># WebGPU instanced path handles each drag re-slice when WebGPU is present.</span>
+<span class="p">)</span>
+<span class="n">v_vol</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Grain volume — drag a plane to re-slice&quot;</span><span class="p">)</span>
+
+<span class="c1"># Three draggable slice-selector planes; on-plane voxels render opaque</span>
+<span class="n">pw_yz</span> <span class="o">=</span> <span class="n">v_vol</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;plane&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff5252&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.18</span><span class="p">)</span>
+<span class="n">pw_xz</span> <span class="o">=</span> <span class="n">v_vol</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;plane&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#69f0ae&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.18</span><span class="p">)</span>
+<span class="n">pw_xy</span> <span class="o">=</span> <span class="n">v_vol</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;plane&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#40c4ff&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.18</span><span class="p">)</span>
+
+<span class="n">v_ipf</span> <span class="o">=</span> <span class="n">ax_ipf</span><span class="o">.</span><span class="n">scatter3d</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reduced</span></a><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reduced</span></a><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reduced</span></a><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="n">colors</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">,</span> <span class="n">point_size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+    <span class="n">x_label</span><span class="o">=</span><span class="s2">&quot;[100]&quot;</span><span class="p">,</span> <span class="n">y_label</span><span class="o">=</span><span class="s2">&quot;[010]&quot;</span><span class="p">,</span> <span class="n">z_label</span><span class="o">=</span><span class="s2">&quot;[001]&quot;</span><span class="p">,</span>
+    <span class="n">bounds</span><span class="o">=</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">v_ipf</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Reduced 3D IPF&quot;</span><span class="p">)</span>
+<span class="n">v_ipf</span><span class="o">.</span><span class="n">set_sphere</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+
+
+<span class="c1"># ── 5. Linked updates ────────────────────────────────────────────────────────</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">face_camera</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Turntable (az°, el°) aiming the camera straight down unit vector v.&quot;&quot;&quot;</span>
+    <span class="n">el</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">degrees</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">arcsin</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.clip.html#numpy.clip" title="numpy.clip" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">clip</span></a><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)))</span>
+    <span class="n">az</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">degrees</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">arctan2</span></a><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span>
+
+
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span>   <span class="c1"># programmatic widget.set() fires callbacks — guard re-entry</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Re-cut the other slices, move crosshairs/highlights, re-aim the IPF.&quot;&quot;&quot;</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="c1"># Coalesce every panel mutation below into one push per panel — without</span>
+      <span class="c1"># this, a single crosshair drag fires ~8 full-state pushes across the</span>
+      <span class="c1"># comm boundary, which is the main source of Pyodide lag.</span>
+      <span class="k">with</span> <span class="n">fig</span><span class="o">.</span><span class="n">batch</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="s2">&quot;xy&quot;</span><span class="p">:</span>
+            <span class="n">v_xy</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">]])</span>
+            <span class="n">cw_xy</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cx</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">)</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="s2">&quot;xz&quot;</span><span class="p">:</span>
+            <span class="n">v_xz</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[:,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <span class="p">:]])</span>
+            <span class="n">cw_xz</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cx</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">)</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="s2">&quot;yz&quot;</span><span class="p">:</span>
+            <span class="n">v_yz</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grain_rgb_u8</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[:,</span> <span class="p">:,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">]])</span>
+            <span class="n">cw_yz</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cx</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">)</span>
+        <span class="n">v_xy</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;XY slice — z=</span><span class="si">{</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">v_xz</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;XZ slice — y=</span><span class="si">{</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">v_yz</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;YZ slice — x=</span><span class="si">{</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># 3-D slice-selector planes follow at the SMOOTH position (skipped for</span>
+        <span class="c1"># the one being dragged, so its own live position isn&#39;t overwritten).</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="s2">&quot;px&quot;</span><span class="p">:</span>
+            <span class="n">pw_yz</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">)</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="s2">&quot;py&quot;</span><span class="p">:</span>
+            <span class="n">pw_xz</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">)</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="s2">&quot;pz&quot;</span><span class="p">:</span>
+            <span class="n">pw_xy</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a><span class="p">)</span>
+
+        <span class="c1"># Re-cut the 3-D slab voxels to the new slice indices so the volume</span>
+        <span class="c1"># view shows the actual slice contents (bounded ~3·(N/VSTEP)² voxels).</span>
+        <span class="n">_p</span><span class="p">,</span> <span class="n">_c</span> <span class="o">=</span> <span class="n">slice_voxels</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">)</span>
+        <span class="n">v_vol</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">_p</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">_p</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">_p</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="n">v_vol</span><span class="o">.</span><span class="n">set_point_colors</span><span class="p">(</span><span class="n">_c</span><span class="p">)</span>
+
+        <span class="c1"># Highlight tracks the SMOOTH plane positions (fx,fy,fz) so the marker</span>
+        <span class="c1"># glides with the planes instead of jumping by whole voxels.</span>
+        <span class="n">v_vol</span><span class="o">.</span><span class="n">set_highlight</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffffff&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+        <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">g</span></a> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gid</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">])</span>
+        <span class="n">v_ipf</span><span class="o">.</span><span class="n">set_highlight</span><span class="p">(</span><span class="o">*</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reduced</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">g</span></a><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ffffff&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+        <span class="n">az</span><span class="p">,</span> <span class="n">el</span> <span class="o">=</span> <span class="n">face_camera</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reduced</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">g</span></a><span class="p">])</span>
+        <span class="n">v_ipf</span><span class="o">.</span><span class="n">set_view</span><span class="p">(</span><span class="n">azimuth</span><span class="o">=</span><span class="n">az</span><span class="p">,</span> <span class="n">elevation</span><span class="o">=</span><span class="n">el</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_clipf</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clamp a float position to the volume range (kept smooth for the marker).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.clip.html#numpy.clip" title="numpy.clip" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">clip</span></a><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">N</span></a> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_i</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Round a float position to the nearest integer slice index.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+
+<span class="nd">@cw_xy</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_moved_xy</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">global</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a> <span class="o">=</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cw_xy</span><span class="o">.</span><span class="n">cx</span></a><span class="p">),</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cw_xy</span><span class="o">.</span><span class="n">cy</span></a><span class="p">)</span>
+    <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a> <span class="o">=</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">),</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">)</span>
+    <span class="n">update</span><span class="p">(</span><span class="s2">&quot;xy&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@cw_xz</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_moved_xz</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">global</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a> <span class="o">=</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cw_xz</span><span class="o">.</span><span class="n">cx</span></a><span class="p">),</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cw_xz</span><span class="o">.</span><span class="n">cy</span></a><span class="p">)</span>
+    <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a> <span class="o">=</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">),</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a><span class="p">)</span>
+    <span class="n">update</span><span class="p">(</span><span class="s2">&quot;xz&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@cw_yz</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_moved_yz</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">global</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a> <span class="o">=</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cw_yz</span><span class="o">.</span><span class="n">cx</span></a><span class="p">),</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cw_yz</span><span class="o">.</span><span class="n">cy</span></a><span class="p">)</span>
+    <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a> <span class="o">=</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">),</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a><span class="p">)</span>
+    <span class="n">update</span><span class="p">(</span><span class="s2">&quot;yz&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@pw_yz</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_plane_x</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">global</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a> <span class="o">=</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pw_yz</span><span class="o">.</span><span class="n">position</span></a><span class="p">)</span>
+    <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ix</span></a> <span class="o">=</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fx</span></a><span class="p">)</span>
+    <span class="n">update</span><span class="p">(</span><span class="s2">&quot;px&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@pw_xz</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_plane_y</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">global</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a> <span class="o">=</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pw_xz</span><span class="o">.</span><span class="n">position</span></a><span class="p">)</span>
+    <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iy</span></a> <span class="o">=</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fy</span></a><span class="p">)</span>
+    <span class="n">update</span><span class="p">(</span><span class="s2">&quot;py&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@pw_xy</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_plane_z</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">global</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_busy</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a> <span class="o">=</span> <span class="n">_clipf</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pw_xy</span><span class="o">.</span><span class="n">position</span></a><span class="p">)</span>
+    <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">iz</span></a> <span class="o">=</span> <span class="n">_i</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fz</span></a><span class="p">)</span>
+    <span class="n">update</span><span class="p">(</span><span class="s2">&quot;pz&quot;</span><span class="p">)</span>
+
+
+<span class="n">update</span><span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+
+<span class="n">fig</span>  <span class="c1"># Interactive</span>
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.804 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-interactive-plot-voxel-grain-explorer-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/6a4d6294086858539e8a87a3216b6459/plot_voxel_grain_explorer.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_voxel_grain_explorer.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/c6e0ba84db338b5cf23022316d519047/plot_voxel_grain_explorer.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_voxel_grain_explorer.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/dfc69d2b8dc60945e9bcf59de4cff753/plot_voxel_grain_explorer.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">plot_voxel_grain_explorer.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="plot_ipf_density_map.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Inverse Pole Figure (IPF) Density Map</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="plot_interactive_fitting.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Interactive 1-D Gaussian Fitting</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/auto_examples/Interactive/plot_voxel_grain_explorer.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

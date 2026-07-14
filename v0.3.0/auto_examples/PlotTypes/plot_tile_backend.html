@@ -1,0 +1,849 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory &#8212; anyplotlib 0.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/anywidget_overlay.css?v=a271c467" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=6a9e09cd" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../_static/documentation_options.js?v=e259d695"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../_static/anywidget_config.js?v=cd5adc06"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../_static/anywidget_bridge.js?v=a2d47ea1"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/PlotTypes/plot_tile_backend';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/v0.3.0/auto_examples/PlotTypes/plot_tile_backend.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Widgets" href="../Widgets/index.html" />
+    <link rel="prev" title="Custom Grid Layouts with GridSpec" href="plot_gridspec_custom.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="../../_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Benchmarks/index.html">Benchmarks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Benchmarks/plot_benchmark_comparison.html">Plot Update Comparison</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Interactive/index.html">Interactive Examples</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_figure_annotations.html">Interactive figure annotations — double-click to add, drag to place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_point_widget.html">Draggable Point Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_key_bindings.html">Key-Press Widget Placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_threshold_explorer.html">Live intensity thresholding on a multi-phase STEM image.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_ipf_explorer.html">Inverse Pole Figure (IPF) Explorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_interactive_fft.html">Interactive FFT ROI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_eels_explorer.html">EELS multi-spectrum explorer.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_3d_spectral_viewer.html">Interactive 3D Spectral Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_particle_picker.html">HAADF STEM nanoparticle picker.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_segment_by_contrast.html">Interactive Contrast Segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_spectra_roi_inspector.html">ROI-to-spectrum inspector for a 3-D EDS hyperspectral dataset.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_ipf_density_map.html">Inverse Pole Figure (IPF) Density Map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_voxel_grain_explorer.html">3-D Voxel Grain Explorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Interactive/plot_segment_by_contrast_advanced.html">Advanced Interactive Contrast Segmentation (3 × 3 Grid)</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Markers/index.html">Markers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_horizontal_lines.html">Horizontal Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_vertical_lines.html">Vertical Lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_points.html">Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_texts.html">Text Labels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_arrows.html">Arrows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_circles.html">Circles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_rectangles.html">Rectangles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_line_segments.html">Line Segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_ellipses.html">Ellipses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_squares.html">Squares</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_polygons.html">Polygons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Markers/plot_transform_markers.html">Coordinate transforms — pin markers to the axes or the screen</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Plot Types</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="plot_step_and_log.html">Step lines and log-scale spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_twinx.html">Twinned (secondary) y-axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_label_formatting.html">Label Sizes and Scientific (TeX) Formatting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_3d.html">3D Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_gpu_voxels.html">GPU-accelerated voxels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_pcolormesh.html">pcolormesh — non-linear axes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_spectra1d.html">1D Spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_inset.html">Inset Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_image2d.html">2D Image with Histogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_line_styles.html">1D Line Styles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_bar.html">Bar Chart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_gridspec_custom.html">Custom Grid Layouts with GridSpec</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Widgets/index.html">Widgets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_hline.html">1D Horizontal Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_vline.html">1D Vertical Line Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_range.html">1D Range Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_crosshair.html">2D Crosshair Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_circle.html">2D Circle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_rectangle.html">2D Rectangle Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_annular.html">2D Annular Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_label.html">2D Label Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_polygon.html">2D Polygon Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget1d_point.html">1D Point Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget2d_arrow.html">2D Arrow Widget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../Widgets/plot_widget3d_plane.html">3D Plane Widget</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Plot Types</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-plottypes-plot-tile-backend-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="custom-tile-backend-pan-zoom-a-huge-image-you-never-hold-in-memory">
+<span id="sphx-glr-auto-examples-plottypes-plot-tile-backend-py"></span><h1>Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory<a class="headerlink" href="#custom-tile-backend-pan-zoom-a-huge-image-you-never-hold-in-memory" title="Link to this heading">#</a></h1>
+<p>For a very large image, anyplotlib does not need the whole array.  It asks a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TileBackend</span></code> for a downsampled
+<em>overview</em> to use as the base texture, and then — on every zoom / pan — for a
+crisp <em>detail tile</em> of just the visible region at the panel’s resolution.
+anyplotlib owns that zoom/pan → re-tile lifecycle; the backend owns the data.</p>
+<p>A backend is any object implementing the <code class="docutils literal notranslate"><span class="pre">TileBackend</span></code> protocol:</p>
+<p><code class="docutils literal notranslate"><span class="pre">full_shape</span></code> (H, W), <code class="docutils literal notranslate"><span class="pre">dtype</span></code>, <code class="docutils literal notranslate"><span class="pre">origin</span></code>, <code class="docutils literal notranslate"><span class="pre">extent()</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">sample(x0,</span> <span class="pre">x1,</span> <span class="pre">y0,</span> <span class="pre">y1,</span> <span class="pre">out_w,</span> <span class="pre">out_h,</span> <span class="pre">method)</span></code> — return the logical region
+<code class="docutils literal notranslate"><span class="pre">[y0:y1,</span> <span class="pre">x0:x1]</span></code> resampled to <code class="docutils literal notranslate"><span class="pre">(out_h,</span> <span class="pre">out_w)</span></code>.</p>
+<p>Because <code class="docutils literal notranslate"><span class="pre">sample</span></code> is called <em>on demand</em>, the source never has to exist in
+full.  Here we make a <strong>procedural</strong> backend that computes a Mandelbrot fractal
+for whatever region is requested — a 65 536 × 65 536 “image” (4.3 gigapixels)
+that is generated tile-by-tile as you explore it.  The array is never
+materialised; only the small tiles you look at are ever computed.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+</pre></div>
+</div>
+<section id="a-procedural-tile-backend">
+<h2>A procedural tile backend<a class="headerlink" href="#a-procedural-tile-backend" title="Link to this heading">#</a></h2>
+<p>The Mandelbrot escape count over a data-space window.  The full logical
+image is <code class="docutils literal notranslate"><span class="pre">SIZE</span> <span class="pre">x</span> <span class="pre">SIZE</span></code> pixels mapping to the complex plane
+<code class="docutils literal notranslate"><span class="pre">[-2.5,</span> <span class="pre">1.0]</span> <span class="pre">x</span> <span class="pre">[-1.75,</span> <span class="pre">1.75]</span></code>, but no pixel is computed until <code class="docutils literal notranslate"><span class="pre">sample</span></code>
+is called for it.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SIZE</span></a> <span class="o">=</span> <span class="mi">65_536</span>  <span class="c1"># 65k x 65k logical pixels ≈ 4.3 gigapixels — never allocated</span>
+<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CX0</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CX1</span></a> <span class="o">=</span> <span class="o">-</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">1.0</span>
+<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CY0</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CY1</span></a> <span class="o">=</span> <span class="o">-</span><span class="mf">1.75</span><span class="p">,</span> <span class="mf">1.75</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MandelbrotTileBackend</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A ``TileBackend`` that synthesises fractal tiles on demand.&quot;&quot;&quot;</span>
+
+    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">80</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SIZE</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SIZE</span></a><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="numpy.dtype" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class"><span class="n">np</span><span class="o">.</span><span class="n">dtype</span></a><span class="p">(</span><span class="s2">&quot;uint16&quot;</span><span class="p">)</span>  <span class="c1"># escape counts</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">origin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;lower&quot;</span>  <span class="c1"># row 0 at the bottom (matches the y data-axis below)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">extent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Data-space (x0, x1, y0, y1) the image spans, or None for pixel</span>
+        <span class="c1"># coordinates.  Return None here and set the coordinate axes explicitly</span>
+        <span class="c1"># on imshow (below) so the ticks read as real/imaginary values.</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">out_w</span><span class="p">,</span> <span class="n">out_h</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">):</span>
+        <span class="c1"># Only the requested window is ever evaluated, at exactly the output</span>
+        <span class="c1"># resolution the panel asked for — so a zoomed-in tile is as sharp as a</span>
+        <span class="c1"># zoomed-out overview is cheap.  The escape loop is written for speed</span>
+        <span class="c1"># (it runs once per pan/zoom), using three tricks over the textbook</span>
+        <span class="c1"># version:</span>
+        <span class="c1">#   * real / imag ``float32`` arithmetic instead of complex128 — half</span>
+        <span class="c1">#     the memory traffic and no complex-multiply overhead;</span>
+        <span class="c1">#   * the escape test is ``|z|² &gt; 4`` (``zr² + zi²``), avoiding the</span>
+        <span class="c1">#     ``sqrt`` in ``abs``;</span>
+        <span class="c1">#   * no shrinking boolean mask.  Instead we ``counts += inside`` every</span>
+        <span class="c1">#     iteration (a cheap bool→uint add): each pixel&#39;s count is simply</span>
+        <span class="c1">#     how many steps it stayed inside.  Escaped pixels keep iterating to</span>
+        <span class="c1">#     ``inf``, which is harmless — ``inf &gt; 4`` just keeps them counted</span>
+        <span class="c1">#     out.  This is ~3× faster on the overview and ~8× faster on a</span>
+        <span class="c1">#     deep-zoom tile (where nothing escapes early, so a mask never</span>
+        <span class="c1">#     shrinks and the old code crawled).</span>
+        <span class="n">cr</span> <span class="o">=</span> <span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CX0</span></a> <span class="o">+</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">out_w</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span> <span class="o">/</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SIZE</span></a><span class="p">)</span>
+              <span class="o">*</span> <span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CX1</span></a> <span class="o">-</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CX0</span></a><span class="p">))[</span><a href="https://numpy.org/doc/stable/reference/constants.html#numpy.newaxis" title="numpy.newaxis" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-data"><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span></a><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">ci</span> <span class="o">=</span> <span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CY0</span></a> <span class="o">+</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="n">y0</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">out_h</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span> <span class="o">/</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SIZE</span></a><span class="p">)</span>
+              <span class="o">*</span> <span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CY1</span></a> <span class="o">-</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CY0</span></a><span class="p">))[:,</span> <a href="https://numpy.org/doc/stable/reference/constants.html#numpy.newaxis" title="numpy.newaxis" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-data"><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span></a><span class="p">]</span>
+        <span class="n">cr</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html#numpy.ascontiguousarray" title="numpy.ascontiguousarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html#numpy.broadcast_to" title="numpy.broadcast_to" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span></a><span class="p">(</span><span class="n">cr</span><span class="p">,</span> <span class="p">(</span><span class="n">out_h</span><span class="p">,</span> <span class="n">out_w</span><span class="p">)))</span>
+        <span class="n">ci</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html#numpy.ascontiguousarray" title="numpy.ascontiguousarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html#numpy.broadcast_to" title="numpy.broadcast_to" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span></a><span class="p">(</span><span class="n">ci</span><span class="p">,</span> <span class="p">(</span><span class="n">out_h</span><span class="p">,</span> <span class="n">out_w</span><span class="p">)))</span>
+
+        <span class="n">zr</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html#numpy.zeros" title="numpy.zeros" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">((</span><span class="n">out_h</span><span class="p">,</span> <span class="n">out_w</span><span class="p">),</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span>
+        <span class="n">zi</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html#numpy.zeros" title="numpy.zeros" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">((</span><span class="n">out_h</span><span class="p">,</span> <span class="n">out_w</span><span class="p">),</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html#numpy.zeros" title="numpy.zeros" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">((</span><span class="n">out_h</span><span class="p">,</span> <span class="n">out_w</span><span class="p">),</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.uint16" title="numpy.uint16" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">uint16</span></a><span class="p">)</span>
+        <span class="n">zr2</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.empty_like.html#numpy.empty_like" title="numpy.empty_like" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">empty_like</span></a><span class="p">(</span><span class="n">zr</span><span class="p">)</span>
+        <span class="n">zi2</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.empty_like.html#numpy.empty_like" title="numpy.empty_like" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">empty_like</span></a><span class="p">(</span><span class="n">zr</span><span class="p">)</span>
+        <span class="n">tmp</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.empty_like.html#numpy.empty_like" title="numpy.empty_like" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">empty_like</span></a><span class="p">(</span><span class="n">zr</span><span class="p">)</span>
+        <span class="c1"># Escaped pixels run off to ±inf; the inf−inf / inf·0 they produce is</span>
+        <span class="c1"># expected and never touches `counts` (an escaped pixel already fails</span>
+        <span class="c1"># the `&lt;= 4` test), so silence the overflow/invalid warnings.</span>
+        <span class="k">with</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.errstate.html#numpy.errstate" title="numpy.errstate" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class"><span class="n">np</span><span class="o">.</span><span class="n">errstate</span></a><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+                <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">multiply</span></a><span class="p">(</span><span class="n">zr</span><span class="p">,</span> <span class="n">zr</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">zr2</span><span class="p">)</span>
+                <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">multiply</span></a><span class="p">(</span><span class="n">zi</span><span class="p">,</span> <span class="n">zi</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">zi2</span><span class="p">)</span>
+                <span class="n">inside</span> <span class="o">=</span> <span class="p">(</span><span class="n">zr2</span> <span class="o">+</span> <span class="n">zi2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">4.0</span>
+                <span class="n">counts</span> <span class="o">+=</span> <span class="n">inside</span>                 <span class="c1"># still-inside pixels tick up</span>
+                <span class="c1"># z ← z² + c   (in real / imag form; the shared temporaries</span>
+                <span class="c1"># above keep this allocation-free inside the loop).</span>
+                <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">multiply</span></a><span class="p">(</span><span class="n">zr</span><span class="p">,</span> <span class="n">zi</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">*=</span> <span class="mf">2.0</span>
+                <span class="n">tmp</span> <span class="o">+=</span> <span class="n">ci</span>                        <span class="c1"># zi_next = 2·zr·zi + ci</span>
+                <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">subtract</span></a><span class="p">(</span><span class="n">zr2</span><span class="p">,</span> <span class="n">zi2</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">zr</span><span class="p">)</span>
+                <span class="n">zr</span> <span class="o">+=</span> <span class="n">cr</span>                         <span class="c1"># zr_next = zr² − zi² + cr</span>
+                <span class="n">zi</span><span class="p">,</span> <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">zi</span>                <span class="c1"># swap in the new zi</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">16</span> <span class="o">==</span> <span class="mi">15</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">inside</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="k">break</span>                        <span class="c1"># whole tile escaped — done</span>
+        <span class="k">return</span> <span class="n">counts</span>
+</pre></div>
+</div>
+</section>
+<section id="wire-it-into-a-plot">
+<h2>Wire it into a plot<a class="headerlink" href="#wire-it-into-a-plot" title="Link to this heading">#</a></h2>
+<p>Pass the backend as <code class="docutils literal notranslate"><span class="pre">tile_backend=</span></code>.  The <code class="docutils literal notranslate"><span class="pre">data</span></code> argument is just a
+placeholder — the backend’s <code class="docutils literal notranslate"><span class="pre">full_shape</span></code> drives the axes, and <code class="docutils literal notranslate"><span class="pre">tile=True</span></code>
+forces the tiled path.  Zoom and pan to stream sharp detail tiles; anyplotlib
+computes only what is on screen.</p>
+<p><strong>Tiling and the GPU cooperate.</strong> With <code class="docutils literal notranslate"><span class="pre">gpu=&quot;auto&quot;</span></code> (the default) and a
+WebGPU-capable browser, the downsampled overview is uploaded once as a GPU
+texture and drawn by the shader-side colormap, and the crisp detail tile for
+the visible region is stitched on top of it each frame.  The logical image
+here is 4.3 gigapixels, which is far above the ~1-megapixel threshold that
+switches the WebGPU image path on under <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> — so the base raster is
+GPU-composited rather than blitted on the CPU.  (Headless/off-screen renders,
+like this gallery’s static thumbnail, have no WebGPU and fall back to
+Canvas2D; the live “Run in browser” version above uses the GPU when your
+browser supports it.)</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">backend</span> <span class="o">=</span> <span class="n">MandelbrotTileBackend</span><span class="p">()</span>
+
+<span class="c1"># Coordinate axes spanning the logical image, mapped to the complex plane so</span>
+<span class="c1"># ticks read as real / imaginary values (the tiling still works in pixels).</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_axis</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CX0</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CX1</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SIZE</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y_axis</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="numpy.linspace" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CY0</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CY1</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">SIZE</span></a><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">560</span><span class="p">,</span> <span class="mi">560</span><span class="p">))</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html#numpy.zeros" title="numpy.zeros" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span>          <span class="c1"># placeholder; overview comes from backend.sample</span>
+    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_axis</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y_axis</span></a><span class="p">],</span>
+    <span class="n">tile_backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
+    <span class="n">tile</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">gpu</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>                <span class="c1"># WebGPU texture path when available (see above)</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">,</span>
+    <span class="n">units</span><span class="o">=</span><span class="s2">&quot;Re / Im&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">set_help</span><span class="p">(</span>
+    <span class="s2">&quot;Scroll to zoom, drag to pan.</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;Each view fetches a fresh detail tile — the 4.3 GP fractal is</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;generated on demand and never held in memory.&quot;</span>
+<span class="p">)</span>
+
+<span class="n">fig</span>  <span class="c1"># Interactive</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_tile_backend_001" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_tile_backend_001" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:576px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_tile_backend_001.html" data-awi-fig="sphx_glr_plot_tile_backend_001" frameborder="0" scrolling="no" style="width:576px;height:576px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe><div class="awi-badge" data-awi-badge="sphx_glr_plot_tile_backend_001"><button class="awi-badge-icon awi-activate-btn" data-awi-fig="sphx_glr_plot_tile_backend_001" title="Make interactive (boots Pyodide — may take ~10 s)">&#x26A1;</button></div></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_tile_backend_001'),ifr=wrap.querySelector('iframe'),nw=576,nh=576;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><script type="text/x-python" data-fig-id="sphx_glr_plot_tile_backend_001" data-fig-index="0" data-src-file="plot_tile_backend" data-src="&quot;\&quot;\&quot;\&quot;\nCustom Tile Backend \u2014 pan &amp; zoom a huge image you never hold in memory\n======================================================================\n\nFor a very large image, anyplotlib does not need the whole array.  It asks a\n:class:`~anyplotlib.plot2d._tile_backend.TileBackend` for a downsampled\n*overview* to use as the base texture, and then \u2014 on every zoom / pan \u2014 for a\ncrisp *detail tile* of just the visible region at the panel&#x27;s resolution.\nanyplotlib owns that zoom/pan \u2192 re-tile lifecycle; the backend owns the data.\n\nA backend is any object implementing the ``TileBackend`` protocol:\n\n``full_shape`` (H, W), ``dtype``, ``origin``, ``extent()``, and\n``sample(x0, x1, y0, y1, out_w, out_h, method)`` \u2014 return the logical region\n``[y0:y1, x0:x1]`` resampled to ``(out_h, out_w)``.\n\nBecause ``sample`` is called *on demand*, the source never has to exist in\nfull.  Here we make a **procedural** backend that computes a Mandelbrot fractal\nfor whatever region is requested \u2014 a 65 536 \u00d7 65 536 \&quot;image\&quot; (4.3 gigapixels)\nthat is generated tile-by-tile as you explore it.  The array is never\nmaterialised; only the small tiles you look at are ever computed.\n\&quot;\&quot;\&quot;\nimport numpy as np\nimport anyplotlib as apl\n\n# %%\n# A procedural tile backend\n# -------------------------\n# The Mandelbrot escape count over a data-space window.  The full logical\n# image is ``SIZE x SIZE`` pixels mapping to the complex plane\n# ``[-2.5, 1.0] x [-1.75, 1.75]``, but no pixel is computed until ``sample``\n# is called for it.\n\nSIZE = 65_536  # 65k x 65k logical pixels \u2248 4.3 gigapixels \u2014 never allocated\nCX0, CX1 = -2.5, 1.0\nCY0, CY1 = -1.75, 1.75\n\n\nclass MandelbrotTileBackend:\n    \&quot;\&quot;\&quot;A ``TileBackend`` that synthesises fractal tiles on demand.\&quot;\&quot;\&quot;\n\n    max_iter = 80\n\n    @property\n    def full_shape(self):\n        return (SIZE, SIZE)\n\n    @property\n    def dtype(self):\n        return np.dtype(\&quot;uint16\&quot;)  # escape counts\n\n    @property\n    def origin(self):\n        return \&quot;lower\&quot;  # row 0 at the bottom (matches the y data-axis below)\n\n    def extent(self):\n        # Data-space (x0, x1, y0, y1) the image spans, or None for pixel\n        # coordinates.  Return None here and set the coordinate axes explicitly\n        # on imshow (below) so the ticks read as real/imaginary values.\n        return None\n\n    def sample(self, x0, x1, y0, y1, out_w, out_h, method=\&quot;mean\&quot;):\n        # Only the requested window is ever evaluated, at exactly the output\n        # resolution the panel asked for \u2014 so a zoomed-in tile is as sharp as a\n        # zoomed-out overview is cheap.  The escape loop is written for speed\n        # (it runs once per pan/zoom), using three tricks over the textbook\n        # version:\n        #   * real / imag ``float32`` arithmetic instead of complex128 \u2014 half\n        #     the memory traffic and no complex-multiply overhead;\n        #   * the escape test is ``|z|\u00b2 &gt; 4`` (``zr\u00b2 + zi\u00b2``), avoiding the\n        #     ``sqrt`` in ``abs``;\n        #   * no shrinking boolean mask.  Instead we ``counts += inside`` every\n        #     iteration (a cheap bool\u2192uint add): each pixel&#x27;s count is simply\n        #     how many steps it stayed inside.  Escaped pixels keep iterating to\n        #     ``inf``, which is harmless \u2014 ``inf &gt; 4`` just keeps them counted\n        #     out.  This is ~3\u00d7 faster on the overview and ~8\u00d7 faster on a\n        #     deep-zoom tile (where nothing escapes early, so a mask never\n        #     shrinks and the old code crawled).\n        cr = (CX0 + (np.linspace(x0, x1, out_w, dtype=np.float32) / SIZE)\n              * (CX1 - CX0))[np.newaxis, :]\n        ci = (CY0 + (np.linspace(y0, y1, out_h, dtype=np.float32) / SIZE)\n              * (CY1 - CY0))[:, np.newaxis]\n        cr = np.ascontiguousarray(np.broadcast_to(cr, (out_h, out_w)))\n        ci = np.ascontiguousarray(np.broadcast_to(ci, (out_h, out_w)))\n\n        zr = np.zeros((out_h, out_w), np.float32)\n        zi = np.zeros((out_h, out_w), np.float32)\n        counts = np.zeros((out_h, out_w), np.uint16)\n        zr2 = np.empty_like(zr)\n        zi2 = np.empty_like(zr)\n        tmp = np.empty_like(zr)\n        # Escaped pixels run off to \u00b1inf; the inf\u2212inf / inf\u00b70 they produce is\n        # expected and never touches `counts` (an escaped pixel already fails\n        # the `&lt;= 4` test), so silence the overflow/invalid warnings.\n        with np.errstate(over=\&quot;ignore\&quot;, invalid=\&quot;ignore\&quot;):\n            for i in range(self.max_iter):\n                np.multiply(zr, zr, out=zr2)\n                np.multiply(zi, zi, out=zi2)\n                inside = (zr2 + zi2) &lt;= 4.0\n                counts += inside                 # still-inside pixels tick up\n                # z \u2190 z\u00b2 + c   (in real / imag form; the shared temporaries\n                # above keep this allocation-free inside the loop).\n                np.multiply(zr, zi, out=tmp)\n                tmp *= 2.0\n                tmp += ci                        # zi_next = 2\u00b7zr\u00b7zi + ci\n                np.subtract(zr2, zi2, out=zr)\n                zr += cr                         # zr_next = zr\u00b2 \u2212 zi\u00b2 + cr\n                zi, tmp = tmp, zi                # swap in the new zi\n                if i % 16 == 15 and not inside.any():\n                    break                        # whole tile escaped \u2014 done\n        return counts\n\n\n# %%\n# Wire it into a plot\n# -------------------\n# Pass the backend as ``tile_backend=``.  The ``data`` argument is just a\n# placeholder \u2014 the backend&#x27;s ``full_shape`` drives the axes, and ``tile=True``\n# forces the tiled path.  Zoom and pan to stream sharp detail tiles; anyplotlib\n# computes only what is on screen.\n#\n# **Tiling and the GPU cooperate.** With ``gpu=\&quot;auto\&quot;`` (the default) and a\n# WebGPU-capable browser, the downsampled overview is uploaded once as a GPU\n# texture and drawn by the shader-side colormap, and the crisp detail tile for\n# the visible region is stitched on top of it each frame.  The logical image\n# here is 4.3 gigapixels, which is far above the ~1-megapixel threshold that\n# switches the WebGPU image path on under ``\&quot;auto\&quot;`` \u2014 so the base raster is\n# GPU-composited rather than blitted on the CPU.  (Headless/off-screen renders,\n# like this gallery&#x27;s static thumbnail, have no WebGPU and fall back to\n# Canvas2D; the live \&quot;Run in browser\&quot; version above uses the GPU when your\n# browser supports it.)\n\nbackend = MandelbrotTileBackend()\n\n# Coordinate axes spanning the logical image, mapped to the complex plane so\n# ticks read as real / imaginary values (the tiling still works in pixels).\nx_axis = np.linspace(CX0, CX1, SIZE)\ny_axis = np.linspace(CY0, CY1, SIZE)\n\nfig, ax = apl.subplots(1, 1, figsize=(560, 560))\nv = ax.imshow(\n    np.zeros((2, 2)),          # placeholder; overview comes from backend.sample\n    axes=[x_axis, y_axis],\n    tile_backend=backend,\n    tile=True,\n    gpu=\&quot;auto\&quot;,                # WebGPU texture path when available (see above)\n    cmap=\&quot;inferno\&quot;,\n    units=\&quot;Re / Im\&quot;,\n)\nfig.set_help(\n    \&quot;Scroll to zoom, drag to pan.\\n\&quot;\n    \&quot;Each view fetches a fresh detail tile \u2014 the 4.3 GP fractal is\\n\&quot;\n    \&quot;generated on demand and never held in memory.\&quot;\n)\n\nfig  # Interactive\n\n# %%\n# Is the GPU actually painting?\n# -----------------------------\n# Read :attr:`~anyplotlib.Plot2D.gpu_active` to see which path ran.  anyplotlib\n# updates it automatically once the browser reports back after the first frame:\n# ``True`` when the WebGPU image path is live, ``False`` on the Canvas2D\n# fallback.  It is ``False`` here because the gallery build is headless (no\n# WebGPU); open the live \&quot;Run in browser\&quot; version above and read ``v.gpu_active``\n# to confirm the accelerated path on your own machine.\n\nprint(\&quot;gpu_active:\&quot;, v.gpu_active)\n\n# %%\n# Swap in a real source\n# ---------------------\n# The same protocol wraps any large source without changing the plot: back\n# ``sample`` with a memory-mapped file, a dask/zarr chunk store, or a\n# GPU-resident tensor.  For an in-memory ndarray you don&#x27;t need a custom class\n# at all \u2014 :func:`~anyplotlib.plot2d._tile_backend.as_tile_backend` (used\n# internally when you pass a plain array with ``tile=\&quot;auto\&quot;``) wraps it in the\n# default :class:`~anyplotlib.plot2d._tile_backend.NumpyTileBackend`.\n#\n# .. note::\n#\n#    ``sample`` should be reasonably fast \u2014 it runs once per view change.  A\n#    slow source (network, disk) still works, but pan/zoom will feel as\n#    responsive as the slowest ``sample`` call.\n&quot;"></script></section>
+<section id="is-the-gpu-actually-painting">
+<h2>Is the GPU actually painting?<a class="headerlink" href="#is-the-gpu-actually-painting" title="Link to this heading">#</a></h2>
+<p>Read <a class="reference internal" href="../../api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.gpu_active" title="anyplotlib.Plot2D.gpu_active"><code class="xref py py-attr docutils literal notranslate"><span class="pre">gpu_active</span></code></a> to see which path ran.  anyplotlib
+updates it automatically once the browser reports back after the first frame:
+<code class="docutils literal notranslate"><span class="pre">True</span></code> when the WebGPU image path is live, <code class="docutils literal notranslate"><span class="pre">False</span></code> on the Canvas2D
+fallback.  It is <code class="docutils literal notranslate"><span class="pre">False</span></code> here because the gallery build is headless (no
+WebGPU); open the live “Run in browser” version above and read <code class="docutils literal notranslate"><span class="pre">v.gpu_active</span></code>
+to confirm the accelerated path on your own machine.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;gpu_active:&quot;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">gpu_active</span><span class="p">)</span>
+</pre></div>
+</div>
+<div style="display:block;text-align:center;line-height:0;margin:12px 0;"><div id="sphx_glr_plot_tile_backend_002" class="awi-fig-wrap" data-awi-fig="sphx_glr_plot_tile_backend_002" style="display:inline-block;overflow:hidden;position:relative;width:576px;height:576px;"><iframe src="../../_static/viewer_widgets/sphx_glr_plot_tile_backend_002.html" data-awi-fig="sphx_glr_plot_tile_backend_002" frameborder="0" scrolling="no" style="width:576px;height:576px;border:none;overflow:hidden;display:block;transform-origin:top left;transform:scale(1);position:absolute;top:0;left:0;"></iframe></div><script>(function(){var wrap=document.getElementById('sphx_glr_plot_tile_backend_002'),ifr=wrap.querySelector('iframe'),nw=576,nh=576;function r(){var avail=wrap.parentElement?wrap.parentElement.offsetWidth:0;if(!avail)return;var s=Math.min(1,avail/nw);wrap.style.width=Math.round(nw*s)+'px';wrap.style.height=Math.round(nh*s)+'px';ifr.style.transform='scale('+s+')';}requestAnimationFrame(r);window.addEventListener('resize',r);})()</script></div><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>gpu_active: False
+</pre></div>
+</div>
+</section>
+<section id="swap-in-a-real-source">
+<h2>Swap in a real source<a class="headerlink" href="#swap-in-a-real-source" title="Link to this heading">#</a></h2>
+<p>The same protocol wraps any large source without changing the plot: back
+<code class="docutils literal notranslate"><span class="pre">sample</span></code> with a memory-mapped file, a dask/zarr chunk store, or a
+GPU-resident tensor.  For an in-memory ndarray you don’t need a custom class
+at all — <code class="xref py py-func docutils literal notranslate"><span class="pre">as_tile_backend()</span></code> (used
+internally when you pass a plain array with <code class="docutils literal notranslate"><span class="pre">tile=&quot;auto&quot;</span></code>) wraps it in the
+default <code class="xref py py-class docutils literal notranslate"><span class="pre">NumpyTileBackend</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">sample</span></code> should be reasonably fast — it runs once per view change.  A
+slow source (network, disk) still works, but pan/zoom will feel as
+responsive as the slowest <code class="docutils literal notranslate"><span class="pre">sample</span></code> call.</p>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 2.971 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plottypes-plot-tile-backend-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/b23f33d9a504acfe5b8ea66204867b35/plot_tile_backend.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_tile_backend.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/656c4e7a7dcb847b6d3391ed28f47e68/plot_tile_backend.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_tile_backend.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/039a2c03cd89e87c390e731a1360ffcd/plot_tile_backend.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">plot_tile_backend.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="plot_gridspec_custom.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Custom Grid Layouts with GridSpec</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../Widgets/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Widgets</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#a-procedural-tile-backend">A procedural tile backend</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wire-it-into-a-plot">Wire it into a plot</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#is-the-gpu-actually-painting">Is the GPU actually painting?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#swap-in-a-real-source">Swap in a real source</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/auto_examples/PlotTypes/plot_tile_backend.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

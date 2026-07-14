@@ -1,0 +1,6 @@
+﻿anyplotlib.markers.MarkerGroup
+==============================
+
+.. currentmodule:: anyplotlib.markers
+
+.. autoclass:: MarkerGroup
