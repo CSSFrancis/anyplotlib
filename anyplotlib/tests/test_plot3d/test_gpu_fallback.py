@@ -7,8 +7,7 @@ lavapipe), so these tests assert the thing that must hold *everywhere*:
 when the GPU is unavailable, a GPU-requesting scatter renders identically
 to the Canvas2D path and ``gpu_active`` reports False.
 
-The actual GPU render is validated manually on a real-GPU machine; see
-WEBGPU_PLAN.md Phase 1 acceptance.
+The actual GPU render is validated manually on a real-GPU machine
 """
 from __future__ import annotations
 
