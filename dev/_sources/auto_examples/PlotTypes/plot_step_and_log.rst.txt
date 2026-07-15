@@ -112,7 +112,7 @@ for a classic spectroscopy view.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.156 seconds)
+   **Total running time of the script:** (0 minutes 1.406 seconds)
 
 
 .. _sphx_glr_download_auto_examples_PlotTypes_plot_step_and_log.py:
