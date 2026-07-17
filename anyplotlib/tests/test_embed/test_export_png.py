@@ -743,6 +743,78 @@ def _gpu_asym_image(n=GPU_IMG_N):
     return img
 
 
+def _scatter3d_fig(gpu):
+    """A 3-D scatter of pure-red points (the point fragment shader returns the
+    per-point colour unshaded, so exported point pixels are exactly red)."""
+    fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+    rng = np.random.default_rng(7)
+    pts = rng.uniform(-1, 1, size=(3000, 3))
+    v = ax.scatter3d(pts[:, 0], pts[:, 1], pts[:, 2], bounds=((-1, 1),) * 3,
+                     gpu=gpu,
+                     colors=np.tile([255, 0, 0], (3000, 1)).astype(np.uint8),
+                     point_size=5)
+    v.set_axis_off()
+    return fig
+
+
+_WAIT_3D_GPU_ACTIVE = """() => {
+    const api = window._handle && window._handle.api;
+    if (!api || !api.panels) return false;
+    for (const p of api.panels.values())
+        if (p.kind === '3d')
+            return p._gpu === 'active' && !!p._gpuObj && p._gpuActiveNow;
+    return false;
+}"""
+
+
+class TestExportGpu3d:
+    """3-D WebGPU panels in exportPNG — the safeguard that re-renders the 3-D
+    pass in-task before drawImage(gpuCanvas).  Without it a scatter3d/voxels
+    panel exports as an empty background rectangle (the WebGPU drawing buffer
+    is cleared after the frame that rendered it is presented)."""
+
+    def test_scatter3d_gpu_export_nonblank(self, gpu_mount_page):
+        fig = _scatter3d_fig(gpu="always")
+        page = gpu_mount_page(fig)
+        page.wait_for_function(_WAIT_3D_GPU_ACTIVE, timeout=20_000)
+        # Settle a couple of frames so the export runs in a LATER task than
+        # the activation render — the exact condition under which the drawing
+        # buffer would read back blank without the in-task re-render.
+        page.evaluate(
+            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+
+        res = _export_via_handle(page)
+        assert "error" not in res, res.get("error")
+        arr = _decode_data_url(res["dataUrl"])
+        assert _is_nonblank(arr), "3-D GPU export is a single flat colour"
+        red = _closest_color(arr, (255, 0, 0))
+        assert red > 200, (
+            f"only {red} red point pixels in the 3-D GPU export — "
+            "gpuCanvas read back blank (missing in-task draw3d re-render?)"
+        )
+
+    def test_scatter3d_canvas_fallback_export_nonblank(self, mount_page):
+        """No-regression guard: the Canvas2D 3-D path (gpu=False, and CI
+        runners without an adapter) draws points on plotCanvas, which the
+        composite has always captured."""
+        fig = _scatter3d_fig(gpu=False)
+        page = mount_page(fig)
+        res = _export_via_handle(page)
+        assert "error" not in res, res.get("error")
+        arr = _decode_data_url(res["dataUrl"])
+        assert _is_nonblank(arr), "3-D canvas export is a single flat colour"
+        # Canvas path dims far-side points (alpha), so count "reddish" ink
+        # rather than exact red.
+        rgb = arr[..., :3].astype(np.int32)
+        reddish = int(((rgb[..., 0] > 150)
+                       & (rgb[..., 0] - rgb[..., 1] > 60)
+                       & (rgb[..., 0] - rgb[..., 2] > 60)).sum())
+        assert reddish > 200, (
+            f"only {reddish} reddish pixels in the 3-D canvas export"
+        )
+
+
 class TestExportGpu:
     def test_gpu_export_nonblank(self, gpu_mount_page):
         """A large scalar image engaging the WebGPU path must export non-blank.

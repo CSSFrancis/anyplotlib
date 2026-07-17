@@ -74,6 +74,16 @@ class TestEvent:
         e = Event(event_type="pointer_down")
         assert e.stop_propagation is False
 
+    def test_target_default_none(self):
+        # Tagged double-click hit-target defaults to None (plain plot-area
+        # double_click / any non-double_click event).
+        e = Event(event_type="double_click")
+        assert e.target is None
+
+    def test_target_settable(self):
+        e = Event(event_type="double_click", target="x_label")
+        assert e.target == "x_label"
+
     def test_all_fields_settable(self):
         e = Event(
             event_type="pointer_down",
@@ -526,3 +536,65 @@ class TestFigureClose:
         fig.close()
         fig.close()
         assert len(received) == 1
+
+
+# ── tagged double-click hit-targets ───────────────────────────────────────────
+
+class TestDoubleClickTarget:
+    """The JS chrome double-click handlers ship a ``target`` field naming which
+    text element was hit (axis label / ticks / title / colorbar label / legend);
+    ``_dispatch_event`` flows it through to ``event.target``.  These simulate the
+    JS message the way ``_dispatch_event`` receives it — no browser."""
+
+    def test_target_reaches_handler(self):
+        import json
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((16, 16)))
+        received = []
+        v.add_event_handler(lambda e: received.append(e.target), "double_click")
+        fig._dispatch_event(json.dumps({
+            "source": "js", "panel_id": v._id, "event_type": "double_click",
+            "x": 30.0, "y": 40.0, "target": "x_label",
+        }))
+        assert received == ["x_label"]
+
+    def test_untagged_double_click_target_is_none(self):
+        import json
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((16, 16)))
+        received = []
+        v.add_event_handler(lambda e: received.append(e), "double_click")
+        # No "target" key → plot-area double_click → event.target is None.
+        fig._dispatch_event(json.dumps({
+            "source": "js", "panel_id": v._id, "event_type": "double_click",
+            "x": 8.0, "y": 8.0,
+        }))
+        assert len(received) == 1
+        assert received[0].target is None
+
+    def test_each_target_value_flows(self):
+        import json
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((16, 16)))
+        seen = []
+        v.add_event_handler(lambda e: seen.append(e.target), "double_click")
+        for t in ("title", "x_label", "x_ticks", "y_label", "y_ticks",
+                  "colorbar_label", "legend"):
+            fig._dispatch_event(json.dumps({
+                "source": "js", "panel_id": v._id, "event_type": "double_click",
+                "x": 1.0, "y": 1.0, "target": t,
+            }))
+        assert seen == ["title", "x_label", "x_ticks", "y_label", "y_ticks",
+                        "colorbar_label", "legend"]
+
+    def test_target_on_1d_panel(self):
+        import json
+        fig, ax = apl.subplots(1, 1)
+        p = ax.plot(np.zeros(10))
+        received = []
+        p.callbacks.connect("double_click", lambda e: received.append(e.target))
+        fig._dispatch_event(json.dumps({
+            "source": "js", "panel_id": p._id, "event_type": "double_click",
+            "x": 5.0, "y": 5.0, "target": "legend",
+        }))
+        assert received == ["legend"]

@@ -96,9 +96,10 @@ class InsetAxes(Axes):
         self.h_frac = h_frac
         self.title  = title
         self._inset_state: str = "normal"
-        # Region indication (mark_inset-style callout) tied to this inset, or
-        # None.  Set via :meth:`indicate_region`, cleared via
-        # :meth:`clear_indication`.  Persisted in Figure.layout_json.
+        # Region/point indication (mark_inset-style callout) tied to this
+        # inset, or None.  Set via :meth:`indicate_region` /
+        # :meth:`indicate_point`, cleared via :meth:`clear_indication`.
+        # Persisted in Figure.layout_json.
         self._indication: dict | None = None
 
     # ── state API ─────────────────────────────────────────────────────────
@@ -128,6 +129,76 @@ class InsetAxes(Axes):
             return
         self._inset_state = "normal"
         self._fig._push_layout()
+
+    def set_geometry(self, *, anchor=None, w_frac: float | None = None,
+                     h_frac: float | None = None) -> "InsetAxes":
+        """Move and/or resize the inset in figure-fraction coordinates.
+
+        This is the Python-side counterpart to the interactive drag / resize
+        of an inset in the renderer's edit mode: the ``inset_geometry_change``
+        event dispatches here so the authoritative Python state converges with
+        what the user did on screen.  It is also callable directly to place or
+        size an inset programmatically.
+
+        Passing *anchor* switches the inset to free (anchor) placement and
+        drops any corner snapping (``corner`` becomes ``None``), mirroring the
+        renderer's corner-to-anchor conversion on drag start.
+
+        Parameters
+        ----------
+        anchor : (x_frac, y_frac), optional
+            New position of the inset's TOP-LEFT corner as fractions of the
+            figure size (0–1), measured from the figure's top-left.  Each
+            component is clamped into ``[0, 1]``.  When given, ``corner`` is
+            set to ``None`` (free placement).  When omitted, the current
+            placement (corner or existing anchor) is left unchanged.
+        w_frac, h_frac : float, optional
+            New width / height as fractions of the figure size.  Each is
+            clamped into ``(0, 1]`` (must be positive, at most the full
+            figure).  When omitted, the corresponding dimension is unchanged.
+
+        Returns
+        -------
+        InsetAxes
+            ``self``, for chaining.
+
+        Raises
+        ------
+        ValueError
+            If *anchor* is not a pair of finite numbers, or ``w_frac`` /
+            ``h_frac`` is not a finite number.
+        """
+        if anchor is not None:
+            try:
+                ax_, ay_ = (float(v) for v in anchor)
+            except (TypeError, ValueError):
+                raise ValueError(
+                    f"set_geometry: anchor must be 2 numbers (x_frac, y_frac), "
+                    f"got {anchor!r}") from None
+            if not all(math.isfinite(v) for v in (ax_, ay_)):
+                raise ValueError(
+                    f"set_geometry: anchor values must be finite, got "
+                    f"({ax_}, {ay_})")
+            ax_ = min(1.0, max(0.0, ax_))
+            ay_ = min(1.0, max(0.0, ay_))
+            self.anchor = (ax_, ay_)
+            # Anchor placement supersedes corner (matches __init__ / the JS
+            # corner→anchor conversion on drag start).
+            self.corner = None
+        if w_frac is not None:
+            w = float(w_frac)
+            if not math.isfinite(w):
+                raise ValueError(
+                    f"set_geometry: w_frac must be finite, got {w_frac!r}")
+            self.w_frac = min(1.0, max(1e-6, w))
+        if h_frac is not None:
+            h = float(h_frac)
+            if not math.isfinite(h):
+                raise ValueError(
+                    f"set_geometry: h_frac must be finite, got {h_frac!r}")
+            self.h_frac = min(1.0, max(1e-6, h))
+        self._fig._push_layout()
+        return self
 
     # ── region indication (mark_inset-style callout) ──────────────────────
 
@@ -218,8 +289,94 @@ class InsetAxes(Axes):
         self._fig._push_layout()
         return self
 
+    def indicate_point(self, parent_plot, point, *,
+                       color: str = "#ff9800",
+                       linestyle: str = "dashed",
+                       linewidth: float = 1.5,
+                       marker_size: float = 5.0) -> "InsetAxes":
+        """Draw a callout tying this inset to a single POINT of *parent_plot*.
+
+        The point sibling of :meth:`indicate_region`: renders a small circular
+        marker (with a centre cross) at *point* — in the parent image's DATA
+        coordinates — plus ONE leader line joining the marker to the inset's
+        nearest corner.  The marker tracks the parent's zoom / pan and the
+        leader follows the inset as it moves (the leader hides while the inset
+        is minimized), exactly like the region callout.
+
+        Calling ``indicate_point`` (or ``indicate_region``) again REPLACES any
+        previous indication for this inset — an inset carries at most one.
+        Remove it with :meth:`clear_indication`.
+
+        Parameters
+        ----------
+        parent_plot : Plot2D
+            The parent image plot the point lives on.  Must be a 2-D image
+            panel registered on the SAME figure as this inset.
+        point : tuple of float
+            The source point in the parent image's data coordinates, as
+            ``(x, y)`` — same convention as :meth:`indicate_region`'s region
+            origin.  Both values must be finite; a point outside the parent's
+            data bounds is allowed (it simply clips visually).
+        color : str, optional
+            Stroke colour of the marker and the leader line.  Default warm
+            orange ``"#ff9800"``.
+        linestyle : str, optional
+            Leader style — ``"dashed"`` (default), ``"solid"``, or
+            ``"dotted"``.  The marker itself is always drawn solid.
+        linewidth : float, optional
+            Stroke width in CSS px.  Default ``1.5``.
+        marker_size : float, optional
+            Marker circle radius in CSS px.  Default ``5.0``.  Must be > 0.
+
+        Returns
+        -------
+        InsetAxes
+            ``self``, for chaining.
+
+        Raises
+        ------
+        ValueError
+            If ``parent_plot`` has no panel id, is not registered on this
+            inset's Figure, ``point`` is not 2 finite numbers, or
+            ``marker_size`` is not > 0.
+        """
+        pid = getattr(parent_plot, "_id", None)
+        if pid is None:
+            raise ValueError("indicate_point: parent_plot has no panel id "
+                             "(attach it to the figure first)")
+        if self._fig._plots_map.get(pid) is not parent_plot:
+            raise ValueError(
+                "indicate_point: parent_plot is not registered on this "
+                "inset's Figure — pass a plot created on the same figure "
+                "as this inset (fig.add_inset / fig.subplots)")
+        try:
+            x, y = (float(v) for v in point)
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"indicate_point: point must be 2 numbers (x, y), "
+                f"got {point!r}") from None
+        if not all(math.isfinite(v) for v in (x, y)):
+            raise ValueError(
+                f"indicate_point: point values must be finite, got "
+                f"(x={x}, y={y})")
+        ms = float(marker_size)
+        if not (math.isfinite(ms) and ms > 0):
+            raise ValueError(
+                f"indicate_point: marker_size must be > 0, got {marker_size!r}")
+        self._indication = {
+            "parent_id":   pid,
+            "point":       [x, y],
+            "color":       color,
+            "linestyle":   linestyle,
+            "linewidth":   float(linewidth),
+            "marker_size": ms,
+        }
+        self._fig._push_layout()
+        return self
+
     def clear_indication(self) -> None:
-        """Remove any region indication attached to this inset (idempotent)."""
+        """Remove any region/point indication attached to this inset
+        (idempotent)."""
         if self._indication is None:
             return
         self._indication = None
@@ -227,7 +384,8 @@ class InsetAxes(Axes):
 
     @property
     def indication(self) -> "dict | None":
-        """The current region-indication spec (``dict``) or ``None``."""
+        """The current indication spec (``dict`` with either a ``region`` or a
+        ``point`` key) or ``None``."""
         return self._indication
 
     # ── internal ──────────────────────────────────────────────────────────

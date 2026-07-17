@@ -596,6 +596,23 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                     self._push_layout()
             return
 
+        # Inset drag / resize: the JS ships the inset's final geometry on
+        # pointer_up (anchor top-left fraction + size fractions).  Apply it to
+        # the InsetAxes via set_geometry so the authoritative Python state
+        # converges (the event fires once, on release, so re-pushing layout is
+        # an idempotent echo), then fire the figure-level callbacks with the
+        # geometry so a host can persist it.  Mirrors inset_state_change above.
+        if event_type == "inset_geometry_change":
+            inset_ax = self._insets_map.get(panel_id)
+            if inset_ax is not None:
+                anchor = msg.get("anchor")
+                w_frac = msg.get("w_frac")
+                h_frac = msg.get("h_frac")
+                inset_ax.set_geometry(anchor=anchor, w_frac=w_frac,
+                                      h_frac=h_frac)
+            self._fire_figure_event(event_type, msg)
+            return
+
         plot = self._plots_map.get(panel_id)
         if plot is None:
             if event_type == "view_changed":
@@ -656,6 +673,7 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                 display_height=msg.get("display_height"),
                 key=msg.get("key"),
                 last_widget_id=msg.get("last_widget_id"),
+                target=msg.get("target"),
             )
             plot.callbacks.fire(event)
 
@@ -683,6 +701,17 @@ class Figure(anywidget.AnyWidget, _EventMixin):
             last_widget_id=msg.get("marker_id"),
             source_panel_id=msg.get("source_panel_id"),
             target_panel_id=msg.get("target_panel_id"),
+            # Inset drag / resize geometry — populated only for the
+            # inset_geometry_change event; None for every other figure-level
+            # event (figure_background click, figure-marker drag, panel_swap).
+            inset_id=(msg.get("panel_id")
+                      if event_type == "inset_geometry_change" else None),
+            anchor=(msg.get("anchor")
+                    if event_type == "inset_geometry_change" else None),
+            w_frac=(msg.get("w_frac")
+                    if event_type == "inset_geometry_change" else None),
+            h_frac=(msg.get("h_frac")
+                    if event_type == "inset_geometry_change" else None),
         )
         self.callbacks.fire(event)
 

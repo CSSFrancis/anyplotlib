@@ -192,6 +192,44 @@ def _build_colormap_lut(name: str) -> list:
     return [[v, v, v] for v in range(256)]
 
 
+def _parse_hex_color(color: str) -> tuple:
+    """Parse a ``#rgb`` / ``#rrggbb`` hex string → ``(r, g, b)`` ints (0–255).
+
+    Raises ``ValueError`` for anything else — tint colours are user API input
+    and a silent fallback would just render the wrong colour.
+    """
+    if not isinstance(color, str):
+        raise ValueError(f"expected a hex colour string, got {color!r}")
+    h = color.strip().lstrip("#")
+    try:
+        if len(h) == 3:
+            return tuple(int(c * 2, 16) for c in h)
+        if len(h) == 6:
+            return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+    except ValueError:
+        pass
+    raise ValueError(
+        f"invalid hex colour {color!r} — expected '#rgb' or '#rrggbb'")
+
+
+@functools.lru_cache(maxsize=64)
+def _build_tint_lut(color: str) -> list:
+    """Return a 256-entry ``[[r, g, b, a], ...]`` clear→colour TINT LUT.
+
+    RGB is the parsed *color* at every entry; alpha ramps linearly 0 → 255, so
+    a layer using this LUT is fully transparent at low intensity and the
+    opaque tint colour at high intensity (a solid-colour intensity ramp, the
+    overlay look, vs a named colormap's opaque colour gradient).
+
+    CACHED like :func:`_build_colormap_lut` and treated as read-only by
+    callers (they JSON-serialise it); do NOT mutate the returned list.  The
+    4th (alpha) channel is honoured by the JS layer compositor
+    (``_layerBitmap`` reads ``cmapData[i][3] ?? 255``).
+    """
+    r, g, b = _parse_hex_color(color)
+    return [[r, g, b, a] for a in range(256)]
+
+
 def _resample_mesh(data: np.ndarray, x_edges, y_edges) -> np.ndarray:
     """Resample a mesh to a regular pixel grid via nearest-neighbour lookup.
 

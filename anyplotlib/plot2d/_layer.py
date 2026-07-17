@@ -4,7 +4,8 @@ plot2d/_layer.py
 Multi-image LAYER handle for :class:`~anyplotlib.plot2d.Plot2D`.
 
 A ``Layer`` is a second (third, …) scalar image drawn OVER the base image in the
-same panel, each with its OWN colormap, clim (display range), and alpha.  It is
+same panel, each with its OWN colormap (or clear→colour ``tint`` ramp), clim
+(display range), and alpha.  It is
 composited client-side (JS ``draw2d``) with the exact same image→screen
 transform as the base image, so zoom/pan track perfectly.  This is distinct from
 :meth:`Plot2D.set_overlay_mask`, which is a single-colour boolean mask.
@@ -69,6 +70,11 @@ class Layer:
         return float(self._entry().get("alpha", 1.0))
 
     @property
+    def tint(self) -> "str | None":
+        """The clear→colour tint hex string, or ``None`` (named-cmap mode)."""
+        return self._entry().get("tint")
+
+    @property
     def visible(self) -> bool:
         return bool(self._entry().get("visible", True))
 
@@ -78,11 +84,18 @@ class Layer:
         return (e.get("clim_min"), e.get("clim_max"))
 
     # ── mutations (forwarded to the plot) ─────────────────────────────────────
-    def set(self, *, cmap=None, alpha=None, clim=None, visible=None) -> "Layer":
+    def set(self, *, cmap=None, alpha=None, clim=None, visible=None,
+            tint=None) -> "Layer":
         """Partial update of this layer's appearance (any subset of fields).
 
         ``cmap`` — colormap name.  ``alpha`` — opacity in [0, 1].  ``visible``
         — draw or hide.
+
+        ``tint`` — a ``#rgb`` / ``#rrggbb`` hex colour: switch the layer to a
+        clear→colour intensity ramp (see :meth:`Plot2D.add_layer`).  ``None``
+        leaves the current tint unchanged; to REVERT a tinted layer to
+        named-cmap display, pass ``cmap=...`` (which clears the tint).
+        Passing both ``cmap`` and ``tint`` raises ``ValueError``.
 
         ``clim`` — display range, with three distinct meanings:
 
@@ -97,11 +110,11 @@ class Layer:
           any previously-set explicit clim.
 
         A pixel re-encode happens only when ``clim`` is a tuple or ``"auto"``
-        (it re-quantises the cached frame); ``cmap``/``alpha``/``visible`` are
-        cheap LUT/compositor-only changes.
+        (it re-quantises the cached frame); ``cmap``/``alpha``/``visible``/
+        ``tint`` are cheap LUT/compositor-only changes.
         """
         self._plot._layer_set(self._id, cmap=cmap, alpha=alpha, clim=clim,
-                              visible=visible)
+                              visible=visible, tint=tint)
         return self
 
     def set_data(self, frame) -> "Layer":

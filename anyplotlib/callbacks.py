@@ -24,7 +24,10 @@ from typing import Any, Callable
 VALID_EVENT_TYPES = frozenset({
     "pointer_down", "pointer_up", "pointer_move", "pointer_settled",
     "pointer_enter", "pointer_leave", "double_click", "wheel",
-    "key_down", "key_up", "close", "view_changed", "*",
+    "key_down", "key_up", "close", "view_changed",
+    # Figure-level inset drag / resize (JS → Python), so a host can persist the
+    # inset's new geometry.  Fired through the figure's CallbackRegistry.
+    "inset_geometry_change", "*",
 })
 
 
@@ -43,6 +46,10 @@ class Event:
         ray            — Plot3D only: {"origin": [...], "direction": [...]}
         line_id        — Plot1D only: set when pointer is over a line
         dwell_ms       — pointer_settled only: actual dwell time
+        target         — double_click only: which chrome element was hit
+                         ('title', 'x_label', 'x_ticks', 'y_label', 'y_ticks',
+                         'colorbar_label', 'legend'); None for a plot-area
+                         double_click
 
     PlotBar extra fields (pointer_down only):
         bar_index, value, x_label, group_index
@@ -94,6 +101,18 @@ class Event:
     # ids the user dragged between.  Set only on panel_swap; None otherwise.
     source_panel_id: str | None = None
     target_panel_id: str | None = None
+    # Inset drag / resize (figure-level inset_geometry_change events): the
+    # inset panel id plus its new geometry in figure fractions.  Set only on
+    # inset_geometry_change; None otherwise.
+    inset_id: str | None = None
+    anchor: list | None = None
+    w_frac: float | None = None
+    h_frac: float | None = None
+    # Tagged double-click hit-target (double_click events): identifies WHICH
+    # text/chrome element was double-clicked — one of 'title', 'x_label',
+    # 'x_ticks', 'y_label', 'y_ticks', 'colorbar_label', 'legend'.  None for a
+    # plain plot-area double_click (back-compatible) and every other event.
+    target: str | None = None
     # Propagation (not repr'd)
     stop_propagation: bool = field(default=False, repr=False)
 
@@ -101,7 +120,7 @@ class Event:
         src = type(self.source).__name__ if self.source is not None else "None"
         parts = [f"event_type={self.event_type!r}", f"source={src}"]
         for fname in ("x", "y", "xdata", "ydata", "button", "key",
-                      "line_id", "bar_index", "dwell_ms"):
+                      "line_id", "bar_index", "dwell_ms", "target"):
             v = getattr(self, fname)
             if v is not None:
                 parts.append(f"{fname}={v!r}")

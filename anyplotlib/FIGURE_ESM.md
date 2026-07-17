@@ -148,18 +148,25 @@ inside the figure). Minimize / maximize / restore work for both — a maximized
 inset floats centred at ~72 % (z 45); a minimized one collapses to its title
 bar in place.
 
-#### Region indications (callouts — `_drawCallouts`)
+#### Region/point indications (callouts — `_drawCallouts`)
 `layout.indications` is an array of mark_inset-style callouts, each
-`{inset_id, parent_id, region:[x,y,w,h], color, linestyle, linewidth}`.
-`_drawCallouts()` renders them onto a figure-level `calloutCanvas` (z 30, above
-panels + insets, below maximized-inset float and the resize handle,
-`pointer-events:none`):
+`{inset_id, parent_id, region:[x,y,w,h], color, linestyle, linewidth}` (from
+`indicate_region`) or `{inset_id, parent_id, point:[x,y], color, linestyle,
+linewidth, marker_size}` (from `indicate_point` — the `point` key selects the
+branch). `_drawCallouts()` renders them onto a figure-level `calloutCanvas`
+(z 30, above panels + insets, below maximized-inset float and the resize
+handle, `pointer-events:none`):
 - The **dashed source rect** maps `region` (parent DATA coords) through the
   parent's `_imgToCanvas2d` every draw, so it tracks the parent's zoom/pan; it
   is clipped to the parent's image area.
 - Two **leader lines** connect the rect's corners facing the inset to the
   inset's nearest corners (loc1/loc2-auto by comparing centres); they follow
   the inset's live DOM rect and are **hidden while the inset is minimized**.
+- A **point indication** draws a solid circle-and-cross marker (radius
+  `marker_size`, clipped to the parent image area like the rect) at the mapped
+  data point, plus ONE leader from the marker's rim to the inset's nearest
+  corner (same minimized-hide rule; the leader uses the indication's
+  linestyle, the marker itself is always solid).
 
 `_drawCallouts()` is called at the end of `_redrawPanel` / `redrawAll` (tracks
 zoom/pan), at the end of `_applyAllInsetStates` (inset moved), on `applyLayout`
@@ -345,9 +352,13 @@ draws each **visible** layer bottom-up on `plotCanvas`:
 - `_layerBytes(st, layer)` prefers `layer_<id>_b64_bytes` (binary) over the entry
   `image_b64` base64;
 - `_layerBitmap(p, st, layer)` builds a LUT-colormapped RGBA `OffscreenCanvas`,
-  **cached per layer id** by `(pixel key, cmap, clim)` — rebuilt only when the
-  layer's data or appearance changes (a live scrub that only swaps one layer's
-  data rebuilds just that layer);
+  **cached per layer id** by `(pixel key, cmap, tint, has-alpha, clim)` —
+  rebuilt only when the layer's data or appearance changes (a live scrub that
+  only swaps one layer's data rebuilds just that layer). The LUT honours a 4th
+  (alpha) channel when present (`cmapData[i][3] ?? 255`) — a `tint=` layer
+  ships a 256×4 clear→colour ramp (`_build_tint_lut`), so per-texel alpha
+  composites through the unpremultiplied `ImageData` and multiplies naturally
+  with the per-layer `ctx.globalAlpha`;
 - it blits with the SAME fit-rect + zoom/pan transform as the base blit
   (`_imgFitRect` + the `zoom>=1` window math) at `ctx.globalAlpha = layer.alpha`,
   so zoom/pan track the base exactly.
@@ -493,9 +504,14 @@ figure onto one offscreen canvas at `devicePixelRatio × scale`:
 
 - **WebGPU hazard first**: a WebGPU canvas's drawing buffer is only valid right
   after its render pass, so exportPNG force-calls `draw2d(p)` on every
-  active-GPU 2-D panel (`p._gpu==='active' && p.gpuCanvas` visible) to re-submit
-  its pass, THEN composites in the SAME synchronous task — so
-  `drawImage(gpuCanvas,…)` reads live pixels, not a blank buffer.
+  active-GPU 2-D panel and `draw3d(p)` on every active-GPU 3-D panel
+  (`p._gpu==='active' && p.gpuCanvas` visible, `_gpuImg`/`_gpuObj` present) to
+  re-submit its pass, THEN composites in the SAME synchronous task — so
+  `drawImage(gpuCanvas,…)` reads live pixels, not a blank buffer. (draw3d's
+  active-GPU path uploads + submits in-task, no rAF, so the same-task re-render
+  suffices for 3-D too — without it a scatter3d/voxels panel exported as an
+  empty background rectangle; see `TestExportGpu3d` in
+  `tests/test_embed/test_export_png.py`.)
 - **Extent**: `fig_width/height + 2×8 px` gridDiv padding (NOT the measured
   `gridDiv` width — a bare `mount()` page has no `.apl-outer` inline-block CSS,
   so the grid container can stretch to the viewport). **Origin**: `gridDiv`'s
