@@ -6,6 +6,7 @@ plot1d/_plot1d.py
 
 from __future__ import annotations
 
+import math
 import uuid as _uuid
 
 import numpy as np
@@ -698,7 +699,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
-    def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
+    def add_vline_widget(self, x: float, color: str = "#00e5ff",
+                         linewidth: float = 2) -> _VLineWidget:
         """Add a draggable vertical-line overlay.
 
         Parameters
@@ -707,6 +709,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Initial x position in data coordinates.
         color : str, optional
             CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Line stroke width in px.  Default 2.
 
         Returns
         -------
@@ -714,13 +718,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Widget object.  Register position callbacks with
             :meth:`on_changed` / :meth:`on_release`.
         """
-        widget = _VLineWidget(lambda: None, x=float(x), color=color)
+        widget = _VLineWidget(lambda: None, x=float(x), color=color,
+                              linewidth=linewidth)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
-    def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
+    def add_hline_widget(self, y: float, color: str = "#00e5ff",
+                         linewidth: float = 2) -> _HLineWidget:
         """Add a draggable horizontal-line overlay.
 
         Parameters
@@ -729,6 +735,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Initial y position in data coordinates.
         color : str, optional
             CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Line stroke width in px.  Default 2.
 
         Returns
         -------
@@ -736,7 +744,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Widget object.  Register position callbacks with
             :meth:`on_changed` / :meth:`on_release`.
         """
-        widget = _HLineWidget(lambda: None, y=float(y), color=color)
+        widget = _HLineWidget(lambda: None, y=float(y), color=color,
+                              linewidth=linewidth)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -746,6 +755,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                          color: str = "#00e5ff",
                          style: str = "band",
                          y: float = 0.0,
+                         linewidth: float = 2,
                          _push: bool = True) -> _RangeWidget:
         """Add a draggable range overlay to this panel.
 
@@ -763,6 +773,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         y : float, optional
             Y-coordinate (data space) for the connecting line when
             ``style='fwhm'``.  Ignored when ``style='band'``.  Default 0.
+        linewidth : float, optional
+            Line stroke width in px.  Default 2.
         _push : bool, optional
             Push state to JS immediately. Set to ``False`` when adding
             several widgets at once; call :meth:`_push` manually afterward.
@@ -774,7 +786,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             :meth:`on_changed` / :meth:`on_release`.
         """
         widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
-                              color=color, style=style, y=float(y))
+                              color=color, style=style, y=float(y),
+                              linewidth=linewidth)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
@@ -784,6 +797,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
     def add_point_widget(self, x: float, y: float,
                          color: str = "#00e5ff",
                          show_crosshair: bool = True,
+                         linewidth: float = 2,
                          _push: bool = True) -> _PointWidget:
         """Add a freely-draggable control point to this panel.
 
@@ -798,6 +812,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         show_crosshair : bool, optional
             Draw dashed guide lines through the handle.  Default ``True``.
             Pass ``False`` for a plain dot with no guide lines.
+        linewidth : float, optional
+            Guide-line stroke width in px.  Default 2.
         _push : bool, optional
             Push state to JS immediately. Set to ``False`` when adding
             several widgets at once; call :meth:`_push` manually afterward.
@@ -807,7 +823,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         PointWidget
         """
         widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color,
-                              show_crosshair=show_crosshair)
+                              show_crosshair=show_crosshair, linewidth=linewidth)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
@@ -859,6 +875,30 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Any CSS colour string (hex, ``rgb()``, named colour, etc.).
         """
         self._state["line_color"] = color
+        self._push()
+
+    def set_legend_fontsize(self, size: float) -> None:
+        """Set the legend text font size.
+
+        Parameters
+        ----------
+        size : float
+            Legend font size in CSS pixels.  Must be a positive number.
+
+        Raises
+        ------
+        ValueError
+            If ``size`` is not a positive, finite number.
+        """
+        try:
+            fs = float(size)
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"set_legend_fontsize: size must be a number, got {size!r}") from None
+        if not (math.isfinite(fs) and fs > 0):
+            raise ValueError(
+                f"set_legend_fontsize: size must be > 0, got {size!r}")
+        self._state["legend_fontsize"] = fs
         self._push()
 
     def set_linewidth(self, linewidth: float) -> None:
