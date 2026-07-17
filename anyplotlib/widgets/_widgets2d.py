@@ -27,14 +27,17 @@ class RectangleWidget(Widget):
         Width and height in pixel/data coordinates.
     color : str, optional
         CSS colour for the rectangle outline. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Outline stroke width in px. Default 2.
     show_handles : bool, optional
         Draw the corner grab handles. Default ``True``.
     """
     def __init__(self, push_fn, *, x, y, w, h, color="#00e5ff",
-                 show_handles=True):
+                 linewidth=2, show_handles=True):
         super().__init__("rectangle", push_fn,
                          x=float(x), y=float(y),
                          w=float(w), h=float(h), color=color,
+                         linewidth=float(linewidth),
                          show_handles=bool(show_handles))
 
 
@@ -51,13 +54,16 @@ class CircleWidget(Widget):
         Radius in pixel/data coordinates.
     color : str, optional
         CSS colour for the circle outline. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Outline stroke width in px. Default 2.
     show_handles : bool, optional
         Draw the radius grab handle. Default ``True``.
     """
     def __init__(self, push_fn, *, cx, cy, r, color="#00e5ff",
-                 show_handles=True):
+                 linewidth=2, show_handles=True):
         super().__init__("circle", push_fn,
                          cx=float(cx), cy=float(cy), r=float(r), color=color,
+                         linewidth=float(linewidth),
                          show_handles=bool(show_handles))
 
 
@@ -75,6 +81,8 @@ class AnnularWidget(Widget):
         Inner radius must be less than outer radius.
     color : str, optional
         CSS colour for the ring outline. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Outline stroke width in px. Default 2.
     show_handles : bool, optional
         Draw the inner/outer radius grab handles. Default ``True``.
 
@@ -84,13 +92,14 @@ class AnnularWidget(Widget):
         If r_inner >= r_outer.
     """
     def __init__(self, push_fn, *, cx, cy, r_outer, r_inner, color="#00e5ff",
-                 show_handles=True):
+                 linewidth=2, show_handles=True):
         if r_inner >= r_outer:
             raise ValueError("r_inner must be < r_outer")
         super().__init__("annular", push_fn,
                          cx=float(cx), cy=float(cy),
                          r_outer=float(r_outer), r_inner=float(r_inner),
-                         color=color, show_handles=bool(show_handles))
+                         color=color, linewidth=float(linewidth),
+                         show_handles=bool(show_handles))
 
 
 class CrosshairWidget(Widget):
@@ -104,12 +113,16 @@ class CrosshairWidget(Widget):
         Center position in pixel/data coordinates.
     color : str, optional
         CSS colour for the crosshair. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Line stroke width in px. Default 2.
     show_handles : bool, optional
         Draw the centre dot handle. Default ``True``.
     """
-    def __init__(self, push_fn, *, cx, cy, color="#00e5ff", show_handles=True):
+    def __init__(self, push_fn, *, cx, cy, color="#00e5ff", linewidth=2,
+                 show_handles=True):
         super().__init__("crosshair", push_fn,
                          cx=float(cx), cy=float(cy), color=color,
+                         linewidth=float(linewidth),
                          show_handles=bool(show_handles))
 
 
@@ -125,6 +138,8 @@ class PolygonWidget(Widget):
         Must have at least 3 vertices.
     color : str, optional
         CSS colour for the polygon outline. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Outline stroke width in px. Default 2.
     show_handles : bool, optional
         Draw the per-vertex grab handles. Default ``True``.
 
@@ -133,11 +148,13 @@ class PolygonWidget(Widget):
     ValueError
         If fewer than 3 vertices provided.
     """
-    def __init__(self, push_fn, *, vertices, color="#00e5ff", show_handles=True):
+    def __init__(self, push_fn, *, vertices, color="#00e5ff", linewidth=2,
+                 show_handles=True):
         verts = [[float(x), float(y)] for x, y in vertices]
         if len(verts) < 3:
             raise ValueError("polygon needs >= 3 vertices")
         super().__init__("polygon", push_fn, vertices=verts, color=color,
+                         linewidth=float(linewidth),
                          show_handles=bool(show_handles))
 
 

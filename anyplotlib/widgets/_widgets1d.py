@@ -22,9 +22,12 @@ class VLineWidget(Widget):
         Initial x-position in data coordinates.
     color : str, optional
         CSS colour for the line. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Line stroke width in px. Default 2.
     """
-    def __init__(self, push_fn, *, x, color="#00e5ff"):
-        super().__init__("vline", push_fn, x=float(x), color=color)
+    def __init__(self, push_fn, *, x, color="#00e5ff", linewidth=2):
+        super().__init__("vline", push_fn, x=float(x), color=color,
+                         linewidth=float(linewidth))
 
 
 class HLineWidget(Widget):
@@ -41,9 +44,12 @@ class HLineWidget(Widget):
         Initial y-position in data coordinates.
     color : str, optional
         CSS colour for the line. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Line stroke width in px. Default 2.
     """
-    def __init__(self, push_fn, *, y, color="#00e5ff"):
-        super().__init__("hline", push_fn, y=float(y), color=color)
+    def __init__(self, push_fn, *, y, color="#00e5ff", linewidth=2):
+        super().__init__("hline", push_fn, y=float(y), color=color,
+                         linewidth=float(linewidth))
 
 
 class RangeWidget(Widget):
@@ -75,12 +81,15 @@ class RangeWidget(Widget):
     y : float, optional
         Y-position (data coordinates) for the connecting line when
         ``style='fwhm'``.  Ignored for ``style='band'``.  Default ``0.0``.
+    linewidth : float, optional
+        Line stroke width in px. Default 2.
     """
     def __init__(self, push_fn, *, x0, x1, color="#00e5ff",
-                 style: str = "band", y: float = 0.0):
+                 style: str = "band", y: float = 0.0, linewidth=2):
         super().__init__("range", push_fn,
                          x0=float(x0), x1=float(x1), color=color,
-                         style=str(style), y=float(y))
+                         style=str(style), y=float(y),
+                         linewidth=float(linewidth))
 
 
 class PointWidget(Widget):
@@ -103,7 +112,11 @@ class PointWidget(Widget):
     show_crosshair : bool, optional
         If ``True`` (default), draw dashed crosshair guide lines through the
         handle.  Set to ``False`` for a bare draggable dot with no guides.
+    linewidth : float, optional
+        Guide-line stroke width in px. Default 2.
     """
-    def __init__(self, push_fn, *, x, y, color="#00e5ff", show_crosshair=True):
+    def __init__(self, push_fn, *, x, y, color="#00e5ff", show_crosshair=True,
+                 linewidth=2):
         super().__init__("point", push_fn, x=float(x), y=float(y), color=color,
-                         show_crosshair=bool(show_crosshair))
+                         show_crosshair=bool(show_crosshair),
+                         linewidth=float(linewidth))
