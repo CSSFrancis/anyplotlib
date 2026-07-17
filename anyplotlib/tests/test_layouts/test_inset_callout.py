@@ -571,6 +571,166 @@ class TestAnchoredPlacement:
         assert abs(rect["width"] - 0.30 * 640) <= 4, rect
 
 
+# ── title-bar auto-hide (empty-title insets have no header strip) ──────────
+
+def _inset_page_rect(page, plot_id):
+    """Absolute PAGE coordinates of the inset's insetDiv (for page.mouse.*)."""
+    return page.evaluate(
+        """(pid) => {
+            const p = window._handle.api.panels.get(pid);
+            const r = p.insetDiv.getBoundingClientRect();
+            return {left: r.left, top: r.top, width: r.width, height: r.height};
+        }""",
+        plot_id,
+    )
+
+
+def _title_bar_info(page, plot_id):
+    """Return {display, height, insetH, contentH} for the given inset's DOM."""
+    return page.evaluate(
+        """(pid) => {
+            const p = window._handle.api.panels.get(pid);
+            const tb = p.titleBar;
+            const cs = getComputedStyle(tb);
+            return {
+                display: cs.display,
+                tbHeight: tb.getBoundingClientRect().height,
+                insetHeight: p.insetDiv.getBoundingClientRect().height,
+                contentHeight: p.contentDiv.getBoundingClientRect().height,
+            };
+        }""",
+        plot_id,
+    )
+
+
+class TestInsetTitleBarAutoHide:
+    """An inset with no title (default) renders with NO title-bar strip at
+    all — a clean bordered plot box, content filling the whole area.  A
+    titled inset keeps its bar (and click-to-minimize on it)."""
+
+    def test_default_title_has_no_bar(self, mount_page):
+        """title omitted (default "") → title bar is display:none and the
+        inset's total height equals just the content height (no header gap)."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1))  # no title=
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "none", info
+        assert info["tbHeight"] == 0, info
+        # No phantom header gap: inset box height == content height, modulo
+        # the insetDiv's own 1px top+bottom border (getBoundingClientRect
+        # includes the border box).
+        assert abs(info["insetHeight"] - info["contentHeight"]) <= 2, info
+
+    def test_empty_string_title_has_no_bar(self, mount_page):
+        """Explicit title="" behaves the same as omitting it."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "none", info
+
+    def test_whitespace_title_has_no_bar(self, mount_page):
+        """A whitespace-only title counts as empty (trimmed before the check)."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="   ")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "none", info
+
+    def test_titled_inset_keeps_bar(self, mount_page):
+        """A non-empty title still renders its title-bar strip as before."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="Zoom")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "flex", info
+        assert info["tbHeight"] > 0, info
+        # Titled inset box is taller than its content (title strip on top).
+        assert info["insetHeight"] > info["contentHeight"], info
+
+    def test_titled_inset_click_still_minimizes(self, mount_page):
+        """Clicking the title bar of a TITLED inset still toggles minimize —
+        the auto-hide change must not break the existing affordance.
+
+        The click handler (a) optimistically collapses contentDiv locally via
+        _applyAllInsetStates and (b) emits inset_state_change on event_json —
+        there is no live Python bridge in this harness to push an updated
+        layout_json back, so assert on those two directly-observable effects
+        rather than layout_json (which only a real host round-trip updates).
+        """
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="Zoom")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        rect = _inset_page_rect(page, plot._id)
+        page.mouse.click(rect["left"] + rect["width"] / 2, rect["top"] + 5)
+        page.wait_for_timeout(80)
+
+        content_display = page.evaluate(
+            """(pid) => window._handle.api.panels.get(pid).contentDiv.style.display""",
+            plot._id,
+        )
+        assert content_display == "none", content_display
+
+        # event_json is a synced trait; read it directly since this harness
+        # has no onEvent callback wired.
+        last_event = page.evaluate(
+            "() => { try { return JSON.parse(window._handle.get('event_json')); } "
+            "catch(_) { return null; } }"
+        )
+        assert last_event is not None
+        assert last_event["event_type"] == "inset_state_change"
+        assert last_event["new_state"] == "minimized"
+
+    def test_titleless_inset_body_drag_still_moves_it(self, mount_page):
+        """No title bar → no minimize affordance, but drag-to-move (edit mode)
+        still works because the drag pointerdown listens on insetDiv itself,
+        not the title bar. Real mouse drag on the content area must emit
+        inset_geometry_change with a shifted anchor."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.25, 0.22, anchor=(0.1, 0.1))  # title-less
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        page.evaluate("() => { window._handle.set('edit_chrome', true); }")
+        page.wait_for_timeout(60)
+
+        rect = _inset_page_rect(page, plot._id)
+        cx = rect["left"] + rect["width"] / 2
+        cy = rect["top"] + rect["height"] / 2
+
+        page.mouse.move(cx, cy)
+        page.mouse.down()
+        page.mouse.move(cx + 40, cy + 25, steps=10)
+        page.mouse.up()
+        page.wait_for_timeout(120)
+
+        # Read the authoritative anchor back off the model (the mount() bridge
+        # writes inset_geometry_change to event_json; simplest robust check is
+        # that the DOM actually moved to the new position).
+        new_rect = _inset_page_rect(page, plot._id)
+        assert abs(new_rect["left"] - rect["left"]) > 15 or \
+            abs(new_rect["top"] - rect["top"]) > 15, (
+            f"title-less inset body drag did not move it: before={rect} after={new_rect}"
+        )
+
+
 class TestCalloutRendering:
     def test_dashed_rect_and_leaders_present(self, mount_page):
         """The callout canvas paints lime ink spanning FROM the parent region

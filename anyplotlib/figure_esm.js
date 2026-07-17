@@ -552,6 +552,19 @@ function render({ model, el, onResize }) {
   const INSET_RESIZE_PX = 12; // px — edit-mode bottom-right resize handle
   const INSET_MIN_PX  = 64;   // px — min inset dim on drag (matches Python clamp)
   const INSET_DRAG_THRESH = 3;// px — move before a pointerdown becomes a drag
+
+  // An inset with no title (empty/whitespace) hides its title-bar strip
+  // entirely — the content fills the whole box, no useless empty header.
+  // This is the ONE place that decides "does this inset have a bar"; every
+  // layout computation (stack height, drag/resize clamps) reads through it
+  // instead of the raw INSET_TITLE_H constant so a title-less inset's box
+  // height equals its content height exactly (no phantom gap at the top).
+  function _hasInsetTitle(spec) {
+    return !!(spec && spec.title && String(spec.title).trim());
+  }
+  function _insetTitleH(spec) {
+    return _hasInsetTitle(spec) ? INSET_TITLE_H : 0;
+  }
   // Active inset move / resize drag (edit mode). See _wireInsetDrag.
   // {p, mode:'move'|'resize', snap:{layout,spec}, ...} or null.
   let _insetDrag = null;
@@ -1085,13 +1098,16 @@ function render({ model, el, onResize }) {
   // ── _createInsetDOM ───────────────────────────────────────────────────────
   // Builds a floating inset panel:
   //   insetDiv (position:absolute inside insetsContainer)
-  //     ├── titleBar  — always visible; click to toggle min/normal
-  //     │    ├── titleSpan
-  //     │    └── maxBtn (⤢ / ⤡)
+  //     ├── titleBar  — visible only when spec.title is non-empty; click to
+  //     │    │          toggle min/normal. A title-less inset (the common
+  //     │    │          "callout" case) has NO title bar at all — the content
+  //     │    │          div fills the whole box, just a clean bordered plot.
+  //     │    └── titleSpan
   //     └── contentDiv — canvas stack; display:none when minimized
   //          └── _buildCanvasStack(kind, pw, ph)
   function _createInsetDOM(spec) {
     const { id, kind, panel_width: pw, panel_height: ph, title, inset_state } = spec;
+    const hasTitle = _hasInsetTitle(spec);
 
     const insetDiv = document.createElement('div');
     insetDiv.style.cssText =
@@ -1099,11 +1115,13 @@ function render({ model, el, onResize }) {
       `box-shadow:0 2px 14px rgba(0,0,0,0.55);border:1px solid ${theme.border};z-index:25;background:${theme.bg};`;
     insetsContainer.appendChild(insetDiv);
 
-    // Title bar
+    // Title bar — laid out even when empty (kept as a DOM node so later specs
+    // that DO carry a title can reveal it), but display:none + zero height
+    // when there is no title so the content fills the whole inset box.
     const tbBg = theme.dark ? 'rgba(30,32,46,0.97)' : 'rgba(210,213,224,0.97)';
     const titleBar = document.createElement('div');
     titleBar.style.cssText =
-      `display:flex;align-items:center;height:${INSET_TITLE_H}px;` +
+      `display:${hasTitle ? 'flex' : 'none'};align-items:center;height:${INSET_TITLE_H}px;` +
       `cursor:pointer;padding:0 5px 0 8px;user-select:none;background:${tbBg};` +
       `border-bottom:1px solid ${theme.border};box-sizing:border-box;flex-shrink:0;`;
     insetDiv.appendChild(titleBar);
@@ -1371,6 +1389,7 @@ function render({ model, el, onResize }) {
     const dx = e.clientX - d.startPX;
     const dy = e.clientY - d.startPY;
     if (!d.moved && Math.hypot(dx, dy) < INSET_DRAG_THRESH) return;
+    const th = _insetTitleH(d.snap.spec);  // 0 for a title-less inset
 
     if (d.mode === 'move') {
       // On the FIRST real move: convert a corner-stacked inset to a free anchor
@@ -1385,7 +1404,7 @@ function render({ model, el, onResize }) {
       // New top-left, clamped inside the figure box exactly like
       // _applyAllInsetStates (the inset must stay fully visible).
       const stackH = (d.snap.spec.inset_state === 'minimized')
-        ? INSET_TITLE_H : INSET_TITLE_H + d.ph;
+        ? th : th + d.ph;
       let left = d.startLeft + dx;
       let top  = d.startTop  + dy;
       left = Math.max(0, Math.min(left, d.fw - d.pw));
@@ -1402,13 +1421,13 @@ function render({ model, el, onResize }) {
       const left = parseFloat(p.insetDiv.style.left) || 0;
       const top  = parseFloat(p.insetDiv.style.top)  || 0;
       w = Math.max(INSET_MIN_PX, Math.min(w, d.fw - left));
-      h = Math.max(INSET_MIN_PX, Math.min(h, d.fh - top - INSET_TITLE_H));
+      h = Math.max(INSET_MIN_PX, Math.min(h, d.fh - top - th));
       d.curW = w; d.curH = h;
       d.snap.spec.panel_width  = w;
       d.snap.spec.panel_height = h;
       // Track the DOM box live; the canvas re-render is deferred to pointerup.
       p.insetDiv.style.width  = w + 'px';
-      p.insetDiv.style.height = (INSET_TITLE_H + h) + 'px';
+      p.insetDiv.style.height = (th + h) + 'px';
       p.contentDiv.style.height = h + 'px';
     }
 
@@ -1464,7 +1483,8 @@ function render({ model, el, onResize }) {
   // ── _applyAllInsetStates ──────────────────────────────────────────────────
   // Positions every inset for the given layout snapshot.
   // Corner-placed insets are grouped by corner and stacked with INSET_GAP
-  // spacing (minimized ones contribute only INSET_TITLE_H to the stack).
+  // spacing (minimized ones contribute only their title-bar height, 0 for a
+  // title-less inset, to the stack).
   // Anchor-placed insets (spec.anchor != null) float at their anchor fraction.
   // Maximized insets float centred at z-index:45, outside any stack.
   function _applyAllInsetStates(layout) {
@@ -1484,6 +1504,20 @@ function render({ model, el, onResize }) {
       (byCorner[spec.corner] = byCorner[spec.corner] || []).push(spec);
     }
 
+    // Sync each inset's title-bar visibility to its (possibly just-changed)
+    // spec before computing any geometry below — every stackH/height below
+    // reads through _insetTitleH(spec), so this must run first.
+    for (const spec of insetSpecs) {
+      const p = panels.get(spec.id);
+      if (!p || !p.isInset || !p.titleBar) continue;
+      const hasTitle = _hasInsetTitle(spec);
+      p.titleBar.style.display = hasTitle ? 'flex' : 'none';
+      // A title-less inset has no minimize affordance; guard against a
+      // stale/programmatic 'minimized' state wedging it at zero height by
+      // treating it as 'normal' for layout purposes (no crash, sane visual).
+      if (!hasTitle && spec.inset_state === 'minimized') spec.inset_state = 'normal';
+    }
+
     // ── anchor-placed insets ────────────────────────────────────────────────
     for (const spec of anchored) {
       const p = panels.get(spec.id);
@@ -1491,7 +1525,8 @@ function render({ model, el, onResize }) {
       const pw = spec.panel_width;
       const ph = spec.panel_height;
       const state = spec.inset_state;
-      const stackH = state === 'minimized' ? INSET_TITLE_H : INSET_TITLE_H + ph;
+      const th = _insetTitleH(spec);
+      const stackH = state === 'minimized' ? th : th + ph;
 
       // Maximized floats centred (same treatment as corner insets below).
       if (state === 'maximized') {
@@ -1499,7 +1534,7 @@ function render({ model, el, onResize }) {
         p.insetDiv.style.left = Math.round((fw - mw) / 2) + 'px';
         p.insetDiv.style.top  = Math.round((fh - mh) / 2) + 'px';
         p.insetDiv.style.width  = mw + 'px';
-        p.insetDiv.style.height = (INSET_TITLE_H + mh) + 'px';
+        p.insetDiv.style.height = (th + mh) + 'px';
         p.insetDiv.style.zIndex = '45';
         p.contentDiv.style.display = 'block';
         p.contentDiv.style.height  = mh + 'px';
@@ -1549,7 +1584,8 @@ function render({ model, el, onResize }) {
 
 
         // Normal or minimized: compute position from corner
-        const stackH = state === 'minimized' ? INSET_TITLE_H : INSET_TITLE_H + ph;
+        const th = _insetTitleH(spec);
+        const stackH = state === 'minimized' ? th : th + ph;
         const left   = isRight ? fw - pw - INSET_MARGIN : INSET_MARGIN;
         const top    = isBottom ? fh - offset - stackH  : offset;
 
