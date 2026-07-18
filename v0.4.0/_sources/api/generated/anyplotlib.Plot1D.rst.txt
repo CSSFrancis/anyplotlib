@@ -1,0 +1,6 @@
+﻿anyplotlib.Plot1D
+=================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: Plot1D

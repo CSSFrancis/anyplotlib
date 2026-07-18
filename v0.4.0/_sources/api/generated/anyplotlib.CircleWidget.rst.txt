@@ -1,0 +1,6 @@
+﻿anyplotlib.CircleWidget
+=======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: CircleWidget

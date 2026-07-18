@@ -1,0 +1,6 @@
+﻿anyplotlib.SubplotSpec
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: SubplotSpec
