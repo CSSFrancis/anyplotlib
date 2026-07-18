@@ -10,6 +10,66 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.4.0 (2026-07-18)
+==================
+
+New Features
+------------
+
+- Added :meth:`~anyplotlib.axes.InsetAxes.indicate_point` — the point sibling of
+  :meth:`~anyplotlib.axes.InsetAxes.indicate_region`: a circle-and-cross marker
+  at a data point of the parent plot plus a single leader line to the inset's
+  nearest corner, tracking zoom/pan and hiding the leader while minimized.
+- Added :meth:`~anyplotlib.plot1d.Plot1D.set_legend_fontsize` to control the
+  legend text size on 1-D line plots.
+- Added ``linewidth=`` to every overlay widget constructor and ``add_*_widget``
+  factory on :class:`~anyplotlib.plot2d.Plot2D` and
+  :class:`~anyplotlib.plot1d.Plot1D` (rectangle, circle, annular, crosshair,
+  polygon, vline, hline, range, point) — stroke width in px, default 2, stored
+  and round-tripped like ``color``.
+- Added ``tint=`` to :meth:`~anyplotlib.plot2d.Plot2D.add_layer` and
+  :meth:`~anyplotlib.plot2d.Layer.set` — a ``#rgb``/``#rrggbb`` hex colour that
+  renders the layer as a clear→colour intensity ramp (transparent at low
+  intensity, opaque tint at high, via a 256×4 RGBA LUT) instead of a named
+  colormap; passing ``cmap=`` reverts a tinted layer to colormap display.
+- An :meth:`~anyplotlib.figure.Figure.add_inset` with no title (the default,
+  ``title=""``) now renders with NO title-bar strip at all — a clean bordered
+  plot box, content filling the whole area, instead of a useless empty header.
+  A titled inset is unchanged: its bar renders as before, with click-to-toggle
+  minimize. A title-less inset has no minimize affordance (there is no bar to
+  click), but drag-to-move / drag-to-resize in edit mode still work exactly as
+  before, since those gestures are wired on the inset body, not the bar.
+- Double-clicking a plot's text chrome now reports which element was hit. The
+  ``double_click`` :class:`~anyplotlib.callbacks.Event` gains a ``target`` field
+  naming the hit element — one of ``'title'``, ``'x_label'``, ``'x_ticks'``,
+  ``'y_label'``, ``'y_ticks'``, ``'colorbar_label'`` or ``'legend'`` — so a host
+  can open the right edit affordance for the axis label vs the ticks vs the title
+  vs the colorbar label vs the legend. The axis gutters, colorbar strip and title
+  band each get their own hit-test (2-D panels emit from the separate axis/title
+  canvases; 1-D panels zone-split the single canvas around the plot rect and
+  legend box). A plain plot-area double-click is unchanged and carries no
+  ``target`` (``event.target is None``), so existing handlers keep working.
+- Insets can now be dragged and resized directly in the renderer's edit mode
+  (``edit_chrome``): drag the body to move an inset (a corner-stacked inset
+  converts to a free anchor and its siblings re-stack), or drag the bottom-right
+  grip to resize it (min 64 px per dimension). On release the renderer emits a
+  new figure-level ``inset_geometry_change`` event carrying the final
+  ``anchor``/``w_frac``/``h_frac`` (figure fractions), which
+  :meth:`~anyplotlib.figure.Figure.add_event_handler` handlers can observe to
+  persist the layout. The same geometry is applied programmatically via the new
+  :meth:`~anyplotlib.axes.InsetAxes.set_geometry` (``anchor``, ``w_frac``,
+  ``h_frac``). Off edit mode the affordances are hidden and the inset is inert.
+
+
+Bug Fixes
+---------
+
+- Fixed ``exportPNG`` compositing WebGPU-rendered 3-D panels (``scatter3d`` /
+  ``voxels``) as blank background rectangles — the 3-D render pass is now
+  re-rendered synchronously in-task before the canvas readback, exactly like
+  active-GPU 2-D image panels.
+
+
 0.3.0b1 (2026-07-13)
 ====================
 
