@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 import anyplotlib as apl
+from anyplotlib._utils import _build_tint_lut
 from anyplotlib.plot2d import Layer
 
 
@@ -72,6 +73,99 @@ class TestAddLayerState:
         _fig, p = _imshow()
         with pytest.raises(ValueError):
             p.add_layer(np.ones((32, 32), np.float32), alpha=1.5)
+
+
+class TestTintLut:
+    """_build_tint_lut: 256×4 clear→colour ramp from a hex string."""
+
+    def test_rrggbb_rgb_constant_alpha_ramp(self):
+        lut = _build_tint_lut("#ff9800")
+        assert len(lut) == 256
+        assert all(len(e) == 4 for e in lut)
+        # RGB is the tint at EVERY entry; alpha is the linear 0→255 ramp.
+        assert all(e[:3] == [255, 152, 0] for e in lut)
+        assert [e[3] for e in lut] == list(range(256))
+        assert lut[0] == [255, 152, 0, 0]      # transparent at low intensity
+        assert lut[255] == [255, 152, 0, 255]  # opaque tint at high intensity
+
+    def test_rgb_shorthand(self):
+        assert _build_tint_lut("#f00")[255] == [255, 0, 0, 255]
+        assert _build_tint_lut("#f00") == _build_tint_lut("#ff0000")
+
+    def test_invalid_colour_raises(self):
+        for bad in ("red", "#12345", "#gggggg", "", None, 42):
+            with pytest.raises(ValueError):
+                _build_tint_lut(bad)
+
+
+class TestTint:
+    """add_layer(tint=) / Layer.set(tint=) — the clear→colour ramp mode."""
+
+    def test_add_layer_tint_records_state(self):
+        _fig, p = _imshow()
+        lyr = p.add_layer(np.ones((32, 32), np.float32), tint="#ff0000",
+                          alpha=0.8, clim=(0, 1))
+        e = p._state["layers"][0]
+        assert e["tint"] == "#ff0000"
+        assert lyr.tint == "#ff0000"
+        # colormap_data is the 256×4 tint LUT, not the named-cmap LUT.
+        assert e["colormap_data"] == _build_tint_lut("#ff0000")
+        # cmap is retained (set(cmap=...) reverts to it) but display is tinted.
+        assert e["cmap"] == "magma"
+
+    def test_default_tint_none_keeps_cmap_lut(self):
+        _fig, p = _imshow()
+        lyr = p.add_layer(np.ones((32, 32), np.float32), cmap="magma")
+        e = p._state["layers"][0]
+        assert e["tint"] is None and lyr.tint is None
+        # Named-cmap LUT entries stay 3-channel (today's behaviour).
+        assert all(len(c) == 3 for c in e["colormap_data"])
+
+    def test_add_layer_invalid_tint_raises_before_mutation(self):
+        _fig, p = _imshow()
+        with pytest.raises(ValueError):
+            p.add_layer(np.ones((32, 32), np.float32), tint="not-a-colour")
+        assert p.layers == [] and p._state.get("layers", []) == []
+
+    def test_set_tint_switches_lut(self):
+        _fig, p = _imshow()
+        lyr = p.add_layer(np.ones((32, 32), np.float32), cmap="magma")
+        lyr.set(tint="#00ff00")
+        e = p._state["layers"][0]
+        assert lyr.tint == "#00ff00"
+        assert e["colormap_data"] == _build_tint_lut("#00ff00")
+
+    def test_set_cmap_clears_tint(self):
+        _fig, p = _imshow()
+        lyr = p.add_layer(np.ones((32, 32), np.float32), tint="#ff0000")
+        lyr.set(cmap="viridis")
+        e = p._state["layers"][0]
+        assert lyr.tint is None and e["tint"] is None
+        assert all(len(c) == 3 for c in e["colormap_data"])
+        assert e["cmap"] == "viridis"
+
+    def test_set_cmap_and_tint_together_raises(self):
+        _fig, p = _imshow()
+        lyr = p.add_layer(np.ones((32, 32), np.float32))
+        with pytest.raises(ValueError, match="not both"):
+            lyr.set(cmap="viridis", tint="#ff0000")
+
+    def test_set_tint_none_leaves_tint_unchanged(self):
+        _fig, p = _imshow()
+        lyr = p.add_layer(np.ones((32, 32), np.float32), tint="#ff0000")
+        lyr.set(alpha=0.3)   # tint=None default — no change
+        assert lyr.tint == "#ff0000"
+
+    def test_tint_survives_figure_state(self):
+        from anyplotlib.embed import figure_state
+        fig, ax = apl.subplots(1, 1, figsize=(200, 200))
+        p = ax.imshow(np.zeros((16, 16), np.float32), cmap="gray",
+                      vmin=0, vmax=1, gpu=False)
+        p.add_layer(np.full((16, 16), 0.7, np.float32), tint="#ff9800")
+        st = figure_state(fig)
+        pj = json.loads(st[f"panel_{p._id}_json"])
+        assert pj["layers"][0]["tint"] == "#ff9800"
+        assert pj["layers"][0]["colormap_data"][255] == [255, 152, 0, 255]
 
 
 class TestZOrder:

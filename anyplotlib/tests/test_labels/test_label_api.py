@@ -112,6 +112,52 @@ class TestTickLabelSize:
         assert v._state["tick_size"] == 14.0
 
 
+class TestLegendFontsize:
+    """Plot1D.set_legend_fontsize writes state["legend_fontsize"]; absent by
+    default; rejects non-positive / non-numeric values (mirrors the
+    marker_size > 0 validation style used in indicate_point)."""
+
+    def test_absent_by_default(self):
+        v = _plot()
+        assert "legend_fontsize" not in v._state
+
+    def test_sets_state_key(self):
+        v = _plot()
+        v.set_legend_fontsize(14)
+        assert v._state["legend_fontsize"] == 14.0
+
+    def test_value_is_float(self):
+        v = _plot()
+        v.set_legend_fontsize(12)
+        assert isinstance(v._state["legend_fontsize"], float)
+
+    def test_zero_rejected(self):
+        v = _plot()
+        with pytest.raises(ValueError, match="legend_fontsize"):
+            v.set_legend_fontsize(0)
+
+    def test_negative_rejected(self):
+        v = _plot()
+        with pytest.raises(ValueError):
+            v.set_legend_fontsize(-5)
+
+    def test_nan_rejected(self):
+        v = _plot()
+        with pytest.raises(ValueError):
+            v.set_legend_fontsize(float("nan"))
+
+    def test_non_numeric_rejected(self):
+        v = _plot()
+        with pytest.raises(ValueError):
+            v.set_legend_fontsize("big")
+
+    def test_overwrites_previous_value(self):
+        v = _plot()
+        v.set_legend_fontsize(10)
+        v.set_legend_fontsize(20)
+        assert v._state["legend_fontsize"] == 20.0
+
+
 class TestTexPassThrough:
     """Python stores TeX strings verbatim; all parsing happens at JS draw time."""
 

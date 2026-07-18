@@ -218,6 +218,106 @@ class TestEventTypesJsEmission:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 1b. Tagged double-click hit-targets — JS emits a `target` naming the chrome
+#     element (axis label / ticks / title / colorbar label / legend) that was
+#     double-clicked.  A plain plot-area double-click carries NO `target`.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestDoubleClickTargets:
+    """Double-clicking the axis gutters / legend of a real rendered figure emits
+    a `double_click` whose `target` names the element (see the chrome dblclick
+    handlers in figure_esm.js).  Page geometry for a 400×300 figure with physical
+    axes (GRID_PAD=8):
+        plot area page-coords  x∈[66, 396], y∈[20, 266]
+        x gutter (xAxisCanvas) y∈[266, 308]; label band bottom ~14px → y≥294
+        y gutter (yAxisCanvas) x∈[8, 66];    label band left  ~14px → x≤22
+    """
+
+    def _make_2d_axes(self, interact_page):
+        fig, ax = apl.subplots(1, 1, figsize=(FIG_W, FIG_H))
+        # Physical axes ⇒ tick gutters + label strips are drawn on the separate
+        # xAxisCanvas / yAxisCanvas.
+        plot = ax.imshow(np.zeros((32, 32), dtype=np.float32),
+                         axes=[np.linspace(0, 31, 32), np.linspace(0, 31, 32)])
+        plot.set_xlabel("x [nm]")
+        plot.set_ylabel("y [nm]")
+        plot.set_title("frame")
+        page = interact_page(fig)
+        _collect_events(page)
+        page.wait_for_timeout(60)
+        return fig, plot, page
+
+    def test_x_ticks_target_emitted(self, interact_page):
+        _, _, page = self._make_2d_axes(interact_page)
+        # Upper part of the bottom gutter = tick-label zone.
+        page.mouse.dblclick(GRID_PAD + PAD_L + 120, 270)
+        page.wait_for_timeout(80)
+        events = _get_events(page, "double_click")
+        assert events, "no double_click emitted on the x-axis gutter"
+        assert events[-1].get("target") == "x_ticks", events[-1]
+
+    def test_x_label_target_emitted(self, interact_page):
+        _, _, page = self._make_2d_axes(interact_page)
+        # Bottom band of the bottom gutter = x_label strip.
+        page.mouse.dblclick(GRID_PAD + PAD_L + 120, 305)
+        page.wait_for_timeout(80)
+        events = _get_events(page, "double_click")
+        assert events, "no double_click emitted on the x-axis label strip"
+        assert events[-1].get("target") == "x_label", events[-1]
+
+    def test_y_ticks_target_emitted(self, interact_page):
+        _, _, page = self._make_2d_axes(interact_page)
+        # Right part of the left gutter = tick-label zone.
+        page.mouse.dblclick(GRID_PAD + PAD_L - 8, 140)
+        page.wait_for_timeout(80)
+        events = _get_events(page, "double_click")
+        assert events, "no double_click emitted on the y-axis gutter"
+        assert events[-1].get("target") == "y_ticks", events[-1]
+
+    def test_y_label_target_emitted(self, interact_page):
+        _, _, page = self._make_2d_axes(interact_page)
+        # Leftmost band of the left gutter = y_label strip.
+        page.mouse.dblclick(GRID_PAD + 4, 140)
+        page.wait_for_timeout(80)
+        events = _get_events(page, "double_click")
+        assert events, "no double_click emitted on the y-axis label strip"
+        assert events[-1].get("target") == "y_label", events[-1]
+
+    def test_title_target_emitted(self, interact_page):
+        _, _, page = self._make_2d_axes(interact_page)
+        # Title strip sits above the image area (top PAD_T band).
+        page.mouse.dblclick(GRID_PAD + PAD_L + 120, GRID_PAD + 5)
+        page.wait_for_timeout(80)
+        events = _get_events(page, "double_click")
+        assert events, "no double_click emitted on the title strip"
+        assert events[-1].get("target") == "title", events[-1]
+
+    def test_plot_area_double_click_has_no_target(self, interact_page):
+        _, _, page = self._make_2d_axes(interact_page)
+        cx, cy = _center()
+        page.mouse.dblclick(cx, cy)
+        page.wait_for_timeout(80)
+        events = _get_events(page, "double_click")
+        assert events, "no double_click emitted on the plot area"
+        # Back-compat: plot-area double-clicks carry NO target key.
+        assert events[-1].get("target") is None, events[-1]
+
+    def test_legend_target_emitted_1d(self, interact_page):
+        fig, ax = apl.subplots(1, 1, figsize=(FIG_W, FIG_H))
+        plot = ax.plot(np.sin(np.linspace(0, 6.28, 128)), label="signal")
+        page = interact_page(fig)
+        _collect_events(page)
+        page.wait_for_timeout(60)
+        # The legend is drawn at the top-left of the plot rect (r.x, r.y+6).
+        # A point a few px inside the first legend row lands on the swatch/text.
+        page.mouse.dblclick(GRID_PAD + PAD_L + 20, GRID_PAD + PAD_T + 12)
+        page.wait_for_timeout(80)
+        events = _get_events(page, "double_click")
+        assert events, "no double_click emitted on the 1D legend"
+        assert events[-1].get("target") == "legend", events[-1]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 2. Python dispatch — via _sim + real Python handlers
 # ═══════════════════════════════════════════════════════════════════════════════
 

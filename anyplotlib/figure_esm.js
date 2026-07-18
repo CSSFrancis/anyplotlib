@@ -549,6 +549,25 @@ function render({ model, el, onResize }) {
   const INSET_TITLE_H = 22;   // px — title bar height
   const INSET_GAP     = 8;    // px — gap between stacked insets in same corner
   const INSET_MARGIN  = 10;   // px — distance from figure edge to first inset
+  const INSET_RESIZE_PX = 12; // px — edit-mode bottom-right resize handle
+  const INSET_MIN_PX  = 64;   // px — min inset dim on drag (matches Python clamp)
+  const INSET_DRAG_THRESH = 3;// px — move before a pointerdown becomes a drag
+
+  // An inset with no title (empty/whitespace) hides its title-bar strip
+  // entirely — the content fills the whole box, no useless empty header.
+  // This is the ONE place that decides "does this inset have a bar"; every
+  // layout computation (stack height, drag/resize clamps) reads through it
+  // instead of the raw INSET_TITLE_H constant so a title-less inset's box
+  // height equals its content height exactly (no phantom gap at the top).
+  function _hasInsetTitle(spec) {
+    return !!(spec && spec.title && String(spec.title).trim());
+  }
+  function _insetTitleH(spec) {
+    return _hasInsetTitle(spec) ? INSET_TITLE_H : 0;
+  }
+  // Active inset move / resize drag (edit mode). See _wireInsetDrag.
+  // {p, mode:'move'|'resize', snap:{layout,spec}, ...} or null.
+  let _insetDrag = null;
 
   // Resize handle (figure-level)
   const resizeHandle = document.createElement('div');
@@ -1079,13 +1098,16 @@ function render({ model, el, onResize }) {
   // ── _createInsetDOM ───────────────────────────────────────────────────────
   // Builds a floating inset panel:
   //   insetDiv (position:absolute inside insetsContainer)
-  //     ├── titleBar  — always visible; click to toggle min/normal
-  //     │    ├── titleSpan
-  //     │    └── maxBtn (⤢ / ⤡)
+  //     ├── titleBar  — visible only when spec.title is non-empty; click to
+  //     │    │          toggle min/normal. A title-less inset (the common
+  //     │    │          "callout" case) has NO title bar at all — the content
+  //     │    │          div fills the whole box, just a clean bordered plot.
+  //     │    └── titleSpan
   //     └── contentDiv — canvas stack; display:none when minimized
   //          └── _buildCanvasStack(kind, pw, ph)
   function _createInsetDOM(spec) {
     const { id, kind, panel_width: pw, panel_height: ph, title, inset_state } = spec;
+    const hasTitle = _hasInsetTitle(spec);
 
     const insetDiv = document.createElement('div');
     insetDiv.style.cssText =
@@ -1093,11 +1115,13 @@ function render({ model, el, onResize }) {
       `box-shadow:0 2px 14px rgba(0,0,0,0.55);border:1px solid ${theme.border};z-index:25;background:${theme.bg};`;
     insetsContainer.appendChild(insetDiv);
 
-    // Title bar
+    // Title bar — laid out even when empty (kept as a DOM node so later specs
+    // that DO carry a title can reveal it), but display:none + zero height
+    // when there is no title so the content fills the whole inset box.
     const tbBg = theme.dark ? 'rgba(30,32,46,0.97)' : 'rgba(210,213,224,0.97)';
     const titleBar = document.createElement('div');
     titleBar.style.cssText =
-      `display:flex;align-items:center;height:${INSET_TITLE_H}px;` +
+      `display:${hasTitle ? 'flex' : 'none'};align-items:center;height:${INSET_TITLE_H}px;` +
       `cursor:pointer;padding:0 5px 0 8px;user-select:none;background:${tbBg};` +
       `border-bottom:1px solid ${theme.border};box-sizing:border-box;flex-shrink:0;`;
     insetDiv.appendChild(titleBar);
@@ -1115,6 +1139,21 @@ function render({ model, el, onResize }) {
     contentDiv.style.cssText =
       `overflow:hidden;display:${inset_state === 'minimized' ? 'none' : 'block'};`;
     insetDiv.appendChild(contentDiv);
+
+    // Edit-mode resize handle — a small grabber pinned to the inset's
+    // bottom-right corner. Hidden by default; shown/hidden by _applyEditMode
+    // (like the panel move-grip). Sits above the canvas stack (z 5) and the
+    // content div so it stays grabbable; cursor is the diagonal resize arrow.
+    const resizeGrip = document.createElement('div');
+    resizeGrip.className = 'apl-inset-resize';
+    resizeGrip.style.cssText =
+      `position:absolute;right:0;bottom:0;width:${INSET_RESIZE_PX}px;` +
+      `height:${INSET_RESIZE_PX}px;z-index:14;cursor:nwse-resize;display:none;` +
+      `background:${theme.bg || '#1e1e2e'};border-top:1px solid ${EDIT_ACCENT};` +
+      `border-left:1px solid ${EDIT_ACCENT};border-top-left-radius:4px;` +
+      `box-shadow:-1px -1px 3px rgba(0,0,0,0.35);`;
+    resizeGrip.title = 'Drag to resize this inset';
+    insetDiv.appendChild(resizeGrip);
 
     // Canvas stack inside contentDiv
     const stack = _buildCanvasStack(kind, pw, ph, contentDiv);
@@ -1134,7 +1173,7 @@ function render({ model, el, onResize }) {
     const p = {
       id, kind, pw, ph,
       cell: insetDiv,   // stale-cleanup compatibility (p.cell.remove())
-      isInset: true, insetDiv, contentDiv, titleBar,
+      isInset: true, insetDiv, contentDiv, titleBar, resizeGrip,
       insetSpec: spec,
       plotCanvas:    stack.plotCanvas,
       overlayCanvas: stack.overlayCanvas,
@@ -1163,11 +1202,18 @@ function render({ model, el, onResize }) {
     _resizePanelDOM(id, pw, ph);
     _attachPanelEvents(p);
 
-    // Title bar click: toggle normal ↔ minimized
+    // Title bar click: toggle normal ↔ minimized.  A completed move drag on
+    // the inset sets p._dragSuppressClick so the release click here does NOT
+    // also flip the minimize state (drag-to-move and click-to-minimize share
+    // the title bar).
     titleBar.addEventListener('click', (e) => {
+      if (p._dragSuppressClick) { p._dragSuppressClick = false; return; }
       const cur = p.insetSpec ? p.insetSpec.inset_state : 'normal';
       _applyButtonState(p, cur === 'minimized' ? 'normal' : 'minimized');
     });
+
+    // Edit-mode drag-to-move (whole inset) and drag-to-resize (corner grip).
+    _wireInsetDrag(p);
 
 
     // Geometry channel (only when this panel declared one on the Python side).
@@ -1237,10 +1283,208 @@ function render({ model, el, onResize }) {
     _emitEvent(p.id, 'inset_state_change', null, { new_state: newState });
   }
 
+  // ── inset drag-to-move / drag-to-resize (edit mode only) ──────────────────
+  // Wires two pointer gestures on an inset, both gated on _editOn():
+  //   • move   — a capture-phase pointerdown anywhere on the inset (except the
+  //              resize grip) drags the whole inset. A corner-stacked inset is
+  //              converted to a free anchor on drag start (reading its current
+  //              DOM position) so it floats and its corner siblings re-stack.
+  //   • resize — a pointerdown on the bottom-right grip resizes the inset,
+  //              clamped to INSET_MIN_PX per dim.
+  // Both work on a LOCAL layout snapshot (like _applyButtonState) so the DOM
+  // updates optimistically; on pointerup an 'inset_geometry_change' carries the
+  // final anchor + size fractions to Python, which echoes an authoritative
+  // layout_json back. A 3 px threshold distinguishes a move-drag from a click
+  // (so the title-bar minimize toggle still works on a plain click).
+  function _wireInsetDrag(p) {
+    const fig = () => {
+      const fw = Number(model.get('fig_width'))  || 640;
+      const fh = Number(model.get('fig_height')) || 480;
+      return [fw, fh];
+    };
+    // Snapshot layout_json and return {layout, spec} for THIS inset (a private
+    // copy we mutate during the drag).
+    const snapshot = () => {
+      let layout;
+      try { layout = JSON.parse(model.get('layout_json')); } catch (_) { return null; }
+      const spec = (layout.inset_specs || []).find(s => s.id === p.id);
+      if (!spec) return null;
+      return { layout, spec };
+    };
+
+    // ── MOVE: capture-phase pointerdown on the whole inset ──────────────────
+    p.insetDiv.addEventListener('pointerdown', (e) => {
+      if (!_editOn() || e.button !== 0) return;
+      // The resize grip owns its own gesture.
+      if (e.target === p.resizeGrip) return;
+      // Don't drag a maximized inset (it is centred / not anchor-positioned).
+      const st = p.insetSpec ? p.insetSpec.inset_state : 'normal';
+      if (st === 'maximized') return;
+
+      const snap = snapshot();
+      if (!snap) return;
+      const [fw, fh] = fig();
+      // Current top-left in figure px (DOM is already positioned).
+      const startLeft = parseFloat(p.insetDiv.style.left) || 0;
+      const startTop  = parseFloat(p.insetDiv.style.top)  || 0;
+
+      _insetDrag = {
+        p, mode: 'move', snap,
+        fw, fh,
+        startPX: e.clientX, startPY: e.clientY,
+        startLeft, startTop,
+        pw: snap.spec.panel_width, ph: snap.spec.panel_height,
+        moved: false,
+      };
+      try { p.insetDiv.setPointerCapture(e.pointerId); } catch (_) {}
+      // Capture phase + stopPropagation so the panel event handlers underneath
+      // don't also react to this pointerdown.
+      e.preventDefault(); e.stopPropagation();
+    }, true);
+
+    // ── RESIZE: pointerdown on the bottom-right grip ────────────────────────
+    p.resizeGrip.addEventListener('pointerdown', (e) => {
+      if (!_editOn() || e.button !== 0) return;
+      const st = p.insetSpec ? p.insetSpec.inset_state : 'normal';
+      if (st === 'maximized' || st === 'minimized') return;  // nothing to resize
+      const snap = snapshot();
+      if (!snap) return;
+      const [fw, fh] = fig();
+      _insetDrag = {
+        p, mode: 'resize', snap,
+        fw, fh,
+        startPX: e.clientX, startPY: e.clientY,
+        startW: snap.spec.panel_width, startH: snap.spec.panel_height,
+        moved: false,
+      };
+      try { p.resizeGrip.setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault(); e.stopPropagation();
+    });
+
+    // Move / up handlers are attached to the same elements so pointer capture
+    // routes them here even when the cursor leaves the inset.
+    const onMove = (e) => {
+      if (!_insetDrag || _insetDrag.p !== p) return;
+      _doInsetDrag(e);
+    };
+    const onUp = (e) => {
+      if (!_insetDrag || _insetDrag.p !== p) return;
+      _endInsetDrag(e);
+    };
+    p.insetDiv.addEventListener('pointermove', onMove);
+    p.insetDiv.addEventListener('pointerup', onUp);
+    p.insetDiv.addEventListener('pointercancel', onUp);
+    p.resizeGrip.addEventListener('pointermove', onMove);
+    p.resizeGrip.addEventListener('pointerup', onUp);
+    p.resizeGrip.addEventListener('pointercancel', onUp);
+  }
+
+  // Per-move handler for an in-progress inset move / resize (see _wireInsetDrag).
+  // rAF-throttles the callout redraw so leader lines re-aim live without a draw
+  // per pointer event.
+  let _insetCalloutRAF = 0;
+  function _doInsetDrag(e) {
+    const d = _insetDrag;
+    const p = d.p;
+    const dx = e.clientX - d.startPX;
+    const dy = e.clientY - d.startPY;
+    if (!d.moved && Math.hypot(dx, dy) < INSET_DRAG_THRESH) return;
+    const th = _insetTitleH(d.snap.spec);  // 0 for a title-less inset
+
+    if (d.mode === 'move') {
+      // On the FIRST real move: convert a corner-stacked inset to a free anchor
+      // at its current DOM position so it floats and its corner siblings
+      // re-stack. Mutate the LOCAL snapshot spec only.
+      if (!d.moved && d.snap.spec.corner) {
+        d.snap.spec.anchor = [d.startLeft / d.fw, d.startTop / d.fh];
+        d.snap.spec.corner = null;
+        p.insetSpec = d.snap.spec;
+      }
+      d.moved = true;
+      // New top-left, clamped inside the figure box exactly like
+      // _applyAllInsetStates (the inset must stay fully visible).
+      const stackH = (d.snap.spec.inset_state === 'minimized')
+        ? th : th + d.ph;
+      let left = d.startLeft + dx;
+      let top  = d.startTop  + dy;
+      left = Math.max(0, Math.min(left, d.fw - d.pw));
+      top  = Math.max(0, Math.min(top,  d.fh - stackH));
+      d.curLeft = left; d.curTop = top;
+      d.snap.spec.anchor = [left / d.fw, top / d.fh];
+      _applyAllInsetStates(d.snap.layout);
+    } else {  // resize
+      d.moved = true;
+      let w = Math.round(d.startW + dx);
+      let h = Math.round(d.startH + dy);
+      // Min size (both dims) + keep the inset inside the figure from its
+      // current top-left.
+      const left = parseFloat(p.insetDiv.style.left) || 0;
+      const top  = parseFloat(p.insetDiv.style.top)  || 0;
+      w = Math.max(INSET_MIN_PX, Math.min(w, d.fw - left));
+      h = Math.max(INSET_MIN_PX, Math.min(h, d.fh - top - th));
+      d.curW = w; d.curH = h;
+      d.snap.spec.panel_width  = w;
+      d.snap.spec.panel_height = h;
+      // Track the DOM box live; the canvas re-render is deferred to pointerup.
+      p.insetDiv.style.width  = w + 'px';
+      p.insetDiv.style.height = (th + h) + 'px';
+      p.contentDiv.style.height = h + 'px';
+    }
+
+    // Re-aim callout leaders live (rAF-throttled).
+    if (!_insetCalloutRAF) {
+      _insetCalloutRAF = requestAnimationFrame(() => {
+        _insetCalloutRAF = 0;
+        _drawCallouts([d.fw, d.fh]);
+      });
+    }
+    e.preventDefault();
+  }
+
+  // Finalise an inset move / resize: emit the geometry to Python and clear the
+  // drag. A move sets _dragSuppressClick so the title-bar click that follows a
+  // move-release does not also toggle minimize.
+  function _endInsetDrag(e) {
+    const d = _insetDrag; _insetDrag = null;
+    const p = d.p;
+    try { p.insetDiv.releasePointerCapture(e.pointerId); } catch (_) {}
+    try { p.resizeGrip.releasePointerCapture(e.pointerId); } catch (_) {}
+    if (_insetCalloutRAF) { cancelAnimationFrame(_insetCalloutRAF); _insetCalloutRAF = 0; }
+
+    if (!d.moved) { e.preventDefault(); return; }  // sub-threshold → a click
+
+    if (d.mode === 'move') p._dragSuppressClick = true;
+
+    // Resolve the final geometry in figure fractions.
+    const fw = d.fw, fh = d.fh;
+    let left, top, pw, ph;
+    if (d.mode === 'move') {
+      left = d.curLeft != null ? d.curLeft : (parseFloat(p.insetDiv.style.left) || 0);
+      top  = d.curTop  != null ? d.curTop  : (parseFloat(p.insetDiv.style.top)  || 0);
+      pw = d.pw; ph = d.ph;
+    } else {  // resize
+      left = parseFloat(p.insetDiv.style.left) || 0;
+      top  = parseFloat(p.insetDiv.style.top)  || 0;
+      pw = d.curW != null ? d.curW : d.startW;
+      ph = d.curH != null ? d.curH : d.startH;
+      // Re-render the inset's canvas stack at the new size (deferred to now).
+      _resizePanelDOM(p.id, pw, ph);
+      _redrawPanel(p);
+    }
+
+    _emitEvent(p.id, 'inset_geometry_change', null, {
+      anchor: [left / fw, top / fh],
+      w_frac: pw / fw,
+      h_frac: ph / fh,
+    });
+    e.preventDefault();
+  }
+
   // ── _applyAllInsetStates ──────────────────────────────────────────────────
   // Positions every inset for the given layout snapshot.
   // Corner-placed insets are grouped by corner and stacked with INSET_GAP
-  // spacing (minimized ones contribute only INSET_TITLE_H to the stack).
+  // spacing (minimized ones contribute only their title-bar height, 0 for a
+  // title-less inset, to the stack).
   // Anchor-placed insets (spec.anchor != null) float at their anchor fraction.
   // Maximized insets float centred at z-index:45, outside any stack.
   function _applyAllInsetStates(layout) {
@@ -1260,6 +1504,20 @@ function render({ model, el, onResize }) {
       (byCorner[spec.corner] = byCorner[spec.corner] || []).push(spec);
     }
 
+    // Sync each inset's title-bar visibility to its (possibly just-changed)
+    // spec before computing any geometry below — every stackH/height below
+    // reads through _insetTitleH(spec), so this must run first.
+    for (const spec of insetSpecs) {
+      const p = panels.get(spec.id);
+      if (!p || !p.isInset || !p.titleBar) continue;
+      const hasTitle = _hasInsetTitle(spec);
+      p.titleBar.style.display = hasTitle ? 'flex' : 'none';
+      // A title-less inset has no minimize affordance; guard against a
+      // stale/programmatic 'minimized' state wedging it at zero height by
+      // treating it as 'normal' for layout purposes (no crash, sane visual).
+      if (!hasTitle && spec.inset_state === 'minimized') spec.inset_state = 'normal';
+    }
+
     // ── anchor-placed insets ────────────────────────────────────────────────
     for (const spec of anchored) {
       const p = panels.get(spec.id);
@@ -1267,7 +1525,8 @@ function render({ model, el, onResize }) {
       const pw = spec.panel_width;
       const ph = spec.panel_height;
       const state = spec.inset_state;
-      const stackH = state === 'minimized' ? INSET_TITLE_H : INSET_TITLE_H + ph;
+      const th = _insetTitleH(spec);
+      const stackH = state === 'minimized' ? th : th + ph;
 
       // Maximized floats centred (same treatment as corner insets below).
       if (state === 'maximized') {
@@ -1275,7 +1534,7 @@ function render({ model, el, onResize }) {
         p.insetDiv.style.left = Math.round((fw - mw) / 2) + 'px';
         p.insetDiv.style.top  = Math.round((fh - mh) / 2) + 'px';
         p.insetDiv.style.width  = mw + 'px';
-        p.insetDiv.style.height = (INSET_TITLE_H + mh) + 'px';
+        p.insetDiv.style.height = (th + mh) + 'px';
         p.insetDiv.style.zIndex = '45';
         p.contentDiv.style.display = 'block';
         p.contentDiv.style.height  = mh + 'px';
@@ -1325,7 +1584,8 @@ function render({ model, el, onResize }) {
 
 
         // Normal or minimized: compute position from corner
-        const stackH = state === 'minimized' ? INSET_TITLE_H : INSET_TITLE_H + ph;
+        const th = _insetTitleH(spec);
+        const stackH = state === 'minimized' ? th : th + ph;
         const left   = isRight ? fw - pw - INSET_MARGIN : INSET_MARGIN;
         const top    = isBottom ? fh - offset - stackH  : offset;
 
@@ -1408,13 +1668,12 @@ function render({ model, el, onResize }) {
       const inset  = panels.get(ind.inset_id);
       if (!parent || !parent.state || !inset || !inset.isInset) continue;
 
-      // ── source rectangle in parent-canvas px → figure px ─────────────────
-      // Map the region's four data-space corners through the parent's
-      // data→canvas transform (tracks zoom/pan), then offset by the parent
-      // markers canvas's position relative to the callout canvas.
+      // ── shared data→figure-px mapping + stroke setup ──────────────────────
+      // Map data-space coords through the parent's data→canvas transform
+      // (tracks zoom/pan), then offset by the parent markers canvas's position
+      // relative to the callout canvas.
       const st = parent.state;
       const imgW = parent.imgW || 1, imgH = parent.imgH || 1;
-      const [rx, ry, rw, rh] = ind.region;
       const mkRect = (parent.markersCanvas || parent.plotCanvas).getBoundingClientRect();
       const offX = mkRect.left - base.left;
       const offY = mkRect.top  - base.top;
@@ -1422,13 +1681,6 @@ function render({ model, el, onResize }) {
         const [cx, cy] = _imgToCanvas2d(dx, dy, st, imgW, imgH);
         return [offX + cx, offY + cy];
       };
-      const [x0, y0] = toFig(rx,      ry);
-      const [x1, y1] = toFig(rx + rw, ry);
-      const [x2, y2] = toFig(rx + rw, ry + rh);
-      const [x3, y3] = toFig(rx,      ry + rh);
-      // Axis-aligned bounds of the (untransformed) rect in figure px.
-      const rL = Math.min(x0, x1, x2, x3), rR = Math.max(x0, x1, x2, x3);
-      const rT = Math.min(y0, y1, y2, y3), rB = Math.max(y0, y1, y2, y3);
 
       const color = ind.color || '#ff9800';
       const lw    = ind.linewidth != null ? ind.linewidth : 1.5;
@@ -1440,6 +1692,60 @@ function render({ model, el, onResize }) {
       calloutCtx.strokeStyle = color;
       calloutCtx.lineWidth   = lw;
       calloutCtx.setLineDash(dash);
+
+      // ── POINT indication (indicate_point): marker + single leader ────────
+      // A small solid circle-with-cross at the data point (clipped to the
+      // parent's image area, like the region rect) plus one leader from the
+      // marker's edge to the inset's nearest corner (hidden while minimized).
+      if (ind.point) {
+        const [mx, my] = toFig(ind.point[0], ind.point[1]);
+        const ms = ind.marker_size != null ? ind.marker_size : 5;
+        calloutCtx.save();
+        calloutCtx.beginPath();
+        calloutCtx.rect(offX, offY, imgW, imgH);
+        calloutCtx.clip();
+        calloutCtx.setLineDash([]);          // the marker itself is solid
+        calloutCtx.beginPath();
+        calloutCtx.arc(mx, my, ms, 0, Math.PI * 2);
+        calloutCtx.stroke();
+        calloutCtx.beginPath();              // centre cross
+        calloutCtx.moveTo(mx - ms * 0.6, my); calloutCtx.lineTo(mx + ms * 0.6, my);
+        calloutCtx.moveTo(mx, my - ms * 0.6); calloutCtx.lineTo(mx, my + ms * 0.6);
+        calloutCtx.stroke();
+        calloutCtx.restore();
+
+        const insSpecP = (layout.inset_specs || []).find(s => s.id === ind.inset_id);
+        const minimizedP = insSpecP && insSpecP.inset_state === 'minimized';
+        if (!minimizedP) {
+          const iRect = inset.insetDiv.getBoundingClientRect();
+          const iL = iRect.left - base.left, iT = iRect.top - base.top;
+          const iR = iL + iRect.width,       iB = iT + iRect.height;
+          // Nearest inset corner to the marker → shortest, non-crossing leader.
+          let best = null, bd = Infinity;
+          for (const [qx, qy] of [[iL, iT], [iR, iT], [iR, iB], [iL, iB]]) {
+            const dd = (qx - mx) * (qx - mx) + (qy - my) * (qy - my);
+            if (dd < bd) { bd = dd; best = [qx, qy]; }
+          }
+          // Start at the marker's rim (not its centre) toward the corner.
+          const ang = Math.atan2(best[1] - my, best[0] - mx);
+          calloutCtx.beginPath();
+          calloutCtx.moveTo(mx + Math.cos(ang) * ms, my + Math.sin(ang) * ms);
+          calloutCtx.lineTo(best[0], best[1]);
+          calloutCtx.stroke();
+        }
+        calloutCtx.restore();
+        continue;
+      }
+
+      // ── REGION indication: the region's four data-space corners ──────────
+      const [rx, ry, rw, rh] = ind.region;
+      const [x0, y0] = toFig(rx,      ry);
+      const [x1, y1] = toFig(rx + rw, ry);
+      const [x2, y2] = toFig(rx + rw, ry + rh);
+      const [x3, y3] = toFig(rx,      ry + rh);
+      // Axis-aligned bounds of the (untransformed) rect in figure px.
+      const rL = Math.min(x0, x1, x2, x3), rR = Math.max(x0, x1, x2, x3);
+      const rT = Math.min(y0, y1, y2, y3), rB = Math.max(y0, y1, y2, y3);
 
       // Dashed source rectangle (drawn as the 4 transformed corners so it
       // stays correct even if a future transform rotates/skews it).  Clipped
@@ -1785,6 +2091,18 @@ function render({ model, el, onResize }) {
       if (!p.isInset) {
         _ensureGrip(p);
         if (p.grip) p.grip.style.display = edit ? 'flex' : 'none';
+      }
+      // Insets: the bottom-right resize grip + an accent outline are edit-only
+      // affordances; off-edit the inset is inert (no handle, no drag) because
+      // _wireInsetDrag's handlers all gate on _editOn(). The outline is a
+      // box-shadow (not `outline`) so it doesn't fight the maximized-float /
+      // selection styling and rides the inset's own rounded corners.
+      if (p.isInset) {
+        if (p.resizeGrip) p.resizeGrip.style.display = edit ? 'block' : 'none';
+        p.insetDiv.style.boxShadow = edit
+          ? `0 2px 14px rgba(0,0,0,0.55), inset 0 0 0 1px ${EDIT_ACCENT}`
+          : '0 2px 14px rgba(0,0,0,0.55)';
+        continue;   // insets skip the grid-panel selection/hover chrome below
       }
       // Selection outline (persistent, solid) wins over hover.
       // outline-offset is fully NEGATIVE (−width) so the whole ring is inset
@@ -2200,7 +2518,14 @@ function render({ model, el, onResize }) {
     if (!d.bytes || !lw || !lh || d.bytes.length < lw * lh) return null;
     const cmap = layer.cmap || 'gray';
     const dMin = layer.clim_min, dMax = layer.clim_max;
-    const lutKey = [cmap, dMin, dMax].join('|');
+    // A LUT may carry a 4th (alpha) channel — a clear→colour TINT ramp from
+    // Python's _build_tint_lut. Both the tint colour and the presence of alpha
+    // go into lutKey so toggling tint ↔ cmap invalidates the cached bitmap.
+    const cmapData = layer.colormap_data || st.colormap_data || [];
+    const hasAlpha = cmapData.length === 256 && cmapData[0]
+                     && cmapData[0].length > 3;
+    const lutKey = [cmap, layer.tint || '', hasAlpha ? 'a' : '',
+                    dMin, dMax].join('|');
     const cache = (p._layerBlit ||= {});
     const c = cache[layer.id];
     if (c && c.key === d.key && c.lutKey === lutKey && c.w === lw && c.h === lh)
@@ -2208,13 +2533,15 @@ function render({ model, el, onResize }) {
     // Build a 256-entry uint32 LUT from the layer's own colormap + clim. The layer
     // bytes are quantised over [clim_min, clim_max] (Python side), so code i maps
     // linearly through that window; the LUT bakes clim→colour like the base path.
-    const cmapData = layer.colormap_data || st.colormap_data || [];
+    // Per-texel alpha (4-channel LUT) rides the ImageData (unpremultiplied) and
+    // multiplies naturally with the per-layer ctx.globalAlpha at drawImage time.
     let cmapFlat = null;
     if (cmapData.length === 256) {
       cmapFlat = new Uint8Array(256 * 4);
       for (let i = 0; i < 256; i++) {
         cmapFlat[i*4] = cmapData[i][0]; cmapFlat[i*4+1] = cmapData[i][1];
-        cmapFlat[i*4+2] = cmapData[i][2]; cmapFlat[i*4+3] = 255;
+        cmapFlat[i*4+2] = cmapData[i][2];
+        cmapFlat[i*4+3] = cmapData[i][3] ?? 255;
       }
     }
     const lut = new Uint32Array(256);
@@ -2226,7 +2553,7 @@ function render({ model, el, onResize }) {
       const idx = raw;
       if (cmapFlat) {
         dv.setUint8(0, cmapFlat[idx*4]); dv.setUint8(1, cmapFlat[idx*4+1]);
-        dv.setUint8(2, cmapFlat[idx*4+2]); dv.setUint8(3, 255);
+        dv.setUint8(2, cmapFlat[idx*4+2]); dv.setUint8(3, cmapFlat[idx*4+3]);
       } else { dv.setUint8(0, idx); dv.setUint8(1, idx); dv.setUint8(2, idx); dv.setUint8(3, 255); }
       lut[raw] = u32[0];
     }
@@ -2837,7 +3164,7 @@ function render({ model, el, onResize }) {
       // Handle dots are drawn unless the widget opts out (show_handles:false),
       // or the caller forces them off entirely (export redraw).
       const _handles = !o.forceNoHandles && w.show_handles !== false;
-      ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=2;
+      ovCtx.save(); ovCtx.strokeStyle=w.color||'#00e5ff'; ovCtx.lineWidth=(w.linewidth!=null?w.linewidth:2);
       if(w.type==='circle'){
         const [ccx,ccy]=_imgToCanvas2d(w.cx,w.cy,st,imgW,imgH);
         ovCtx.beginPath(); ovCtx.arc(ccx,ccy,w.r*scale,0,Math.PI*2); ovCtx.stroke();
@@ -2887,7 +3214,6 @@ function render({ model, el, onResize }) {
         // reusing the head math from the static 'arrows' marker branch.
         const [tx,ty]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
         const [hx,hy]=_imgToCanvas2d(w.x+w.u,w.y+w.v,st,imgW,imgH);
-        ovCtx.lineWidth=(w.linewidth!=null?w.linewidth:2);
         ovCtx.fillStyle=w.color||'#00e5ff';
         const ang=Math.atan2(hy-ty,hx-tx), HL=10;
         ovCtx.beginPath();ovCtx.moveTo(tx,ty);ovCtx.lineTo(hx,hy);ovCtx.stroke();
@@ -5500,20 +5826,33 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       linestyle: ex.linestyle||'solid',
       marker: ex.marker||'none', ms: ex.markersize||4,
     });
+    p._legendRect = null; // consumed by the 1D double-click legend hit-test
     if(labels.length){
-      ctx.font='10px monospace'; let ly=r.y+6;
+      const legFs = st.legend_fontsize||10;
+      const legScale = legFs/10;
+      const rowH = Math.round(legFs*1.6);
+      const swatchX0 = r.x+Math.round(8*legScale), swatchX1 = r.x+Math.round(24*legScale);
+      const markerX = r.x+Math.round(16*legScale), textX = r.x+Math.round(28*legScale);
+      ctx.font=legFs+'px monospace'; let ly=r.y+6;
+      let legendMaxTextW = 0;
+      const legendTop = ly;
       for(const lb of labels){
         const ldash=_LINESTYLE_DASH[lb.linestyle||'solid']||[];
         ctx.strokeStyle=lb.color; ctx.lineWidth=2;
         ctx.setLineDash(ldash);
-        ctx.beginPath(); ctx.moveTo(r.x+8,ly+5); ctx.lineTo(r.x+24,ly+5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(swatchX0,ly+5); ctx.lineTo(swatchX1,ly+5); ctx.stroke();
         ctx.setLineDash([]);
         if(lb.marker && lb.marker!=='none'){
           ctx.strokeStyle=lb.color; ctx.fillStyle=lb.color; ctx.lineWidth=1.5;
-          ctx.beginPath(); _drawMarkerSymbol(ctx,lb.marker,r.x+16,ly+5,Math.min(lb.ms||4,4)); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); _drawMarkerSymbol(ctx,lb.marker,markerX,ly+5,Math.min(lb.ms||4,4)); ctx.fill(); ctx.stroke();
         }
-        ctx.fillStyle=theme.tickText;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(lb.text,r.x+28,ly);ly+=16;
+        ctx.fillStyle=theme.tickText;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(lb.text,textX,ly);
+        legendMaxTextW = Math.max(legendMaxTextW, ctx.measureText(lb.text).width);
+        ly+=rowH;
       }
+      // Cache the legend's on-canvas bounding box for the 1D double-click
+      // legend hit-test (see the dblclick handler in _attachEvents1d).
+      p._legendRect = {x: r.x, y: legendTop, w: (textX-r.x)+legendMaxTextW, h: ly-legendTop};
     }
 
     const title1d=st.title||'';
@@ -5544,7 +5883,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     for(const w of widgets){
       if(w.visible === false) continue;
       const color=w.color||'#00e5ff';
-      ovCtx.save();ovCtx.strokeStyle=color;ovCtx.lineWidth=2;
+      ovCtx.save();ovCtx.strokeStyle=color;ovCtx.lineWidth=(w.linewidth!=null?w.linewidth:2);
       if(w.type==='vline'){
         const px=_fracToPx1d(_axisValToFrac(xArr,w.x),x0,x1,r);
         ovCtx.setLineDash([5,3]);ovCtx.beginPath();ovCtx.moveTo(px,r.y);ovCtx.lineTo(px,r.y+r.h);ovCtx.stroke();ovCtx.setLineDash([]);
@@ -6363,6 +6702,68 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/_ih):imgY;
       _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,img_x:imgX,img_y:imgY,xdata:physX,ydata:physY});
     });
+
+    // ── Tagged chrome double-clicks ──────────────────────────────────────────
+    // The axis gutters, colorbar strip and title band are SEPARATE canvases
+    // from the plot-area overlay above.  Double-clicking one emits a
+    // `double_click` with a `target` field so a host can tell WHICH text
+    // element was hit (axis label vs ticks vs title vs colorbar label).  The
+    // zone splits mirror the metrics the draw code (_drawAxes2d) uses:
+    //   • x gutter (xAxisCanvas, height PAD_B): the x_label is drawn along the
+    //     BOTTOM (baseline ah-2) at `x_label_size` px, so the bottom band of
+    //     height ceil(x_label_size)+3 is 'x_label'; everything above is
+    //     'x_ticks'.  No label → whole gutter is 'x_ticks'.
+    //   • y gutter (yAxisCanvas, width PAD_L): the y_label is drawn rotated in
+    //     the LEFT strip; its horizontal reach is the same
+    //     max(round(PAD_L*0.15), ceil(y_label_size*0.62)+1) translate plus the
+    //     glyph half-height, so the left band of width ceil(y_label_size)+3 is
+    //     'y_label'; the rest is 'y_ticks'.  No label → whole gutter 'y_ticks'.
+    //   • colorbar (cbCanvas) → 'colorbar_label' everywhere on the strip.
+    //   • title band (titleCanvas, height _padT) → 'title'; emits nothing
+    //     outside the drawn band (there is none — the canvas IS the band).
+    // Do NOT preventDefault (keeps the native click→dblclick cascade intact,
+    // matching the plot-area handler).
+    if (p.xAxisCanvas) {
+      p.xAxisCanvas.addEventListener('dblclick', (e) => {
+        const st = p.state; if (!st) return;
+        const labelH = st.x_label ? Math.ceil(st.x_label_size || 11) + 3 : 0;
+        const ah = p.xAxisCanvas.clientHeight || PAD_B;
+        const target = (labelH && e.offsetY >= ah - labelH) ? 'x_label' : 'x_ticks';
+        _emitEvent(p.id, 'double_click', null,
+          { ..._pointerFields(e), button: e.button, x: e.offsetX, y: e.offsetY, target });
+      });
+    }
+    if (p.yAxisCanvas) {
+      p.yAxisCanvas.addEventListener('dblclick', (e) => {
+        const st = p.state; if (!st) return;
+        const labelW = st.y_label ? Math.ceil(st.y_label_size || 11) + 3 : 0;
+        const target = (labelW && e.offsetX <= labelW) ? 'y_label' : 'y_ticks';
+        _emitEvent(p.id, 'double_click', null,
+          { ..._pointerFields(e), button: e.button, x: e.offsetX, y: e.offsetY, target });
+      });
+    }
+    if (p.cbCanvas) {
+      // cbCanvas is pointer-events:none by default (it's a passive strip) —
+      // enable so it can receive the double-click.
+      p.cbCanvas.style.pointerEvents = 'auto';
+      p.cbCanvas.addEventListener('dblclick', (e) => {
+        if (!p.state) return;
+        _emitEvent(p.id, 'double_click', null,
+          { ..._pointerFields(e), button: e.button, x: e.offsetX, y: e.offsetY,
+            target: 'colorbar_label' });
+      });
+    }
+    if (p.titleCanvas) {
+      // titleCanvas is pointer-events:none by default — enable for the dblclick.
+      p.titleCanvas.style.pointerEvents = 'auto';
+      p.titleCanvas.addEventListener('dblclick', (e) => {
+        if (!p.state) return;
+        _emitEvent(p.id, 'double_click', null,
+          { ..._pointerFields(e), button: e.button, x: e.offsetX, y: e.offsetY,
+            target: 'title' });
+      });
+    }
+
     overlayCanvas.addEventListener('wheel',(e)=>{
       _emitEvent(p.id,'wheel',null,{
         time_stamp:performance.now()/1000,
@@ -6616,6 +7017,37 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         let dMin=(p._1dDMin!=null?p._1dDMin:st.data_min), dMax=(p._1dDMax!=null?p._1dDMax:st.data_max);
         if(dMin==null && st.y_range && st.y_range.length===2){ dMin=st.y_range[0]; dMax=st.y_range[1]; }
         if(dMin!=null && dMax!=null) ydata=dMin+((r.y+r.h-my)/(r.h||1))*(dMax-dMin);
+
+        // ── Tagged chrome hit-tests (priority order) ─────────────────────────
+        // The 1D panel is a SINGLE canvas: the plot rect `r` plus the title
+        // strip (top), the x gutter (below r) and the y gutter (left of r).
+        // Test the chrome zones first; if the cursor is over one, emit a
+        // `double_click` with the matching `target` and stop.  Metrics mirror
+        // the 1D draw code:
+        //   • legend  → inside the cached p._legendRect (canvas px).
+        //   • title   → title present AND my < r.y (the fixed PAD_T top strip
+        //               the 1D title is drawn in at baseline PAD_T/2).
+        //   • x gutter (my > r.y+r.h): bottom band of height
+        //     ceil(x_label_size)+3 → 'x_label'; rest → 'x_ticks'.
+        //   • y gutter (mx < r.x): left band of width ceil(y_label_size)+3 →
+        //     'y_label'; rest → 'y_ticks'.
+        let target=null;
+        const lr=p._legendRect;
+        if(lr && mx>=lr.x && mx<=lr.x+lr.w && my>=lr.y && my<=lr.y+lr.h){
+          target='legend';
+        } else if(st.title && my < r.y){
+          target='title';
+        } else if(my > r.y+r.h){
+          const labelH=Math.ceil(st.x_label_size||11)+3;
+          target=(my >= p.ph-labelH) ? 'x_label' : 'x_ticks';
+        } else if(mx < r.x){
+          const labelW=Math.ceil(st.y_label_size||11)+3;
+          target=(mx <= labelW) ? 'y_label' : 'y_ticks';
+        }
+        if(target){
+          _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,xdata,ydata,target});
+          return;
+        }
       }
       _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,xdata,ydata});
     });
@@ -7841,13 +8273,19 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const outScale = (window.devicePixelRatio || 1) * scale;
 
     // WebGPU hazard: a WebGPU canvas's drawing buffer is only valid right after
-    // its render pass.  Force a synchronous re-render of every active-GPU 2-D
-    // panel FIRST, then composite in the SAME task — so drawImage(gpuCanvas)
-    // reads freshly-rendered pixels instead of a blank/cleared buffer.
+    // its render pass.  Force a synchronous re-render of every active-GPU panel
+    // FIRST — 2-D image rasters AND 3-D geometry (draw3d's active-GPU path
+    // uploads + submits its render pass in-task, no rAF) — then composite in
+    // the SAME task, so drawImage(gpuCanvas) reads freshly-rendered pixels
+    // instead of a blank/cleared buffer.  Without the 3-D branch a scatter3d/
+    // voxels panel exports as an empty background rectangle.
     for (const p of panels.values()) {
-      if (p.kind === '2d' && p._gpu === 'active' && p._gpuImg
-          && p.gpuCanvas && p.gpuCanvas.style.display !== 'none') {
+      if (p._gpu !== 'active' || !p.gpuCanvas
+          || p.gpuCanvas.style.display === 'none') continue;
+      if (p.kind === '2d' && p._gpuImg) {
         try { draw2d(p); } catch (_) {}
+      } else if (p.kind === '3d' && p._gpuObj) {
+        try { draw3d(p); } catch (_) {}
       }
     }
 

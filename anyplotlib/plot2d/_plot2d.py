@@ -28,7 +28,8 @@ from anyplotlib.widgets import (
     RectangleWidget, CircleWidget, AnnularWidget,
     CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
 )
-from anyplotlib._utils import _normalize_image, _build_colormap_lut, _to_rgba_u8
+from anyplotlib._utils import (_normalize_image, _build_colormap_lut,
+                               _build_tint_lut, _to_rgba_u8)
 
 
 def _binary_transport_active() -> bool:
@@ -1178,7 +1179,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         return token, int(arr.shape[0]), int(arr.shape[1]), vmin, vmax
 
     def add_layer(self, data, *, cmap: str = "magma", alpha: float = 0.5,
-                  clim=None, visible: bool = True):
+                  clim=None, visible: bool = True, tint: str | None = None):
         """Add an image LAYER drawn over the base image.
 
         Each layer has its OWN colormap, display range (``clim``), and opacity
@@ -1194,13 +1195,23 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             uint8 via ``clim`` → LUT exactly like the base image.  A shape
             mismatch raises ``ValueError``.
         cmap : str, optional
-            Colormap name (default ``"magma"``).
+            Colormap name (default ``"magma"``).  Ignored for display while
+            ``tint`` is set (the tint LUT replaces the colormap), but kept so
+            ``set(cmap=...)`` can revert to it.
         alpha : float, optional
             Opacity in [0, 1] (default ``0.5``).
         clim : (vmin, vmax) or None, optional
             Display range; ``None`` (default) auto-scales to the data min/max.
         visible : bool, optional
             Whether the layer is drawn (default ``True``).
+        tint : str or None, optional
+            A ``#rgb`` / ``#rrggbb`` hex colour.  When set, the layer renders
+            as a clear→colour intensity ramp instead of a named colormap: RGB
+            is *tint* at every intensity and per-texel alpha ramps linearly
+            0 → 255 (transparent at low intensity → opaque tint at high).  The
+            per-texel alpha multiplies with the layer's ``alpha``.  ``None``
+            (default) keeps the named-colormap behaviour.  An invalid colour
+            raises ``ValueError``.
 
         Returns
         -------
@@ -1225,19 +1236,26 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         alpha = float(alpha)
         if not (0.0 <= alpha <= 1.0):
             raise ValueError(f"alpha must be in [0, 1], got {alpha!r}")
+        # Validate the tint (and build its LUT) BEFORE any state mutation so a
+        # bad colour raises without leaving a half-added layer behind.
+        lut = _build_tint_lut(tint) if tint is not None else _build_colormap_lut(cmap)
         layer_id = _next_layer_id()
         token, h, w, vmin, vmax = self._encode_layer_pixels(layer_id, data, clim)
         entry = {
             "id":       layer_id,
             "cmap":     cmap,
+            # Solid-colour clear→tint ramp, or None for named-cmap display.
+            # The JS keys its LUT bitmap cache on this too (lutKey).
+            "tint":     tint,
             "clim_min": vmin,
             "clim_max": vmax,
             "alpha":    alpha,
             "visible":  bool(visible),
             "width":    w,
             "height":   h,
-            # The layer's colormap LUT (256 [r,g,b]); the JS composites via this.
-            "colormap_data": _build_colormap_lut(cmap),
+            # The layer's colormap LUT — 256 [r,g,b] entries for a named cmap,
+            # 256 [r,g,b,a] entries for a tint; the JS composites via this.
+            "colormap_data": lut,
             # Mirror of the pixel token so the JS reads bytes for this layer even
             # when it only sees the light `layers` list (the heavy bytes ride the
             # geom key layer_<id>_b64, spliced into the panel state by the binary /
@@ -1260,11 +1278,21 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         raise ValueError(f"no layer {layer_id!r} on this plot")
 
     def _layer_set(self, layer_id: str, *, cmap=None, alpha=None, clim=None,
-                   visible=None) -> None:
+                   visible=None, tint=None) -> None:
         entry = self._layer_entry(layer_id)
+        if cmap is not None and tint is not None:
+            raise ValueError(
+                "pass either cmap or tint, not both — they both select the "
+                "layer's LUT (set cmap=... to revert a tinted layer to its "
+                "colormap)")
         if cmap is not None:
+            # An explicit cmap reverts a tinted layer to named-cmap display.
             entry["cmap"] = cmap
+            entry["tint"] = None
             entry["colormap_data"] = _build_colormap_lut(cmap)
+        if tint is not None:
+            entry["tint"] = tint
+            entry["colormap_data"] = _build_tint_lut(tint)
         if alpha is not None:
             a = float(alpha)
             if not (0.0 <= a <= 1.0):
@@ -1564,6 +1592,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_circle_widget(self, cx: float | None = None, cy: float | None = None,
                           r: float | None = None, color: str = "#00e5ff",
+                          linewidth: float = 2,
                           show_handles: bool = True) -> CircleWidget:
         """Add a draggable circle overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
@@ -1571,7 +1600,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                               cx=float(cx) if cx is not None else iw / 2,
                               cy=float(cy) if cy is not None else ih / 2,
                               r=float(r) if r is not None else iw * 0.1,
-                              color=color, show_handles=show_handles)
+                              color=color, linewidth=linewidth,
+                              show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1579,7 +1609,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_rectangle_widget(self, x: float | None = None, y: float | None = None,
                               w: float | None = None, h: float | None = None,
-                              color: str = "#00e5ff",
+                              color: str = "#00e5ff", linewidth: float = 2,
                               show_handles: bool = True) -> RectangleWidget:
         """Add a draggable rectangle overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
@@ -1588,7 +1618,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                  y=float(y) if y is not None else ih * 0.25,
                                  w=float(w) if w is not None else iw * 0.5,
                                  h=float(h) if h is not None else ih * 0.5,
-                                 color=color, show_handles=show_handles)
+                                 color=color, linewidth=linewidth,
+                                 show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -1596,7 +1627,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_annular_widget(self, cx: float | None = None, cy: float | None = None,
                            r_outer: float | None = None, r_inner: float | None = None,
-                           color: str = "#00e5ff",
+                           color: str = "#00e5ff", linewidth: float = 2,
                            show_handles: bool = True) -> AnnularWidget:
         """Add a draggable annular (ring) overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
@@ -1605,13 +1636,15 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                cy=float(cy) if cy is not None else ih / 2,
                                r_outer=float(r_outer) if r_outer is not None else iw * 0.2,
                                r_inner=float(r_inner) if r_inner is not None else iw * 0.1,
-                               color=color, show_handles=show_handles)
+                               color=color, linewidth=linewidth,
+                               show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
     def add_polygon_widget(self, vertices=None, color: str = "#00e5ff",
+                           linewidth: float = 2,
                            show_handles: bool = True) -> PolygonWidget:
         """Add a draggable polygon overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
@@ -1619,21 +1652,22 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             vertices = [[iw * .25, ih * .25], [iw * .75, ih * .25],
                         [iw * .75, ih * .75], [iw * .25, ih * .75]]
         widget = PolygonWidget(lambda: None, vertices=vertices, color=color,
-                               show_handles=show_handles)
+                               linewidth=linewidth, show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
     def add_crosshair_widget(self, cx: float | None = None, cy: float | None = None,
-                              color: str = "#00e5ff",
+                              color: str = "#00e5ff", linewidth: float = 2,
                               show_handles: bool = True) -> CrosshairWidget:
         """Add a draggable crosshair overlay."""
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CrosshairWidget(lambda: None,
                                  cx=float(cx) if cx is not None else iw / 2,
                                  cy=float(cy) if cy is not None else ih / 2,
-                                 color=color, show_handles=show_handles)
+                                 color=color, linewidth=linewidth,
+                                 show_handles=show_handles)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()

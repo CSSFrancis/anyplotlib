@@ -233,6 +233,159 @@ def test_on_event_inset_state_restore_via_event():
     assert inset.inset_state == "normal"
 
 
+# ── set_geometry (drag / resize state API) ───────────────────────────────────
+
+def test_set_geometry_anchor_updates_state_and_layout():
+    """set_geometry(anchor=...) switches to free placement (drops corner) and
+    serializes the new anchor into layout_json."""
+    fig   = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, corner="top-right")
+    plot  = inset.imshow(np.zeros((32, 32)))
+
+    ret = inset.set_geometry(anchor=(0.4, 0.15))
+
+    assert ret is inset                        # chaining
+    assert inset.anchor == (0.4, 0.15)
+    assert inset.corner is None
+    spec = _inset_spec(fig, plot._id)
+    assert spec["anchor"] == [0.4, 0.15]
+    assert spec["corner"] is None
+
+
+def test_set_geometry_size_updates_fracs_and_panel_px():
+    """set_geometry(w_frac/h_frac) updates the size fractions and the derived
+    panel_width/height in layout_json."""
+    fig   = _make_fig()   # 640x480
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    plot  = inset.imshow(np.zeros((32, 32)))
+
+    inset.set_geometry(w_frac=0.4, h_frac=0.25)
+
+    assert inset.w_frac == 0.4
+    assert inset.h_frac == 0.25
+    spec = _inset_spec(fig, plot._id)
+    assert spec["w_frac"] == 0.4
+    assert spec["h_frac"] == 0.25
+    assert spec["panel_width"]  == max(64, round(640 * 0.4))
+    assert spec["panel_height"] == max(64, round(480 * 0.25))
+
+
+def test_set_geometry_clamps_anchor_and_size():
+    """Anchor fractions clamp into [0, 1]; sizes clamp into (0, 1]."""
+    fig   = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, corner="top-right")
+    inset.imshow(np.zeros((32, 32)))
+
+    inset.set_geometry(anchor=(1.5, -0.2), w_frac=2.0, h_frac=-1.0)
+    assert inset.anchor == (1.0, 0.0)
+    assert inset.w_frac == 1.0
+    # negative/zero clamps to the tiny positive floor, not to 0.
+    assert 0.0 < inset.h_frac <= 1e-6
+
+
+def test_set_geometry_partial_leaves_others_unchanged():
+    """Omitting a dimension leaves it unchanged; omitting anchor keeps the
+    existing placement."""
+    fig   = _make_fig()
+    inset = fig.add_inset(0.3, 0.25, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((32, 32)))
+
+    inset.set_geometry(w_frac=0.45)
+    assert inset.w_frac == 0.45
+    assert inset.h_frac == 0.25          # unchanged
+    assert inset.anchor == (0.5, 0.1)    # placement unchanged
+    assert inset.corner is None
+
+
+def test_set_geometry_bad_anchor_raises():
+    fig   = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, corner="top-right")
+    inset.imshow(np.zeros((32, 32)))
+    with pytest.raises(ValueError, match="anchor"):
+        inset.set_geometry(anchor=(0.1,))          # not a pair
+    with pytest.raises(ValueError, match="finite"):
+        inset.set_geometry(anchor=(float("nan"), 0.2))
+    with pytest.raises(ValueError, match="w_frac"):
+        inset.set_geometry(w_frac=float("inf"))
+
+
+# ── inset_geometry_change event (JS→Python path) ─────────────────────────────
+
+def test_on_event_inset_geometry_change():
+    """A simulated JS inset_geometry_change updates the InsetAxes geometry AND
+    delivers a figure-level Event carrying inset_id / anchor / w_frac / h_frac."""
+    fig   = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, corner="top-right")
+    plot  = inset.imshow(np.zeros((32, 32)))
+
+    seen = []
+    fig.add_event_handler(lambda ev: seen.append(ev), "inset_geometry_change")
+
+    fig._dispatch_event(json.dumps({
+        "source":     "js",
+        "panel_id":   plot._id,
+        "event_type": "inset_geometry_change",
+        "anchor":     [0.1, 0.2],
+        "w_frac":     0.4,
+        "h_frac":     0.3,
+    }))
+
+    # Python-side geometry converged.
+    assert inset.anchor == (0.1, 0.2)
+    assert inset.corner is None
+    assert inset.w_frac == 0.4
+    assert inset.h_frac == 0.3
+    spec = _inset_spec(fig, plot._id)
+    assert spec["anchor"] == [0.1, 0.2]
+
+    # Figure-level handler received the geometry.
+    assert len(seen) == 1
+    ev = seen[0]
+    assert ev.event_type == "inset_geometry_change"
+    assert ev.inset_id == plot._id
+    assert ev.anchor == [0.1, 0.2]
+    assert ev.w_frac == 0.4
+    assert ev.h_frac == 0.3
+
+
+def test_on_event_inset_geometry_change_unknown_panel_still_fires():
+    """An event for an unregistered inset id fires the figure callback but
+    touches no InsetAxes (defensive: host may have removed the inset)."""
+    fig = _make_fig()
+    seen = []
+    fig.add_event_handler(lambda ev: seen.append(ev), "inset_geometry_change")
+
+    fig._dispatch_event(json.dumps({
+        "source":     "js",
+        "panel_id":   "nope1234",
+        "event_type": "inset_geometry_change",
+        "anchor":     [0.1, 0.2],
+        "w_frac":     0.4,
+        "h_frac":     0.3,
+    }))
+    assert len(seen) == 1
+    assert seen[0].inset_id == "nope1234"
+
+
+def test_inset_geometry_fields_none_on_other_figure_events():
+    """The new Event fields default to None for non-geometry figure events."""
+    fig = _make_fig()
+    seen = []
+    fig.add_event_handler(lambda ev: seen.append(ev), "pointer_down")
+    fig._dispatch_event(json.dumps({
+        "source":           "js",
+        "panel_id":         "",
+        "event_type":       "pointer_down",
+        "figure_background": True,
+    }))
+    assert len(seen) == 1
+    ev = seen[0]
+    assert ev.inset_id is None
+    assert ev.anchor is None
+    assert ev.w_frac is None
+    assert ev.h_frac is None
+
+
 # ── figure resize updates inset dimensions ───────────────────────────────────
 
 def test_resize_updates_inset_panel_size():

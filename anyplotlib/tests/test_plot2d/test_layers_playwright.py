@@ -220,6 +220,113 @@ class TestLayerBlend:
         )
 
 
+class TestTintedLayer:
+    """tint= layers: clear→colour ramp composited via per-texel LUT alpha."""
+
+    def test_tint_ramp_transparent_low_opaque_high(self, mount_page):
+        """A half-0 / half-1 tinted layer (alpha=1) must show the OPAQUE tint
+        colour where intensity is high and the untouched base where intensity
+        is low (per-texel alpha 0 → fully transparent)."""
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        # Mid-gray base (distinct from the page/theme background).
+        p = ax.imshow(np.full((32, 32), 0.5, np.float32),
+                      cmap="gray", vmin=0.0, vmax=1.0, gpu=False)
+        data = np.zeros((32, 32), np.float32)
+        data[:, 16:] = 1.0                       # right half at clim top
+        p.add_layer(data, tint="#ff0000", alpha=1.0, clim=(0, 1))
+
+        base_mid = np.array(_lut_endpoint("gray", 127), np.float64)  # ~mid gray
+        red = np.array([255, 0, 0], np.float64)
+
+        page = mount_page(fig)
+        res = _export(page)
+        assert "error" not in res, res.get("error")
+        arr = _decode(res["dataUrl"])
+        npx = arr.shape[0] * arr.shape[1]
+
+        # Opaque tint where intensity is high (right half of the fit-rect).
+        assert _count_near(arr, red) > 0.08 * npx, (
+            "opaque tint colour missing where layer intensity is high"
+        )
+        # Untouched base where intensity is low (alpha-0 texels draw nothing).
+        assert _count_near(arr, base_mid) > 0.08 * npx, (
+            "base colour not visible where layer intensity is low — "
+            "alpha-0 texels are not transparent"
+        )
+
+    def test_texel_alpha_multiplies_with_layer_alpha(self, mount_page):
+        """Per-texel LUT alpha (255 at clim top) × layer alpha 0.5 must give
+        the 50 % base⊕tint blend — proving the two alphas compose (ImageData is
+        unpremultiplied; globalAlpha multiplies at drawImage time)."""
+        alpha = 0.5
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        p = ax.imshow(np.full((32, 32), 0.5, np.float32),
+                      cmap="gray", vmin=0.0, vmax=1.0, gpu=False)
+        p.add_layer(np.full((32, 32), 1.0, np.float32),
+                    tint="#ff0000", alpha=alpha, clim=(0, 1))
+
+        base_mid = np.array(_lut_endpoint("gray", 127), np.float64)
+        red = np.array([255, 0, 0], np.float64)
+        expected = np.round(base_mid * (1 - alpha) + red * alpha)
+
+        page = mount_page(fig)
+        arr = _decode(_export(page)["dataUrl"])
+        centre = _center_rgb(arr)
+        d = int(np.max(np.abs(centre - expected)))
+        assert d <= 16, (
+            f"centre {centre.tolist()} != blend {expected.tolist()} (dmax={d})"
+        )
+
+    def test_set_tint_live_updates_composite(self, mount_page):
+        """Toggling tint via layer.set() must invalidate the JS LUT-bitmap
+        cache (lutKey) and repaint in the new colour."""
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        p = ax.imshow(np.full((32, 32), 0.5, np.float32),
+                      cmap="gray", vmin=0.0, vmax=1.0, gpu=False)
+        lyr = p.add_layer(np.full((32, 32), 1.0, np.float32),
+                          tint="#ff0000", alpha=1.0, clim=(0, 1))
+        page = mount_page(fig)
+        before = _center_rgb(_decode(_export(page)["dataUrl"]))
+        assert int(np.max(np.abs(before - [255, 0, 0]))) <= 16, (
+            f"initial tint not red: {before.tolist()}"
+        )
+
+        lyr.set(tint="#00ff00")
+        _set_panel(page, p)
+        _flush(page)
+        after = _center_rgb(_decode(_export(page)["dataUrl"]))
+        assert int(np.max(np.abs(after - [0, 255, 0]))) <= 16, (
+            f"tint change did not repaint (still {after.tolist()}) — stale "
+            "lutKey cache?"
+        )
+
+    def test_set_cmap_reverts_tint_to_opaque_cmap(self, mount_page):
+        """set(cmap=...) clears the tint: low-intensity texels go back to the
+        OPAQUE cmap colour (a 3-channel LUT defaults alpha to 255)."""
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        p = ax.imshow(np.full((32, 32), 0.5, np.float32),
+                      cmap="gray", vmin=0.0, vmax=1.0, gpu=False)
+        # Zero-intensity tinted layer → fully transparent → base shows.
+        lyr = p.add_layer(np.zeros((32, 32), np.float32),
+                          tint="#ff0000", alpha=1.0, clim=(0, 1))
+        page = mount_page(fig)
+        base_mid = np.array(_lut_endpoint("gray", 127), np.int32)
+        tinted = _center_rgb(_decode(_export(page)["dataUrl"]))
+        assert int(np.max(np.abs(tinted - base_mid))) <= 16, (
+            f"alpha-0 tinted layer altered the base: {tinted.tolist()}"
+        )
+
+        lyr.set(cmap="magma")
+        _set_panel(page, p)
+        _flush(page)
+        reverted = _center_rgb(_decode(_export(page)["dataUrl"]))
+        cmap_lo = np.array(_lut_endpoint("magma", 0), np.int32)  # opaque dark
+        assert int(np.max(np.abs(reverted - cmap_lo))) <= 16, (
+            f"cmap revert did not restore opaque colormap display: "
+            f"{reverted.tolist()} != {cmap_lo.tolist()}"
+        )
+
+
 def _set_panel(page, plot):
     """Push the plot's CURRENT state into the mounted figure, splitting the geom
     channel exactly like ``Figure._push`` does (base64-resolved pixels, since the

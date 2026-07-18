@@ -269,6 +269,126 @@ def test_two_insets_two_indications():
     assert ids == {i1._plot._id, i2._plot._id}
 
 
+# ── indicate_point ─────────────────────────────────────────────────────────
+
+def test_indicate_point_state():
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.55, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+    inset.indicate_point(ax._plot, (20, 30), color="#00ff00",
+                         linestyle="solid", linewidth=2.0, marker_size=7.0)
+
+    ind = json.loads(fig.layout_json)["indications"][0]
+    assert ind["inset_id"] == inset._plot._id
+    assert ind["parent_id"] == ax._plot._id
+    assert ind["point"] == [20.0, 30.0]
+    assert "region" not in ind
+    assert ind["color"] == "#00ff00"
+    assert ind["linestyle"] == "solid"
+    assert ind["linewidth"] == 2.0
+    assert ind["marker_size"] == 7.0
+    assert inset.indication["point"] == [20.0, 30.0]
+
+
+def test_indicate_point_defaults():
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, corner="top-right")
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+    inset.indicate_point(ax._plot, (5, 5))
+    ind = json.loads(fig.layout_json)["indications"][0]
+    assert ind["color"] == "#ff9800"
+    assert ind["linestyle"] == "dashed"
+    assert ind["linewidth"] == 1.5
+    assert ind["marker_size"] == 5.0
+
+
+def test_indicate_point_replaces_region_and_vice_versa():
+    """point and region share the one _indication slot — each replaces the
+    other (an inset carries at most one indication)."""
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.55, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+    inset.indicate_region(ax._plot, (10, 10, 20, 20))
+    inset.indicate_point(ax._plot, (40, 40))
+    inds = json.loads(fig.layout_json)["indications"]
+    assert len(inds) == 1
+    assert inds[0]["point"] == [40.0, 40.0] and "region" not in inds[0]
+
+    inset.indicate_region(ax._plot, (1, 2, 3, 4))
+    inds = json.loads(fig.layout_json)["indications"]
+    assert len(inds) == 1
+    assert inds[0]["region"] == [1.0, 2.0, 3.0, 4.0] and "point" not in inds[0]
+
+
+def test_clear_indication_clears_point():
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.55, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+    inset.indicate_point(ax._plot, (10, 10))
+    inset.clear_indication()
+    assert json.loads(fig.layout_json)["indications"] == []
+    assert inset.indication is None
+
+
+def test_indicate_point_bad_parent_raises():
+    fig, _ = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+    class _NoId:
+        pass
+
+    with pytest.raises(ValueError, match="panel id"):
+        inset.indicate_point(_NoId(), (0, 0))
+
+
+def test_indicate_point_foreign_figure_parent_raises():
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+    other_fig, other_ax = _make_fig()
+    with pytest.raises(ValueError, match="not registered"):
+        inset.indicate_point(other_ax._plot, (0, 0))
+    assert inset.indication is None
+
+
+@pytest.mark.parametrize("point", [
+    (float("nan"), 0),
+    (0, float("nan")),
+    (float("inf"), 0),
+    (0, 1, 2),            # wrong length (too many)
+    (0,),                 # wrong length (too few)
+    "nope",
+])
+def test_indicate_point_degenerate_point_raises(point):
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+    with pytest.raises(ValueError):
+        inset.indicate_point(ax._plot, point)
+
+
+@pytest.mark.parametrize("ms", [0, -1, float("nan"), float("inf")])
+def test_indicate_point_bad_marker_size_raises(ms):
+    fig, ax = _make_fig()
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+    with pytest.raises(ValueError, match="marker_size"):
+        inset.indicate_point(ax._plot, (5, 5), marker_size=ms)
+
+
+def test_indicate_point_out_of_bounds_is_allowed():
+    """Same policy as indicate_region: outside the parent's data bounds is a
+    visual-clipping concern, not a validation error."""
+    fig, ax = _make_fig()   # parent image is 64x64
+    inset = fig.add_inset(0.3, 0.3, anchor=(0.5, 0.1))
+    inset.imshow(np.zeros((16, 16), dtype=np.float32))
+    inset.indicate_point(ax._plot, (1000, 1000))
+    assert inset.indication["point"] == [1000.0, 1000.0]
+
+
 # ── figure_state / save_html round-trip ───────────────────────────────────
 
 def test_indication_survives_figure_state_roundtrip():
@@ -451,6 +571,166 @@ class TestAnchoredPlacement:
         assert abs(rect["width"] - 0.30 * 640) <= 4, rect
 
 
+# ── title-bar auto-hide (empty-title insets have no header strip) ──────────
+
+def _inset_page_rect(page, plot_id):
+    """Absolute PAGE coordinates of the inset's insetDiv (for page.mouse.*)."""
+    return page.evaluate(
+        """(pid) => {
+            const p = window._handle.api.panels.get(pid);
+            const r = p.insetDiv.getBoundingClientRect();
+            return {left: r.left, top: r.top, width: r.width, height: r.height};
+        }""",
+        plot_id,
+    )
+
+
+def _title_bar_info(page, plot_id):
+    """Return {display, height, insetH, contentH} for the given inset's DOM."""
+    return page.evaluate(
+        """(pid) => {
+            const p = window._handle.api.panels.get(pid);
+            const tb = p.titleBar;
+            const cs = getComputedStyle(tb);
+            return {
+                display: cs.display,
+                tbHeight: tb.getBoundingClientRect().height,
+                insetHeight: p.insetDiv.getBoundingClientRect().height,
+                contentHeight: p.contentDiv.getBoundingClientRect().height,
+            };
+        }""",
+        plot_id,
+    )
+
+
+class TestInsetTitleBarAutoHide:
+    """An inset with no title (default) renders with NO title-bar strip at
+    all — a clean bordered plot box, content filling the whole area.  A
+    titled inset keeps its bar (and click-to-minimize on it)."""
+
+    def test_default_title_has_no_bar(self, mount_page):
+        """title omitted (default "") → title bar is display:none and the
+        inset's total height equals just the content height (no header gap)."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1))  # no title=
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "none", info
+        assert info["tbHeight"] == 0, info
+        # No phantom header gap: inset box height == content height, modulo
+        # the insetDiv's own 1px top+bottom border (getBoundingClientRect
+        # includes the border box).
+        assert abs(info["insetHeight"] - info["contentHeight"]) <= 2, info
+
+    def test_empty_string_title_has_no_bar(self, mount_page):
+        """Explicit title="" behaves the same as omitting it."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "none", info
+
+    def test_whitespace_title_has_no_bar(self, mount_page):
+        """A whitespace-only title counts as empty (trimmed before the check)."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="   ")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "none", info
+
+    def test_titled_inset_keeps_bar(self, mount_page):
+        """A non-empty title still renders its title-bar strip as before."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="Zoom")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        info = _title_bar_info(page, plot._id)
+        assert info["display"] == "flex", info
+        assert info["tbHeight"] > 0, info
+        # Titled inset box is taller than its content (title strip on top).
+        assert info["insetHeight"] > info["contentHeight"], info
+
+    def test_titled_inset_click_still_minimizes(self, mount_page):
+        """Clicking the title bar of a TITLED inset still toggles minimize —
+        the auto-hide change must not break the existing affordance.
+
+        The click handler (a) optimistically collapses contentDiv locally via
+        _applyAllInsetStates and (b) emits inset_state_change on event_json —
+        there is no live Python bridge in this harness to push an updated
+        layout_json back, so assert on those two directly-observable effects
+        rather than layout_json (which only a real host round-trip updates).
+        """
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.30, 0.25, anchor=(0.1, 0.1), title="Zoom")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        rect = _inset_page_rect(page, plot._id)
+        page.mouse.click(rect["left"] + rect["width"] / 2, rect["top"] + 5)
+        page.wait_for_timeout(80)
+
+        content_display = page.evaluate(
+            """(pid) => window._handle.api.panels.get(pid).contentDiv.style.display""",
+            plot._id,
+        )
+        assert content_display == "none", content_display
+
+        # event_json is a synced trait; read it directly since this harness
+        # has no onEvent callback wired.
+        last_event = page.evaluate(
+            "() => { try { return JSON.parse(window._handle.get('event_json')); } "
+            "catch(_) { return null; } }"
+        )
+        assert last_event is not None
+        assert last_event["event_type"] == "inset_state_change"
+        assert last_event["new_state"] == "minimized"
+
+    def test_titleless_inset_body_drag_still_moves_it(self, mount_page):
+        """No title bar → no minimize affordance, but drag-to-move (edit mode)
+        still works because the drag pointerdown listens on insetDiv itself,
+        not the title bar. Real mouse drag on the content area must emit
+        inset_geometry_change with a shifted anchor."""
+        fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+        ax.imshow(np.zeros((64, 64), dtype=np.float32))
+        inset = fig.add_inset(0.25, 0.22, anchor=(0.1, 0.1))  # title-less
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32))
+
+        page = mount_page(fig)
+        page.evaluate("() => { window._handle.set('edit_chrome', true); }")
+        page.wait_for_timeout(60)
+
+        rect = _inset_page_rect(page, plot._id)
+        cx = rect["left"] + rect["width"] / 2
+        cy = rect["top"] + rect["height"] / 2
+
+        page.mouse.move(cx, cy)
+        page.mouse.down()
+        page.mouse.move(cx + 40, cy + 25, steps=10)
+        page.mouse.up()
+        page.wait_for_timeout(120)
+
+        # Read the authoritative anchor back off the model (the mount() bridge
+        # writes inset_geometry_change to event_json; simplest robust check is
+        # that the DOM actually moved to the new position).
+        new_rect = _inset_page_rect(page, plot._id)
+        assert abs(new_rect["left"] - rect["left"]) > 15 or \
+            abs(new_rect["top"] - rect["top"]) > 15, (
+            f"title-less inset body drag did not move it: before={rect} after={new_rect}"
+        )
+
+
 class TestCalloutRendering:
     def test_dashed_rect_and_leaders_present(self, mount_page):
         """The callout canvas paints lime ink spanning FROM the parent region
@@ -596,6 +876,97 @@ class TestCalloutRendering:
             f"an empty overlay is the largest canvas (shadows panels): {info}")
         assert info["largestPx"] > 0, (
             f"largest canvas has no rendered content: {info}")
+
+
+def _point_callout_fig(color="#00ff00", point=(8, 8), anchor=(0.55, 0.55)):
+    """640×480 image + anchored inset with a bright point indication."""
+    fig, ax = apl.subplots(1, 1, figsize=(640, 480))
+    parent = ax.imshow(np.zeros((64, 64), dtype=np.float32),
+                       cmap="gray", vmin=0.0, vmax=1.0)
+    inset = fig.add_inset(0.30, 0.30, anchor=anchor, title="Point")
+    inset.imshow(np.zeros((32, 32), dtype=np.float32))
+    inset.indicate_point(parent, point, color=color, linewidth=2.5,
+                         marker_size=6.0)
+    return fig, ax, parent, inset
+
+
+class TestPointCalloutRendering:
+    def test_marker_and_leader_present(self, mount_page):
+        """Lime ink spans FROM the marked point (top-left of the parent) TO the
+        inset (bottom-right) — i.e. marker + leader both drew."""
+        fig, ax, parent, inset = _point_callout_fig(point=(8, 8),
+                                                    anchor=(0.55, 0.55))
+        page = mount_page(fig)
+
+        bbox = _color_bbox(page, (0, 255, 0))
+        assert bbox is not None, "no lime point-callout pixels found"
+        assert bbox["count"] > 20, f"too little callout ink: {bbox}"
+        # Marker sits near the parent's top-left; the leader reaches toward the
+        # inset anchored at (0.55, 0.55) → wide diagonal span in BOTH axes.
+        assert bbox["minX"] < 0.25 * 640, f"marker not near top-left: {bbox}"
+        assert bbox["minY"] < 0.30 * 480, f"marker not near top-left: {bbox}"
+        assert bbox["maxX"] >= 0.55 * 640 - 6, (
+            f"leader doesn't reach the inset's left edge: {bbox}")
+        assert bbox["maxY"] >= 0.55 * 480 - 6, (
+            f"leader doesn't reach the inset's top edge: {bbox}")
+
+    def test_minimize_hides_leader_keeps_marker(self, mount_page):
+        fig, ax, parent, inset = _point_callout_fig(point=(8, 8),
+                                                    anchor=(0.55, 0.55))
+        page = mount_page(fig)
+        full = _color_bbox(page, (0, 255, 0))
+        assert full is not None
+
+        page.evaluate(
+            """(pid) => {
+                const layout = JSON.parse(window._handle.get('layout_json'));
+                for (const s of layout.inset_specs)
+                    if (s.id === pid) s.inset_state = 'minimized';
+                window._handle.set('layout_json', JSON.stringify(layout));
+            }""",
+            inset._plot._id,
+        )
+        page.evaluate("() => new Promise(r => requestAnimationFrame("
+                      "() => requestAnimationFrame(() => requestAnimationFrame(r))))")
+
+        mini = _color_bbox(page, (0, 255, 0))
+        assert mini is not None, "marker vanished when minimized (should stay)"
+        # The leader reached toward the inset; minimized ink is just the small
+        # marker, so the ink extent collapses back toward the point.
+        assert mini["maxX"] < full["maxX"] - 15, (
+            f"leader still present when minimized: full={full} mini={mini}")
+        assert (mini["maxX"] - mini["minX"]) < 30, (
+            f"minimized ink wider than a marker: {mini}")
+
+    def test_marker_tracks_parent_zoom(self, mount_page):
+        """Zooming the parent moves the marker (mapped through the parent's
+        data→screen transform every draw)."""
+        fig, ax, parent, inset = _point_callout_fig(point=(8, 8),
+                                                    anchor=(0.55, 0.55))
+        page = mount_page(fig)
+        before = _color_bbox(page, (0, 255, 0))
+        assert before is not None
+
+        _set_parent_view(page, parent._id, zoom=2.0, cx=0.5, cy=0.5)
+        after = _color_bbox(page, (0, 255, 0))
+        assert after is not None, "point callout gone after zoom"
+        shift = ((after["minX"] - before["minX"]) ** 2
+                 + (after["minY"] - before["minY"]) ** 2) ** 0.5
+        assert shift > 15, (
+            f"marker did not move on zoom (shift={shift:.1f}px): "
+            f"before={before} after={after}")
+
+    def test_export_png_includes_point_indication(self, mount_page):
+        fig, ax, parent, inset = _point_callout_fig(point=(20, 20),
+                                                    anchor=(0.55, 0.1))
+        page = mount_page(fig)
+        res = page.evaluate(
+            "() => window._handle.exportPNG({}).then(r => ({dataUrl:r.dataUrl}))")
+        raw = base64.b64decode(res["dataUrl"].split(",", 1)[1])
+        arr = decode_png(raw)
+        d = np.abs(arr[..., :3].astype(np.int32) - np.array([0, 255, 0]))
+        n = int(((d <= 40).all(axis=-1)).sum())
+        assert n > 20, f"point indication missing from export ({n} lime px)"
 
 
 class TestCalloutExport:

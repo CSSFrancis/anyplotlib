@@ -29,7 +29,7 @@ from anyplotlib.callbacks import Event
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,
     CrosshairWidget, PolygonWidget, LabelWidget,
-    VLineWidget, HLineWidget, RangeWidget,
+    VLineWidget, HLineWidget, RangeWidget, PointWidget,
 )
 
 
@@ -1378,3 +1378,198 @@ class TestInteractiveFitting:
         _simulate_js_event(fig, plot, "pointer_down", line_id="no-such-line")
         assert ctrls[0]._active is False
         assert ctrls[1]._active is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 8. linewidth kwarg — 2-D and 1-D overlay widgets
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestWidgetLinewidth:
+    """linewidth is stored in _data exactly like color: defaults to 2, is
+    overridable at construction, round-trips through Widget.set(), and is
+    forwarded by every Plot2D/Plot1D add_*_widget factory."""
+
+    # ── 2-D widget constructors: default + custom ──────────────────────────
+
+    def test_rectangle_default_linewidth(self):
+        w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_rectangle_custom_linewidth(self):
+        w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10, linewidth=4)
+        assert w.linewidth == 4.0
+        assert w.to_dict()["linewidth"] == 4.0
+
+    def test_circle_default_linewidth(self):
+        w = CircleWidget(lambda: None, cx=0, cy=0, r=5)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_circle_custom_linewidth(self):
+        w = CircleWidget(lambda: None, cx=0, cy=0, r=5, linewidth=5)
+        assert w.linewidth == 5.0
+        assert w.to_dict()["linewidth"] == 5.0
+
+    def test_annular_default_linewidth(self):
+        w = AnnularWidget(lambda: None, cx=0, cy=0, r_outer=10, r_inner=5)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_annular_custom_linewidth(self):
+        w = AnnularWidget(lambda: None, cx=0, cy=0, r_outer=10, r_inner=5,
+                          linewidth=3.5)
+        assert w.linewidth == 3.5
+        assert w.to_dict()["linewidth"] == 3.5
+
+    def test_crosshair_default_linewidth(self):
+        w = CrosshairWidget(lambda: None, cx=0, cy=0)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_crosshair_custom_linewidth(self):
+        w = CrosshairWidget(lambda: None, cx=0, cy=0, linewidth=1)
+        assert w.linewidth == 1.0
+        assert w.to_dict()["linewidth"] == 1.0
+
+    def test_polygon_default_linewidth(self):
+        w = PolygonWidget(lambda: None, vertices=[[0, 0], [1, 0], [1, 1]])
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_polygon_custom_linewidth(self):
+        w = PolygonWidget(lambda: None, vertices=[[0, 0], [1, 0], [1, 1]],
+                          linewidth=6)
+        assert w.linewidth == 6.0
+        assert w.to_dict()["linewidth"] == 6.0
+
+    # ── 1-D widget constructors: default + custom ──────────────────────────
+
+    def test_vline_default_linewidth(self):
+        w = VLineWidget(lambda: None, x=1.0)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_vline_custom_linewidth(self):
+        w = VLineWidget(lambda: None, x=1.0, linewidth=3)
+        assert w.linewidth == 3.0
+        assert w.to_dict()["linewidth"] == 3.0
+
+    def test_hline_default_linewidth(self):
+        w = HLineWidget(lambda: None, y=1.0)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_hline_custom_linewidth(self):
+        w = HLineWidget(lambda: None, y=1.0, linewidth=3)
+        assert w.linewidth == 3.0
+        assert w.to_dict()["linewidth"] == 3.0
+
+    def test_range_default_linewidth(self):
+        w = RangeWidget(lambda: None, x0=0, x1=10)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_range_custom_linewidth(self):
+        w = RangeWidget(lambda: None, x0=0, x1=10, linewidth=2.5)
+        assert w.linewidth == 2.5
+        assert w.to_dict()["linewidth"] == 2.5
+
+    def test_point_default_linewidth(self):
+        w = PointWidget(lambda: None, x=0, y=0)
+        assert w.linewidth == 2.0
+        assert w.to_dict()["linewidth"] == 2.0
+
+    def test_point_custom_linewidth(self):
+        w = PointWidget(lambda: None, x=0, y=0, linewidth=0.5)
+        assert w.linewidth == 0.5
+        assert w.to_dict()["linewidth"] == 0.5
+
+    # ── Widget.set() round-trip ──────────────────────────────────────────
+
+    def test_set_linewidth_round_trips(self):
+        w = RectangleWidget(lambda: None, x=0, y=0, w=10, h=10)
+        w.set(linewidth=7)
+        assert w.linewidth == 7.0
+        assert w.to_dict()["linewidth"] == 7.0
+
+    def test_set_linewidth_pushes(self):
+        pushed = []
+        w = CircleWidget(lambda: pushed.append(1), cx=0, cy=0, r=5)
+        pushed.clear()
+        w.set(linewidth=9)
+        assert w.linewidth == 9.0
+        assert len(pushed) == 1
+
+    # ── factory passthrough (Plot2D / Plot1D) ──────────────────────────────
+
+    def test_plot2d_add_circle_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_circle_widget(cx=16, cy=16, r=5, linewidth=4)
+        assert w.linewidth == 4.0
+        d = v.to_state_dict()["overlay_widgets"]
+        assert d[0]["linewidth"] == 4.0
+
+    def test_plot2d_add_rectangle_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_rectangle_widget(x=1, y=1, w=5, h=5, linewidth=3)
+        assert w.linewidth == 3.0
+
+    def test_plot2d_add_annular_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_annular_widget(r_outer=10, r_inner=5, linewidth=1.5)
+        assert w.linewidth == 1.5
+
+    def test_plot2d_add_crosshair_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_crosshair_widget(linewidth=6)
+        assert w.linewidth == 6.0
+
+    def test_plot2d_add_polygon_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_polygon_widget(
+            vertices=[[0, 0], [10, 0], [10, 10], [0, 10]], linewidth=2.5)
+        assert w.linewidth == 2.5
+
+    def test_plot2d_widget_factory_default_linewidth(self):
+        """No linewidth kwarg → factory forwards the default of 2."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32)))
+        w = v.add_rectangle_widget(x=1, y=1, w=5, h=5)
+        assert w.linewidth == 2.0
+
+    def test_plot1d_add_vline_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_vline_widget(x=10.0, linewidth=4)
+        assert w.linewidth == 4.0
+
+    def test_plot1d_add_hline_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_hline_widget(y=0.5, linewidth=3)
+        assert w.linewidth == 3.0
+
+    def test_plot1d_add_range_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_range_widget(x0=10, x1=20, linewidth=2.5)
+        assert w.linewidth == 2.5
+
+    def test_plot1d_add_point_widget_linewidth(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_point_widget(x=1, y=1, linewidth=1.0)
+        assert w.linewidth == 1.0
+
+    def test_plot1d_widget_factory_default_linewidth(self):
+        """No linewidth kwarg → factory forwards the default of 2."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.plot(np.zeros(64))
+        w = v.add_vline_widget(x=10.0)
+        assert w.linewidth == 2.0
