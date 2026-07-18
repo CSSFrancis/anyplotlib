@@ -433,62 +433,70 @@ def _inset_titlebar_rect(page, plot_id):
 
 class TestExportInsetTitle:
     def test_inset_title_drawn_in_titlebar_band(self, mount_page):
-        """A non-empty inset title must leave title-text-coloured ink in the
-        titlebar row band; an otherwise-identical inset with an empty title
-        must NOT — ruling out a false positive from the titlebar's own flat
-        fill colour (which both figures share) rather than actual text."""
-        dpr = None
+        """A non-empty inset title draws title-text ink in its titlebar band.
+
+        The false-positive guard (that we're seeing text, not the titlebar's
+        own flat fill) compares the band's TOP text row against a text-free
+        strip of the SAME titlebar: a real title leaves the two rows visibly
+        different, a blank fill would leave them identical. (Previously this
+        compared against a second inset with ``title=""``; that inset no longer
+        has a titlebar at all — see ``test_empty_title_has_no_titlebar_band``.)
+        """
         GRID_PAD = 8
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        ax.imshow(np.zeros((32, 32), dtype=np.float32), cmap="gray",
+                  vmin=0.0, vmax=1.0)
+        inset = fig.add_inset(0.35, 0.35, corner="top-right", title="Zoom View")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32),
+                            cmap="gray", vmin=0.0, vmax=1.0)
+        page = mount_page(fig)
+        rect = _inset_titlebar_rect(page, plot._id)
+        res = _export_via_handle(page)
+        assert "error" not in res, res.get("error")
+        arr = _decode_data_url(res["dataUrl"])
+        dpr = page.evaluate("() => window.devicePixelRatio || 1")
 
-        def _titlebar_band(fig_factory, title):
-            fig, ax = fig_factory()
-            ax.imshow(np.zeros((32, 32), dtype=np.float32), cmap="gray",
-                     vmin=0.0, vmax=1.0)
-            inset = fig.add_inset(0.35, 0.35, corner="top-right", title=title)
-            plot = inset.imshow(np.zeros((16, 16), dtype=np.float32),
-                                cmap="gray", vmin=0.0, vmax=1.0)
-            page = mount_page(fig)
-            rect = _inset_titlebar_rect(page, plot._id)
-            res = _export_via_handle(page)
-            assert "error" not in res, res.get("error")
-            arr = _decode_data_url(res["dataUrl"])
-            dpr_ = page.evaluate("() => window.devicePixelRatio || 1")
-            y0 = max(0, round((rect["top"] + GRID_PAD) * dpr_))
-            y1 = min(arr.shape[0], round((rect["top"] + rect["height"] + GRID_PAD) * dpr_))
-            x0 = max(0, round((rect["left"] + GRID_PAD) * dpr_))
-            x1 = min(arr.shape[1], round((rect["left"] + rect["width"] + GRID_PAD) * dpr_))
-            return arr[y0:y1, x0:x1, :3], dpr_
-
-        def _make_fig():
-            return apl.subplots(1, 1, figsize=(400, 300))
-
-        band_titled, dpr = _titlebar_band(_make_fig, "Zoom View")
-        band_empty, _ = _titlebar_band(_make_fig, "")
-        assert band_titled.size > 0 and band_empty.size > 0, (
-            f"empty titlebar band(s): titled={band_titled.shape} "
-            f"empty={band_empty.shape}"
+        assert rect["height"] > 0, (
+            "titled inset has no titlebar band — the bar should render when a "
+            f"title is set (rect={rect})"
         )
-        assert band_titled.shape == band_empty.shape, (
-            "titlebar bands differ in size between the two figures — "
-            f"titled={band_titled.shape} empty={band_empty.shape}"
-        )
+        y0 = max(0, round((rect["top"] + GRID_PAD) * dpr))
+        y1 = min(arr.shape[0], round((rect["top"] + rect["height"] + GRID_PAD) * dpr))
+        x0 = max(0, round((rect["left"] + GRID_PAD) * dpr))
+        x1 = min(arr.shape[1], round((rect["left"] + rect["width"] + GRID_PAD) * dpr))
+        band = arr[y0:y1, x0:x1, :3]
+        assert band.size > 0, f"empty titlebar band: {band.shape}"
 
-        # Both bands share the identical titlebar chrome (same theme, corner,
-        # size — including its border-bottom row), so any per-pixel
-        # difference between the two must be the drawn title TEXT.
-        diff = np.abs(band_titled.astype(np.int32) - band_empty.astype(np.int32))
+        # The title text sits in the upper rows of the band; the bottom row is
+        # the (text-free) border. Any row carrying glyph ink differs markedly
+        # from that text-free baseline — a flat fill would not.
+        baseline = band[-1:, :, :].astype(np.int32)          # text-free border row
+        diff = np.abs(band.astype(np.int32) - baseline)
         changed_px = int((diff.sum(axis=-1) > 20).sum())
-        assert changed_px > 0, (
-            "titled and empty-title exports are pixel-identical in the "
-            "titlebar band — exportPNG is not drawing the inset title text"
+        assert changed_px > band.shape[1] * dpr, (
+            f"only {changed_px} px differ from the flat baseline — exportPNG is "
+            f"not drawing the inset title text (band width {band.shape[1]})"
         )
-        # The border-bottom row (~1 CSS px) is the only chrome difference a
-        # mis-measured band could pick up; text ink should account for far
-        # more than one scaled row's worth of pixels.
-        assert changed_px > band_titled.shape[1] * dpr, (
-            f"only {changed_px} px differ — looks like border noise, not text "
-            f"(band width {band_titled.shape[1]})"
+
+    def test_empty_title_has_no_titlebar_band(self, mount_page):
+        """An inset with an empty title renders NO titlebar strip (the
+        title-bar auto-hide feature): its ``titleBar`` collapses to zero
+        height, so the plot content fills the whole inset box."""
+        fig, ax = apl.subplots(1, 1, figsize=(400, 300))
+        ax.imshow(np.zeros((32, 32), dtype=np.float32), cmap="gray",
+                  vmin=0.0, vmax=1.0)
+        inset = fig.add_inset(0.35, 0.35, corner="top-right", title="")
+        plot = inset.imshow(np.zeros((16, 16), dtype=np.float32),
+                            cmap="gray", vmin=0.0, vmax=1.0)
+        page = mount_page(fig)
+        rect = _inset_titlebar_rect(page, plot._id)
+        # A hidden (display:none) titlebar reports a zero-height rect.
+        assert rect["height"] == 0, (
+            f"empty-title inset still has a titlebar band (rect={rect})"
         )
+        # The export itself must still succeed.
+        res = _export_via_handle(page)
+        assert "error" not in res, res.get("error")
 
 
 # ---------------------------------------------------------------------------

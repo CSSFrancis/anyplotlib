@@ -46,10 +46,7 @@ class Event:
         ray            — Plot3D only: {"origin": [...], "direction": [...]}
         line_id        — Plot1D only: set when pointer is over a line
         dwell_ms       — pointer_settled only: actual dwell time
-        target         — double_click only: which chrome element was hit
-                         ('title', 'x_label', 'x_ticks', 'y_label', 'y_ticks',
-                         'colorbar_label', 'legend'); None for a plot-area
-                         double_click
+        target         — double_click only: hit chrome element, or None for plot-area (title/x_label/x_ticks/y_label/y_ticks/colorbar_label/legend)
 
     PlotBar extra fields (pointer_down only):
         bar_index, value, x_label, group_index
@@ -60,6 +57,14 @@ class Event:
     Key fields:
         key            — key name e.g. "q", "Enter", "ArrowLeft"
         last_widget_id — id of the last widget the user clicked, or None
+
+    Panel-swap fields (figure-level panel_swap events):
+        source_panel_id, target_panel_id — the two panel ids dragged between
+
+    Inset drag/resize fields (figure-level inset_geometry_change events):
+        inset_id       — the inset panel id
+        anchor         — new top-left position [fx, fy] in figure fractions
+        w_frac, h_frac — new size in figure fractions
 
     Propagation:
         stop_propagation — set True inside a handler to halt remaining handlers
