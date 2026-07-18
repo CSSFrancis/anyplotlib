@@ -1012,6 +1012,47 @@ anchor.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/axes/_inset_axes.html#InsetAxes.set_geometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Move and/or resize the inset in figure-fraction coordinates.</p>
+<p>This is the Python-side counterpart to the interactive drag / resize
+of an inset in the renderer’s edit mode: the <code class="docutils literal notranslate"><span class="pre">inset_geometry_change</span></code>
+event dispatches here so the authoritative Python state converges with
+what the user did on screen.  It is also callable directly to place or
+size an inset programmatically.</p>
+<p>Passing <em>anchor</em> switches the inset to free (anchor) placement and
+drops any corner snapping (<code class="docutils literal notranslate"><span class="pre">corner</span></code> becomes <code class="docutils literal notranslate"><span class="pre">None</span></code>), mirroring the
+renderer’s corner-to-anchor conversion on drag start.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>anchor</strong> (<em>(</em><em>x_frac</em><em>, </em><em>y_frac</em><em>)</em><em>, </em><em>optional</em>) – New position of the inset’s TOP-LEFT corner as fractions of the
+figure size (0–1), measured from the figure’s top-left.  Each
+component is clamped into <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.  When given, <code class="docutils literal notranslate"><span class="pre">corner</span></code> is
+set to <code class="docutils literal notranslate"><span class="pre">None</span></code> (free placement).  When omitted, the current
+placement (corner or existing anchor) is left unchanged.</p></li>
+<li><p><strong>w_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – New width / height as fractions of the figure size.  Each is
+clamped into <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1]</span></code> (must be positive, at most the full
+figure).  When omitted, the corresponding dimension is unchanged.</p></li>
+<li><p><strong>h_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – New width / height as fractions of the figure size.  Each is
+clamped into <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1]</span></code> (must be positive, at most the full
+figure).  When omitted, the corresponding dimension is unchanged.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">self</span></code>, for chaining.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>InsetAxes</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <em>anchor</em> is not a pair of finite numbers, or <code class="docutils literal notranslate"><span class="pre">w_frac</span></code> /
+    <code class="docutils literal notranslate"><span class="pre">h_frac</span></code> is not a finite number.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">indicate_region</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent_plot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff9800'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linestyle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dashed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/axes/_inset_axes.html#InsetAxes.indicate_region"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Draw a callout tying this inset to a region of <em>parent_plot</em>.</p>
 <p>Renders — on the parent panel’s overlay — a rectangle around <em>region</em>
@@ -1061,8 +1102,53 @@ Default warm orange <code class="docutils literal notranslate"><span class="pre"
 
 <dl class="py method">
 <dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">indicate_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent_plot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#ff9800'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linestyle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dashed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/axes/_inset_axes.html#InsetAxes.indicate_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Draw a callout tying this inset to a single POINT of <em>parent_plot</em>.</p>
+<p>The point sibling of <code class="xref py py-meth docutils literal notranslate"><span class="pre">indicate_region()</span></code>: renders a small circular
+marker (with a centre cross) at <em>point</em> — in the parent image’s DATA
+coordinates — plus ONE leader line joining the marker to the inset’s
+nearest corner.  The marker tracks the parent’s zoom / pan and the
+leader follows the inset as it moves (the leader hides while the inset
+is minimized), exactly like the region callout.</p>
+<p>Calling <code class="docutils literal notranslate"><span class="pre">indicate_point</span></code> (or <code class="docutils literal notranslate"><span class="pre">indicate_region</span></code>) again REPLACES any
+previous indication for this inset — an inset carries at most one.
+Remove it with <code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_indication()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parent_plot</strong> (<a class="reference internal" href="generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D" title="anyplotlib.Plot2D"><em>Plot2D</em></a>) – The parent image plot the point lives on.  Must be a 2-D image
+panel registered on the SAME figure as this inset.</p></li>
+<li><p><strong>point</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The source point in the parent image’s data coordinates, as
+<code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> — same convention as <code class="xref py py-meth docutils literal notranslate"><span class="pre">indicate_region()</span></code>’s region
+origin.  Both values must be finite; a point outside the parent’s
+data bounds is allowed (it simply clips visually).</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Stroke colour of the marker and the leader line.  Default warm
+orange <code class="docutils literal notranslate"><span class="pre">&quot;#ff9800&quot;</span></code>.</p></li>
+<li><p><strong>linestyle</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Leader style — <code class="docutils literal notranslate"><span class="pre">&quot;dashed&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;solid&quot;</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">&quot;dotted&quot;</span></code>.  The marker itself is always drawn solid.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke width in CSS px.  Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p></li>
+<li><p><strong>marker_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Marker circle radius in CSS px.  Default <code class="docutils literal notranslate"><span class="pre">5.0</span></code>.  Must be &gt; 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">self</span></code>, for chaining.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>InsetAxes</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">parent_plot</span></code> has no panel id, is not registered on this
+    inset’s Figure, <code class="docutils literal notranslate"><span class="pre">point</span></code> is not 2 finite numbers, or
+    <code class="docutils literal notranslate"><span class="pre">marker_size</span></code> is not &gt; 0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">clear_indication</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/axes/_inset_axes.html#InsetAxes.clear_indication"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><p>Remove any region indication attached to this inset (idempotent).</p>
+<dd><p>Remove any region/point indication attached to this inset
+(idempotent).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1073,7 +1159,8 @@ Default warm orange <code class="docutils literal notranslate"><span class="pre"
 <dl class="py property">
 <dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">indication</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></dt>
-<dd><p>The current region-indication spec (<code class="docutils literal notranslate"><span class="pre">dict</span></code>) or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dd><p>The current indication spec (<code class="docutils literal notranslate"><span class="pre">dict</span></code> with either a <code class="docutils literal notranslate"><span class="pre">region</span></code> or a
+<code class="docutils literal notranslate"><span class="pre">point</span></code> key) or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1354,13 +1441,14 @@ yellow tint.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_vline_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_vline_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_vline_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_vline_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable vertical-line overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initial x position in data coordinates.</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Line stroke width in px.  Default 2.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1375,13 +1463,14 @@ yellow tint.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_hline_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_hline_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_hline_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_hline_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable horizontal-line overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initial y position in data coordinates.</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Line stroke width in px.  Default 2.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1396,7 +1485,7 @@ yellow tint.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_range_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'band'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_range_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_range_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'band'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_range_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable range overlay to this panel.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1410,6 +1499,7 @@ connected by a dashed horizontal line at <em>y</em> (the half-maximum
 level), giving an <code class="docutils literal notranslate"><span class="pre">o-------o</span></code> FWHM indicator.</p></li>
 <li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Y-coordinate (data space) for the connecting line when
 <code class="docutils literal notranslate"><span class="pre">style='fwhm'</span></code>.  Ignored when <code class="docutils literal notranslate"><span class="pre">style='band'</span></code>.  Default 0.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Line stroke width in px.  Default 2.</p></li>
 <li><p><strong>_push</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Push state to JS immediately. Set to <code class="docutils literal notranslate"><span class="pre">False</span></code> when adding
 several widgets at once; call <code class="xref py py-meth docutils literal notranslate"><span class="pre">_push()</span></code> manually afterward.</p></li>
 </ul>
@@ -1426,7 +1516,7 @@ several widgets at once; call <code class="xref py py-meth docutils literal notr
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_point_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_crosshair</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_point_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_point_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_crosshair</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_push</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.add_point_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a freely-draggable control point to this panel.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1436,6 +1526,7 @@ several widgets at once; call <code class="xref py py-meth docutils literal notr
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour string.  Default <code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
 <li><p><strong>show_crosshair</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Draw dashed guide lines through the handle.  Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.
 Pass <code class="docutils literal notranslate"><span class="pre">False</span></code> for a plain dot with no guide lines.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Guide-line stroke width in px.  Default 2.</p></li>
 <li><p><strong>_push</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Push state to JS immediately. Set to <code class="docutils literal notranslate"><span class="pre">False</span></code> when adding
 several widgets at once; call <code class="xref py py-meth docutils literal notranslate"><span class="pre">_push()</span></code> manually afterward.</p></li>
 </ul>
@@ -1486,6 +1577,23 @@ current right edge.</p></li>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_legend_fontsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot1d/_plot1d.html#Plot1D.set_legend_fontsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Set the legend text font size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Legend font size in CSS pixels.  Must be a positive number.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">size</span></code> is not a positive, finite number.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2461,7 +2569,7 @@ z-order (index 0 drawn first, above the base image).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'magma'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visible</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'magma'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visible</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add an image LAYER drawn over the base image.</p>
 <p>Each layer has its OWN colormap, display range (<code class="docutils literal notranslate"><span class="pre">clim</span></code>), and opacity
 (<code class="docutils literal notranslate"><span class="pre">alpha</span></code>), and is composited on top of the base image (and previously
@@ -2474,10 +2582,19 @@ boolean mask use <code class="xref py py-meth docutils literal notranslate"><spa
 <li><p><strong>data</strong> (<em>ndarray</em><em>, </em><em>shape</em><em> (</em><em>H</em><em>, </em><em>W</em><em>)</em>) – 2-D scalar array, the same size as the base image.  Normalised to
 uint8 via <code class="docutils literal notranslate"><span class="pre">clim</span></code> → LUT exactly like the base image.  A shape
 mismatch raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
-<li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colormap name (default <code class="docutils literal notranslate"><span class="pre">&quot;magma&quot;</span></code>).</p></li>
+<li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Colormap name (default <code class="docutils literal notranslate"><span class="pre">&quot;magma&quot;</span></code>).  Ignored for display while
+<code class="docutils literal notranslate"><span class="pre">tint</span></code> is set (the tint LUT replaces the colormap), but kept so
+<code class="docutils literal notranslate"><span class="pre">set(cmap=...)</span></code> can revert to it.</p></li>
 <li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity in [0, 1] (default <code class="docutils literal notranslate"><span class="pre">0.5</span></code>).</p></li>
 <li><p><strong>clim</strong> (<em>(</em><em>vmin</em><em>, </em><em>vmax</em><em>) or </em><em>None</em><em>, </em><em>optional</em>) – Display range; <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) auto-scales to the data min/max.</p></li>
 <li><p><strong>visible</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the layer is drawn (default <code class="docutils literal notranslate"><span class="pre">True</span></code>).</p></li>
+<li><p><strong>tint</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – A <code class="docutils literal notranslate"><span class="pre">#rgb</span></code> / <code class="docutils literal notranslate"><span class="pre">#rrggbb</span></code> hex colour.  When set, the layer renders
+as a clear→colour intensity ramp instead of a named colormap: RGB
+is <em>tint</em> at every intensity and per-texel alpha ramps linearly
+0 → 255 (transparent at low intensity → opaque tint at high).  The
+per-texel alpha multiplies with the layer’s <code class="docutils literal notranslate"><span class="pre">alpha</span></code>.  <code class="docutils literal notranslate"><span class="pre">None</span></code>
+(default) keeps the named-colormap behaviour.  An invalid colour
+raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2760,7 +2877,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_circle_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_circle_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_circle_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_circle_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable circle overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2769,6 +2886,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 <li><p><strong>cy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
 <li><p><strong>show_handles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
 </ul>
 </dd>
@@ -2780,7 +2898,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_rectangle_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_rectangle_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_rectangle_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_rectangle_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable rectangle overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2790,6 +2908,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 <li><p><strong>w</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>h</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
 <li><p><strong>show_handles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
 </ul>
 </dd>
@@ -2801,7 +2920,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_annular_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_outer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_inner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_annular_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_annular_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_outer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_inner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_annular_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable annular (ring) overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2811,6 +2930,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 <li><p><strong>r_outer</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>r_inner</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
 <li><p><strong>show_handles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
 </ul>
 </dd>
@@ -2822,12 +2942,13 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_polygon_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vertices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_polygon_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_polygon_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vertices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_polygon_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable polygon overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
 <li><p><strong>show_handles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
 </ul>
 </dd>
@@ -2839,7 +2960,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">add_crosshair_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_crosshair_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">add_crosshair_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_crosshair_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Add a draggable crosshair overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2847,6 +2968,7 @@ the grab-handle dots without changing hit-testing / draggability.</p>
 <li><p><strong>cx</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>cy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
 <li><p><strong>show_handles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
 </ul>
 </dd>

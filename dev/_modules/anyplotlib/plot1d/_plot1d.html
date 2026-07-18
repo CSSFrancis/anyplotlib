@@ -441,6 +441,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_uuid</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -1176,7 +1177,8 @@
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Plot1D.add_vline_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.add_vline_widget">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_vline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_VLineWidget</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_vline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_VLineWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable vertical-line overlay.</span>
 
 <span class="sd">        Parameters</span>
@@ -1185,6 +1187,8 @@
 <span class="sd">            Initial x position in data coordinates.</span>
 <span class="sd">        color : str, optional</span>
 <span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Line stroke width in px.  Default 2.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1192,7 +1196,8 @@
 <span class="sd">            Widget object.  Register position callbacks with</span>
 <span class="sd">            :meth:`on_changed` / :meth:`on_release`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">widget</span> <span class="o">=</span> <span class="n">_VLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">_VLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                              <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1201,7 +1206,8 @@
 
 <div class="viewcode-block" id="Plot1D.add_hline_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.add_hline_widget">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_hline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_HLineWidget</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_hline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_HLineWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable horizontal-line overlay.</span>
 
 <span class="sd">        Parameters</span>
@@ -1210,6 +1216,8 @@
 <span class="sd">            Initial y position in data coordinates.</span>
 <span class="sd">        color : str, optional</span>
 <span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Line stroke width in px.  Default 2.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1217,7 +1225,8 @@
 <span class="sd">            Widget object.  Register position callbacks with</span>
 <span class="sd">            :meth:`on_changed` / :meth:`on_release`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">widget</span> <span class="o">=</span> <span class="n">_HLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">_HLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                              <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1230,6 +1239,7 @@
                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                          <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span>
                          <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
                          <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_RangeWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable range overlay to this panel.</span>
 
@@ -1247,6 +1257,8 @@
 <span class="sd">        y : float, optional</span>
 <span class="sd">            Y-coordinate (data space) for the connecting line when</span>
 <span class="sd">            ``style=&#39;fwhm&#39;``.  Ignored when ``style=&#39;band&#39;``.  Default 0.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Line stroke width in px.  Default 2.</span>
 <span class="sd">        _push : bool, optional</span>
 <span class="sd">            Push state to JS immediately. Set to ``False`` when adding</span>
 <span class="sd">            several widgets at once; call :meth:`_push` manually afterward.</span>
@@ -1258,7 +1270,8 @@
 <span class="sd">            :meth:`on_changed` / :meth:`on_release`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_RangeWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span>
-                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
+                              <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
@@ -1271,6 +1284,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">add_point_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                          <span class="n">show_crosshair</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
                          <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_PointWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a freely-draggable control point to this panel.</span>
 
@@ -1285,6 +1299,8 @@
 <span class="sd">        show_crosshair : bool, optional</span>
 <span class="sd">            Draw dashed guide lines through the handle.  Default ``True``.</span>
 <span class="sd">            Pass ``False`` for a plain dot with no guide lines.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Guide-line stroke width in px.  Default 2.</span>
 <span class="sd">        _push : bool, optional</span>
 <span class="sd">            Push state to JS immediately. Set to ``False`` when adding</span>
 <span class="sd">            several widgets at once; call :meth:`_push` manually afterward.</span>
@@ -1294,7 +1310,7 @@
 <span class="sd">        PointWidget</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_PointWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-                              <span class="n">show_crosshair</span><span class="o">=</span><span class="n">show_crosshair</span><span class="p">)</span>
+                              <span class="n">show_crosshair</span><span class="o">=</span><span class="n">show_crosshair</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
@@ -1355,6 +1371,33 @@
 <span class="sd">            Any CSS colour string (hex, ``rgb()``, named colour, etc.).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;line_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot1D.set_legend_fontsize">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.set_legend_fontsize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_legend_fontsize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the legend text font size.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        size : float</span>
+<span class="sd">            Legend font size in CSS pixels.  Must be a positive number.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``size`` is not a positive, finite number.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;set_legend_fontsize: size must be a number, got </span><span class="si">{</span><span class="n">size</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">and</span> <span class="n">fs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;set_legend_fontsize: size must be &gt; 0, got </span><span class="si">{</span><span class="n">size</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;legend_fontsize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 

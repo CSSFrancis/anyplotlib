@@ -459,9 +459,12 @@
 <span class="sd">        Initial x-position in data coordinates.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the line. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Line stroke width in px. Default 2.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;vline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;vline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">))</span></div>
 
 
 
@@ -481,9 +484,12 @@
 <span class="sd">        Initial y-position in data coordinates.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the line. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Line stroke width in px. Default 2.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;hline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;hline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">))</span></div>
 
 
 
@@ -518,12 +524,15 @@
 <span class="sd">    y : float, optional</span>
 <span class="sd">        Y-position (data coordinates) for the connecting line when</span>
 <span class="sd">        ``style=&#39;fwhm&#39;``.  Ignored for ``style=&#39;band&#39;``.  Default ``0.0``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Line stroke width in px. Default 2.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                 <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">):</span>
+                 <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;range&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-                         <span class="n">style</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">style</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">))</span></div>
+                         <span class="n">style</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">style</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">))</span></div>
 
 
 
@@ -549,10 +558,14 @@
 <span class="sd">    show_crosshair : bool, optional</span>
 <span class="sd">        If ``True`` (default), draw dashed crosshair guide lines through the</span>
 <span class="sd">        handle.  Set to ``False`` for a bare draggable dot with no guides.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Guide-line stroke width in px. Default 2.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">show_crosshair</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">show_crosshair</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;point&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-                         <span class="n">show_crosshair</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_crosshair</span><span class="p">))</span></div>
+                         <span class="n">show_crosshair</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_crosshair</span><span class="p">),</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">))</span></div>
 
 </pre></div>
 

@@ -464,14 +464,17 @@
 <span class="sd">        Width and height in pixel/data coordinates.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the rectangle outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the corner grab handles. Default ``True``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                 <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
                          <span class="n">w</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">h</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
                          <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
 
 
@@ -491,13 +494,16 @@
 <span class="sd">        Radius in pixel/data coordinates.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the circle outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the radius grab handle. Default ``True``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                 <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;circle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span> <span class="n">r</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
                          <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
 
 
@@ -518,6 +524,8 @@
 <span class="sd">        Inner radius must be less than outer radius.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the ring outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the inner/outer radius grab handles. Default ``True``.</span>
 
@@ -527,13 +535,14 @@
 <span class="sd">        If r_inner &gt;= r_outer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r_outer</span><span class="p">,</span> <span class="n">r_inner</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                 <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">r_inner</span> <span class="o">&gt;=</span> <span class="n">r_outer</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;r_inner must be &lt; r_outer&quot;</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;annular&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span>
                          <span class="n">r_outer</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_outer</span><span class="p">),</span> <span class="n">r_inner</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_inner</span><span class="p">),</span>
-                         <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
+                         <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
 
 
 
@@ -550,12 +559,16 @@
 <span class="sd">        Center position in pixel/data coordinates.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the crosshair. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Line stroke width in px. Default 2.</span>
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the centre dot handle. Default ``True``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
                          <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
 
 
@@ -574,6 +587,8 @@
 <span class="sd">        Must have at least 3 vertices.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the polygon outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the per-vertex grab handles. Default ``True``.</span>
 
@@ -582,11 +597,13 @@
 <span class="sd">    ValueError</span>
 <span class="sd">        If fewer than 3 vertices provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">verts</span> <span class="o">=</span> <span class="p">[[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)]</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">verts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;polygon needs &gt;= 3 vertices&quot;</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="n">verts</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
                          <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
 
 
