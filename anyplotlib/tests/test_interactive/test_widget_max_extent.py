@@ -91,6 +91,45 @@ class TestMaxExtentFactories:
         assert w.max_w == 8.0 and w.max_h == 12.0
 
 
+class TestDefaultSizeHonoursTheCap:
+    """A capped rectangle must be BORN at the cap.
+
+    The default size is half the image, so a capped ROI used to appear huge and
+    then snap down to the cap on first use — which reads as a bug ("the ROI is
+    always huge and then it clamps down")."""
+
+    def test_default_size_is_capped(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((256, 256), dtype=np.float32))
+        w = v.add_rectangle_widget(max_extent=16.0)
+        assert w.w == 16.0 and w.h == 16.0
+
+    def test_default_size_respects_a_per_axis_cap(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((256, 256), dtype=np.float32))
+        w = v.add_rectangle_widget(max_extent=(8, 32))
+        assert w.w == 8.0 and w.h == 32.0
+
+    def test_uncapped_default_is_unchanged(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((256, 256), dtype=np.float32))
+        w = v.add_rectangle_widget()
+        assert w.w == 128.0 and w.h == 128.0      # half the image, as before
+
+    def test_explicit_size_wins_over_the_cap_default(self):
+        """An explicit w/h is the caller's business; the cap only bounds drags."""
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((256, 256), dtype=np.float32))
+        w = v.add_rectangle_widget(w=4, h=4, max_extent=16.0)
+        assert w.w == 4.0 and w.h == 4.0
+
+    def test_cap_larger_than_the_image_does_not_inflate_the_default(self):
+        fig, ax = apl.subplots(1, 1)
+        v = ax.imshow(np.zeros((32, 32), dtype=np.float32))
+        w = v.add_rectangle_widget(max_extent=1000.0)
+        assert w.w == 16.0 and w.h == 16.0        # still half the image
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 2. Drag behaviour in the browser — the logic lives in figure_esm.js, so a
 #    Python-only test would prove nothing about what the user experiences.
