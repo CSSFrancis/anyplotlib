@@ -39,6 +39,10 @@ class Widget(_EventMixin):
         - ``"pointer_down"`` — fires on click/press event
     """
 
+    # Set by _PanelMixin._make_widget_push_fn when the widget is added to a
+    # plot; stays None for a widget constructed standalone (e.g. in a test).
+    _plot = None
+
     def __init__(self, wtype: str, push_fn: Callable, **kwargs):
         self._id: str = str(_uuid.uuid4())[:8]
         self._type: str = wtype
@@ -80,7 +84,7 @@ class Widget(_EventMixin):
 
     # ── set / get ─────────────────────────────────────────────────────
 
-    def set(self, _push: bool = True, **kwargs) -> None:
+    def set(self, _push: bool = True, _notify: bool = True, **kwargs) -> None:
         """Update properties and send targeted update to JavaScript.
 
         Parameters
@@ -88,18 +92,36 @@ class Widget(_EventMixin):
         _push : bool, optional
             Whether to push update to renderer. Default True.
             Set to False internally to avoid echo loops.
+        _notify : bool, optional
+            Whether to fire ``pointer_move`` callbacks.  Default True.
+
+            A ``set()`` from Python is otherwise indistinguishable from a user
+            drag: handlers that react to the widget moving will run, and one
+            that writes back to the widget feeds into itself.  Pass
+            ``_notify=False`` when *you* are the one moving the widget and the
+            handlers are only meant to hear about user input::
+
+                widget.set(_notify=False, x=new_x)
+
+            This supersedes wrapping the call in :meth:`pause_events`, which
+            suppresses every event type for the duration rather than just this
+            update's echo.
         **kwargs : dict
             Properties to update (e.g., x=100, y=50, radius=20).
 
         Notes
         -----
+        Both flags are spelled with a leading underscore so they can never
+        collide with a widget property of the same name in ``**kwargs``.
+
         Updates are sent as targeted widget updates, not full panel re-renders.
         This is more efficient for frequent updates during dragging.
         """
         self._data.update(kwargs)
         if _push:
             self._push_fn()
-        self.callbacks.fire(Event("pointer_move", source=self))
+        if _notify:
+            self.callbacks.fire(Event("pointer_move", source=self))
 
     def get(self, key: str, default=None):
         """Get a widget property by name.
@@ -152,6 +174,26 @@ class Widget(_EventMixin):
         """
         self._data["visible"] = False
         self._push_fn()
+
+    # ── removal ───────────────────────────────────────────────────────────
+
+    def remove(self) -> None:
+        """Remove this widget from the plot that owns it.
+
+        Equivalent to ``plot.remove_widget(widget)``, but callable when you
+        only hold the widget — handle-based APIs otherwise have to re-derive
+        the owning plot to delete something they already have.
+
+        Removing a widget that is not attached to a plot, or removing twice,
+        is a no-op.
+        """
+        plot = self._plot
+        if plot is None:
+            return
+        try:
+            plot.remove_widget(self._id)
+        except KeyError:
+            pass  # already removed (e.g. via clear_widgets)
 
     # ── JS → Python sync ──────────────────────────────────────────────
 

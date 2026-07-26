@@ -1,0 +1,6 @@
+:meth:`Widget.set` takes ``_notify=False`` to update a widget without firing
+``pointer_move`` callbacks.  A ``set()`` from Python was previously
+indistinguishable from a user drag, so a handler that writes back to the
+widget it listens to fed into itself; the only defence was wrapping the call
+in ``pause_events()``, which suppresses every event for the duration rather
+than just this update's echo.

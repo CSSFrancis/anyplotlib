@@ -1,0 +1,4 @@
+Widgets have a :meth:`~anyplotlib.widgets.Widget.remove` method.
+``plot.remove_widget(widget)`` still works; ``widget.remove()`` is for callers
+that hold only the handle and would otherwise have to re-derive the owning
+plot.  Removing an unattached or already-removed widget is a no-op.

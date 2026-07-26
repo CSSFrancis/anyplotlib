@@ -95,8 +95,13 @@ class _BasePlot(_EventMixin):
 
         Replaces the repeated _tp / _targeted_push closures in every
         add_*_widget method.
+
+        Also back-links the widget to this plot so :meth:`Widget.remove` can
+        find its owner.  Every ``add_*_widget`` routes through here, so this is
+        the one place that has to know.
         """
         plot_ref, wid_id = self, widget._id
+        widget._plot = self
         def _push():
             if plot_ref._fig is not None:
                 fields = {k: v for k, v in widget._data.items()
