@@ -1,0 +1,6 @@
+``save_html`` / ``to_html`` / ``figure_state`` now capture overlay widgets at
+their current positions.  Widget moves reach JS as targeted ``event_json``
+updates that never rewrite ``panel_<id>_json`` — deliberately, since
+re-serialising a panel's image bytes on every drag frame is what that path
+avoids — so a snapshot used to show every widget where it was *created*.
+Exports reconcile the panel traits first.
