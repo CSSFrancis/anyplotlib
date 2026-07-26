@@ -1,7 +1,0 @@
-Sized marker types take ``size_units="px"`` so their radii and widths stay
-fixed in screen pixels through a zoom, instead of scaling with the data.  A
-marker standing in for a *point* — a detected peak, a cursor — wants this;
-matplotlib sizes scatter markers in display points for the same reason.
-``size_units`` is independent of ``transform``, so positions can stay in data
-coordinates while sizes are in pixels.  Available on ``add_circles``,
-``add_points``, ``add_ellipses``, ``add_rectangles`` and ``add_squares``.

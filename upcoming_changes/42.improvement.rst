@@ -1,7 +1,0 @@
-Clicking a 1-D panel now always emits a ``pointer_down`` event carrying the
-clicked position as ``xdata``/``ydata``, matching 2-D panels.  Previously a
-1-D panel emitted ``pointer_down`` only when the click landed on a line, so
-click-position features had nothing to listen to and ``pointer_down`` meant
-different things on different panel kinds.  Clicks on a line still report
-``line_id`` (and the snapped on-line ``x``/``y``), so existing line-click
-handlers are unaffected — they can filter on ``event.line_id is not None``.

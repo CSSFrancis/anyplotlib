@@ -1,7 +1,0 @@
-Range, vline, hline and point widgets take ``snap_values`` — a sequence of
-allowed positions.  While dragging, the widget follows the cursor but lands
-only on the nearest allowed value, matching matplotlib's
-``SpanSelector.snap_values``.  Snapping happens inside the JS drag, so the
-widget visibly steps between allowed positions instead of being corrected
-afterwards.  numpy arrays are accepted and converted (a raw array is not
-JSON-serialisable and would break the panel push).

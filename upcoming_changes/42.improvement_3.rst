@@ -1,3 +1,0 @@
-A ``crosshair`` widget can be grabbed anywhere along either of its rules, not
-only at the one-pixel centre hotspot.  Grabbing a rule constrains the drag to
-that rule's own axis; the centre still moves both.

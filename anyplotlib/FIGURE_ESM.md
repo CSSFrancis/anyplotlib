@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~6,000 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~9,000 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -48,29 +48,30 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | Section / function | Line |
 |--------------------|------|
 | Shared plot-area padding (`PAD_*`) | 9 |
-| Theme (dark/light detection) | 15 |
-| Shared math helpers | 53 |
-| b64 array decode helpers | 95 |
-| **Rich-text (mini-TeX) engine**: `_texRuns` / `_texLayout` / `_drawTex` | 147 / 214 / 236 |
-| **2D gutter geometry**: `_cbWidth` / `_padT` / `_titlePx` | 287 / 299 / 309 |
-| **Layout engine** `applyLayout` | 590 |
-| `_buildCanvasStack` | 656 |
-| `_createPanelDOM` | 763 |
-| `_createInsetDOM` / `_applyAllInsetStates` | 846 / 968 |
-| `_resizePanelDOM` | 1027 |
-| **2D drawing**: `_imgFitRect` | 1176 |
-| `draw2d` | 1258 |
-| `drawScaleBar2d` / `drawColorbar2d` | 1360 / 1436 |
-| `_drawAxes2d` (ticks, labels, title) | 1491 |
-| `drawOverlay2d` / `drawMarkers2d` | 1629 / 1685 |
-| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 1553 / 1577 / 1629 |
-| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 675 / 706 |
-| **3D drawing**: `draw3d` | 1833 |
-| Event emission `_emitEvent` | 2031 |
-| 3D event handlers `_attachEvents3d` | 2059 |
-| **1D drawing**: `draw1d` | 2177 |
-| `drawOverlay1d` / `drawMarkers1d` | 2516 / 2586 |
-| Marker hit-test `_markerHitTest2d` | 2787 |
+| Theme (dark/light detection) | 26 |
+| Shared math helpers | 64 |
+| b64 array decode helpers | 109 |
+| **Rich-text (mini-TeX) engine**: `_texRuns` / `_texLayout` / `_drawTex` | 161 / 228 / 250 |
+| **2D gutter geometry**: `_cbWidth` / `_cbGap` / `_padT` / `_titlePx` | 301 / 310 / 323 / 333 |
+| **Layout engine** `applyLayout` | 774 |
+| `_buildCanvasStack` | 857 |
+| `_createPanelDOM` | 989 |
+| `_createInsetDOM` / `_applyAllInsetStates` | 1118 / 1500 |
+| `_resizePanelDOM` | 2213 |
+| **2D drawing**: `_imgFitRect` | 2372 |
+| `draw2d` | 2680 |
+| `drawScaleBar2d` / `drawColorbar2d` | 2875 / 2961 |
+| `_drawAxes2d` (ticks, labels, title) | 3016 |
+| `drawOverlay2d` / `drawMarkers2d` | 3169 / 3287 |
+| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2500 / 2524 / 2585 |
+| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 730 / 761 |
+| **3D drawing**: `draw3d` | 4623 |
+| Event emission `_emitEvent` | 5270 |
+| 3D event handlers `_attachEvents3d` | 5322 |
+| **1D drawing**: `draw1d` | 5536 |
+| `_drawLine` (1D series + markers) | 5689 |
+| `drawOverlay1d` / `drawMarkers1d` | 5982 / 6066 |
+| Marker hit-test `_markerHitTest2d` | 6334 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -79,15 +80,15 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 2905 |
-| 2D events `_attachEvents2d` | 2928 |
-| 1D events `_attachEvents1d` | 3201 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 3409 / 3491 |
-| 1D widget drag `_canvasXToFrac1d` … | 3565 |
-| Shared-axis propagation `_getShareGroups` | 3650 |
-| Figure resize `_applyFigResizeDOM` | 3714 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 3902 / 3965 / 4341 |
-| Generic redraw `_redrawPanel` | 4531 |
+| Panel event dispatch `_attachPanelEvents` | 6591 |
+| 2D events `_attachEvents2d` | 6615 |
+| 1D events `_attachEvents1d` | 6962 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 7229 / 7363 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 7473 / 7546 |
+| Shared-axis propagation `_getShareGroups` | 7617 |
+| Figure resize `_applyFigResizeDOM` | 7681 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 7872 / 7935 / 8311 |
+| Generic redraw `_redrawPanel` | 8501 |
 
 ---
 
