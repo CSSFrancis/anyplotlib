@@ -383,6 +383,19 @@ class MarkerGroup:
         # this flag allows opting out for HUD-style annotations.
         wire["clip_display"] = bool(d.get("clip_display", True))
 
+        # ── size space (independent of the position transform) ─────────────
+        # "data" (default) scales sizes with zoom, as a shape drawn on the
+        # data does.  "px" pins them to screen pixels, which is what a marker
+        # standing in for a *point* wants — matplotlib sizes scatter markers
+        # in display points for exactly that reason.
+        size_units = d.get("size_units")
+        if size_units is not None:
+            if size_units not in ("data", "px"):
+                raise ValueError(
+                    f"size_units must be 'data' or 'px', got {size_units!r}"
+                )
+            wire["size_units"] = size_units
+
         # ── common optional fields ──────────────────────────────────────────
         label = d.get("label")
         if label is not None:

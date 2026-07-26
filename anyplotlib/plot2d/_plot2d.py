@@ -1955,8 +1955,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
-                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
-        """Add circle markers at (x, y) positions in data coordinates."""
+                    clip_display: bool = True,
+                    size_units: str = "data") -> "MarkerGroup":  # noqa: F821
+        """Add circle markers at (x, y) positions in data coordinates.
+
+        ``size_units="px"`` pins *radius* to screen pixels so the circles keep
+        their size through a zoom; the default ``"data"`` scales them with the
+        data, as a shape drawn on the image does.
+        """
         return self._add_marker("circles", name, offsets=offsets, radius=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
@@ -1964,7 +1970,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_points(self, offsets, name=None, *, sizes=5,
                    color="#ff0000", facecolors=None,
@@ -1972,8 +1979,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                    hover_edgecolors=None, hover_facecolors=None,
                    labels=None, label=None,
                    transform: str = "data",
-                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
-        """Add point markers at (x, y) positions in data coordinates."""
+                   clip_display: bool = True,
+                   size_units: str = "data") -> "MarkerGroup":  # noqa: F821
+        """Add point markers at (x, y) positions in data coordinates.
+
+        A marker standing in for a *point* usually wants ``size_units="px"``
+        so it does not grow with zoom — that is what matplotlib does, sizing
+        scatter markers in display points.
+        """
         return self._add_marker("circles", name, offsets=offsets, radius=sizes,
                                 edgecolors=color, facecolors=facecolors,
                                 linewidths=linewidths, alpha=alpha,
@@ -1981,7 +1994,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_hlines(self, y_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
@@ -2030,7 +2044,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None,
                      transform: str = "data",
-                     clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
+                     clip_display: bool = True,
+                     size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("ellipses", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -2039,7 +2054,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_lines(self, segments, name=None, *,
                   edgecolors="#ff0000", linewidths=1.5,
@@ -2060,7 +2076,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                        hover_edgecolors=None, hover_facecolors=None,
                        labels=None, label=None,
                        transform: str = "data",
-                       clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
+                       clip_display: bool = True,
+                       size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("rectangles", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -2069,7 +2086,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_squares(self, offsets, widths, name=None, *,
                     angles=0, facecolors=None, edgecolors="#ff0000",
@@ -2077,7 +2095,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
-                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
+                    clip_display: bool = True,
+                    size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("squares", name, offsets=offsets,
                                 widths=widths, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -2086,7 +2105,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_polygons(self, vertices_list, name=None, *,
                      facecolors=None, edgecolors="#ff0000",

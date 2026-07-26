@@ -3330,6 +3330,12 @@ function render({ model, el, onResize }) {
         _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,imgW,imgH);
       }
       const scl = tfm==='data' ? scale : 1;
+      // Sizes have their own space, independent of the position transform:
+      // 'data' (default) grows with zoom the way a shape drawn on the data
+      // does; 'px' pins them to screen pixels. A marker standing in for a
+      // *point* wants px — matplotlib sizes scatter markers in display
+      // points for exactly that reason.
+      const sscl = ms.size_units==='px' ? 1 : scl;
 
       mkCtx.save();
       if(clipSet){
@@ -3341,7 +3347,7 @@ function render({ model, el, onResize }) {
       if(type==='circles'){
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*sscl);
           mkCtx.beginPath();mkCtx.arc(cx,cy,r,0,Math.PI*2);
           const _fc=_fcAt(i);
           if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
@@ -3364,8 +3370,8 @@ function render({ model, el, onResize }) {
       } else if(type==='ellipses'){
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*scl/2);
-          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*scl/2);
+          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*sscl/2);
+          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*sscl/2);
           const ang=((ms.angles[i]||ms.angles[0]||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
           const _fc=_fcAt(i);
@@ -3386,8 +3392,8 @@ function render({ model, el, onResize }) {
         const heights=type==='squares'?ms.widths:ms.heights;
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const rw=(ms.widths[i]||ms.widths[0]||20)*scl;
-          const rh=((heights[i]||heights[0]||20))*scl;
+          const rw=(ms.widths[i]||ms.widths[0]||20)*sscl;
+          const rh=((heights[i]||heights[0]||20))*sscl;
           const ang=((ms.angles&&(ms.angles[i]||ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
           const _fc=_fcAt(i);
@@ -6329,18 +6335,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,pw,ph);
       }
       const scl = tfm==='data' ? scale : 1;
+      // Match the draw loop's size space (see drawMarkers2d).
+      const sscl = ms.size_units==='px' ? 1 : scl;
       if (type === 'circles') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*sscl);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=r+MARKER_HIT)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'ellipses') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const rw=(ms.widths[i]||ms.widths[0]||10)*scl/2+MARKER_HIT;
-          const rh=(ms.heights[i]||ms.heights[0]||10)*scl/2+MARKER_HIT;
+          const rw=(ms.widths[i]||ms.widths[0]||10)*sscl/2+MARKER_HIT;
+          const rh=(ms.heights[i]||ms.heights[0]||10)*sscl/2+MARKER_HIT;
           const dx=(mx-cx)/Math.max(1,rw), dy=(my-cy)/Math.max(1,rh);
           if(dx*dx+dy*dy<=1.0)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
@@ -6349,8 +6357,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const heights = type==='squares' ? ms.widths : ms.heights;
         for (let i=0;i<(ms.offsets||[]).length;i++) {
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const hw=(ms.widths[i]||ms.widths[0]||20)*scl/2+MARKER_HIT;
-          const hh=((heights[i]||heights[0]||20))*scl/2+MARKER_HIT;
+          const hw=(ms.widths[i]||ms.widths[0]||20)*sscl/2+MARKER_HIT;
+          const hh=((heights[i]||heights[0]||20))*sscl/2+MARKER_HIT;
           if(Math.abs(mx-cx)<=hw&&Math.abs(my-cy)<=hh)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
