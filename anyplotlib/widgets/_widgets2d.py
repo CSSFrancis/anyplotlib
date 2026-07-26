@@ -31,14 +31,30 @@ class RectangleWidget(Widget):
         Outline stroke width in px. Default 2.
     show_handles : bool, optional
         Draw the corner grab handles. Default ``True``.
+    max_extent : float or (float, float), optional
+        Maximum width/height in the widget's coordinates. A scalar caps both
+        axes; a ``(max_w, max_h)`` pair caps them separately. When set, the
+        rectangle physically stops growing at the cap while dragging — the
+        dragged corner pins and the opposite corner stays put. ``None``
+        (default) leaves it unbounded.
+
+        Use this when the rectangle's area costs real work downstream — e.g. an
+        integrating ROI whose size is a number of frames to read.
     """
     def __init__(self, push_fn, *, x, y, w, h, color="#00e5ff",
-                 linewidth=2, show_handles=True):
+                 linewidth=2, show_handles=True, max_extent=None):
+        if max_extent is None:
+            max_w = max_h = None
+        elif isinstance(max_extent, (tuple, list)):
+            max_w, max_h = (float(max_extent[0]), float(max_extent[1]))
+        else:
+            max_w = max_h = float(max_extent)
         super().__init__("rectangle", push_fn,
                          x=float(x), y=float(y),
                          w=float(w), h=float(h), color=color,
                          linewidth=float(linewidth),
-                         show_handles=bool(show_handles))
+                         show_handles=bool(show_handles),
+                         max_w=max_w, max_h=max_h)
 
 
 class CircleWidget(Widget):

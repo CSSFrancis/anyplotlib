@@ -1610,16 +1610,38 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     def add_rectangle_widget(self, x: float | None = None, y: float | None = None,
                               w: float | None = None, h: float | None = None,
                               color: str = "#00e5ff", linewidth: float = 2,
-                              show_handles: bool = True) -> RectangleWidget:
-        """Add a draggable rectangle overlay."""
+                              show_handles: bool = True,
+                              max_extent=None) -> RectangleWidget:
+        """Add a draggable rectangle overlay.
+
+        ``max_extent`` caps the rectangle's size in the widget's coordinates —
+        a scalar caps both axes, a ``(max_w, max_h)`` pair caps them separately.
+        The rectangle then physically stops growing at the cap while dragging
+        (the dragged corner pins, the opposite corner stays put).
+        """
         iw, ih = self._state["image_width"], self._state["image_height"]
+        # The DEFAULT size honours max_extent. Without this a capped rectangle is
+        # born at half the image and then snaps down to the cap on first use —
+        # the ROI visibly appears huge and collapses, which looks like a bug.
+        def _cap(axis_default, cap):
+            return axis_default if cap is None else min(axis_default, float(cap))
+
+        if max_extent is None:
+            cap_w = cap_h = None
+        elif isinstance(max_extent, (tuple, list)):
+            cap_w, cap_h = max_extent[0], max_extent[1]
+        else:
+            cap_w = cap_h = max_extent
+        def_w = _cap(iw * 0.5, cap_w)
+        def_h = _cap(ih * 0.5, cap_h)
         widget = RectangleWidget(lambda: None,
                                  x=float(x) if x is not None else iw * 0.25,
                                  y=float(y) if y is not None else ih * 0.25,
-                                 w=float(w) if w is not None else iw * 0.5,
-                                 h=float(h) if h is not None else ih * 0.5,
+                                 w=float(w) if w is not None else def_w,
+                                 h=float(h) if h is not None else def_h,
                                  color=color, linewidth=linewidth,
-                                 show_handles=show_handles)
+                                 show_handles=show_handles,
+                                 max_extent=max_extent)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()

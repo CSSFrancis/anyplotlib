@@ -3185,6 +3185,15 @@ function render({ model, el, onResize }) {
         const [rx,ry]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
         const rw=w.w*scale, rh=w.h*scale;
         ovCtx.strokeRect(rx,ry,rw,rh);
+        // Canvas-space geometry readback for Playwright (same role as
+        // window._aplTiming). A test cannot derive a handle's page position from
+        // figure padding: the image->canvas mapping depends on the zoom/extent
+        // state, and the grab radius is only HR px — so a hard-coded corner
+        // silently grabs the BODY instead, and a resize test then asserts
+        // nothing. Publishing the drawn corners lets a test aim at a real handle.
+        if(!window._aplWidgetGeom) window._aplWidgetGeom={};
+        if(!window._aplWidgetGeom[p.id]) window._aplWidgetGeom[p.id]={};
+        window._aplWidgetGeom[p.id][w.id]={type:'rectangle',rx,ry,rw,rh};
         if(_handles){
           _drawHandle2d(ovCtx,rx,ry,w.color);_drawHandle2d(ovCtx,rx+rw,ry,w.color);
           _drawHandle2d(ovCtx,rx,ry+rh,w.color);_drawHandle2d(ovCtx,rx+rw,ry+rh,w.color);
@@ -7214,22 +7223,28 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         w.r_inner = newR;
       }
     } else if (w.type === 'rectangle') {
+      // max_w / max_h cap the rectangle DURING the drag, so it physically stops
+      // growing rather than being silently clamped afterwards. Each branch pins
+      // the size and leaves the OPPOSITE corner where it is, so the anchor never
+      // shifts and the rectangle cannot jump out from under the cursor.
+      const capW = (v) => (w.max_w == null ? v : Math.min(v, w.max_w));
+      const capH = (v) => (w.max_h == null ? v : Math.min(v, w.max_h));
       if (d.mode === 'move') {
         w.x = s.x + dix; w.y = s.y + diy;
       } else if (d.mode === 'resize_br') {
-        w.w = Math.max(1, s.w + dix); w.h = Math.max(1, s.h + diy);
+        w.w = capW(Math.max(1, s.w + dix)); w.h = capH(Math.max(1, s.h + diy));
       } else if (d.mode === 'resize_bl') {
-        const newW = Math.max(1, s.w - dix);
+        const newW = capW(Math.max(1, s.w - dix));
         w.x = s.x + (s.w - newW); w.w = newW;
-        w.h = Math.max(1, s.h + diy);
+        w.h = capH(Math.max(1, s.h + diy));
       } else if (d.mode === 'resize_tr') {
-        w.w = Math.max(1, s.w + dix);
-        const newH = Math.max(1, s.h - diy);
+        w.w = capW(Math.max(1, s.w + dix));
+        const newH = capH(Math.max(1, s.h - diy));
         w.y = s.y + (s.h - newH); w.h = newH;
       } else if (d.mode === 'resize_tl') {
-        const newW = Math.max(1, s.w - dix);
+        const newW = capW(Math.max(1, s.w - dix));
         w.x = s.x + (s.w - newW); w.w = newW;
-        const newH = Math.max(1, s.h - diy);
+        const newH = capH(Math.max(1, s.h - diy));
         w.y = s.y + (s.h - newH); w.h = newH;
       }
     } else if (w.type === 'crosshair') {
@@ -7307,9 +7322,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           if(Math.hypot(mx-px1b,my-pyHalf)<=HR+5)
             return{idx:i,mode:'edge1',wtype:'range',startMX:mx,snapW:{...w}};
         } else {
-          if(Math.abs(mx-px0)<=HR+5) return{idx:i,mode:'edge0',wtype:'range',startMX:mx,snapW:{...w}};
-          if(Math.abs(mx-px1b)<=HR+5) return{idx:i,mode:'edge1',wtype:'range',startMX:mx,snapW:{...w}};
+          // Band style. The edge grab zones are ±(HR+5)=12 px each, so on a
+          // NARROW band (< ~24 px on screen — routine when the span is capped, or
+          // just zoomed out) the two zones meet and swallow the body: the user
+          // aims at the middle to translate the band and gets an edge resize
+          // instead. Give each edge at most a THIRD of the band, so the middle
+          // third always belongs to 'move' no matter how narrow the band gets.
           const left=Math.min(px0,px1b),right=Math.max(px0,px1b);
+          const grab=Math.min(HR+5,(right-left)/3);
+          if(Math.abs(mx-px0)<=grab) return{idx:i,mode:'edge0',wtype:'range',startMX:mx,snapW:{...w}};
+          if(Math.abs(mx-px1b)<=grab) return{idx:i,mode:'edge1',wtype:'range',startMX:mx,snapW:{...w}};
           if(mx>=left&&mx<=right&&my>=r.y&&my<=r.y+r.h) return{idx:i,mode:'move',wtype:'range',startMX:mx,snapW:{...w}};
         }
       }
@@ -7329,8 +7351,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if(w.type==='vline'){w.x=xUnit;}
     else if(w.type==='hline'){w.y=st.data_max-((py-r.y)/(r.h||1))*(st.data_max-st.data_min);}
     else if(w.type==='range'){
-      if(d.mode==='edge0') w.x0=xUnit;
-      else if(d.mode==='edge1') w.x1=xUnit;
+      // max_extent caps the span DURING the drag. The edge NOT being dragged is
+      // the anchor and never moves, so the span stops growing at the cap without
+      // the range jumping. (Clamping afterwards by rewriting whichever endpoint
+      // happens to be numerically smaller moves the edge the user is not holding
+      // — that reads as phantom movement.) Dragging the whole band is unaffected:
+      // a translation can't change the width.
+      const cap = (w.max_extent == null ? null : Math.abs(w.max_extent));
+      if(d.mode==='edge0'){
+        w.x0 = (cap!=null && Math.abs(w.x1-xUnit) > cap)
+          ? w.x1 + (xUnit < w.x1 ? -cap : cap) : xUnit;
+      }
+      else if(d.mode==='edge1'){
+        w.x1 = (cap!=null && Math.abs(xUnit-w.x0) > cap)
+          ? w.x0 + (xUnit < w.x0 ? -cap : cap) : xUnit;
+      }
       else {
         const snapPx=_fracToPx1d(xArr.length>=2?_axisValToFrac(xArr,s.x0):0,x0,x1,r);
         const dxUnit=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(snapPx+(mx-d.startMX),x0,x1,r))-s.x0:(mx-d.startMX)/(r.w||1);

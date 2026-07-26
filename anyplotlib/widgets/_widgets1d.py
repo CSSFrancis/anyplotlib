@@ -83,13 +83,26 @@ class RangeWidget(Widget):
         ``style='fwhm'``.  Ignored for ``style='band'``.  Default ``0.0``.
     linewidth : float, optional
         Line stroke width in px. Default 2.
+    max_extent : float, optional
+        Maximum span width in DATA units. When set, the span physically stops
+        growing at this width while dragging: the edge under the cursor is
+        pinned and the opposite edge stays put, so the range never exceeds the
+        cap and never jumps. ``None`` (default) leaves it unbounded.
+
+        Use this when span width costs real work downstream — e.g. an
+        integrating selector where the width is a number of frames to read.
+        Enforcing it in the widget makes the limit visible (the edge simply
+        stops) instead of applying a silent clamp after the fact.
     """
     def __init__(self, push_fn, *, x0, x1, color="#00e5ff",
-                 style: str = "band", y: float = 0.0, linewidth=2):
+                 style: str = "band", y: float = 0.0, linewidth=2,
+                 max_extent=None):
         super().__init__("range", push_fn,
                          x0=float(x0), x1=float(x1), color=color,
                          style=str(style), y=float(y),
-                         linewidth=float(linewidth))
+                         linewidth=float(linewidth),
+                         max_extent=(None if max_extent is None
+                                     else float(max_extent)))
 
 
 class PointWidget(Widget):

@@ -756,6 +756,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                          style: str = "band",
                          y: float = 0.0,
                          linewidth: float = 2,
+                         max_extent: float | None = None,
                          _push: bool = True) -> _RangeWidget:
         """Add a draggable range overlay to this panel.
 
@@ -775,6 +776,10 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             ``style='fwhm'``.  Ignored when ``style='band'``.  Default 0.
         linewidth : float, optional
             Line stroke width in px.  Default 2.
+        max_extent : float, optional
+            Maximum span width in data units.  The span physically stops growing
+            at this width while dragging (the dragged edge pins, the opposite
+            edge stays put).  ``None`` (default) leaves it unbounded.
         _push : bool, optional
             Push state to JS immediately. Set to ``False`` when adding
             several widgets at once; call :meth:`_push` manually afterward.
@@ -787,7 +792,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         """
         widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
                               color=color, style=style, y=float(y),
-                              linewidth=linewidth)
+                              linewidth=linewidth, max_extent=max_extent)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
