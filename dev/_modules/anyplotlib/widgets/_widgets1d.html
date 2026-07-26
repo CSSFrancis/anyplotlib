@@ -526,13 +526,26 @@
 <span class="sd">        ``style=&#39;fwhm&#39;``.  Ignored for ``style=&#39;band&#39;``.  Default ``0.0``.</span>
 <span class="sd">    linewidth : float, optional</span>
 <span class="sd">        Line stroke width in px. Default 2.</span>
+<span class="sd">    max_extent : float, optional</span>
+<span class="sd">        Maximum span width in DATA units. When set, the span physically stops</span>
+<span class="sd">        growing at this width while dragging: the edge under the cursor is</span>
+<span class="sd">        pinned and the opposite edge stays put, so the range never exceeds the</span>
+<span class="sd">        cap and never jumps. ``None`` (default) leaves it unbounded.</span>
+
+<span class="sd">        Use this when span width costs real work downstream — e.g. an</span>
+<span class="sd">        integrating selector where the width is a number of frames to read.</span>
+<span class="sd">        Enforcing it in the widget makes the limit visible (the edge simply</span>
+<span class="sd">        stops) instead of applying a silent clamp after the fact.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                 <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+                 <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">max_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;range&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                          <span class="n">style</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">style</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
-                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">))</span></div>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">max_extent</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="n">max_extent</span> <span class="ow">is</span> <span class="kc">None</span>
+                                     <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">max_extent</span><span class="p">)))</span></div>
 
 
 
