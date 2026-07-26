@@ -568,13 +568,17 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._state["base_width"] = int(ow)
             self._state["base_height"] = int(oh)
             self._overview_stale = False
-            _TLOG.debug(
-                "[TILEDBG] overview refresh: overview=%s u8[min=%d max=%d] "
-                "display=(%s,%s) base_wh=(%d,%d) image_wh=(%s,%s)", (oh, ow),
-                int(img_u8.min()), int(img_u8.max()),
-                self._state.get("display_min"), self._state.get("display_max"),
-                ow, oh, self._state.get("image_width"),
-                self._state.get("image_height"))
+            # min/max are two more full passes over the overview — same guard rule
+            # as the FETCH diagnostic below (they are .debug() ARGUMENTS, so lazy
+            # formatting does not skip them).
+            if _TLOG.isEnabledFor(logging.DEBUG):
+                _TLOG.debug(
+                    "[TILEDBG] overview refresh: overview=%s u8[min=%d max=%d] "
+                    "display=(%s,%s) base_wh=(%d,%d) image_wh=(%s,%s)", (oh, ow),
+                    int(img_u8.min()), int(img_u8.max()),
+                    self._state.get("display_min"), self._state.get("display_max"),
+                    ow, oh, self._state.get("image_width"),
+                    self._state.get("image_height"))
         except Exception as e:
             _TLOG.warning("[TILEDBG] overview refresh FAILED: %s", e)
 
@@ -648,28 +652,47 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             else:
                 out_h, out_w = dh, max(1, int(round(dh * aspect)))
             b = self._tile_backend
-            # DIAGNOSTIC: the raw native region straight from the backend, BEFORE
-            # sampling — its shape + distinct-value count tells us whether the backend
-            # actually holds native pixels. If region is 82×82 but the raw crop has
-            # only ~100 distinct values, the backend source is a downsample (bug).
-            _raw = np.asarray(b._a[y0:y1, x0:x1]) if hasattr(b, "_a") else None
             tile = self._tile_backend.sample(
                 x0, x1, y0, y1, out_w, out_h, self._integration_method)
             if b.origin == "lower":
                 tile = np.flipud(tile)
             self.set_detail(np.ascontiguousarray(tile), x0, x1, y0, y1)
-            _bshape = b.full_shape if hasattr(b, "full_shape") else "?"
-            _rawinfo = ("raw_crop=%s distinct=%d" % (
-                _raw.shape, int(np.unique(_raw).size))) if _raw is not None else "raw=?"
-            _tileinfo = "tile_distinct=%d" % int(np.unique(np.asarray(tile)).size)
-            _TLOG.debug(
-                "[TILEDBG] view_changed FETCH zoom=%.2f region=[x %d:%d y %d:%d] "
-                "(%dx%d logical) BACKEND_shape=%s %s → tile=%dx%d %s "
-                "u8[min=%d max=%d]",
-                zoom, x0, x1, y0, y1, rw, rh, _bshape, _rawinfo, out_w, out_h,
-                _tileinfo, int(np.asarray(tile).min()), int(np.asarray(tile).max()))
+            # The FETCH diagnostic sorts the raw native crop and the tile
+            # (np.unique) — 259 ms on a 4096² frame at the zoom where VIEW_OVERFETCH
+            # makes the crop the whole image. Those were arguments to a .debug()
+            # call, so lazy %-formatting did NOT save them: every pan paid for them
+            # at any log level. Guard the whole block, never inline it again.
+            if _TLOG.isEnabledFor(logging.DEBUG):
+                self._log_fetch_diagnostic(
+                    b, tile, zoom, x0, x1, y0, y1, rw, rh, out_w, out_h)
         except Exception as e:
             _TLOG.warning("[TILEDBG] view_changed tile update FAILED: %s", e)
+
+    def _log_fetch_diagnostic(self, b, tile, zoom, x0, x1, y0, y1, rw, rh,
+                              out_w, out_h) -> None:
+        """The expensive [TILEDBG] FETCH line — only ever call this behind an
+        ``isEnabledFor(DEBUG)`` guard.
+
+        The distinct-value counts are the point of it: if the requested region is
+        82×82 but the backend's raw crop has only ~100 distinct values, the backend
+        source is a downsample rather than native pixels (a real bug this caught).
+        Both counts are full sorts of up to 16 M pixels, hence the guard."""
+        try:
+            raw = np.asarray(b._a[y0:y1, x0:x1]) if hasattr(b, "_a") else None
+            rawinfo = ("raw_crop=%s distinct=%d"
+                       % (raw.shape, int(np.unique(raw).size))
+                       ) if raw is not None else "raw=?"
+            arr = np.asarray(tile)
+            _TLOG.debug(
+                "[TILEDBG] view_changed FETCH zoom=%.2f region=[x %d:%d y %d:%d] "
+                "(%dx%d logical) BACKEND_shape=%s %s → tile=%dx%d "
+                "tile_distinct=%d u8[min=%d max=%d]",
+                zoom, x0, x1, y0, y1, rw, rh,
+                b.full_shape if hasattr(b, "full_shape") else "?", rawinfo,
+                out_w, out_h, int(np.unique(arr).size),
+                int(arr.min()), int(arr.max()))
+        except Exception as e:
+            _TLOG.debug("[TILEDBG] FETCH diagnostic failed: %s", e)
 
     @staticmethod
     def _encode_bytes(arr: np.ndarray) -> str:
