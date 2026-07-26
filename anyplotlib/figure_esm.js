@@ -3203,6 +3203,28 @@ function render({ model, el, onResize }) {
         ovCtx.beginPath();ovCtx.moveTo(0,ccy);ovCtx.lineTo(imgW,ccy);ovCtx.stroke();
         ovCtx.beginPath();ovCtx.moveTo(ccx,0);ovCtx.lineTo(ccx,imgH);ovCtx.stroke();
         if(_handles){ovCtx.beginPath();ovCtx.arc(ccx,ccy,4,0,Math.PI*2);ovCtx.fillStyle=w.color||'#00e5ff';ovCtx.fill();}
+      } else if(w.type==='vline'){
+        // Full-height rule at image x. No handle dot: the whole line is the
+        // grab target, so a dot would only add clutter.
+        const [vx]=_imgToCanvas2d(w.x,0,st,imgW,imgH);
+        ovCtx.beginPath();ovCtx.moveTo(vx,0);ovCtx.lineTo(vx,imgH);ovCtx.stroke();
+      } else if(w.type==='hline'){
+        const [,hy]=_imgToCanvas2d(0,w.y,st,imgW,imgH);
+        ovCtx.beginPath();ovCtx.moveTo(0,hy);ovCtx.lineTo(imgW,hy);ovCtx.stroke();
+      } else if(w.type==='line'){
+        // Bare segment: no arrowhead (that's 'arrow'), no closed path
+        // (that's 'polygon'). Handles mark the two draggable endpoints.
+        const [ax,ay]=_imgToCanvas2d(w.x1,w.y1,st,imgW,imgH);
+        const [bx,by]=_imgToCanvas2d(w.x2,w.y2,st,imgW,imgH);
+        ovCtx.beginPath();ovCtx.moveTo(ax,ay);ovCtx.lineTo(bx,by);ovCtx.stroke();
+        // Canvas-space readback for Playwright, same role as the rectangle
+        // branch above: a test cannot derive an endpoint's page position from
+        // figure padding, because the image->canvas mapping depends on the
+        // zoom/extent state.
+        if(!window._aplWidgetGeom) window._aplWidgetGeom={};
+        if(!window._aplWidgetGeom[p.id]) window._aplWidgetGeom[p.id]={};
+        window._aplWidgetGeom[p.id][w.id]={type:'line',ax,ay,bx,by};
+        if(_handles){_drawHandle2d(ovCtx,ax,ay,w.color);_drawHandle2d(ovCtx,bx,by,w.color);}
       } else if(w.type==='polygon'){
         const verts=w.vertices||[];
         if(verts.length>=2){
@@ -7191,7 +7213,36 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
       } else if (w.type === 'crosshair') {
         const [ccx, ccy] = _imgToCanvas2d(w.cx, w.cy, st, imgW, imgH);
+        // Centre hotspot moves both axes at once.
         if (Math.hypot(mx-ccx, my-ccy) <= HR + 4)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+        // Anywhere along either rule is also a grab target: for a line-style
+        // pointer the lines ARE the widget, and requiring the user to find a
+        // one-pixel intersection made it feel broken.  Grabbing a rule
+        // constrains the drag to that rule's own axis.
+        if (Math.abs(mx-ccx) <= HR)
+          return { idx:i, mode:'move_x', snapW:{...w}, startMX:mx, startMY:my };
+        if (Math.abs(my-ccy) <= HR)
+          return { idx:i, mode:'move_y', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'vline') {
+        const [vx] = _imgToCanvas2d(w.x, 0, st, imgW, imgH);
+        if (Math.abs(mx - vx) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'hline') {
+        const [, hy] = _imgToCanvas2d(0, w.y, st, imgW, imgH);
+        if (Math.abs(my - hy) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'line') {
+        const [ax, ay] = _imgToCanvas2d(w.x1, w.y1, st, imgW, imgH);
+        const [bx, by] = _imgToCanvas2d(w.x2, w.y2, st, imgW, imgH);
+        if (Math.hypot(mx-ax, my-ay) <= HR)
+          return { idx:i, mode:'move_p1', snapW:{...w}, startMX:mx, startMY:my };
+        if (Math.hypot(mx-bx, my-by) <= HR)
+          return { idx:i, mode:'move_p2', snapW:{...w}, startMX:mx, startMY:my };
+        if (_distToSegment2d(mx, my, ax, ay, bx, by) <= HR)
           return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
 
       } else if (w.type === 'polygon') {
@@ -7309,7 +7360,24 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         w.y = s.y + (s.h - newH); w.h = newH;
       }
     } else if (w.type === 'crosshair') {
-      w.cx = s.cx + dix; w.cy = s.cy + diy;
+      // Grabbing a single rule constrains the drag to that rule's own axis;
+      // grabbing the centre moves both (see _ovHitTest2d).
+      if (d.mode === 'move_x')      { w.cx = s.cx + dix; }
+      else if (d.mode === 'move_y') { w.cy = s.cy + diy; }
+      else                          { w.cx = s.cx + dix; w.cy = s.cy + diy; }
+    } else if (w.type === 'vline') {
+      w.x = s.x + dix;
+    } else if (w.type === 'hline') {
+      w.y = s.y + diy;
+    } else if (w.type === 'line') {
+      if (d.mode === 'move') {
+        w.x1 = s.x1 + dix; w.y1 = s.y1 + diy;
+        w.x2 = s.x2 + dix; w.y2 = s.y2 + diy;
+      } else if (d.mode === 'move_p1') {
+        w.x1 = imgMX; w.y1 = imgMY;
+      } else if (d.mode === 'move_p2') {
+        w.x2 = imgMX; w.y2 = imgMY;
+      }
     } else if (w.type === 'polygon') {
       if (d.mode === 'move') {
         w.vertices = s.vertices.map(v => [v[0]+dix, v[1]+diy]);

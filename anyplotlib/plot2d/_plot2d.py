@@ -26,7 +26,8 @@ from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget, LineWidget,
+    VLineWidget, HLineWidget,
 )
 from anyplotlib._utils import (_normalize_image, _build_colormap_lut,
                                _build_tint_lut, _to_rgba_u8)
@@ -1571,10 +1572,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
         Dispatches to the dedicated ``add_<kind>_widget`` method.
         Supported kinds: ``"circle"``, ``"rectangle"``, ``"annular"``,
-        ``"polygon"``, ``"crosshair"``, ``"label"``, ``"arrow"``.
+        ``"polygon"``, ``"crosshair"``, ``"label"``, ``"arrow"``, ``"line"``,
+        ``"vline"``, ``"hline"``.
 
         Every kind also accepts ``show_handles`` (default ``True``) to toggle
         the grab-handle dots without changing hit-testing / draggability.
+        ``vline`` / ``hline`` have no handles — the whole line is the grab
+        target — so they ignore it.
         """
         dispatch = {
             "circle":    self.add_circle_widget,
@@ -1584,6 +1588,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "crosshair": self.add_crosshair_widget,
             "label":     self.add_label_widget,
             "arrow":     self.add_arrow_widget,
+            "line":      self.add_line_widget,
+            "vline":     self.add_vline_widget,
+            "hline":     self.add_hline_widget,
         }
         key = kind.lower()
         if key not in dispatch:
@@ -1727,6 +1734,109 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                              v=float(v) if v is not None else ih * 0.15,
                              color=color, linewidth=linewidth,
                              show_handles=show_handles)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_line_widget(self, x1: float | None = None, y1: float | None = None,
+                        x2: float | None = None, y2: float | None = None,
+                        color: str = "#00e5ff", linewidth: float = 2,
+                        show_handles: bool = True) -> LineWidget:
+        """Add a draggable two-endpoint line segment overlay.
+
+        A bare segment with a grab handle at each end — no arrowhead (see
+        :meth:`add_arrow_widget`) and no closed path (see
+        :meth:`add_polygon_widget`).  Use it for a line profile, a
+        cross-section cut, or a two-point measurement.
+
+        Parameters
+        ----------
+        x1, y1 : float, optional
+            First endpoint in image coordinates.  Defaults to 25 % of the
+            image size.
+        x2, y2 : float, optional
+            Second endpoint.  Defaults to 75 % of the image size.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Stroke width in px.  Default 2.
+        show_handles : bool, optional
+            Draw the endpoint grab handles.  Default ``True``.
+
+        Returns
+        -------
+        LineWidget
+            Widget object.  ``widget.length`` gives the segment length in
+            data coordinates.
+        """
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = LineWidget(lambda: None,
+                            x1=float(x1) if x1 is not None else iw * 0.25,
+                            y1=float(y1) if y1 is not None else ih * 0.25,
+                            x2=float(x2) if x2 is not None else iw * 0.75,
+                            y2=float(y2) if y2 is not None else ih * 0.75,
+                            color=color, linewidth=linewidth,
+                            show_handles=show_handles)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_vline_widget(self, x: float | None = None, color: str = "#00e5ff",
+                         linewidth: float = 2) -> VLineWidget:
+        """Add a draggable full-height vertical line overlay.
+
+        The line spans the whole panel and is grabbable anywhere along its
+        length, which makes it the right pointer for "select a column" —
+        a crosshair pinned to one axis leaves a stray perpendicular line.
+
+        Parameters
+        ----------
+        x : float, optional
+            Initial x position in image coordinates.  Defaults to the middle.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Stroke width in px.  Default 2.
+
+        Returns
+        -------
+        VLineWidget
+        """
+        iw = self._state["image_width"]
+        widget = VLineWidget(lambda: None,
+                             x=float(x) if x is not None else iw / 2,
+                             color=color, linewidth=linewidth)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_hline_widget(self, y: float | None = None, color: str = "#00e5ff",
+                         linewidth: float = 2) -> HLineWidget:
+        """Add a draggable full-width horizontal line overlay.
+
+        The row counterpart of :meth:`add_vline_widget`; grabbable anywhere
+        along its length.
+
+        Parameters
+        ----------
+        y : float, optional
+            Initial y position in image coordinates.  Defaults to the middle.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Stroke width in px.  Default 2.
+
+        Returns
+        -------
+        HLineWidget
+        """
+        ih = self._state["image_height"]
+        widget = HLineWidget(lambda: None,
+                             y=float(y) if y is not None else ih / 2,
+                             color=color, linewidth=linewidth)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
