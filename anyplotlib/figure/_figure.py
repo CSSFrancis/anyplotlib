@@ -786,11 +786,35 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         return [dict(m) for m in self._figure_markers]
 
     def _push_widget(self, panel_id: str, widget_id: str, fields: dict) -> None:
-        """Send a targeted widget-position update to JS (no image data)."""
+        """Send a targeted widget-position update to JS (no image data).
+
+        This writes ``event_json`` only — deliberately, because re-serialising
+        a whole panel (image bytes included) on every drag frame is exactly
+        what this path exists to avoid.  The consequence is that
+        ``panel_<id>_json`` carries stale widget geometry between plot-level
+        pushes; :meth:`_sync_for_export` reconciles it before any snapshot.
+        """
         payload = {"source": "python", "panel_id": panel_id,
                    "widget_id": widget_id}
         payload.update(fields)
         self.event_json = json.dumps(payload)
+
+    def _sync_for_export(self) -> None:
+        """Refresh every panel trait so a snapshot sees current widget state.
+
+        Widget moves reach JS as targeted ``event_json`` updates that never
+        touch the panel traits (see :meth:`_push_widget`), so ``save_html`` /
+        ``to_html`` / ``figure_state`` would otherwise capture every widget at
+        the position it was *created* at rather than where it now is.  Python
+        holds the authoritative geometry — a JS-side drag writes back through
+        ``_dispatch_event`` — so re-pushing each panel is enough to reconcile.
+
+        Called from ``_repr_utils._widget_state``, the one chokepoint every
+        export path goes through.  The live Jupyter path deliberately keeps
+        using targeted pushes and does not pay this cost.
+        """
+        for panel_id in list(self._plots_map):
+            self._push(panel_id)
 
     def _push_panel_fields(self, panel_id: str, fields: dict) -> None:
         """Apply a small set of changed *fields* to a panel, then push once.

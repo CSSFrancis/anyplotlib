@@ -305,6 +305,16 @@ function render({ model, el, onResize }) {
     return 16 + labelW;
   }
 
+  // Gap between the right edge of the image and the colorbar strip. Without a
+  // real gap the strip reads as part of the image — most plots have no
+  // colorbar_label, so the label gutter that would otherwise separate them is
+  // zero-width. Overridable per panel via colorbar_pad (set_colorbar_pad).
+  const CB_GAP = 6;
+  function _cbGap(st) {
+    const v = st && st.colorbar_pad;
+    return (v == null) ? CB_GAP : Math.max(0, v);
+  }
+
   // Height of the title strip.  Stays at PAD_T for default-size plain titles
   // so existing layouts are pixel-identical; grows for title_size > 11 and
   // for TeX titles (superscripts rise above the cap height) so 2D titles are
@@ -2230,7 +2240,7 @@ function render({ model, el, onResize }) {
       const imgX = hasPhysAxis ? PAD_L : 0;
       const imgY = padT;
       const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
-                               - (cbW ? cbW + 2 : 0));
+                               - (cbW ? cbW + _cbGap(st) : 0));
       let   imgH = Math.max(1, ph - padT - (hasPhysAxis ? PAD_B : 0));
       // Enforce aspect ratio (st.aspect = number or "equal" → 1.0).
       if (st && st.aspect != null) {
@@ -2333,7 +2343,7 @@ function render({ model, el, onResize }) {
       if (p.cbCanvas && p.cbCtx) {
         if (cbW) {
           p.cbCanvas.style.display = 'block';
-          p.cbCanvas.style.left = (imgX + imgW + 2) + 'px';
+          p.cbCanvas.style.left = (imgX + imgW + _cbGap(st)) + 'px';
           p.cbCanvas.style.top  = imgY + 'px';
           _sz(p.cbCanvas, p.cbCtx, cbW, imgH);
         } else {
@@ -2907,20 +2917,30 @@ function render({ model, el, onResize }) {
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,cvW,cvH);
 
+    // Colours. Default is the original white-on-black pill; scalebar_color
+    // recolours the bar and its label, and scalebar_bgcolor the pill —
+    // 'none' drops the pill entirely, for a bar drawn straight onto a light
+    // image where the dark slab is the thing that looks wrong.
+    const sbFg = st.scalebar_color || 'white';
+    const sbBg = st.scalebar_bgcolor === undefined || st.scalebar_bgcolor === null
+      ? 'rgba(0,0,0,0.60)' : st.scalebar_bgcolor;
+
     // Background pill
-    ctx.fillStyle='rgba(0,0,0,0.60)';
-    const r=5;
-    ctx.beginPath();
-    ctx.moveTo(r,0);ctx.lineTo(cvW-r,0);ctx.arcTo(cvW,0,cvW,r,r);
-    ctx.lineTo(cvW,cvH-r);ctx.arcTo(cvW,cvH,cvW-r,cvH,r);
-    ctx.lineTo(r,cvH);ctx.arcTo(0,cvH,0,cvH-r,r);
-    ctx.lineTo(0,r);ctx.arcTo(0,0,r,0,r);
-    ctx.closePath();ctx.fill();
+    if(sbBg !== 'none'){
+      ctx.fillStyle=sbBg;
+      const r=5;
+      ctx.beginPath();
+      ctx.moveTo(r,0);ctx.lineTo(cvW-r,0);ctx.arcTo(cvW,0,cvW,r,r);
+      ctx.lineTo(cvW,cvH-r);ctx.arcTo(cvW,cvH,cvW-r,cvH,r);
+      ctx.lineTo(r,cvH);ctx.arcTo(0,cvH,0,cvH-r,r);
+      ctx.lineTo(0,r);ctx.arcTo(0,0,r,0,r);
+      ctx.closePath();ctx.fill();
+    }
 
     // Label (centred over the bar line)
     const lineX=(cvW-barPx)/2;
     const textY=padTop+fontSize;
-    ctx.fillStyle='white';
+    ctx.fillStyle=sbFg;
     ctx.font=`bold ${fontSize}px sans-serif`;
     ctx.textAlign='center';
     ctx.textBaseline='alphabetic';
@@ -2928,7 +2948,7 @@ function render({ model, el, onResize }) {
 
     // Bar line
     const lineY=padTop+fontSize+gap;
-    ctx.fillStyle='white';
+    ctx.fillStyle=sbFg;
     ctx.fillRect(lineX, lineY, barPx, lineH);
 
     // End ticks
@@ -3203,6 +3223,28 @@ function render({ model, el, onResize }) {
         ovCtx.beginPath();ovCtx.moveTo(0,ccy);ovCtx.lineTo(imgW,ccy);ovCtx.stroke();
         ovCtx.beginPath();ovCtx.moveTo(ccx,0);ovCtx.lineTo(ccx,imgH);ovCtx.stroke();
         if(_handles){ovCtx.beginPath();ovCtx.arc(ccx,ccy,4,0,Math.PI*2);ovCtx.fillStyle=w.color||'#00e5ff';ovCtx.fill();}
+      } else if(w.type==='vline'){
+        // Full-height rule at image x. No handle dot: the whole line is the
+        // grab target, so a dot would only add clutter.
+        const [vx]=_imgToCanvas2d(w.x,0,st,imgW,imgH);
+        ovCtx.beginPath();ovCtx.moveTo(vx,0);ovCtx.lineTo(vx,imgH);ovCtx.stroke();
+      } else if(w.type==='hline'){
+        const [,hy]=_imgToCanvas2d(0,w.y,st,imgW,imgH);
+        ovCtx.beginPath();ovCtx.moveTo(0,hy);ovCtx.lineTo(imgW,hy);ovCtx.stroke();
+      } else if(w.type==='line'){
+        // Bare segment: no arrowhead (that's 'arrow'), no closed path
+        // (that's 'polygon'). Handles mark the two draggable endpoints.
+        const [ax,ay]=_imgToCanvas2d(w.x1,w.y1,st,imgW,imgH);
+        const [bx,by]=_imgToCanvas2d(w.x2,w.y2,st,imgW,imgH);
+        ovCtx.beginPath();ovCtx.moveTo(ax,ay);ovCtx.lineTo(bx,by);ovCtx.stroke();
+        // Canvas-space readback for Playwright, same role as the rectangle
+        // branch above: a test cannot derive an endpoint's page position from
+        // figure padding, because the image->canvas mapping depends on the
+        // zoom/extent state.
+        if(!window._aplWidgetGeom) window._aplWidgetGeom={};
+        if(!window._aplWidgetGeom[p.id]) window._aplWidgetGeom[p.id]={};
+        window._aplWidgetGeom[p.id][w.id]={type:'line',ax,ay,bx,by};
+        if(_handles){_drawHandle2d(ovCtx,ax,ay,w.color);_drawHandle2d(ovCtx,bx,by,w.color);}
       } else if(w.type==='polygon'){
         const verts=w.vertices||[];
         if(verts.length>=2){
@@ -3266,6 +3308,13 @@ function render({ model, el, onResize }) {
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
       const type = ms.type || 'circles';
+      // Per-marker edge/face colours: `color` and `fill_color` may be arrays
+      // parallel to the markers (matplotlib's edgecolors=[...] / c=[...]).
+      // Shorter arrays cycle, as matplotlib's colour cycle does.
+      const _ecArr = Array.isArray(ec)  ? ec  : null;
+      const _fcArr = Array.isArray(fch) ? fch : null;
+      const _ecAt = (i) => _ecArr ? _ecArr[i % _ecArr.length] : ec;
+      const _fcAt = (i) => _fcArr ? _fcArr[i % _fcArr.length] : fch;
 
       // Coordinate transform dispatch: "data" (default), "axes", "display".
       // For non-data transforms sizes are in pixels, not scaled by zoom.
@@ -3281,19 +3330,28 @@ function render({ model, el, onResize }) {
         _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,imgW,imgH);
       }
       const scl = tfm==='data' ? scale : 1;
+      // Sizes have their own space, independent of the position transform:
+      // 'data' (default) grows with zoom the way a shape drawn on the data
+      // does; 'px' pins them to screen pixels. A marker standing in for a
+      // *point* wants px — matplotlib sizes scatter markers in display
+      // points for exactly that reason.
+      const sscl = ms.size_units==='px' ? 1 : scl;
 
       mkCtx.save();
       if(clipSet){
         mkCtx.beginPath(); mkCtx.rect(vr.x, vr.y, vr.w, vr.h); mkCtx.clip();
       }
-      mkCtx.strokeStyle=ec; mkCtx.fillStyle=ec; mkCtx.lineWidth=dlw;
+      // Group-level style; per-marker arrays override inside each loop below.
+      mkCtx.strokeStyle=_ecAt(0); mkCtx.fillStyle=_ecAt(0); mkCtx.lineWidth=dlw;
 
       if(type==='circles'){
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*sscl);
           mkCtx.beginPath();mkCtx.arc(cx,cy,r,0,Math.PI*2);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='arrows'){
@@ -3302,6 +3360,7 @@ function render({ model, el, onResize }) {
           const [x1,y1]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           const u=(ms.U[i]||0)*scl, v=(ms.V[i]||0)*scl;
           const x2=x1+u,y2=y1+v,ang=Math.atan2(y2-y1,x2-x1);
+          if(_ecArr){mkCtx.strokeStyle=_ecAt(i);mkCtx.fillStyle=_ecAt(i);}
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
           mkCtx.beginPath();mkCtx.moveTo(x2,y2);
           mkCtx.lineTo(x2-HL*Math.cos(ang-Math.PI/6),y2-HL*Math.sin(ang-Math.PI/6));
@@ -3311,28 +3370,35 @@ function render({ model, el, onResize }) {
       } else if(type==='ellipses'){
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*scl/2);
-          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*scl/2);
+          const rw=Math.max(1,(ms.widths[i]||ms.widths[0]||10)*sscl/2);
+          const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*sscl/2);
           const ang=((ms.angles[i]||ms.angles[0]||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='lines'){
-        for(const seg of (ms.segments||[])){
+        const segs=ms.segments||[];
+        for(let i=0;i<segs.length;i++){
+          const seg=segs[i];
           const [x1,y1]=_tc(seg[0][0],seg[0][1]);
           const [x2,y2]=_tc(seg[1][0],seg[1][1]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
         }
       } else if(type==='rectangles'||type==='squares'){
         const heights=type==='squares'?ms.widths:ms.heights;
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const rw=(ms.widths[i]||ms.widths[0]||20)*scl;
-          const rh=((heights[i]||heights[0]||20))*scl;
+          const rw=(ms.widths[i]||ms.widths[0]||20)*sscl;
+          const rh=((heights[i]||heights[0]||20))*sscl;
           const ang=((ms.angles&&(ms.angles[i]||ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.strokeRect(-rw/2,-rh/2,rw,rh);
           mkCtx.restore();
         }
@@ -3344,7 +3410,9 @@ function render({ model, el, onResize }) {
           mkCtx.beginPath();mkCtx.moveTo(px0,py0);
           for(let k=1;k<verts.length;k++){const[px,py]=_tc(verts[k][0],verts[k][1]);mkCtx.lineTo(px,py);}
           mkCtx.closePath();
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='texts'){
@@ -3352,6 +3420,7 @@ function render({ model, el, onResize }) {
         mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          if(_ecArr) mkCtx.fillStyle=_ecAt(i);
           mkCtx.fillText(String(ms.texts[i]||''),cx,cy);
         }
       }
@@ -5626,6 +5695,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const eff_alpha = (alpha != null && alpha < 1.0) ? alpha : 1.0;
       const ms = Math.max(1, markersize || 4);
       const doMarker = marker && marker !== 'none';
+      // linestyle 'none' (or a zero width) means "markers only" — matplotlib's
+      // scatter idiom.  Skip the connecting stroke but keep drawing markers.
+      const doLine = linestyle !== 'none' && lw > 0;
 
       // Pre-compute pixel positions
       const allPx = new Array(n), allPy = new Array(n);
@@ -5639,26 +5711,29 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
       ctx.save();
       if (eff_alpha < 1.0) ctx.globalAlpha = eff_alpha;
-      ctx.setLineDash(dash);
-      ctx.beginPath();
-      ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round';
 
-      if (isStepMid && n >= 2) {
-        ctx.moveTo(allPx[0], allPy[0]);
-        for (let i = 0; i < n - 1; i++) {
-          const midX = (allPx[i] + allPx[i + 1]) / 2;
-          ctx.lineTo(midX, allPy[i]);
-          ctx.lineTo(midX, allPy[i + 1]);
+      if (doLine) {
+        ctx.setLineDash(dash);
+        ctx.beginPath();
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+
+        if (isStepMid && n >= 2) {
+          ctx.moveTo(allPx[0], allPy[0]);
+          for (let i = 0; i < n - 1; i++) {
+            const midX = (allPx[i] + allPx[i + 1]) / 2;
+            ctx.lineTo(midX, allPy[i]);
+            ctx.lineTo(midX, allPy[i + 1]);
+          }
+          ctx.lineTo(allPx[n - 1], allPy[n - 1]);
+        } else {
+          for (let i = 0; i < n; i++) {
+            if (i === 0) ctx.moveTo(allPx[i], allPy[i]);
+            else ctx.lineTo(allPx[i], allPy[i]);
+          }
         }
-        ctx.lineTo(allPx[n - 1], allPy[n - 1]);
-      } else {
-        for (let i = 0; i < n; i++) {
-          if (i === 0) ctx.moveTo(allPx[i], allPy[i]);
-          else ctx.lineTo(allPx[i], allPy[i]);
-        }
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
-      ctx.stroke();
-      ctx.setLineDash([]);
 
       const pts = doMarker ? allPx.map((px, i) => [px, allPy[i]]) : null;
 
@@ -5679,8 +5754,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       ctx.restore();
     }
 
+    // ?? not || on linewidth: an explicit 0 means "no stroke" and must not
+    // fall back to the 1.5 default (see _drawLine's doLine).
     _drawLine(yData, xArr,
-      st.line_color || '#4fc3f7', st.line_linewidth || 1.5,
+      st.line_color || '#4fc3f7', st.line_linewidth ?? 1.5,
       st.line_linestyle || 'solid',
       st.line_alpha != null ? st.line_alpha : 1.0,
       st.line_marker || 'none', st.line_markersize || 4);
@@ -5689,7 +5766,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
       const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
       _drawLine(exY, exX,
-        ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth || 1.5,
+        ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth ?? 1.5,
         ex.linestyle || 'solid',
         ex.alpha != null ? ex.alpha : 1.0,
         ex.marker || 'none', ex.markersize || 4, exMap);
@@ -5699,7 +5776,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (_hovId !== undefined && _hovId !== '__none__') {
       if (_hovId === null) {
         _drawLine(yData, xArr,
-          _brightenColor(st.line_color||'#4fc3f7'), (st.line_linewidth||1.5)+1,
+          _brightenColor(st.line_color||'#4fc3f7'), (st.line_linewidth??1.5)+1,
           st.line_linestyle||'solid', st.line_alpha!=null?st.line_alpha:1.0,
           st.line_marker||'none', st.line_markersize||4);
       } else {
@@ -5709,7 +5786,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
             const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis?ex.x_axis:xArr);
             const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
             _drawLine(exY, exX,
-              _brightenColor(ex.color||(theme.dark?'#fff':'#333')), (ex.linewidth||1.5)+1,
+              _brightenColor(ex.color||(theme.dark?'#fff':'#333')), (ex.linewidth??1.5)+1,
               ex.linestyle||'solid', ex.alpha!=null?ex.alpha:1.0,
               ex.marker||'none', ex.markersize||4, exMap);
             break;
@@ -5749,8 +5826,18 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if(axisVis1d&&yTicksVis1d){
       ctx.font=(st.tick_size||10)+'px monospace';ctx.textAlign='right';ctx.textBaseline='middle';
       const tickRX=r.x-8;
+      // Widest tick string, in both branches: the y label is placed relative
+      // to it below, so it has to be measured whatever the scale.
+      let maxTW=0;
       if(isLog){
         const lo=Math.floor(effDMin), hi=Math.ceil(effDMax);
+        for(let e=lo;e<=hi;e++){
+          // Plain-text measure of "10^{e}" over-estimates the TeX-rendered
+          // width (the exponent is drawn smaller). Over-estimating is the
+          // safe direction: it pushes the label further from the ticks.
+          const tw=ctx.measureText('10'+e).width;
+          if(tw>maxTW)maxTW=tw;
+        }
         for(let e=lo;e<=hi;e++){
           const v=Math.pow(10,e);
           const py=_toPlotY(v);
@@ -5759,7 +5846,6 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           ctx.fillStyle=theme.tickText;_drawTex(ctx,'$10^{'+e+'}$',tickRX,py,st.tick_size||10,{align:'right',family:'monospace'});
         }
       } else {
-        let maxTW=0;
         for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){const tw=ctx.measureText(fmtVal(v)).width;if(tw>maxTW)maxTW=tw;}
         for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){
           const py=_valToPy1d(v,dMin,dMax,r);
@@ -5771,10 +5857,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if(yUnits){
         ctx.save();
         // Centre the rotated label in the left gutter (x = 0..r.x).
-        // Using a fixed x of PAD_L*0.28 keeps it clear of the tick numbers
-        // regardless of how wide those numbers are.
+        //
+        // The x used to be a fixed PAD_L*0.28 on the assumption that it
+        // cleared the tick numbers whatever their width. It does not: wide
+        // strings ("-5.6e-17" at the default tick size) reach back past it
+        // and the label is drawn through them. So take the fixed position as
+        // a *preference* and shift left when the ticks actually need the
+        // room, clamped so the label stays on the canvas — half the rotated
+        // glyph height is the least it can sit at.
         const ylpx1d = st.y_label_size||9;
-        const lcx = Math.max(Math.round(PAD_L * 0.28), Math.ceil(ylpx1d*0.62)+1);
+        const halfGlyph = Math.ceil(ylpx1d*0.62)+1;
+        const clearOfTicks = tickRX - maxTW - halfGlyph - 2;
+        const lcx = Math.max(
+          halfGlyph,
+          Math.min(Math.round(PAD_L * 0.28), clearOfTicks)
+        );
         ctx.translate(lcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
         ctx.textBaseline='middle';
         ctx.fillStyle=theme.unitText;
@@ -5847,10 +5944,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const legendTop = ly;
       for(const lb of labels){
         const ldash=_LINESTYLE_DASH[lb.linestyle||'solid']||[];
-        ctx.strokeStyle=lb.color; ctx.lineWidth=2;
-        ctx.setLineDash(ldash);
-        ctx.beginPath(); ctx.moveTo(swatchX0,ly+5); ctx.lineTo(swatchX1,ly+5); ctx.stroke();
-        ctx.setLineDash([]);
+        // linestyle 'none' is a markers-only series: the swatch shows just the
+        // marker, with no connecting rule (matches how the series is drawn).
+        if(lb.linestyle!=='none'){
+          ctx.strokeStyle=lb.color; ctx.lineWidth=2;
+          ctx.setLineDash(ldash);
+          ctx.beginPath(); ctx.moveTo(swatchX0,ly+5); ctx.lineTo(swatchX1,ly+5); ctx.stroke();
+          ctx.setLineDash([]);
+        }
         if(lb.marker && lb.marker!=='none'){
           ctx.strokeStyle=lb.color; ctx.fillStyle=lb.color; ctx.lineWidth=1.5;
           ctx.beginPath(); _drawMarkerSymbol(ctx,lb.marker,markerX,ly+5,Math.min(lb.ms||4,4)); ctx.fill(); ctx.stroke();
@@ -5901,6 +6002,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const py=_valToPy1d(w.y,dMin,dMax,r);
         ovCtx.setLineDash([5,3]);ovCtx.beginPath();ovCtx.moveTo(r.x,py);ovCtx.lineTo(r.x+r.w,py);ovCtx.stroke();ovCtx.setLineDash([]);
         _ovHandle1d(ovCtx,r.x+r.w-7,py,color);
+      } else if(w.type==='range' && w.orientation==='vertical'){
+        // Vertical range: the two edges are VALUES on the y axis and the band
+        // spans the full plot width.  x0/x1 stay the field names — they are
+        // the extents along the selection axis, the same way matplotlib's
+        // SpanSelector treats `extents` regardless of its `direction`.
+        const vpy0=_valToPy1d(w.x0,dMin,dMax,r);
+        const vpy1=_valToPy1d(w.x1,dMin,dMax,r);
+        const vtop=Math.min(vpy0,vpy1), vbot=Math.max(vpy0,vpy1);
+        ovCtx.save();ovCtx.globalAlpha=0.15;ovCtx.fillStyle=color;ovCtx.fillRect(r.x,vtop,r.w,vbot-vtop);ovCtx.restore();
+        ovCtx.setLineDash([5,3]);
+        ovCtx.beginPath();ovCtx.moveTo(r.x,vpy0);ovCtx.lineTo(r.x+r.w,vpy0);ovCtx.stroke();
+        ovCtx.beginPath();ovCtx.moveTo(r.x,vpy1);ovCtx.lineTo(r.x+r.w,vpy1);ovCtx.stroke();
+        ovCtx.setLineDash([]);
+        _ovHandle1d(ovCtx,r.x+r.w-7,vpy0,color);_ovHandle1d(ovCtx,r.x+r.w-7,vpy1,color);
       } else if(w.type==='range'){
         const px0=_fracToPx1d(_axisValToFrac(xArr,w.x0),x0,x1,r);
         const px1b=_fracToPx1d(_axisValToFrac(xArr,w.x1),x0,x1,r);
@@ -5987,6 +6102,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const ec  = isHov && ms.hover_color     ? ms.hover_color     : color;
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
+      // Per-marker edge/face colours — see the matching block in _drawMarkers2d.
+      const _ecArr = Array.isArray(ec)  ? ec  : null;
+      const _fcArr = Array.isArray(fch) ? fch : null;
+      const _ecAt = (i) => _ecArr ? _ecArr[i % _ecArr.length] : ec;
+      const _fcAt = (i) => _fcArr ? _fcArr[i % _fcArr.length] : fch;
 
       // Coordinate transform: "axes" and "display" map 2-D offsets to panel
       // space independently of data values; vlines/hlines stay in data coords.
@@ -6000,7 +6120,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _tc2d=(off0,off1)=>_offToCanvas([off0,off1]);
       }
 
-      mkCtx.save();mkCtx.strokeStyle=ec;mkCtx.fillStyle=ec;mkCtx.lineWidth=dlw;
+      mkCtx.save();mkCtx.strokeStyle=_ecAt(0);mkCtx.fillStyle=_ecAt(0);mkCtx.lineWidth=dlw;
 
       // Optional clip path (matplotlib set_clip_path): a data-coord polygon the
       // group is clipped to — e.g. a pcolormesh mesh clipped to a curved
@@ -6017,33 +6137,34 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
 
       if(type==='points'){
-        // Per-point face/edge colours (matplotlib scatter c=[...]): fill_color
-        // and/or color may be arrays parallel to offsets.
-        const _fcArr = Array.isArray(fch) ? fch : null;
-        const _ecArr = Array.isArray(ec)  ? ec  : null;
         for(let i=0;i<ms.offsets.length;i++){
           const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
           const sz=Math.max(1,ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5);
           mkCtx.beginPath();mkCtx.arc(px,py,sz,0,Math.PI*2);
-          const _fc=_fcArr?_fcArr[i%_fcArr.length]:fch;
+          const _fc=_fcAt(i);
           if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
-          if(_ecArr) mkCtx.strokeStyle=_ecArr[i%_ecArr.length];
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='vlines'){
         for(let i=0;i<ms.offsets.length;i++){
           const px=_xPx(ms.offsets[i][0]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(px,r.y);mkCtx.lineTo(px,r.y+r.h);mkCtx.stroke();
         }
       } else if(type==='hlines'){
         for(let i=0;i<ms.offsets.length;i++){
           const py=_yPx(ms.offsets[i][0]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(r.x,py);mkCtx.lineTo(r.x+r.w,py);mkCtx.stroke();
         }
       } else if(type==='lines'){
-        for(const seg of (ms.segments||[])){
+        const segs=ms.segments||[];
+        for(let i=0;i<segs.length;i++){
+          const seg=segs[i];
           const [x1c,y1c]= tfm==='data' ? _offToCanvas(seg[0]) : _tc2d(seg[0][0],seg[0][1]);
           const [x2c,y2c]= tfm==='data' ? _offToCanvas(seg[1]) : _tc2d(seg[1][0],seg[1][1]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(x1c,y1c);mkCtx.lineTo(x2c,y2c);mkCtx.stroke();
         }
       } else if(type==='ellipses'){
@@ -6056,7 +6177,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2))/2 : hd/2);
           const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='rectangles'||type==='squares'){
@@ -6070,15 +6193,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2)) : hd);
           const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.strokeRect(-rw/2,-rh/2,rw,rh);
           mkCtx.restore();
         }
       } else if(type==='polygons'){
-        // Per-polygon face/edge colours (matplotlib PathCollection / pcolormesh):
-        // fill_color and/or color may be arrays parallel to vertices_list.
-        const _fcArr = Array.isArray(fch) ? fch : null;
-        const _ecArr = Array.isArray(ec)  ? ec  : null;
         for(let i=0;i<(ms.vertices_list||[]).length;i++){
           const verts=ms.vertices_list[i];
           if(!verts||verts.length<2) continue;
@@ -6089,9 +6210,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
             mkCtx.lineTo(px,py);
           }
           mkCtx.closePath();
-          const _fc=_fcArr?_fcArr[i%_fcArr.length]:fch;
+          const _fc=_fcAt(i);
           if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
-          if(_ecArr) mkCtx.strokeStyle=_ecArr[i%_ecArr.length];
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='raster'){
@@ -6234,18 +6355,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _tc=(ix,iy)=>_imgToCanvas2d(ix,iy,st,pw,ph);
       }
       const scl = tfm==='data' ? scale : 1;
+      // Match the draw loop's size space (see drawMarkers2d).
+      const sscl = ms.size_units==='px' ? 1 : scl;
       if (type === 'circles') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
+          const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*sscl);
           if(Math.sqrt((mx-cx)**2+(my-cy)**2)<=r+MARKER_HIT)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
       } else if (type === 'ellipses') {
         for (let i=0;i<(ms.offsets||[]).length;i++) {
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const rw=(ms.widths[i]||ms.widths[0]||10)*scl/2+MARKER_HIT;
-          const rh=(ms.heights[i]||ms.heights[0]||10)*scl/2+MARKER_HIT;
+          const rw=(ms.widths[i]||ms.widths[0]||10)*sscl/2+MARKER_HIT;
+          const rh=(ms.heights[i]||ms.heights[0]||10)*sscl/2+MARKER_HIT;
           const dx=(mx-cx)/Math.max(1,rw), dy=(my-cy)/Math.max(1,rh);
           if(dx*dx+dy*dy<=1.0)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
@@ -6254,8 +6377,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const heights = type==='squares' ? ms.widths : ms.heights;
         for (let i=0;i<(ms.offsets||[]).length;i++) {
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
-          const hw=(ms.widths[i]||ms.widths[0]||20)*scl/2+MARKER_HIT;
-          const hh=((heights[i]||heights[0]||20))*scl/2+MARKER_HIT;
+          const hw=(ms.widths[i]||ms.widths[0]||20)*sscl/2+MARKER_HIT;
+          const hh=((heights[i]||heights[0]||20))*sscl/2+MARKER_HIT;
           if(Math.abs(mx-cx)<=hw&&Math.abs(my-cy)<=hh)
             return{si,i,collectionLabel:collLabel,markerLabel:perLabels?String(perLabels[i]??''):null};
         }
@@ -6915,16 +7038,38 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const st=p.state;
         if(st) _emitEvent(p.id,'pointer_up',null,{view_x0:st.view_x0,view_x1:st.view_x1,..._pointerFields(e),button:e.button});
       }
-      // Line click: fire when no widget was being dragged and mouse barely moved.
+      // Click: fire when no widget was being dragged and mouse barely moved.
       // NOTE: p.isPanning is always set true on mousedown (pan start), so we
       // deliberately only block on wasWidgetDragging here — the distance
       // threshold below already excludes real pan gestures.
+      //
+      // A click always emits exactly one pointer_down carrying the clicked
+      // position in data coords, mirroring 2-D panels. When the click also
+      // landed on a line, line_id (and the snapped on-line x/y) come along —
+      // that is the pre-existing line-click contract, kept intact.
       if(!wasWidgetDragging && p._mousedownX!=null){
         const mdx=e.clientX-p._mousedownX, mdy=e.clientY-p._mousedownY;
         if(Math.hypot(mdx,mdy)<5){
           const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
-          const lhit=_lineHitTest1d(mx,my,p);
-          if(lhit) _emitEvent(p.id,'pointer_down',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y,..._pointerFields(e),button:e.button});
+          const st=p.state;
+          const r=_plotRect1d(p);
+          const inPlot = st && mx>=r.x && mx<=r.x+r.w && my>=r.y && my<=r.y+r.h;
+          if(inPlot){
+            const lhit=_lineHitTest1d(mx,my,p);
+            const xArr=p._1dXArr||(st.x_axis_b64?_decodeF64(st.x_axis_b64):(st.x_axis||[]));
+            const frac=_canvasXToFrac1d(mx,st.view_x0||0,st.view_x1||1,r);
+            const physX=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
+            const dMin=st.data_min, dMax=st.data_max;
+            const physY=dMin+(r.y+r.h-my)/(r.h||1)*(dMax-dMin);
+            _emitEvent(p.id,'pointer_down',null,{
+              ...(lhit?{line_id:lhit.lineId}:{}),
+              // On-line coords when a line was hit, else the raw click point.
+              x:lhit?lhit.x:physX, y:lhit?lhit.y:physY,
+              xdata:physX, ydata:physY,
+              ..._pointerFields(e),
+              button:e.button,
+            });
+          }
         }
       }
       p._mousedownX=null;
@@ -7130,7 +7275,36 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
       } else if (w.type === 'crosshair') {
         const [ccx, ccy] = _imgToCanvas2d(w.cx, w.cy, st, imgW, imgH);
+        // Centre hotspot moves both axes at once.
         if (Math.hypot(mx-ccx, my-ccy) <= HR + 4)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+        // Anywhere along either rule is also a grab target: for a line-style
+        // pointer the lines ARE the widget, and requiring the user to find a
+        // one-pixel intersection made it feel broken.  Grabbing a rule
+        // constrains the drag to that rule's own axis.
+        if (Math.abs(mx-ccx) <= HR)
+          return { idx:i, mode:'move_x', snapW:{...w}, startMX:mx, startMY:my };
+        if (Math.abs(my-ccy) <= HR)
+          return { idx:i, mode:'move_y', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'vline') {
+        const [vx] = _imgToCanvas2d(w.x, 0, st, imgW, imgH);
+        if (Math.abs(mx - vx) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'hline') {
+        const [, hy] = _imgToCanvas2d(0, w.y, st, imgW, imgH);
+        if (Math.abs(my - hy) <= HR)
+          return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
+
+      } else if (w.type === 'line') {
+        const [ax, ay] = _imgToCanvas2d(w.x1, w.y1, st, imgW, imgH);
+        const [bx, by] = _imgToCanvas2d(w.x2, w.y2, st, imgW, imgH);
+        if (Math.hypot(mx-ax, my-ay) <= HR)
+          return { idx:i, mode:'move_p1', snapW:{...w}, startMX:mx, startMY:my };
+        if (Math.hypot(mx-bx, my-by) <= HR)
+          return { idx:i, mode:'move_p2', snapW:{...w}, startMX:mx, startMY:my };
+        if (_distToSegment2d(mx, my, ax, ay, bx, by) <= HR)
           return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
 
       } else if (w.type === 'polygon') {
@@ -7248,7 +7422,24 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         w.y = s.y + (s.h - newH); w.h = newH;
       }
     } else if (w.type === 'crosshair') {
-      w.cx = s.cx + dix; w.cy = s.cy + diy;
+      // Grabbing a single rule constrains the drag to that rule's own axis;
+      // grabbing the centre moves both (see _ovHitTest2d).
+      if (d.mode === 'move_x')      { w.cx = s.cx + dix; }
+      else if (d.mode === 'move_y') { w.cy = s.cy + diy; }
+      else                          { w.cx = s.cx + dix; w.cy = s.cy + diy; }
+    } else if (w.type === 'vline') {
+      w.x = s.x + dix;
+    } else if (w.type === 'hline') {
+      w.y = s.y + diy;
+    } else if (w.type === 'line') {
+      if (d.mode === 'move') {
+        w.x1 = s.x1 + dix; w.y1 = s.y1 + diy;
+        w.x2 = s.x2 + dix; w.y2 = s.y2 + diy;
+      } else if (d.mode === 'move_p1') {
+        w.x1 = imgMX; w.y1 = imgMY;
+      } else if (d.mode === 'move_p2') {
+        w.x2 = imgMX; w.y2 = imgMY;
+      }
     } else if (w.type === 'polygon') {
       if (d.mode === 'move') {
         w.vertices = s.vertices.map(v => [v[0]+dix, v[1]+diy]);
@@ -7311,6 +7502,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if(w.type==='hline'){
         const py=_valToPy1d(w.y,st.data_min,st.data_max,r);
         if(Math.abs(my-py)<=5) return{idx:i,mode:'move',wtype:'hline',startMY:my,snapW:{...w}};
+      } else if(w.type==='range' && w.orientation==='vertical'){
+        const vpy0=_valToPy1d(w.x0,st.data_min,st.data_max,r);
+        const vpy1=_valToPy1d(w.x1,st.data_min,st.data_max,r);
+        const vtop=Math.min(vpy0,vpy1), vbot=Math.max(vpy0,vpy1);
+        // Same one-third rule as the horizontal band: a thin band must keep a
+        // grabbable middle rather than being all edge.
+        const vgrab=Math.min(HR+5,(vbot-vtop)/3);
+        if(Math.abs(my-vpy0)<=vgrab) return{idx:i,mode:'edge0',wtype:'range',startMY:my,snapW:{...w}};
+        if(Math.abs(my-vpy1)<=vgrab) return{idx:i,mode:'edge1',wtype:'range',startMY:my,snapW:{...w}};
+        if(my>=vtop&&my<=vbot&&mx>=r.x&&mx<=r.x+r.w) return{idx:i,mode:'move',wtype:'range',startMY:my,snapW:{...w}};
       } else if(w.type==='range'){
         const px0=_fracToPx1d(_axisValToFrac(xArr,w.x0),x0,x1,r);
         const px1b=_fracToPx1d(_axisValToFrac(xArr,w.x1),x0,x1,r);
@@ -7339,17 +7540,46 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     return null;
   }
 
+  // Snap a value to the nearest entry of a widget's snap_values, if it has any.
+  // Mirrors matplotlib SpanSelector.snap_values: the drag follows the cursor
+  // but lands only on allowed positions.
+  function _snapVal(v, snapValues){
+    if(!Array.isArray(snapValues) || !snapValues.length) return v;
+    let best=snapValues[0], bestD=Math.abs(v-best);
+    for(let i=1;i<snapValues.length;i++){
+      const dd=Math.abs(v-snapValues[i]);
+      if(dd<bestD){bestD=dd;best=snapValues[i];}
+    }
+    return best;
+  }
+
   function _doDrag1d(e,p){
     const st=p.state;if(!st)return;
     const r=_plotRect1d(p);
     const {mx,my:py}=_clientPos(e,p.overlayCanvas,p.pw,p.ph);
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0,x1=st.view_x1||1;
-    const xUnit=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r);
     const widgets=st.overlay_widgets;
     const d=p.ovDrag, s=d.snapW, w=widgets[d.idx];
+    const snap=(v)=>_snapVal(v,w.snap_values);
+    const xUnit=snap(xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r));
+    const yUnit=snap(st.data_max-((py-r.y)/(r.h||1))*(st.data_max-st.data_min));
     if(w.type==='vline'){w.x=xUnit;}
-    else if(w.type==='hline'){w.y=st.data_max-((py-r.y)/(r.h||1))*(st.data_max-st.data_min);}
+    else if(w.type==='hline'){w.y=yUnit;}
+    else if(w.type==='range' && w.orientation==='vertical'){
+      // Same cap semantics as the horizontal band, on the value axis.
+      const vcap = (w.max_extent == null ? null : Math.abs(w.max_extent));
+      if(d.mode==='edge0'){
+        w.x0 = (vcap!=null && Math.abs(w.x1-yUnit) > vcap)
+          ? w.x1 + (yUnit < w.x1 ? -vcap : vcap) : yUnit;
+      } else if(d.mode==='edge1'){
+        w.x1 = (vcap!=null && Math.abs(yUnit-w.x0) > vcap)
+          ? w.x0 + (yUnit < w.x0 ? -vcap : vcap) : yUnit;
+      } else {
+        const dv=(st.data_max-st.data_min)*((d.startMY-py)/(r.h||1));
+        w.x0=snap(s.x0+dv);w.x1=snap(s.x1+dv);
+      }
+    }
     else if(w.type==='range'){
       // max_extent caps the span DURING the drag. The edge NOT being dragged is
       // the anchor and never moves, so the span stops growing at the cap without
@@ -7369,13 +7599,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       else {
         const snapPx=_fracToPx1d(xArr.length>=2?_axisValToFrac(xArr,s.x0):0,x0,x1,r);
         const dxUnit=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(snapPx+(mx-d.startMX),x0,x1,r))-s.x0:(mx-d.startMX)/(r.w||1);
-        w.x0=s.x0+dxUnit;w.x1=s.x1+dxUnit;
+        w.x0=snap(s.x0+dxUnit);w.x1=snap(s.x1+dxUnit);
       }
     } else if(w.type==='point'){
       // Clamp to plot rectangle
       const clampX=Math.max(r.x,Math.min(r.x+r.w,mx));
       const clampY=Math.max(r.y,Math.min(r.y+r.h,py));
-      w.x=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(clampX,x0,x1,r)):_canvasXToFrac1d(clampX,x0,x1,r);
+      w.x=snap(xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(clampX,x0,x1,r)):_canvasXToFrac1d(clampX,x0,x1,r));
       w.y=st.data_max-((clampY-r.y)/(r.h||1))*(st.data_max-st.data_min);
     }
     drawOverlay1d(p);
@@ -7528,7 +7758,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const imgX = hasPhysAxis ? PAD_L : 0;
       const imgY = hasPhysAxis ? padT : 0;
       const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
-                               - (cbW ? cbW + 2 : 0));
+                               - (cbW ? cbW + _cbGap(st) : 0));
       const imgH = hasPhysAxis ? Math.max(1, ph - padT - PAD_B) : ph;
       // Update stored dims so event handlers stay consistent during CSS resize
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
@@ -7556,7 +7786,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _szCSS(p.xAxisCanvas, imgW, PAD_B);
       }
       if (p.cbCanvas && p.cbCanvas.style.display !== 'none') {
-        p.cbCanvas.style.left = (imgX + imgW + 2) + 'px'; p.cbCanvas.style.top = imgY + 'px';
+        p.cbCanvas.style.left = (imgX + imgW + _cbGap(st)) + 'px'; p.cbCanvas.style.top = imgY + 'px';
         _szCSS(p.cbCanvas, cbW || 16, imgH);
       }
     } else if (p.kind === '3d') {

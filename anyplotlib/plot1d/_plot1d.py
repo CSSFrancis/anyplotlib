@@ -237,7 +237,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
          - ``"solid"``
          - Dash pattern: ``"solid"``, ``"dashed"``, ``"dotted"``,
            ``"dashdot"``.  Shorthands ``"-"``, ``"--"``, ``":"``,
-           ``"-."`` also accepted.
+           ``"-."`` also accepted, as is ``"none"`` (markers only, no
+           connecting line).
        * - ``alpha``
          - ``1.0``
          - Line opacity (0 = transparent, 1 = fully opaque).
@@ -550,7 +551,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Stroke width in pixels.  Default ``1.5``.
         linestyle : str, optional
             Dash pattern: ``"solid"``, ``"dashed"``, ``"dotted"``,
-            ``"dashdot"`` (or shorthands).  Default ``"solid"``.
+            ``"dashdot"`` (or shorthands), or ``"none"`` for markers only
+            with no connecting line.  Default ``"solid"``.
         ls : str, optional
             Short alias for *linestyle*.
         alpha : float, optional
@@ -700,7 +702,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
     # Overlay Widgets
     # ------------------------------------------------------------------
     def add_vline_widget(self, x: float, color: str = "#00e5ff",
-                         linewidth: float = 2) -> _VLineWidget:
+                         linewidth: float = 2,
+                         snap_values=None) -> _VLineWidget:
         """Add a draggable vertical-line overlay.
 
         Parameters
@@ -719,14 +722,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             :meth:`on_changed` / :meth:`on_release`.
         """
         widget = _VLineWidget(lambda: None, x=float(x), color=color,
-                              linewidth=linewidth)
+                              linewidth=linewidth, snap_values=snap_values)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
     def add_hline_widget(self, y: float, color: str = "#00e5ff",
-                         linewidth: float = 2) -> _HLineWidget:
+                         linewidth: float = 2,
+                         snap_values=None) -> _HLineWidget:
         """Add a draggable horizontal-line overlay.
 
         Parameters
@@ -745,7 +749,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             :meth:`on_changed` / :meth:`on_release`.
         """
         widget = _HLineWidget(lambda: None, y=float(y), color=color,
-                              linewidth=linewidth)
+                              linewidth=linewidth, snap_values=snap_values)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -757,13 +761,17 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                          y: float = 0.0,
                          linewidth: float = 2,
                          max_extent: float | None = None,
+                         orientation: str = "horizontal",
+                         snap_values=None,
                          _push: bool = True) -> _RangeWidget:
         """Add a draggable range overlay to this panel.
 
         Parameters
         ----------
         x0, x1 : float
-            Initial left and right edges in data coordinates.
+            The two edges of the range, in data coordinates along the
+            selection axis: x positions when horizontal (default), y values
+            when ``orientation="vertical"``.
         color : str, optional
             CSS colour string.  Default ``"#00e5ff"``.
         style : {'band', 'fwhm'}, optional
@@ -780,6 +788,16 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Maximum span width in data units.  The span physically stops growing
             at this width while dragging (the dragged edge pins, the opposite
             edge stays put).  ``None`` (default) leaves it unbounded.
+        orientation : {'horizontal', 'vertical'}, optional
+            Which axis the range selects along.  ``"vertical"`` draws a band
+            spanning the plot width that selects a range of *values* — an
+            intensity window rather than a spectral one.  Default
+            ``"horizontal"``.
+        snap_values : sequence of float, optional
+            Allowed edge positions.  Each edge follows the cursor while
+            dragging but lands only on the nearest of these values
+            (matplotlib's ``SpanSelector.snap_values``).  ``None`` (default)
+            drags continuously.
         _push : bool, optional
             Push state to JS immediately. Set to ``False`` when adding
             several widgets at once; call :meth:`_push` manually afterward.
@@ -792,7 +810,9 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         """
         widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
                               color=color, style=style, y=float(y),
-                              linewidth=linewidth, max_extent=max_extent)
+                              linewidth=linewidth, max_extent=max_extent,
+                              orientation=orientation,
+                              snap_values=snap_values)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
@@ -924,7 +944,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         ----------
         linestyle : str
             ``"solid"`` (``"-"``), ``"dashed"`` (``"--"``),
-            ``"dotted"`` (``":"``), or ``"dashdot"`` (``"-."``)
+            ``"dotted"`` (``":"``), ``"dashdot"`` (``"-."``), or ``"none"``
+            to suppress the connecting line and draw only the markers.
         """
         self._state["line_linestyle"] = _norm_linestyle(linestyle)
         self._push()

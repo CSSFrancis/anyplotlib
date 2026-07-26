@@ -35,7 +35,17 @@ MAX_NOTEBOOK_WIDTH = 860
 # ---------------------------------------------------------------------------
 
 def _widget_state(widget) -> dict:
-    """Return a {name: value} dict of every synced traitlet."""
+    """Return a {name: value} dict of every synced traitlet.
+
+    A widget that keeps state outside its traits between renders may define
+    ``_sync_for_export()`` to reconcile it first.  ``Figure`` uses this to fold
+    widget geometry — pushed to JS as targeted events that never touch the
+    panel traits — back in, so a snapshot captures widgets where they are
+    rather than where they were created.
+    """
+    sync = getattr(widget, "_sync_for_export", None)
+    if callable(sync):
+        sync()
     state: dict = {}
     for name, trait in widget.traits(sync=True).items():
         if name.startswith("_"):

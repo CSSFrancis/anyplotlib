@@ -95,8 +95,13 @@ class _BasePlot(_EventMixin):
 
         Replaces the repeated _tp / _targeted_push closures in every
         add_*_widget method.
+
+        Also back-links the widget to this plot so :meth:`Widget.remove` can
+        find its owner.  Every ``add_*_widget`` routes through here, so this is
+        the one place that has to know.
         """
         plot_ref, wid_id = self, widget._id
+        widget._plot = self
         def _push():
             if plot_ref._fig is not None:
                 fields = {k: v for k, v in widget._data.items()
@@ -123,6 +128,207 @@ class _PanelMixin:
             return
         self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
+
+    # ── geometry / coordinate conversion ──────────────────────────────────
+    #
+    # These mirror the layout constants and letterbox math in figure_esm.js
+    # (the PAD_* block near the top, and _imgFitRect).  They are here so that
+    # callers doing display-space work — pixel-sized handles, hit-test
+    # tolerances, screenshot-driven tests — do not each have to re-derive the
+    # renderer's layout in their own code and then drift from it.
+
+    #: Plot-area padding in CSS px: (left, right, top, bottom).
+    #: Matches ``PAD_L``/``PAD_R``/``PAD_T``/``PAD_B`` in ``figure_esm.js``.
+    PLOT_PADDING = (58, 12, 12, 42)
+
+    def _panel_size(self) -> tuple[float, float]:
+        """(panel_width, panel_height) in CSS px, from the figure's layout."""
+        import json
+
+        if self._fig is None:
+            raise RuntimeError("panel is not attached to a figure")
+        try:
+            layout = json.loads(self._fig.layout_json)
+            spec = next(s for s in layout["panel_specs"] if s["id"] == self._id)
+        except (AttributeError, KeyError, StopIteration, ValueError) as exc:
+            raise RuntimeError(f"no layout entry for panel {self._id!r}") from exc
+        return float(spec["panel_width"]), float(spec["panel_height"])
+
+    def _pad_top(self) -> float:
+        """Title-strip height. Mirrors ``_padT`` in figure_esm.js."""
+        pad_t = float(self.PLOT_PADDING[2])
+        title = self._state.get("title")
+        if not title:
+            return pad_t
+        size = float(self._state.get("title_size") or 11)
+        has_tex = "$" in str(title)
+        if size <= 11 and not has_tex:
+            return pad_t
+        import math
+
+        return max(pad_t, math.ceil(size * 1.3) + (4 if has_tex else 2))
+
+    def plot_box(self) -> dict:
+        """Return the panel's plot area in CSS pixels.
+
+        Returns
+        -------
+        dict
+            ``{"x", "y", "width", "height"}`` — the drawable rectangle
+            relative to the panel's top-left corner.  On a 2-D image panel it
+            is the *letterboxed image* rather than the whole padded area,
+            because that is what image coordinates actually map onto.
+
+        Raises
+        ------
+        RuntimeError
+            If the panel is not attached to a figure, so it has no layout.
+
+        Notes
+        -----
+        Computed from the figure's own layout, so it is exact for the sizes
+        the renderer was given.  A browser resized without a re-layout will
+        disagree.  Zoom and pan are *not* folded in — this is the box, not
+        the visible data window; :meth:`data_to_display` accounts for them.
+        """
+        left, right, top, bottom = self.PLOT_PADDING
+        pw, ph = self._panel_size()
+        pad_t = self._pad_top()
+
+        # A 2-D panel drops the left/right/bottom gutters when it has no
+        # physical axes to label — the image then fills the panel width.
+        # 1-D panels always draw axes.  Mirrors `hasPhysAxis` in the JS.
+        iw = self._state.get("image_width")
+        ih = self._state.get("image_height")
+        is_image = bool(iw and ih)
+        has_axes = (not is_image) or bool(
+            self._state.get("has_axes") or self._state.get("is_mesh")
+        )
+
+        x = float(left) if has_axes else 0.0
+        y = float(pad_t)
+        width = max((pw - left - right) if has_axes else pw, 1.0)
+        height = max(ph - pad_t - (bottom if has_axes else 0.0), 1.0)
+
+        # The colorbar strip and its gap come out of the image width.
+        if self._state.get("show_colorbar") and not self._state.get("is_rgb"):
+            label = self._state.get("colorbar_label")
+            label_w = round((self._state.get("colorbar_label_size") or 10) + 8) \
+                if label else 0
+            pad = self._state.get("colorbar_pad")
+            gap = 6.0 if pad is None else max(0.0, float(pad))
+            width = max(width - (16 + label_w) - gap, 1.0)
+
+        if is_image:
+            # Images are drawn "contain" — see _imgFitRect.
+            scale = min(width / float(iw), height / float(ih))
+            fit_w, fit_h = float(iw) * scale, float(ih) * scale
+            x += (width - fit_w) / 2.0
+            y += (height - fit_h) / 2.0
+            width, height = fit_w, fit_h
+
+        return {"x": x, "y": y, "width": width, "height": height}
+
+    def _visible_image_window(self) -> tuple[float, float, float, float]:
+        """(src_x, src_y, vis_w, vis_h) of the visible image region, in image px.
+
+        Mirrors the zoom/pan window in ``_imgToCanvas2d``.
+        """
+        iw = float(self._state.get("image_width") or 1)
+        ih = float(self._state.get("image_height") or 1)
+        zoom = float(self._state.get("zoom") or 1.0)
+        cx = float(self._state.get("center_x", 0.5))
+        cy = float(self._state.get("center_y", 0.5))
+        if zoom < 1.0:
+            # Zoomed out: the whole image, drawn smaller and centred. The box
+            # shrinks rather than the source window growing.
+            return 0.0, 0.0, iw, ih
+        vis_w, vis_h = iw / zoom, ih / zoom
+        src_x = max(0.0, min(iw - vis_w, cx * iw - vis_w / 2.0))
+        src_y = max(0.0, min(ih - vis_h, cy * ih - vis_h / 2.0))
+        return src_x, src_y, vis_w, vis_h
+
+    def data_to_display(self, points):
+        """Convert data coordinates to CSS pixels within the panel.
+
+        Parameters
+        ----------
+        points : array-like
+            A single ``(x, y)`` pair or an ``(N, 2)`` sequence of them.
+
+            On a 1-D panel these are axis values.  On a 2-D panel they are
+            **image-pixel coordinates** — the same space marker ``offsets``
+            and widget positions use — where integer *i* means the *centre*
+            of pixel *i*, not its leading edge.
+
+        Returns
+        -------
+        numpy.ndarray
+            Same shape as *points*, in panel pixels with the origin at the
+            panel's top-left corner and y increasing downwards.  Zoom and pan
+            are accounted for.
+        """
+        import numpy as np
+
+        pts = np.atleast_2d(np.asarray(points, dtype=float))
+        if pts.shape[-1] != 2:
+            raise ValueError(f"points must have shape (N, 2); got {pts.shape}")
+        box = self.plot_box()
+
+        if self._state.get("image_width") and self._state.get("image_height"):
+            zoom = float(self._state.get("zoom") or 1.0)
+            src_x, src_y, vis_w, vis_h = self._visible_image_window()
+            w = box["width"] * (zoom if zoom < 1.0 else 1.0)
+            h = box["height"] * (zoom if zoom < 1.0 else 1.0)
+            x0 = box["x"] + (box["width"] - w) / 2.0
+            y0 = box["y"] + (box["height"] - h) / 2.0
+            px = x0 + (pts[:, 0] + 0.5 - src_x) / vis_w * w
+            py = y0 + (pts[:, 1] + 0.5 - src_y) / vis_h * h
+        else:
+            xlo, xhi = self.get_xlim()
+            ylo, yhi = self.get_ylim()
+            px = box["x"] + (pts[:, 0] - xlo) / ((xhi - xlo) or 1.0) * box["width"]
+            # Screen y grows downwards, data y upwards.
+            py = box["y"] + (
+                1.0 - (pts[:, 1] - ylo) / ((yhi - ylo) or 1.0)
+            ) * box["height"]
+
+        out = np.column_stack([px, py])
+        return out if np.ndim(points) == 2 else out[0]
+
+    def display_to_data(self, points):
+        """Convert CSS pixels within the panel to data coordinates.
+
+        The inverse of :meth:`data_to_display`; same argument shapes and the
+        same per-panel-kind coordinate meaning.
+        """
+        import numpy as np
+
+        pts = np.atleast_2d(np.asarray(points, dtype=float))
+        if pts.shape[-1] != 2:
+            raise ValueError(f"points must have shape (N, 2); got {pts.shape}")
+        box = self.plot_box()
+
+        if self._state.get("image_width") and self._state.get("image_height"):
+            zoom = float(self._state.get("zoom") or 1.0)
+            src_x, src_y, vis_w, vis_h = self._visible_image_window()
+            w = box["width"] * (zoom if zoom < 1.0 else 1.0)
+            h = box["height"] * (zoom if zoom < 1.0 else 1.0)
+            x0 = box["x"] + (box["width"] - w) / 2.0
+            y0 = box["y"] + (box["height"] - h) / 2.0
+            dx = (pts[:, 0] - x0) / (w or 1.0) * vis_w + src_x - 0.5
+            dy = (pts[:, 1] - y0) / (h or 1.0) * vis_h + src_y - 0.5
+        else:
+            xlo, xhi = self.get_xlim()
+            ylo, yhi = self.get_ylim()
+            dx = xlo + (pts[:, 0] - box["x"]) / (box["width"] or 1.0) \
+                * ((xhi - xlo) or 1.0)
+            dy = ylo + (
+                1.0 - (pts[:, 1] - box["y"]) / (box["height"] or 1.0)
+            ) * ((yhi - ylo) or 1.0)
+
+        out = np.column_stack([dx, dy])
+        return out if np.ndim(points) == 2 else out[0]
 
     def set_tick_label_size(self, size: float) -> None:
         """Set the font size of the tick (axis number) labels in CSS pixels.

@@ -118,6 +118,46 @@ class AnnularWidget(Widget):
                          show_handles=bool(show_handles))
 
 
+class LineWidget(Widget):
+    """Draggable two-endpoint line segment overlay widget for 2-D plots.
+
+    A plain segment from ``(x1, y1)`` to ``(x2, y2)``: drag either endpoint
+    handle to move that end, or drag the shaft to translate the whole
+    segment.  Unlike :class:`ArrowWidget` it has no head, and unlike
+    :class:`PolygonWidget` it does not close the path — this is the widget for
+    a line profile, a cross-section cut, or a two-point measurement.
+
+    Parameters
+    ----------
+    push_fn : Callable
+        Update callback.
+    x1, y1 : float
+        First endpoint in pixel/data coordinates.
+    x2, y2 : float
+        Second endpoint in pixel/data coordinates.
+    color : str, optional
+        CSS colour for the segment. Default ``"#00e5ff"``.
+    linewidth : float, optional
+        Stroke width in px. Default 2.
+    show_handles : bool, optional
+        Draw the endpoint grab handles. Default ``True``.
+    """
+    def __init__(self, push_fn, *, x1, y1, x2, y2, color="#00e5ff",
+                 linewidth=2, show_handles=True):
+        super().__init__("line", push_fn,
+                         x1=float(x1), y1=float(y1),
+                         x2=float(x2), y2=float(y2),
+                         color=color, linewidth=float(linewidth),
+                         show_handles=bool(show_handles))
+
+    @property
+    def length(self) -> float:
+        """Euclidean length of the segment in data coordinates."""
+        return float(
+            ((self.x2 - self.x1) ** 2 + (self.y2 - self.y1) ** 2) ** 0.5
+        )
+
+
 class CrosshairWidget(Widget):
     """Draggable crosshair overlay widget for 2-D plots.
 

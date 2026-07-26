@@ -21,6 +21,12 @@ _LINESTYLE_ALIASES: dict[str, str] = {
     "dashdot":   "dashdot",
     "step-mid":  "step-mid",
     "steps-mid": "step-mid",
+    # "no connecting line" — draw the per-point markers only, so a matplotlib
+    # ``linestyle="None", marker="o"`` scatter ports over unchanged.
+    # matplotlib also spells this ``""`` and ``" "``; those stay errors here
+    # because an empty style string is far more often a typo than an intent.
+    "none":      "none",
+    "None":      "none",
 }
 
 
@@ -42,7 +48,9 @@ def _norm_linestyle(ls: str) -> str:
     Accepted values
     ---------------
     ``"solid"`` / ``"-"``,  ``"dashed"`` / ``"--"``,
-    ``"dotted"`` / ``":"``,  ``"dashdot"`` / ``"-."``.
+    ``"dotted"`` / ``":"``,  ``"dashdot"`` / ``"-."``,
+    ``"step-mid"`` / ``"steps-mid"``, and ``"none"`` / ``"None"`` / ``""`` /
+    ``" "`` for no connecting line (markers only).
 
     Raises
     ------
@@ -53,8 +61,8 @@ def _norm_linestyle(ls: str) -> str:
     if canonical is None:
         raise ValueError(
             f"Unknown linestyle {ls!r}. Expected one of: "
-            "'solid', 'dashed', 'dotted', 'dashdot', 'step-mid' (alias: 'steps-mid') "
-            "or shorthands '-', '--', ':', '-.'."
+            "'solid', 'dashed', 'dotted', 'dashdot', 'step-mid' (alias: 'steps-mid'), "
+            "'none' (markers only) or shorthands '-', '--', ':', '-.'."
         )
     return canonical
 

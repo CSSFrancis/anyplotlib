@@ -28,6 +28,17 @@ The JS renderer uses the same internal field names as the standalone viewers
 (``color``, ``fill_color``, ``fill_alpha``, ``sizes``, etc.).  ``MarkerGroup``
 stores matplotlib-style names and ``to_wire()`` translates before JSON
 serialisation.
+
+Per-marker colours
+------------------
+``edgecolors`` and ``facecolors`` accept either one colour for the whole group
+or a sequence of colours parallel to the markers — matplotlib's
+``edgecolors=[...]`` / scatter ``c=[...]``::
+
+    plot.add_circles(offsets, edgecolors=["#f00", "#0f0", "#00f"], radius=3)
+
+A sequence shorter than the group cycles, as matplotlib's colour cycle does.
+This works for every marker type on both 1-D and 2-D panels.
 """
 
 from __future__ import annotations
@@ -371,6 +382,19 @@ class MarkerGroup:
         # Display-space markers are clipped to the visible image rect by default;
         # this flag allows opting out for HUD-style annotations.
         wire["clip_display"] = bool(d.get("clip_display", True))
+
+        # ── size space (independent of the position transform) ─────────────
+        # "data" (default) scales sizes with zoom, as a shape drawn on the
+        # data does.  "px" pins them to screen pixels, which is what a marker
+        # standing in for a *point* wants — matplotlib sizes scatter markers
+        # in display points for exactly that reason.
+        size_units = d.get("size_units")
+        if size_units is not None:
+            if size_units not in ("data", "px"):
+                raise ValueError(
+                    f"size_units must be 'data' or 'px', got {size_units!r}"
+                )
+            wire["size_units"] = size_units
 
         # ── common optional fields ──────────────────────────────────────────
         label = d.get("label")

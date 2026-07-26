@@ -2,7 +2,7 @@
 from anyplotlib.widgets._base import Widget
 from anyplotlib.widgets._widgets2d import (
     RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget, LineWidget,
 )
 from anyplotlib.widgets._widgets1d import (
     VLineWidget, HLineWidget, RangeWidget, PointWidget,
@@ -13,6 +13,7 @@ __all__ = [
     "Widget",
     "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget", "ArrowWidget",
+    "LineWidget",
     "VLineWidget", "HLineWidget", "RangeWidget", "PointWidget",
     "PlaneWidget",
 ]

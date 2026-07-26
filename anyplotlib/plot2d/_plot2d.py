@@ -26,7 +26,8 @@ from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget, LineWidget,
+    VLineWidget, HLineWidget,
 )
 from anyplotlib._utils import (_normalize_image, _build_colormap_lut,
                                _build_tint_lut, _to_rgba_u8)
@@ -270,11 +271,16 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "units":             units,
             "scale_x":           scale_x,
             "scale_y":           scale_y,
+            # None => the renderer's white-on-dark-pill default.
+            "scalebar_color":    None,
+            "scalebar_bgcolor":  None,
             "display_min":       disp_min,
             "display_max":       disp_max,
             "raw_min":           raw_vmin,
             "raw_max":           raw_vmax,
             "show_colorbar":     False,
+            # None => the renderer's default 6 px image-to-strip gap.
+            "colorbar_pad":      None,
             "scale_mode":        "linear",
             "colormap_name":     cmap_name,
             "colormap_data":     cmap_lut,
@@ -1580,10 +1586,52 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._state["show_colorbar"] = bool(visible)
         self._push()
 
+    def set_colorbar_pad(self, pad: float | None) -> None:
+        """Set the gap in px between the image and the colorbar strip.
+
+        Parameters
+        ----------
+        pad : float or None
+            Gap in CSS pixels.  ``None`` restores the default (6 px).  The gap
+            comes out of the image width, so widening it shrinks the image
+            rather than pushing the strip off the panel.
+        """
+        self._state["colorbar_pad"] = None if pad is None else max(0.0, float(pad))
+        self._push()
+
     def set_aspect(self, ratio) -> None:
         if ratio == "equal":
             ratio = 1.0
         self._state["aspect"] = float(ratio) if ratio is not None else None
+        self._push()
+
+    def set_scalebar_style(self, color: str | None = None,
+                           bgcolor: str | None = None) -> None:
+        """Recolour the automatic scale bar.
+
+        The scale bar appears on its own whenever the panel has calibrated
+        axes (``units`` other than ``"px"``).  It defaults to white on a
+        translucent dark pill, which reads well on most images but not on a
+        light one.
+
+        Parameters
+        ----------
+        color : str, optional
+            CSS colour for the bar and its label.  ``None`` (default) leaves
+            it at white.
+        bgcolor : str, optional
+            CSS colour for the pill behind them, or the string ``"none"`` to
+            draw no pill at all.  ``None`` (default) leaves it at the
+            translucent dark pill.
+
+        Examples
+        --------
+        >>> plot.set_scalebar_style(color="black", bgcolor="none")
+        """
+        if color is not None:
+            self._state["scalebar_color"] = str(color)
+        if bgcolor is not None:
+            self._state["scalebar_bgcolor"] = str(bgcolor)
         self._push()
 
     # ------------------------------------------------------------------
@@ -1594,10 +1642,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
         Dispatches to the dedicated ``add_<kind>_widget`` method.
         Supported kinds: ``"circle"``, ``"rectangle"``, ``"annular"``,
-        ``"polygon"``, ``"crosshair"``, ``"label"``, ``"arrow"``.
+        ``"polygon"``, ``"crosshair"``, ``"label"``, ``"arrow"``, ``"line"``,
+        ``"vline"``, ``"hline"``.
 
         Every kind also accepts ``show_handles`` (default ``True``) to toggle
         the grab-handle dots without changing hit-testing / draggability.
+        ``vline`` / ``hline`` have no handles — the whole line is the grab
+        target — so they ignore it.
         """
         dispatch = {
             "circle":    self.add_circle_widget,
@@ -1607,6 +1658,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "crosshair": self.add_crosshair_widget,
             "label":     self.add_label_widget,
             "arrow":     self.add_arrow_widget,
+            "line":      self.add_line_widget,
+            "vline":     self.add_vline_widget,
+            "hline":     self.add_hline_widget,
         }
         key = kind.lower()
         if key not in dispatch:
@@ -1755,6 +1809,109 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._push()
         return widget
 
+    def add_line_widget(self, x1: float | None = None, y1: float | None = None,
+                        x2: float | None = None, y2: float | None = None,
+                        color: str = "#00e5ff", linewidth: float = 2,
+                        show_handles: bool = True) -> LineWidget:
+        """Add a draggable two-endpoint line segment overlay.
+
+        A bare segment with a grab handle at each end — no arrowhead (see
+        :meth:`add_arrow_widget`) and no closed path (see
+        :meth:`add_polygon_widget`).  Use it for a line profile, a
+        cross-section cut, or a two-point measurement.
+
+        Parameters
+        ----------
+        x1, y1 : float, optional
+            First endpoint in image coordinates.  Defaults to 25 % of the
+            image size.
+        x2, y2 : float, optional
+            Second endpoint.  Defaults to 75 % of the image size.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Stroke width in px.  Default 2.
+        show_handles : bool, optional
+            Draw the endpoint grab handles.  Default ``True``.
+
+        Returns
+        -------
+        LineWidget
+            Widget object.  ``widget.length`` gives the segment length in
+            data coordinates.
+        """
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        widget = LineWidget(lambda: None,
+                            x1=float(x1) if x1 is not None else iw * 0.25,
+                            y1=float(y1) if y1 is not None else ih * 0.25,
+                            x2=float(x2) if x2 is not None else iw * 0.75,
+                            y2=float(y2) if y2 is not None else ih * 0.75,
+                            color=color, linewidth=linewidth,
+                            show_handles=show_handles)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_vline_widget(self, x: float | None = None, color: str = "#00e5ff",
+                         linewidth: float = 2) -> VLineWidget:
+        """Add a draggable full-height vertical line overlay.
+
+        The line spans the whole panel and is grabbable anywhere along its
+        length, which makes it the right pointer for "select a column" —
+        a crosshair pinned to one axis leaves a stray perpendicular line.
+
+        Parameters
+        ----------
+        x : float, optional
+            Initial x position in image coordinates.  Defaults to the middle.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Stroke width in px.  Default 2.
+
+        Returns
+        -------
+        VLineWidget
+        """
+        iw = self._state["image_width"]
+        widget = VLineWidget(lambda: None,
+                             x=float(x) if x is not None else iw / 2,
+                             color=color, linewidth=linewidth)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_hline_widget(self, y: float | None = None, color: str = "#00e5ff",
+                         linewidth: float = 2) -> HLineWidget:
+        """Add a draggable full-width horizontal line overlay.
+
+        The row counterpart of :meth:`add_vline_widget`; grabbable anywhere
+        along its length.
+
+        Parameters
+        ----------
+        y : float, optional
+            Initial y position in image coordinates.  Defaults to the middle.
+        color : str, optional
+            CSS colour string.  Default ``"#00e5ff"``.
+        linewidth : float, optional
+            Stroke width in px.  Default 2.
+
+        Returns
+        -------
+        HLineWidget
+        """
+        ih = self._state["image_height"]
+        widget = HLineWidget(lambda: None,
+                             y=float(y) if y is not None else ih / 2,
+                             color=color, linewidth=linewidth)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
     # ------------------------------------------------------------------
     # View control
     # ------------------------------------------------------------------
@@ -1821,8 +1978,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
-                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
-        """Add circle markers at (x, y) positions in data coordinates."""
+                    clip_display: bool = True,
+                    size_units: str = "data") -> "MarkerGroup":  # noqa: F821
+        """Add circle markers at (x, y) positions in data coordinates.
+
+        ``size_units="px"`` pins *radius* to screen pixels so the circles keep
+        their size through a zoom; the default ``"data"`` scales them with the
+        data, as a shape drawn on the image does.
+        """
         return self._add_marker("circles", name, offsets=offsets, radius=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
                                 linewidths=linewidths, alpha=alpha,
@@ -1830,7 +1993,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_points(self, offsets, name=None, *, sizes=5,
                    color="#ff0000", facecolors=None,
@@ -1838,8 +2002,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                    hover_edgecolors=None, hover_facecolors=None,
                    labels=None, label=None,
                    transform: str = "data",
-                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
-        """Add point markers at (x, y) positions in data coordinates."""
+                   clip_display: bool = True,
+                   size_units: str = "data") -> "MarkerGroup":  # noqa: F821
+        """Add point markers at (x, y) positions in data coordinates.
+
+        A marker standing in for a *point* usually wants ``size_units="px"``
+        so it does not grow with zoom — that is what matplotlib does, sizing
+        scatter markers in display points.
+        """
         return self._add_marker("circles", name, offsets=offsets, radius=sizes,
                                 edgecolors=color, facecolors=facecolors,
                                 linewidths=linewidths, alpha=alpha,
@@ -1847,7 +2017,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_hlines(self, y_values, name=None, *,
                    color="#ff0000", linewidths=1.5,
@@ -1896,7 +2067,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None,
                      transform: str = "data",
-                     clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
+                     clip_display: bool = True,
+                     size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("ellipses", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -1905,7 +2077,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_lines(self, segments, name=None, *,
                   edgecolors="#ff0000", linewidths=1.5,
@@ -1926,7 +2099,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                        hover_edgecolors=None, hover_facecolors=None,
                        labels=None, label=None,
                        transform: str = "data",
-                       clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
+                       clip_display: bool = True,
+                       size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("rectangles", name, offsets=offsets,
                                 widths=widths, heights=heights, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -1935,7 +2109,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_squares(self, offsets, widths, name=None, *,
                     angles=0, facecolors=None, edgecolors="#ff0000",
@@ -1943,7 +2118,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
-                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
+                    clip_display: bool = True,
+                    size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("squares", name, offsets=offsets,
                                 widths=widths, angles=angles,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -1952,7 +2128,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
                                 transform=transform,
-                                clip_display=clip_display)
+                                clip_display=clip_display,
+                                size_units=size_units)
 
     def add_polygons(self, vertices_list, name=None, *,
                      facecolors=None, edgecolors="#ff0000",
