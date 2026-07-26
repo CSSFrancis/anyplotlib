@@ -1,0 +1,6 @@
+:meth:`~anyplotlib.Plot1D.add_range_widget` takes ``orientation="vertical"``
+for a band spanning the plot width that selects a range of *values* — an
+intensity window rather than a spectral one.  ``x0``/``x1`` remain the field
+names: they are the extents along the selection axis, the same way
+matplotlib's ``SpanSelector.extents`` reads for either ``direction``.
+``style="fwhm"`` stays horizontal-only and raises if combined with it.

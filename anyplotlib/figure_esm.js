@@ -5956,6 +5956,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const py=_valToPy1d(w.y,dMin,dMax,r);
         ovCtx.setLineDash([5,3]);ovCtx.beginPath();ovCtx.moveTo(r.x,py);ovCtx.lineTo(r.x+r.w,py);ovCtx.stroke();ovCtx.setLineDash([]);
         _ovHandle1d(ovCtx,r.x+r.w-7,py,color);
+      } else if(w.type==='range' && w.orientation==='vertical'){
+        // Vertical range: the two edges are VALUES on the y axis and the band
+        // spans the full plot width.  x0/x1 stay the field names — they are
+        // the extents along the selection axis, the same way matplotlib's
+        // SpanSelector treats `extents` regardless of its `direction`.
+        const vpy0=_valToPy1d(w.x0,dMin,dMax,r);
+        const vpy1=_valToPy1d(w.x1,dMin,dMax,r);
+        const vtop=Math.min(vpy0,vpy1), vbot=Math.max(vpy0,vpy1);
+        ovCtx.save();ovCtx.globalAlpha=0.15;ovCtx.fillStyle=color;ovCtx.fillRect(r.x,vtop,r.w,vbot-vtop);ovCtx.restore();
+        ovCtx.setLineDash([5,3]);
+        ovCtx.beginPath();ovCtx.moveTo(r.x,vpy0);ovCtx.lineTo(r.x+r.w,vpy0);ovCtx.stroke();
+        ovCtx.beginPath();ovCtx.moveTo(r.x,vpy1);ovCtx.lineTo(r.x+r.w,vpy1);ovCtx.stroke();
+        ovCtx.setLineDash([]);
+        _ovHandle1d(ovCtx,r.x+r.w-7,vpy0,color);_ovHandle1d(ovCtx,r.x+r.w-7,vpy1,color);
       } else if(w.type==='range'){
         const px0=_fracToPx1d(_axisValToFrac(xArr,w.x0),x0,x1,r);
         const px1b=_fracToPx1d(_axisValToFrac(xArr,w.x1),x0,x1,r);
@@ -7440,6 +7454,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if(w.type==='hline'){
         const py=_valToPy1d(w.y,st.data_min,st.data_max,r);
         if(Math.abs(my-py)<=5) return{idx:i,mode:'move',wtype:'hline',startMY:my,snapW:{...w}};
+      } else if(w.type==='range' && w.orientation==='vertical'){
+        const vpy0=_valToPy1d(w.x0,st.data_min,st.data_max,r);
+        const vpy1=_valToPy1d(w.x1,st.data_min,st.data_max,r);
+        const vtop=Math.min(vpy0,vpy1), vbot=Math.max(vpy0,vpy1);
+        // Same one-third rule as the horizontal band: a thin band must keep a
+        // grabbable middle rather than being all edge.
+        const vgrab=Math.min(HR+5,(vbot-vtop)/3);
+        if(Math.abs(my-vpy0)<=vgrab) return{idx:i,mode:'edge0',wtype:'range',startMY:my,snapW:{...w}};
+        if(Math.abs(my-vpy1)<=vgrab) return{idx:i,mode:'edge1',wtype:'range',startMY:my,snapW:{...w}};
+        if(my>=vtop&&my<=vbot&&mx>=r.x&&mx<=r.x+r.w) return{idx:i,mode:'move',wtype:'range',startMY:my,snapW:{...w}};
       } else if(w.type==='range'){
         const px0=_fracToPx1d(_axisValToFrac(xArr,w.x0),x0,x1,r);
         const px1b=_fracToPx1d(_axisValToFrac(xArr,w.x1),x0,x1,r);
@@ -7468,17 +7492,46 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     return null;
   }
 
+  // Snap a value to the nearest entry of a widget's snap_values, if it has any.
+  // Mirrors matplotlib SpanSelector.snap_values: the drag follows the cursor
+  // but lands only on allowed positions.
+  function _snapVal(v, snapValues){
+    if(!Array.isArray(snapValues) || !snapValues.length) return v;
+    let best=snapValues[0], bestD=Math.abs(v-best);
+    for(let i=1;i<snapValues.length;i++){
+      const dd=Math.abs(v-snapValues[i]);
+      if(dd<bestD){bestD=dd;best=snapValues[i];}
+    }
+    return best;
+  }
+
   function _doDrag1d(e,p){
     const st=p.state;if(!st)return;
     const r=_plotRect1d(p);
     const {mx,my:py}=_clientPos(e,p.overlayCanvas,p.pw,p.ph);
     const xArr = p._1dXArr || (st.x_axis_b64 ? _decodeF64(st.x_axis_b64) : (st.x_axis||[]));
     const x0=st.view_x0||0,x1=st.view_x1||1;
-    const xUnit=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r);
     const widgets=st.overlay_widgets;
     const d=p.ovDrag, s=d.snapW, w=widgets[d.idx];
+    const snap=(v)=>_snapVal(v,w.snap_values);
+    const xUnit=snap(xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(mx,x0,x1,r)):_canvasXToFrac1d(mx,x0,x1,r));
+    const yUnit=snap(st.data_max-((py-r.y)/(r.h||1))*(st.data_max-st.data_min));
     if(w.type==='vline'){w.x=xUnit;}
-    else if(w.type==='hline'){w.y=st.data_max-((py-r.y)/(r.h||1))*(st.data_max-st.data_min);}
+    else if(w.type==='hline'){w.y=yUnit;}
+    else if(w.type==='range' && w.orientation==='vertical'){
+      // Same cap semantics as the horizontal band, on the value axis.
+      const vcap = (w.max_extent == null ? null : Math.abs(w.max_extent));
+      if(d.mode==='edge0'){
+        w.x0 = (vcap!=null && Math.abs(w.x1-yUnit) > vcap)
+          ? w.x1 + (yUnit < w.x1 ? -vcap : vcap) : yUnit;
+      } else if(d.mode==='edge1'){
+        w.x1 = (vcap!=null && Math.abs(yUnit-w.x0) > vcap)
+          ? w.x0 + (yUnit < w.x0 ? -vcap : vcap) : yUnit;
+      } else {
+        const dv=(st.data_max-st.data_min)*((d.startMY-py)/(r.h||1));
+        w.x0=snap(s.x0+dv);w.x1=snap(s.x1+dv);
+      }
+    }
     else if(w.type==='range'){
       // max_extent caps the span DURING the drag. The edge NOT being dragged is
       // the anchor and never moves, so the span stops growing at the cap without
@@ -7498,13 +7551,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       else {
         const snapPx=_fracToPx1d(xArr.length>=2?_axisValToFrac(xArr,s.x0):0,x0,x1,r);
         const dxUnit=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(snapPx+(mx-d.startMX),x0,x1,r))-s.x0:(mx-d.startMX)/(r.w||1);
-        w.x0=s.x0+dxUnit;w.x1=s.x1+dxUnit;
+        w.x0=snap(s.x0+dxUnit);w.x1=snap(s.x1+dxUnit);
       }
     } else if(w.type==='point'){
       // Clamp to plot rectangle
       const clampX=Math.max(r.x,Math.min(r.x+r.w,mx));
       const clampY=Math.max(r.y,Math.min(r.y+r.h,py));
-      w.x=xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(clampX,x0,x1,r)):_canvasXToFrac1d(clampX,x0,x1,r);
+      w.x=snap(xArr.length>=2?_axisFracToVal(xArr,_canvasXToFrac1d(clampX,x0,x1,r)):_canvasXToFrac1d(clampX,x0,x1,r));
       w.y=st.data_max-((clampY-r.y)/(r.h||1))*(st.data_max-st.data_min);
     }
     drawOverlay1d(p);
