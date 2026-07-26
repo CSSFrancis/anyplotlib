@@ -305,6 +305,16 @@ function render({ model, el, onResize }) {
     return 16 + labelW;
   }
 
+  // Gap between the right edge of the image and the colorbar strip. Without a
+  // real gap the strip reads as part of the image — most plots have no
+  // colorbar_label, so the label gutter that would otherwise separate them is
+  // zero-width. Overridable per panel via colorbar_pad (set_colorbar_pad).
+  const CB_GAP = 6;
+  function _cbGap(st) {
+    const v = st && st.colorbar_pad;
+    return (v == null) ? CB_GAP : Math.max(0, v);
+  }
+
   // Height of the title strip.  Stays at PAD_T for default-size plain titles
   // so existing layouts are pixel-identical; grows for title_size > 11 and
   // for TeX titles (superscripts rise above the cap height) so 2D titles are
@@ -2230,7 +2240,7 @@ function render({ model, el, onResize }) {
       const imgX = hasPhysAxis ? PAD_L : 0;
       const imgY = padT;
       const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
-                               - (cbW ? cbW + 2 : 0));
+                               - (cbW ? cbW + _cbGap(st) : 0));
       let   imgH = Math.max(1, ph - padT - (hasPhysAxis ? PAD_B : 0));
       // Enforce aspect ratio (st.aspect = number or "equal" → 1.0).
       if (st && st.aspect != null) {
@@ -2333,7 +2343,7 @@ function render({ model, el, onResize }) {
       if (p.cbCanvas && p.cbCtx) {
         if (cbW) {
           p.cbCanvas.style.display = 'block';
-          p.cbCanvas.style.left = (imgX + imgW + 2) + 'px';
+          p.cbCanvas.style.left = (imgX + imgW + _cbGap(st)) + 'px';
           p.cbCanvas.style.top  = imgY + 'px';
           _sz(p.cbCanvas, p.cbCtx, cbW, imgH);
         } else {
@@ -2907,20 +2917,30 @@ function render({ model, el, onResize }) {
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,cvW,cvH);
 
+    // Colours. Default is the original white-on-black pill; scalebar_color
+    // recolours the bar and its label, and scalebar_bgcolor the pill —
+    // 'none' drops the pill entirely, for a bar drawn straight onto a light
+    // image where the dark slab is the thing that looks wrong.
+    const sbFg = st.scalebar_color || 'white';
+    const sbBg = st.scalebar_bgcolor === undefined || st.scalebar_bgcolor === null
+      ? 'rgba(0,0,0,0.60)' : st.scalebar_bgcolor;
+
     // Background pill
-    ctx.fillStyle='rgba(0,0,0,0.60)';
-    const r=5;
-    ctx.beginPath();
-    ctx.moveTo(r,0);ctx.lineTo(cvW-r,0);ctx.arcTo(cvW,0,cvW,r,r);
-    ctx.lineTo(cvW,cvH-r);ctx.arcTo(cvW,cvH,cvW-r,cvH,r);
-    ctx.lineTo(r,cvH);ctx.arcTo(0,cvH,0,cvH-r,r);
-    ctx.lineTo(0,r);ctx.arcTo(0,0,r,0,r);
-    ctx.closePath();ctx.fill();
+    if(sbBg !== 'none'){
+      ctx.fillStyle=sbBg;
+      const r=5;
+      ctx.beginPath();
+      ctx.moveTo(r,0);ctx.lineTo(cvW-r,0);ctx.arcTo(cvW,0,cvW,r,r);
+      ctx.lineTo(cvW,cvH-r);ctx.arcTo(cvW,cvH,cvW-r,cvH,r);
+      ctx.lineTo(r,cvH);ctx.arcTo(0,cvH,0,cvH-r,r);
+      ctx.lineTo(0,r);ctx.arcTo(0,0,r,0,r);
+      ctx.closePath();ctx.fill();
+    }
 
     // Label (centred over the bar line)
     const lineX=(cvW-barPx)/2;
     const textY=padTop+fontSize;
-    ctx.fillStyle='white';
+    ctx.fillStyle=sbFg;
     ctx.font=`bold ${fontSize}px sans-serif`;
     ctx.textAlign='center';
     ctx.textBaseline='alphabetic';
@@ -2928,7 +2948,7 @@ function render({ model, el, onResize }) {
 
     // Bar line
     const lineY=padTop+fontSize+gap;
-    ctx.fillStyle='white';
+    ctx.fillStyle=sbFg;
     ctx.fillRect(lineX, lineY, barPx, lineH);
 
     // End ticks
@@ -7710,7 +7730,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const imgX = hasPhysAxis ? PAD_L : 0;
       const imgY = hasPhysAxis ? padT : 0;
       const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
-                               - (cbW ? cbW + 2 : 0));
+                               - (cbW ? cbW + _cbGap(st) : 0));
       const imgH = hasPhysAxis ? Math.max(1, ph - padT - PAD_B) : ph;
       // Update stored dims so event handlers stay consistent during CSS resize
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
@@ -7738,7 +7758,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _szCSS(p.xAxisCanvas, imgW, PAD_B);
       }
       if (p.cbCanvas && p.cbCanvas.style.display !== 'none') {
-        p.cbCanvas.style.left = (imgX + imgW + 2) + 'px'; p.cbCanvas.style.top = imgY + 'px';
+        p.cbCanvas.style.left = (imgX + imgW + _cbGap(st)) + 'px'; p.cbCanvas.style.top = imgY + 'px';
         _szCSS(p.cbCanvas, cbW || 16, imgH);
       }
     } else if (p.kind === '3d') {

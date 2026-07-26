@@ -1,0 +1,10 @@
+The colorbar strip is no longer drawn flush against the image.  It sat 2 px
+from the image edge, and most plots have no ``colorbar_label``, so the label
+gutter that would otherwise separate them is zero-width and the strip read as
+part of the image.  There is now a 6 px gap, taken out of the image width so
+the strip can never be pushed off the panel, and settable per panel with
+:meth:`~anyplotlib.Plot2D.set_colorbar_pad`.
+
+.. note::
+   This shifts every colorbar plot 4 px — the ``imshow_labels`` visual
+   baseline was regenerated to match.

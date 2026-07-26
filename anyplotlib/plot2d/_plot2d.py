@@ -271,11 +271,16 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "units":             units,
             "scale_x":           scale_x,
             "scale_y":           scale_y,
+            # None => the renderer's white-on-dark-pill default.
+            "scalebar_color":    None,
+            "scalebar_bgcolor":  None,
             "display_min":       disp_min,
             "display_max":       disp_max,
             "raw_min":           raw_vmin,
             "raw_max":           raw_vmax,
             "show_colorbar":     False,
+            # None => the renderer's default 6 px image-to-strip gap.
+            "colorbar_pad":      None,
             "scale_mode":        "linear",
             "colormap_name":     cmap_name,
             "colormap_data":     cmap_lut,
@@ -1558,10 +1563,52 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._state["show_colorbar"] = bool(visible)
         self._push()
 
+    def set_colorbar_pad(self, pad: float | None) -> None:
+        """Set the gap in px between the image and the colorbar strip.
+
+        Parameters
+        ----------
+        pad : float or None
+            Gap in CSS pixels.  ``None`` restores the default (6 px).  The gap
+            comes out of the image width, so widening it shrinks the image
+            rather than pushing the strip off the panel.
+        """
+        self._state["colorbar_pad"] = None if pad is None else max(0.0, float(pad))
+        self._push()
+
     def set_aspect(self, ratio) -> None:
         if ratio == "equal":
             ratio = 1.0
         self._state["aspect"] = float(ratio) if ratio is not None else None
+        self._push()
+
+    def set_scalebar_style(self, color: str | None = None,
+                           bgcolor: str | None = None) -> None:
+        """Recolour the automatic scale bar.
+
+        The scale bar appears on its own whenever the panel has calibrated
+        axes (``units`` other than ``"px"``).  It defaults to white on a
+        translucent dark pill, which reads well on most images but not on a
+        light one.
+
+        Parameters
+        ----------
+        color : str, optional
+            CSS colour for the bar and its label.  ``None`` (default) leaves
+            it at white.
+        bgcolor : str, optional
+            CSS colour for the pill behind them, or the string ``"none"`` to
+            draw no pill at all.  ``None`` (default) leaves it at the
+            translucent dark pill.
+
+        Examples
+        --------
+        >>> plot.set_scalebar_style(color="black", bgcolor="none")
+        """
+        if color is not None:
+            self._state["scalebar_color"] = str(color)
+        if bgcolor is not None:
+            self._state["scalebar_bgcolor"] = str(bgcolor)
         self._push()
 
     # ------------------------------------------------------------------

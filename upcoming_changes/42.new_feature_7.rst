@@ -1,0 +1,5 @@
+:meth:`~anyplotlib.Plot2D.set_scalebar_style` recolours the automatic scale
+bar.  It was hardcoded white-on-a-translucent-dark-pill, which is unreadable
+over a light image and could not be matched to a house style.  ``color`` sets
+the bar and its label; ``bgcolor`` sets the pill, or ``"none"`` to drop the
+pill entirely.
