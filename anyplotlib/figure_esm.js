@@ -5826,8 +5826,18 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if(axisVis1d&&yTicksVis1d){
       ctx.font=(st.tick_size||10)+'px monospace';ctx.textAlign='right';ctx.textBaseline='middle';
       const tickRX=r.x-8;
+      // Widest tick string, in both branches: the y label is placed relative
+      // to it below, so it has to be measured whatever the scale.
+      let maxTW=0;
       if(isLog){
         const lo=Math.floor(effDMin), hi=Math.ceil(effDMax);
+        for(let e=lo;e<=hi;e++){
+          // Plain-text measure of "10^{e}" over-estimates the TeX-rendered
+          // width (the exponent is drawn smaller). Over-estimating is the
+          // safe direction: it pushes the label further from the ticks.
+          const tw=ctx.measureText('10'+e).width;
+          if(tw>maxTW)maxTW=tw;
+        }
         for(let e=lo;e<=hi;e++){
           const v=Math.pow(10,e);
           const py=_toPlotY(v);
@@ -5836,7 +5846,6 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           ctx.fillStyle=theme.tickText;_drawTex(ctx,'$10^{'+e+'}$',tickRX,py,st.tick_size||10,{align:'right',family:'monospace'});
         }
       } else {
-        let maxTW=0;
         for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){const tw=ctx.measureText(fmtVal(v)).width;if(tw>maxTW)maxTW=tw;}
         for(let v=Math.ceil(dMin/yStep)*yStep;v<=dMax+yStep*0.01;v+=yStep){
           const py=_valToPy1d(v,dMin,dMax,r);
@@ -5848,10 +5857,21 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if(yUnits){
         ctx.save();
         // Centre the rotated label in the left gutter (x = 0..r.x).
-        // Using a fixed x of PAD_L*0.28 keeps it clear of the tick numbers
-        // regardless of how wide those numbers are.
+        //
+        // The x used to be a fixed PAD_L*0.28 on the assumption that it
+        // cleared the tick numbers whatever their width. It does not: wide
+        // strings ("-5.6e-17" at the default tick size) reach back past it
+        // and the label is drawn through them. So take the fixed position as
+        // a *preference* and shift left when the ticks actually need the
+        // room, clamped so the label stays on the canvas — half the rotated
+        // glyph height is the least it can sit at.
         const ylpx1d = st.y_label_size||9;
-        const lcx = Math.max(Math.round(PAD_L * 0.28), Math.ceil(ylpx1d*0.62)+1);
+        const halfGlyph = Math.ceil(ylpx1d*0.62)+1;
+        const clearOfTicks = tickRX - maxTW - halfGlyph - 2;
+        const lcx = Math.max(
+          halfGlyph,
+          Math.min(Math.round(PAD_L * 0.28), clearOfTicks)
+        );
         ctx.translate(lcx, r.y+r.h/2); ctx.rotate(-Math.PI/2);
         ctx.textBaseline='middle';
         ctx.fillStyle=theme.unitText;
