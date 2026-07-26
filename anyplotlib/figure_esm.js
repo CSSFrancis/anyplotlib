@@ -3266,6 +3266,13 @@ function render({ model, el, onResize }) {
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
       const type = ms.type || 'circles';
+      // Per-marker edge/face colours: `color` and `fill_color` may be arrays
+      // parallel to the markers (matplotlib's edgecolors=[...] / c=[...]).
+      // Shorter arrays cycle, as matplotlib's colour cycle does.
+      const _ecArr = Array.isArray(ec)  ? ec  : null;
+      const _fcArr = Array.isArray(fch) ? fch : null;
+      const _ecAt = (i) => _ecArr ? _ecArr[i % _ecArr.length] : ec;
+      const _fcAt = (i) => _fcArr ? _fcArr[i % _fcArr.length] : fch;
 
       // Coordinate transform dispatch: "data" (default), "axes", "display".
       // For non-data transforms sizes are in pixels, not scaled by zoom.
@@ -3286,14 +3293,17 @@ function render({ model, el, onResize }) {
       if(clipSet){
         mkCtx.beginPath(); mkCtx.rect(vr.x, vr.y, vr.w, vr.h); mkCtx.clip();
       }
-      mkCtx.strokeStyle=ec; mkCtx.fillStyle=ec; mkCtx.lineWidth=dlw;
+      // Group-level style; per-marker arrays override inside each loop below.
+      mkCtx.strokeStyle=_ecAt(0); mkCtx.fillStyle=_ecAt(0); mkCtx.lineWidth=dlw;
 
       if(type==='circles'){
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           const r=Math.max(1,(ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5)*scl);
           mkCtx.beginPath();mkCtx.arc(cx,cy,r,0,Math.PI*2);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='arrows'){
@@ -3302,6 +3312,7 @@ function render({ model, el, onResize }) {
           const [x1,y1]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           const u=(ms.U[i]||0)*scl, v=(ms.V[i]||0)*scl;
           const x2=x1+u,y2=y1+v,ang=Math.atan2(y2-y1,x2-x1);
+          if(_ecArr){mkCtx.strokeStyle=_ecAt(i);mkCtx.fillStyle=_ecAt(i);}
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
           mkCtx.beginPath();mkCtx.moveTo(x2,y2);
           mkCtx.lineTo(x2-HL*Math.cos(ang-Math.PI/6),y2-HL*Math.sin(ang-Math.PI/6));
@@ -3315,13 +3326,18 @@ function render({ model, el, onResize }) {
           const rh=Math.max(1,(ms.heights[i]||ms.heights[0]||10)*scl/2);
           const ang=((ms.angles[i]||ms.angles[0]||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='lines'){
-        for(const seg of (ms.segments||[])){
+        const segs=ms.segments||[];
+        for(let i=0;i<segs.length;i++){
+          const seg=segs[i];
           const [x1,y1]=_tc(seg[0][0],seg[0][1]);
           const [x2,y2]=_tc(seg[1][0],seg[1][1]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(x1,y1);mkCtx.lineTo(x2,y2);mkCtx.stroke();
         }
       } else if(type==='rectangles'||type==='squares'){
@@ -3332,7 +3348,9 @@ function render({ model, el, onResize }) {
           const rh=((heights[i]||heights[0]||20))*scl;
           const ang=((ms.angles&&(ms.angles[i]||ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.strokeRect(-rw/2,-rh/2,rw,rh);
           mkCtx.restore();
         }
@@ -3344,7 +3362,9 @@ function render({ model, el, onResize }) {
           mkCtx.beginPath();mkCtx.moveTo(px0,py0);
           for(let k=1;k<verts.length;k++){const[px,py]=_tc(verts[k][0],verts[k][1]);mkCtx.lineTo(px,py);}
           mkCtx.closePath();
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='texts'){
@@ -3352,6 +3372,7 @@ function render({ model, el, onResize }) {
         mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
+          if(_ecArr) mkCtx.fillStyle=_ecAt(i);
           mkCtx.fillText(String(ms.texts[i]||''),cx,cy);
         }
       }
@@ -5999,6 +6020,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const ec  = isHov && ms.hover_color     ? ms.hover_color     : color;
       const fch = isHov && ms.hover_facecolor ? ms.hover_facecolor : fc;
       const dlw = isHov && (ms.hover_color || ms.hover_facecolor) ? lw+1 : lw;
+      // Per-marker edge/face colours — see the matching block in _drawMarkers2d.
+      const _ecArr = Array.isArray(ec)  ? ec  : null;
+      const _fcArr = Array.isArray(fch) ? fch : null;
+      const _ecAt = (i) => _ecArr ? _ecArr[i % _ecArr.length] : ec;
+      const _fcAt = (i) => _fcArr ? _fcArr[i % _fcArr.length] : fch;
 
       // Coordinate transform: "axes" and "display" map 2-D offsets to panel
       // space independently of data values; vlines/hlines stay in data coords.
@@ -6012,7 +6038,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _tc2d=(off0,off1)=>_offToCanvas([off0,off1]);
       }
 
-      mkCtx.save();mkCtx.strokeStyle=ec;mkCtx.fillStyle=ec;mkCtx.lineWidth=dlw;
+      mkCtx.save();mkCtx.strokeStyle=_ecAt(0);mkCtx.fillStyle=_ecAt(0);mkCtx.lineWidth=dlw;
 
       // Optional clip path (matplotlib set_clip_path): a data-coord polygon the
       // group is clipped to — e.g. a pcolormesh mesh clipped to a curved
@@ -6029,33 +6055,34 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
 
       if(type==='points'){
-        // Per-point face/edge colours (matplotlib scatter c=[...]): fill_color
-        // and/or color may be arrays parallel to offsets.
-        const _fcArr = Array.isArray(fch) ? fch : null;
-        const _ecArr = Array.isArray(ec)  ? ec  : null;
         for(let i=0;i<ms.offsets.length;i++){
           const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
           const sz=Math.max(1,ms.sizes[i]!=null?ms.sizes[i]:ms.sizes[0]||5);
           mkCtx.beginPath();mkCtx.arc(px,py,sz,0,Math.PI*2);
-          const _fc=_fcArr?_fcArr[i%_fcArr.length]:fch;
+          const _fc=_fcAt(i);
           if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
-          if(_ecArr) mkCtx.strokeStyle=_ecArr[i%_ecArr.length];
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='vlines'){
         for(let i=0;i<ms.offsets.length;i++){
           const px=_xPx(ms.offsets[i][0]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(px,r.y);mkCtx.lineTo(px,r.y+r.h);mkCtx.stroke();
         }
       } else if(type==='hlines'){
         for(let i=0;i<ms.offsets.length;i++){
           const py=_yPx(ms.offsets[i][0]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(r.x,py);mkCtx.lineTo(r.x+r.w,py);mkCtx.stroke();
         }
       } else if(type==='lines'){
-        for(const seg of (ms.segments||[])){
+        const segs=ms.segments||[];
+        for(let i=0;i<segs.length;i++){
+          const seg=segs[i];
           const [x1c,y1c]= tfm==='data' ? _offToCanvas(seg[0]) : _tc2d(seg[0][0],seg[0][1]);
           const [x2c,y2c]= tfm==='data' ? _offToCanvas(seg[1]) : _tc2d(seg[1][0],seg[1][1]);
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.beginPath();mkCtx.moveTo(x1c,y1c);mkCtx.lineTo(x2c,y2c);mkCtx.stroke();
         }
       } else if(type==='ellipses'){
@@ -6068,7 +6095,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2))/2 : hd/2);
           const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
           mkCtx.beginPath();mkCtx.ellipse(cx,cy,rw,rh,ang,0,Math.PI*2);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fill();mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='rectangles'||type==='squares'){
@@ -6082,15 +6111,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           const rh=Math.max(1, tfm==='data' ? Math.abs(_yPx((off[1]||0)-hd/2)-_yPx((off[1]||0)+hd/2)) : hd);
           const ang=((ms.angles&&(ms.angles[i]!=null?ms.angles[i]:ms.angles[0])||0)*Math.PI)/180;
           mkCtx.save();mkCtx.translate(cx,cy);mkCtx.rotate(ang);
-          if(fch){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=fch;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          const _fc=_fcAt(i);
+          if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fillRect(-rw/2,-rh/2,rw,rh);mkCtx.restore();}
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.strokeRect(-rw/2,-rh/2,rw,rh);
           mkCtx.restore();
         }
       } else if(type==='polygons'){
-        // Per-polygon face/edge colours (matplotlib PathCollection / pcolormesh):
-        // fill_color and/or color may be arrays parallel to vertices_list.
-        const _fcArr = Array.isArray(fch) ? fch : null;
-        const _ecArr = Array.isArray(ec)  ? ec  : null;
         for(let i=0;i<(ms.vertices_list||[]).length;i++){
           const verts=ms.vertices_list[i];
           if(!verts||verts.length<2) continue;
@@ -6101,9 +6128,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
             mkCtx.lineTo(px,py);
           }
           mkCtx.closePath();
-          const _fc=_fcArr?_fcArr[i%_fcArr.length]:fch;
+          const _fc=_fcAt(i);
           if(_fc){mkCtx.save();mkCtx.globalAlpha=fa;mkCtx.fillStyle=_fc;mkCtx.fill();mkCtx.restore();}
-          if(_ecArr) mkCtx.strokeStyle=_ecArr[i%_ecArr.length];
+          if(_ecArr) mkCtx.strokeStyle=_ecAt(i);
           mkCtx.stroke();
         }
       } else if(type==='raster'){

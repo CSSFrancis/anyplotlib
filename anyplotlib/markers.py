@@ -28,6 +28,17 @@ The JS renderer uses the same internal field names as the standalone viewers
 (``color``, ``fill_color``, ``fill_alpha``, ``sizes``, etc.).  ``MarkerGroup``
 stores matplotlib-style names and ``to_wire()`` translates before JSON
 serialisation.
+
+Per-marker colours
+------------------
+``edgecolors`` and ``facecolors`` accept either one colour for the whole group
+or a sequence of colours parallel to the markers — matplotlib's
+``edgecolors=[...]`` / scatter ``c=[...]``::
+
+    plot.add_circles(offsets, edgecolors=["#f00", "#0f0", "#00f"], radius=3)
+
+A sequence shorter than the group cycles, as matplotlib's colour cycle does.
+This works for every marker type on both 1-D and 2-D panels.
 """
 
 from __future__ import annotations
