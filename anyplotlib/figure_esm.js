@@ -5626,6 +5626,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const eff_alpha = (alpha != null && alpha < 1.0) ? alpha : 1.0;
       const ms = Math.max(1, markersize || 4);
       const doMarker = marker && marker !== 'none';
+      // linestyle 'none' (or a zero width) means "markers only" — matplotlib's
+      // scatter idiom.  Skip the connecting stroke but keep drawing markers.
+      const doLine = linestyle !== 'none' && lw > 0;
 
       // Pre-compute pixel positions
       const allPx = new Array(n), allPy = new Array(n);
@@ -5639,26 +5642,29 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
 
       ctx.save();
       if (eff_alpha < 1.0) ctx.globalAlpha = eff_alpha;
-      ctx.setLineDash(dash);
-      ctx.beginPath();
-      ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round';
 
-      if (isStepMid && n >= 2) {
-        ctx.moveTo(allPx[0], allPy[0]);
-        for (let i = 0; i < n - 1; i++) {
-          const midX = (allPx[i] + allPx[i + 1]) / 2;
-          ctx.lineTo(midX, allPy[i]);
-          ctx.lineTo(midX, allPy[i + 1]);
+      if (doLine) {
+        ctx.setLineDash(dash);
+        ctx.beginPath();
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+
+        if (isStepMid && n >= 2) {
+          ctx.moveTo(allPx[0], allPy[0]);
+          for (let i = 0; i < n - 1; i++) {
+            const midX = (allPx[i] + allPx[i + 1]) / 2;
+            ctx.lineTo(midX, allPy[i]);
+            ctx.lineTo(midX, allPy[i + 1]);
+          }
+          ctx.lineTo(allPx[n - 1], allPy[n - 1]);
+        } else {
+          for (let i = 0; i < n; i++) {
+            if (i === 0) ctx.moveTo(allPx[i], allPy[i]);
+            else ctx.lineTo(allPx[i], allPy[i]);
+          }
         }
-        ctx.lineTo(allPx[n - 1], allPy[n - 1]);
-      } else {
-        for (let i = 0; i < n; i++) {
-          if (i === 0) ctx.moveTo(allPx[i], allPy[i]);
-          else ctx.lineTo(allPx[i], allPy[i]);
-        }
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
-      ctx.stroke();
-      ctx.setLineDash([]);
 
       const pts = doMarker ? allPx.map((px, i) => [px, allPy[i]]) : null;
 
@@ -5679,8 +5685,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       ctx.restore();
     }
 
+    // ?? not || on linewidth: an explicit 0 means "no stroke" and must not
+    // fall back to the 1.5 default (see _drawLine's doLine).
     _drawLine(yData, xArr,
-      st.line_color || '#4fc3f7', st.line_linewidth || 1.5,
+      st.line_color || '#4fc3f7', st.line_linewidth ?? 1.5,
       st.line_linestyle || 'solid',
       st.line_alpha != null ? st.line_alpha : 1.0,
       st.line_marker || 'none', st.line_markersize || 4);
@@ -5689,7 +5697,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis ? ex.x_axis : xArr);
       const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
       _drawLine(exY, exX,
-        ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth || 1.5,
+        ex.color || (theme.dark ? '#fff' : '#333'), ex.linewidth ?? 1.5,
         ex.linestyle || 'solid',
         ex.alpha != null ? ex.alpha : 1.0,
         ex.marker || 'none', ex.markersize || 4, exMap);
@@ -5699,7 +5707,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (_hovId !== undefined && _hovId !== '__none__') {
       if (_hovId === null) {
         _drawLine(yData, xArr,
-          _brightenColor(st.line_color||'#4fc3f7'), (st.line_linewidth||1.5)+1,
+          _brightenColor(st.line_color||'#4fc3f7'), (st.line_linewidth??1.5)+1,
           st.line_linestyle||'solid', st.line_alpha!=null?st.line_alpha:1.0,
           st.line_marker||'none', st.line_markersize||4);
       } else {
@@ -5709,7 +5717,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
             const exX = ex.x_axis_b64 ? _decodeF64(ex.x_axis_b64) : (ex.x_axis?ex.x_axis:xArr);
             const exMap = ex.axis === 'right' ? _toRightY : _toPlotY;
             _drawLine(exY, exX,
-              _brightenColor(ex.color||(theme.dark?'#fff':'#333')), (ex.linewidth||1.5)+1,
+              _brightenColor(ex.color||(theme.dark?'#fff':'#333')), (ex.linewidth??1.5)+1,
               ex.linestyle||'solid', ex.alpha!=null?ex.alpha:1.0,
               ex.marker||'none', ex.markersize||4, exMap);
             break;
@@ -5847,10 +5855,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const legendTop = ly;
       for(const lb of labels){
         const ldash=_LINESTYLE_DASH[lb.linestyle||'solid']||[];
-        ctx.strokeStyle=lb.color; ctx.lineWidth=2;
-        ctx.setLineDash(ldash);
-        ctx.beginPath(); ctx.moveTo(swatchX0,ly+5); ctx.lineTo(swatchX1,ly+5); ctx.stroke();
-        ctx.setLineDash([]);
+        // linestyle 'none' is a markers-only series: the swatch shows just the
+        // marker, with no connecting rule (matches how the series is drawn).
+        if(lb.linestyle!=='none'){
+          ctx.strokeStyle=lb.color; ctx.lineWidth=2;
+          ctx.setLineDash(ldash);
+          ctx.beginPath(); ctx.moveTo(swatchX0,ly+5); ctx.lineTo(swatchX1,ly+5); ctx.stroke();
+          ctx.setLineDash([]);
+        }
         if(lb.marker && lb.marker!=='none'){
           ctx.strokeStyle=lb.color; ctx.fillStyle=lb.color; ctx.lineWidth=1.5;
           ctx.beginPath(); _drawMarkerSymbol(ctx,lb.marker,markerX,ly+5,Math.min(lb.ms||4,4)); ctx.fill(); ctx.stroke();

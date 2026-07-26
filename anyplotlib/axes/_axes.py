@@ -309,7 +309,9 @@ class Axes:
         linestyle : str, optional
             Dash pattern.  Accepted values: ``"solid"`` (``"-"``),
             ``"dashed"`` (``"--"``), ``"dotted"`` (``":"``),
-            ``"dashdot"`` (``"-."``) .  Default ``"solid"``.
+            ``"dashdot"`` (``"-."``), or ``"none"`` to draw no connecting
+            line at all — pair it with *marker* for a scatter.
+            Default ``"solid"``.
         ls : str, optional
             Short alias for *linestyle*.  Takes precedence if both are given.
         alpha : float, optional

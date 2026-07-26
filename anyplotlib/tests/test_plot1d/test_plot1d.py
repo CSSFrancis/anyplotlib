@@ -82,6 +82,27 @@ class TestNormLinestyle:
         with pytest.raises(ValueError):
             _norm_linestyle("")
 
+    @pytest.mark.parametrize("spelling", ["none", "None"])
+    def test_none_means_no_connecting_line(self, spelling):
+        """matplotlib's markers-only idiom: linestyle="None", marker="o"."""
+        assert _norm_linestyle(spelling) == "none"
+
+    def test_set_linestyle_none_accepted(self):
+        p = _plot_lin()
+        p.set_linestyle("None")
+        assert p._state["line_linestyle"] == "none"
+
+    def test_plot_with_linestyle_none_and_marker(self):
+        p = _plot_lin(linestyle="None", marker="o", markersize=3)
+        assert p._state["line_linestyle"] == "none"
+        assert p._state["line_marker"] == "o"
+
+    def test_zero_linewidth_is_preserved(self):
+        """0 must survive to the wire — the renderer treats it as no stroke."""
+        p = _plot_lin(linewidth=0)
+        assert p._state["line_linewidth"] == 0.0
+        assert p.to_state_dict()["line_linewidth"] == 0.0
+
 
 # ===========================================================================
 # Default state values

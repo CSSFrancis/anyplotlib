@@ -237,7 +237,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
          - ``"solid"``
          - Dash pattern: ``"solid"``, ``"dashed"``, ``"dotted"``,
            ``"dashdot"``.  Shorthands ``"-"``, ``"--"``, ``":"``,
-           ``"-."`` also accepted.
+           ``"-."`` also accepted, as is ``"none"`` (markers only, no
+           connecting line).
        * - ``alpha``
          - ``1.0``
          - Line opacity (0 = transparent, 1 = fully opaque).
@@ -550,7 +551,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Stroke width in pixels.  Default ``1.5``.
         linestyle : str, optional
             Dash pattern: ``"solid"``, ``"dashed"``, ``"dotted"``,
-            ``"dashdot"`` (or shorthands).  Default ``"solid"``.
+            ``"dashdot"`` (or shorthands), or ``"none"`` for markers only
+            with no connecting line.  Default ``"solid"``.
         ls : str, optional
             Short alias for *linestyle*.
         alpha : float, optional
@@ -924,7 +926,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         ----------
         linestyle : str
             ``"solid"`` (``"-"``), ``"dashed"`` (``"--"``),
-            ``"dotted"`` (``":"``), or ``"dashdot"`` (``"-."``)
+            ``"dotted"`` (``":"``), ``"dashdot"`` (``"-."``), or ``"none"``
+            to suppress the connecting line and draw only the markers.
         """
         self._state["line_linestyle"] = _norm_linestyle(linestyle)
         self._push()
