@@ -6927,16 +6927,38 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const st=p.state;
         if(st) _emitEvent(p.id,'pointer_up',null,{view_x0:st.view_x0,view_x1:st.view_x1,..._pointerFields(e),button:e.button});
       }
-      // Line click: fire when no widget was being dragged and mouse barely moved.
+      // Click: fire when no widget was being dragged and mouse barely moved.
       // NOTE: p.isPanning is always set true on mousedown (pan start), so we
       // deliberately only block on wasWidgetDragging here — the distance
       // threshold below already excludes real pan gestures.
+      //
+      // A click always emits exactly one pointer_down carrying the clicked
+      // position in data coords, mirroring 2-D panels. When the click also
+      // landed on a line, line_id (and the snapped on-line x/y) come along —
+      // that is the pre-existing line-click contract, kept intact.
       if(!wasWidgetDragging && p._mousedownX!=null){
         const mdx=e.clientX-p._mousedownX, mdy=e.clientY-p._mousedownY;
         if(Math.hypot(mdx,mdy)<5){
           const {mx,my}=_clientPos(e,overlayCanvas,p.pw,p.ph);
-          const lhit=_lineHitTest1d(mx,my,p);
-          if(lhit) _emitEvent(p.id,'pointer_down',null,{line_id:lhit.lineId,x:lhit.x,y:lhit.y,..._pointerFields(e),button:e.button});
+          const st=p.state;
+          const r=_plotRect1d(p);
+          const inPlot = st && mx>=r.x && mx<=r.x+r.w && my>=r.y && my<=r.y+r.h;
+          if(inPlot){
+            const lhit=_lineHitTest1d(mx,my,p);
+            const xArr=p._1dXArr||(st.x_axis_b64?_decodeF64(st.x_axis_b64):(st.x_axis||[]));
+            const frac=_canvasXToFrac1d(mx,st.view_x0||0,st.view_x1||1,r);
+            const physX=xArr.length>=2?_axisFracToVal(xArr,frac):frac;
+            const dMin=st.data_min, dMax=st.data_max;
+            const physY=dMin+(r.y+r.h-my)/(r.h||1)*(dMax-dMin);
+            _emitEvent(p.id,'pointer_down',null,{
+              ...(lhit?{line_id:lhit.lineId}:{}),
+              // On-line coords when a line was hit, else the raw click point.
+              x:lhit?lhit.x:physX, y:lhit?lhit.y:physY,
+              xdata:physX, ydata:physY,
+              ..._pointerFields(e),
+              button:e.button,
+            });
+          }
         }
       }
       p._mousedownX=null;
