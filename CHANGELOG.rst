@@ -10,6 +10,37 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.4.1 (2026-07-26)
+==================
+
+New Features
+------------
+
+- Added ``max_extent=`` to :class:`~anyplotlib.widgets.RangeWidget` and
+  :class:`~anyplotlib.widgets.RectangleWidget` (and the matching
+  ``add_range_widget`` / ``add_rectangle_widget`` factories) — a size cap enforced
+  *while dragging*, so the widget physically stops growing instead of being
+  clamped after the fact. The dragged edge/corner pins and the opposite one stays
+  put, so the selection never jumps under the cursor. ``RangeWidget`` takes a span
+  width in data units; ``RectangleWidget`` takes a scalar (both axes) or a
+  ``(max_w, max_h)`` pair. Default ``None`` leaves widgets unbounded.
+
+  Use it when a widget's size drives real downstream work — e.g. an integrating
+  selector whose span is a number of frames to read.
+
+
+Bug Fixes
+---------
+
+- Fixed the band-style :class:`~anyplotlib.widgets.RangeWidget` being impossible
+  to drag by its body when narrow. Each edge claimed a fixed ±12 px grab zone, so
+  a band under ~24 px wide on screen (routine when zoomed out, or when its span is
+  capped) had no grabbable middle: aiming at the body to translate the band caught
+  an edge and resized it instead. Each edge now takes at most a third of the
+  band's width, leaving the middle third for the move handle. Wide bands are
+  unaffected.
+
+
 0.4.0 (2026-07-18)
 ==================
 
