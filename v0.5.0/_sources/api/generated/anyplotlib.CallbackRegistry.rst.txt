@@ -1,0 +1,6 @@
+﻿anyplotlib.CallbackRegistry
+===========================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: CallbackRegistry
