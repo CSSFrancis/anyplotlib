@@ -534,6 +534,17 @@ the full registry into the panel’s JSON trait on the Figure widget.</p>
 stores matplotlib-style names and <code class="docutils literal notranslate"><span class="pre">to_wire()</span></code> translates before JSON
 serialisation.</p>
 </section>
+<section id="per-marker-colours">
+<h3>Per-marker colours<a class="headerlink" href="#per-marker-colours" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">edgecolors</span></code> and <code class="docutils literal notranslate"><span class="pre">facecolors</span></code> accept either one colour for the whole group
+or a sequence of colours parallel to the markers — matplotlib’s
+<code class="docutils literal notranslate"><span class="pre">edgecolors=[...]</span></code> / scatter <code class="docutils literal notranslate"><span class="pre">c=[...]</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">plot</span><span class="o">.</span><span class="n">add_circles</span><span class="p">(</span><span class="n">offsets</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;#f00&quot;</span><span class="p">,</span> <span class="s2">&quot;#0f0&quot;</span><span class="p">,</span> <span class="s2">&quot;#00f&quot;</span><span class="p">],</span> <span class="n">radius</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A sequence shorter than the group cycles, as matplotlib’s colour cycle does.
+This works for every marker type on both 1-D and 2-D panels.</p>
+</section>
 </section>
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
@@ -825,6 +836,7 @@ properties as attributes.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#markers-py">markers.py</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#design">Design</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#wire-format-translation">Wire-format translation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-marker-colours">Per-marker colours</a></li>
 </ul>
 </li>
 </ul>

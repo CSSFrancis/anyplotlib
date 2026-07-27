@@ -437,10 +437,33 @@
 <span class="sd">widgets/_widgets1d.py</span>
 <span class="sd">=====================</span>
 <span class="sd">Interactive overlay widgets for 1-D line panels (Plot1D).</span>
+
+<span class="sd">``VLineWidget`` and ``HLineWidget`` are also used by ``Plot2D``, where they</span>
+<span class="sd">draw a full-height / full-width rule over the image.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
+
+<span class="n">SNAP_DOC</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;snap_values : sequence of float, optional</span>
+<span class="s2">        Allowed positions.  While dragging, the widget follows the cursor but</span>
+<span class="s2">        lands only on the nearest of these values — matplotlib&#39;s</span>
+<span class="s2">        ``SpanSelector.snap_values``.  ``None`` (default) drags continuously.</span>
+<span class="s2">        Set it later with ``widget.snap_values = [...]``.&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_norm_snap_values</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate snap_values and return a plain list of floats (or None).</span>
+
+<span class="sd">    A list is what crosses the wire, so numpy arrays have to be converted</span>
+<span class="sd">    here — they are not JSON-serialisable and would break the panel push.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">out</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">out</span>
 
 
 <div class="viewcode-block" id="VLineWidget">
@@ -462,9 +485,11 @@
 <span class="sd">    linewidth : float, optional</span>
 <span class="sd">        Line stroke width in px. Default 2.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;vline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">))</span></div>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">snap_values</span><span class="o">=</span><span class="n">_norm_snap_values</span><span class="p">(</span><span class="n">snap_values</span><span class="p">))</span></div>
 
 
 
@@ -487,9 +512,11 @@
 <span class="sd">    linewidth : float, optional</span>
 <span class="sd">        Line stroke width in px. Default 2.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;hline&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">))</span></div>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">snap_values</span><span class="o">=</span><span class="n">_norm_snap_values</span><span class="p">(</span><span class="n">snap_values</span><span class="p">))</span></div>
 
 
 
@@ -511,19 +538,28 @@
 <span class="sd">        handles are draggable.  Use this to show/edit a FWHM interval on a</span>
 <span class="sd">        peak.</span>
 
+<span class="sd">    With ``orientation=&#39;vertical&#39;`` the band spans the plot width and selects</span>
+<span class="sd">    a range on the *value* axis instead — for picking an intensity window</span>
+<span class="sd">    rather than a spectral one.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    push_fn : Callable</span>
 <span class="sd">        Update callback.</span>
 <span class="sd">    x0, x1 : float</span>
-<span class="sd">        Initial left and right positions in data coordinates.</span>
+<span class="sd">        The two edges of the range, in data coordinates **along the selection</span>
+<span class="sd">        axis**: x positions when horizontal, y values when vertical.  The</span>
+<span class="sd">        names do not change with orientation, mirroring how matplotlib&#39;s</span>
+<span class="sd">        ``SpanSelector.extents`` is read the same way for either ``direction``.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour.  Default ``&quot;#00e5ff&quot;``.</span>
 <span class="sd">    style : {&#39;band&#39;, &#39;fwhm&#39;}, optional</span>
-<span class="sd">        Visual style.  Default ``&quot;band&quot;``.</span>
+<span class="sd">        Visual style.  Default ``&quot;band&quot;``.  ``&#39;fwhm&#39;`` is horizontal-only.</span>
 <span class="sd">    y : float, optional</span>
 <span class="sd">        Y-position (data coordinates) for the connecting line when</span>
 <span class="sd">        ``style=&#39;fwhm&#39;``.  Ignored for ``style=&#39;band&#39;``.  Default ``0.0``.</span>
+<span class="sd">    orientation : {&#39;horizontal&#39;, &#39;vertical&#39;}, optional</span>
+<span class="sd">        Which axis the range selects along.  Default ``&quot;horizontal&quot;``.</span>
 <span class="sd">    linewidth : float, optional</span>
 <span class="sd">        Line stroke width in px. Default 2.</span>
 <span class="sd">    max_extent : float, optional</span>
@@ -536,14 +572,35 @@
 <span class="sd">        integrating selector where the width is a number of frames to read.</span>
 <span class="sd">        Enforcing it in the widget makes the limit visible (the edge simply</span>
 <span class="sd">        stops) instead of applying a silent clamp after the fact.</span>
+<span class="sd">    snap_values : sequence of float, optional</span>
+<span class="sd">        Allowed edge positions.  While dragging, each edge follows the cursor</span>
+<span class="sd">        but lands only on the nearest of these values — matplotlib&#39;s</span>
+<span class="sd">        ``SpanSelector.snap_values``.  ``None`` (default) drags continuously.</span>
+<span class="sd">        Set it later with ``widget.snap_values = [...]``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If *orientation* is not ``&#39;horizontal&#39;`` or ``&#39;vertical&#39;``, or if</span>
+<span class="sd">        ``style=&#39;fwhm&#39;`` is combined with a vertical orientation.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                  <span class="n">style</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;band&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                 <span class="n">max_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">max_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">orientation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;horizontal&quot;</span><span class="p">,</span>
+                 <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">orientation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;horizontal&quot;</span><span class="p">,</span> <span class="s2">&quot;vertical&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;orientation must be &#39;horizontal&#39; or &#39;vertical&#39;, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="n">orientation</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">orientation</span> <span class="o">==</span> <span class="s2">&quot;vertical&quot;</span> <span class="ow">and</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;fwhm&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;style=&#39;fwhm&#39; is only defined for a horizontal range&quot;</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;range&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">x0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                          <span class="n">style</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">style</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
                          <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">orientation</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">orientation</span><span class="p">),</span>
+                         <span class="n">snap_values</span><span class="o">=</span><span class="n">_norm_snap_values</span><span class="p">(</span><span class="n">snap_values</span><span class="p">),</span>
                          <span class="n">max_extent</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="n">max_extent</span> <span class="ow">is</span> <span class="kc">None</span>
                                      <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">max_extent</span><span class="p">)))</span></div>
 

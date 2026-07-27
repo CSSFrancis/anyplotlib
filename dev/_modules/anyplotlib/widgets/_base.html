@@ -476,6 +476,10 @@
 <span class="sd">        - ``&quot;pointer_down&quot;`` — fires on click/press event</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="c1"># Set by _PanelMixin._make_widget_push_fn when the widget is added to a</span>
+    <span class="c1"># plot; stays None for a widget constructed standalone (e.g. in a test).</span>
+    <span class="n">_plot</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())[:</span><span class="mi">8</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">wtype</span>
@@ -519,7 +523,7 @@
 
 <div class="viewcode-block" id="Widget.set">
 <a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget.set">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">_notify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update properties and send targeted update to JavaScript.</span>
 
 <span class="sd">        Parameters</span>
@@ -527,18 +531,36 @@
 <span class="sd">        _push : bool, optional</span>
 <span class="sd">            Whether to push update to renderer. Default True.</span>
 <span class="sd">            Set to False internally to avoid echo loops.</span>
+<span class="sd">        _notify : bool, optional</span>
+<span class="sd">            Whether to fire ``pointer_move`` callbacks.  Default True.</span>
+
+<span class="sd">            A ``set()`` from Python is otherwise indistinguishable from a user</span>
+<span class="sd">            drag: handlers that react to the widget moving will run, and one</span>
+<span class="sd">            that writes back to the widget feeds into itself.  Pass</span>
+<span class="sd">            ``_notify=False`` when *you* are the one moving the widget and the</span>
+<span class="sd">            handlers are only meant to hear about user input::</span>
+
+<span class="sd">                widget.set(_notify=False, x=new_x)</span>
+
+<span class="sd">            This supersedes wrapping the call in :meth:`pause_events`, which</span>
+<span class="sd">            suppresses every event type for the duration rather than just this</span>
+<span class="sd">            update&#39;s echo.</span>
 <span class="sd">        **kwargs : dict</span>
 <span class="sd">            Properties to update (e.g., x=100, y=50, radius=20).</span>
 
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
+<span class="sd">        Both flags are spelled with a leading underscore so they can never</span>
+<span class="sd">        collide with a widget property of the same name in ``**kwargs``.</span>
+
 <span class="sd">        Updates are sent as targeted widget updates, not full panel re-renders.</span>
 <span class="sd">        This is more efficient for frequent updates during dragging.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">Event</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">))</span></div>
+        <span class="k">if</span> <span class="n">_notify</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">Event</span><span class="p">(</span><span class="s2">&quot;pointer_move&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Widget.get">
@@ -603,6 +625,29 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span></div>
+
+
+    <span class="c1"># ── removal ───────────────────────────────────────────────────────────</span>
+
+<div class="viewcode-block" id="Widget.remove">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.Widget.remove">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove this widget from the plot that owns it.</span>
+
+<span class="sd">        Equivalent to ``plot.remove_widget(widget)``, but callable when you</span>
+<span class="sd">        only hold the widget — handle-based APIs otherwise have to re-derive</span>
+<span class="sd">        the owning plot to delete something they already have.</span>
+
+<span class="sd">        Removing a widget that is not attached to a plot, or removing twice,</span>
+<span class="sd">        is a no-op.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span>
+        <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">plot</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>  <span class="c1"># already removed (e.g. via clear_widgets)</span></div>
 
 
     <span class="c1"># ── JS → Python sync ──────────────────────────────────────────────</span>

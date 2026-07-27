@@ -461,7 +461,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Widget</span><span class="p">,</span>
     <span class="n">RectangleWidget</span><span class="p">,</span> <span class="n">CircleWidget</span><span class="p">,</span> <span class="n">AnnularWidget</span><span class="p">,</span>
-    <span class="n">CrosshairWidget</span><span class="p">,</span> <span class="n">PolygonWidget</span><span class="p">,</span> <span class="n">LabelWidget</span><span class="p">,</span> <span class="n">ArrowWidget</span><span class="p">,</span>
+    <span class="n">CrosshairWidget</span><span class="p">,</span> <span class="n">PolygonWidget</span><span class="p">,</span> <span class="n">LabelWidget</span><span class="p">,</span> <span class="n">ArrowWidget</span><span class="p">,</span> <span class="n">LineWidget</span><span class="p">,</span>
+    <span class="n">VLineWidget</span><span class="p">,</span> <span class="n">HLineWidget</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">_normalize_image</span><span class="p">,</span> <span class="n">_build_colormap_lut</span><span class="p">,</span>
                                <span class="n">_build_tint_lut</span><span class="p">,</span> <span class="n">_to_rgba_u8</span><span class="p">)</span>
@@ -707,11 +708,16 @@
             <span class="s2">&quot;units&quot;</span><span class="p">:</span>             <span class="n">units</span><span class="p">,</span>
             <span class="s2">&quot;scale_x&quot;</span><span class="p">:</span>           <span class="n">scale_x</span><span class="p">,</span>
             <span class="s2">&quot;scale_y&quot;</span><span class="p">:</span>           <span class="n">scale_y</span><span class="p">,</span>
+            <span class="c1"># None =&gt; the renderer&#39;s white-on-dark-pill default.</span>
+            <span class="s2">&quot;scalebar_color&quot;</span><span class="p">:</span>    <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;scalebar_bgcolor&quot;</span><span class="p">:</span>  <span class="kc">None</span><span class="p">,</span>
             <span class="s2">&quot;display_min&quot;</span><span class="p">:</span>       <span class="n">disp_min</span><span class="p">,</span>
             <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>       <span class="n">disp_max</span><span class="p">,</span>
             <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>           <span class="n">raw_vmin</span><span class="p">,</span>
             <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>           <span class="n">raw_vmax</span><span class="p">,</span>
             <span class="s2">&quot;show_colorbar&quot;</span><span class="p">:</span>     <span class="kc">False</span><span class="p">,</span>
+            <span class="c1"># None =&gt; the renderer&#39;s default 6 px image-to-strip gap.</span>
+            <span class="s2">&quot;colorbar_pad&quot;</span><span class="p">:</span>      <span class="kc">None</span><span class="p">,</span>
             <span class="s2">&quot;scale_mode&quot;</span><span class="p">:</span>        <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
             <span class="s2">&quot;colormap_name&quot;</span><span class="p">:</span>     <span class="n">cmap_name</span><span class="p">,</span>
             <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span>     <span class="n">cmap_lut</span><span class="p">,</span>
@@ -2083,12 +2089,60 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
+<div class="viewcode-block" id="Plot2D.set_colorbar_pad">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_colorbar_pad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_colorbar_pad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pad</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the gap in px between the image and the colorbar strip.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pad : float or None</span>
+<span class="sd">            Gap in CSS pixels.  ``None`` restores the default (6 px).  The gap</span>
+<span class="sd">            comes out of the image width, so widening it shrinks the image</span>
+<span class="sd">            rather than pushing the strip off the panel.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;colorbar_pad&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">pad</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">pad</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="Plot2D.set_aspect">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_aspect">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_aspect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ratio</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ratio</span> <span class="o">==</span> <span class="s2">&quot;equal&quot;</span><span class="p">:</span>
             <span class="n">ratio</span> <span class="o">=</span> <span class="mf">1.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;aspect&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span> <span class="k">if</span> <span class="n">ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.set_scalebar_style">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_scalebar_style">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_scalebar_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">bgcolor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recolour the automatic scale bar.</span>
+
+<span class="sd">        The scale bar appears on its own whenever the panel has calibrated</span>
+<span class="sd">        axes (``units`` other than ``&quot;px&quot;``).  It defaults to white on a</span>
+<span class="sd">        translucent dark pill, which reads well on most images but not on a</span>
+<span class="sd">        light one.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour for the bar and its label.  ``None`` (default) leaves</span>
+<span class="sd">            it at white.</span>
+<span class="sd">        bgcolor : str, optional</span>
+<span class="sd">            CSS colour for the pill behind them, or the string ``&quot;none&quot;`` to</span>
+<span class="sd">            draw no pill at all.  ``None`` (default) leaves it at the</span>
+<span class="sd">            translucent dark pill.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; plot.set_scalebar_style(color=&quot;black&quot;, bgcolor=&quot;none&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;scalebar_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bgcolor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;scalebar_bgcolor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">bgcolor</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
 
@@ -2102,10 +2156,13 @@
 
 <span class="sd">        Dispatches to the dedicated ``add_&lt;kind&gt;_widget`` method.</span>
 <span class="sd">        Supported kinds: ``&quot;circle&quot;``, ``&quot;rectangle&quot;``, ``&quot;annular&quot;``,</span>
-<span class="sd">        ``&quot;polygon&quot;``, ``&quot;crosshair&quot;``, ``&quot;label&quot;``, ``&quot;arrow&quot;``.</span>
+<span class="sd">        ``&quot;polygon&quot;``, ``&quot;crosshair&quot;``, ``&quot;label&quot;``, ``&quot;arrow&quot;``, ``&quot;line&quot;``,</span>
+<span class="sd">        ``&quot;vline&quot;``, ``&quot;hline&quot;``.</span>
 
 <span class="sd">        Every kind also accepts ``show_handles`` (default ``True``) to toggle</span>
 <span class="sd">        the grab-handle dots without changing hit-testing / draggability.</span>
+<span class="sd">        ``vline`` / ``hline`` have no handles — the whole line is the grab</span>
+<span class="sd">        target — so they ignore it.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dispatch</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;circle&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">add_circle_widget</span><span class="p">,</span>
@@ -2115,6 +2172,9 @@
             <span class="s2">&quot;crosshair&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_crosshair_widget</span><span class="p">,</span>
             <span class="s2">&quot;label&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">add_label_widget</span><span class="p">,</span>
             <span class="s2">&quot;arrow&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">add_arrow_widget</span><span class="p">,</span>
+            <span class="s2">&quot;line&quot;</span><span class="p">:</span>      <span class="bp">self</span><span class="o">.</span><span class="n">add_line_widget</span><span class="p">,</span>
+            <span class="s2">&quot;vline&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">add_vline_widget</span><span class="p">,</span>
+            <span class="s2">&quot;hline&quot;</span><span class="p">:</span>     <span class="bp">self</span><span class="o">.</span><span class="n">add_hline_widget</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="n">key</span> <span class="o">=</span> <span class="n">kind</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dispatch</span><span class="p">:</span>
@@ -2285,6 +2345,118 @@
         <span class="k">return</span> <span class="n">widget</span></div>
 
 
+<div class="viewcode-block" id="Plot2D.add_line_widget">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_line_widget">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_line_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">x2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                        <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LineWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable two-endpoint line segment overlay.</span>
+
+<span class="sd">        A bare segment with a grab handle at each end — no arrowhead (see</span>
+<span class="sd">        :meth:`add_arrow_widget`) and no closed path (see</span>
+<span class="sd">        :meth:`add_polygon_widget`).  Use it for a line profile, a</span>
+<span class="sd">        cross-section cut, or a two-point measurement.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x1, y1 : float, optional</span>
+<span class="sd">            First endpoint in image coordinates.  Defaults to 25 % of the</span>
+<span class="sd">            image size.</span>
+<span class="sd">        x2, y2 : float, optional</span>
+<span class="sd">            Second endpoint.  Defaults to 75 % of the image size.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Stroke width in px.  Default 2.</span>
+<span class="sd">        show_handles : bool, optional</span>
+<span class="sd">            Draw the endpoint grab handles.  Default ``True``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        LineWidget</span>
+<span class="sd">            Widget object.  ``widget.length`` gives the segment length in</span>
+<span class="sd">            data coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">LineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span> <span class="k">if</span> <span class="n">x1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
+                            <span class="n">y1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y1</span><span class="p">)</span> <span class="k">if</span> <span class="n">y1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
+                            <span class="n">x2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span> <span class="k">if</span> <span class="n">x2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.75</span><span class="p">,</span>
+                            <span class="n">y2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y2</span><span class="p">)</span> <span class="k">if</span> <span class="n">y2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.75</span><span class="p">,</span>
+                            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
+                            <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.add_vline_widget">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_vline_widget">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_vline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VLineWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable full-height vertical line overlay.</span>
+
+<span class="sd">        The line spans the whole panel and is grabbable anywhere along its</span>
+<span class="sd">        length, which makes it the right pointer for &quot;select a column&quot; —</span>
+<span class="sd">        a crosshair pinned to one axis leaves a stray perpendicular line.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : float, optional</span>
+<span class="sd">            Initial x position in image coordinates.  Defaults to the middle.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Stroke width in px.  Default 2.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        VLineWidget</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">VLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                             <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                             <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.add_hline_widget">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_hline_widget">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_hline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HLineWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable full-width horizontal line overlay.</span>
+
+<span class="sd">        The row counterpart of :meth:`add_vline_widget`; grabbable anywhere</span>
+<span class="sd">        along its length.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        y : float, optional</span>
+<span class="sd">            Initial y position in image coordinates.  Defaults to the middle.</span>
+<span class="sd">        color : str, optional</span>
+<span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Stroke width in px.  Default 2.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        HLineWidget</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">HLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                             <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                             <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="c1"># View control</span>
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -2359,8 +2531,14 @@
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add circle markers at (x, y) positions in data coordinates.&quot;&quot;&quot;</span>
+                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add circle markers at (x, y) positions in data coordinates.</span>
+
+<span class="sd">        ``size_units=&quot;px&quot;`` pins *radius* to screen pixels so the circles keep</span>
+<span class="sd">        their size through a zoom; the default ``&quot;data&quot;`` scales them with the</span>
+<span class="sd">        data, as a shape drawn on the image does.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;circles&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
                                 <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
@@ -2368,7 +2546,8 @@
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
-                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
+                                <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_points">
@@ -2379,8 +2558,14 @@
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add point markers at (x, y) positions in data coordinates.&quot;&quot;&quot;</span>
+                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                   <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add point markers at (x, y) positions in data coordinates.</span>
+
+<span class="sd">        A marker standing in for a *point* usually wants ``size_units=&quot;px&quot;``</span>
+<span class="sd">        so it does not grow with zoom — that is what matplotlib does, sizing</span>
+<span class="sd">        scatter markers in display points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;circles&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">sizes</span><span class="p">,</span>
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span>
                                 <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
@@ -2388,7 +2573,8 @@
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
-                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
+                                <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_hlines">
@@ -2449,7 +2635,8 @@
                      <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-                     <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                     <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                     <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;ellipses&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
                                 <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span> <span class="n">angles</span><span class="o">=</span><span class="n">angles</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2458,7 +2645,8 @@
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
-                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
+                                <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_lines">
@@ -2485,7 +2673,8 @@
                        <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-                       <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                       <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                       <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;rectangles&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
                                 <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span> <span class="n">angles</span><span class="o">=</span><span class="n">angles</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2494,7 +2683,8 @@
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
-                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
+                                <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_squares">
@@ -2505,7 +2695,8 @@
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;squares&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
                                 <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">angles</span><span class="o">=</span><span class="n">angles</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2514,7 +2705,8 @@
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
-                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
+                                <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
+                                <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_polygons">

@@ -463,6 +463,17 @@
 <span class="sd">(``color``, ``fill_color``, ``fill_alpha``, ``sizes``, etc.).  ``MarkerGroup``</span>
 <span class="sd">stores matplotlib-style names and ``to_wire()`` translates before JSON</span>
 <span class="sd">serialisation.</span>
+
+<span class="sd">Per-marker colours</span>
+<span class="sd">------------------</span>
+<span class="sd">``edgecolors`` and ``facecolors`` accept either one colour for the whole group</span>
+<span class="sd">or a sequence of colours parallel to the markers — matplotlib&#39;s</span>
+<span class="sd">``edgecolors=[...]`` / scatter ``c=[...]``::</span>
+
+<span class="sd">    plot.add_circles(offsets, edgecolors=[&quot;#f00&quot;, &quot;#0f0&quot;, &quot;#00f&quot;], radius=3)</span>
+
+<span class="sd">A sequence shorter than the group cycles, as matplotlib&#39;s colour cycle does.</span>
+<span class="sd">This works for every marker type on both 1-D and 2-D panels.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -816,6 +827,19 @@
         <span class="c1"># Display-space markers are clipped to the visible image rect by default;</span>
         <span class="c1"># this flag allows opting out for HUD-style annotations.</span>
         <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;clip_display&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;clip_display&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+
+        <span class="c1"># ── size space (independent of the position transform) ─────────────</span>
+        <span class="c1"># &quot;data&quot; (default) scales sizes with zoom, as a shape drawn on the</span>
+        <span class="c1"># data does.  &quot;px&quot; pins them to screen pixels, which is what a marker</span>
+        <span class="c1"># standing in for a *point* wants — matplotlib sizes scatter markers</span>
+        <span class="c1"># in display points for exactly that reason.</span>
+        <span class="n">size_units</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;size_units&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">size_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">size_units</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;px&quot;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;size_units must be &#39;data&#39; or &#39;px&#39;, got </span><span class="si">{</span><span class="n">size_units</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;size_units&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">size_units</span>
 
         <span class="c1"># ── common optional fields ──────────────────────────────────────────</span>
         <span class="n">label</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span>

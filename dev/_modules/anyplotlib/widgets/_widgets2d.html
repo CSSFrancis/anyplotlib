@@ -562,6 +562,46 @@
 
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">LineWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable two-endpoint line segment overlay widget for 2-D plots.</span>
+
+<span class="sd">    A plain segment from ``(x1, y1)`` to ``(x2, y2)``: drag either endpoint</span>
+<span class="sd">    handle to move that end, or drag the shaft to translate the whole</span>
+<span class="sd">    segment.  Unlike :class:`ArrowWidget` it has no head, and unlike</span>
+<span class="sd">    :class:`PolygonWidget` it does not close the path — this is the widget for</span>
+<span class="sd">    a line profile, a cross-section cut, or a two-point measurement.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x1, y1 : float</span>
+<span class="sd">        First endpoint in pixel/data coordinates.</span>
+<span class="sd">    x2, y2 : float</span>
+<span class="sd">        Second endpoint in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the segment. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Stroke width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the endpoint grab handles. Default ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">y1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y1</span><span class="p">),</span>
+                         <span class="n">x2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x2</span><span class="p">),</span> <span class="n">y2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y2</span><span class="p">),</span>
+                         <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Euclidean length of the segment in data coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span>
+            <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">x2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+        <span class="p">)</span>
+
+
 <div class="viewcode-block" id="CrosshairWidget">
 <a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.CrosshairWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CrosshairWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
