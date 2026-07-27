@@ -10,6 +10,71 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.5.0 (2026-07-26)
+==================
+
+New Features
+------------
+
+- :meth:`Widget.set` takes ``_notify=False`` to move a widget without firing
+  ``pointer_move`` callbacks, so a handler that writes back to its own widget no
+  longer feeds into itself.  Widgets also gained a
+  :meth:`~anyplotlib.widgets.Widget.remove` method.
+- :meth:`~anyplotlib.Plot1D.add_range_widget` takes ``orientation="vertical"``
+  for a band that selects a range of values, and ``snap_values`` to restrict a
+  drag to a set of allowed positions (matplotlib's
+  ``SpanSelector.snap_values``).  ``snap_values`` is also available on the
+  vline, hline and point widgets.
+- Added :meth:`~anyplotlib.Plot2D.set_scalebar_style` to recolour the automatic
+  scale bar, which was hardcoded white on a translucent dark pill and unreadable
+  over a light image.  ``bgcolor="none"`` drops the pill entirely.
+- Added ``linestyle="none"`` (also spelled ``"None"``) for a series drawn as
+  markers with no connecting line — matplotlib's scatter idiom,
+  ``ax.plot(y, linestyle="none", marker="o")``.  An explicit ``linewidth=0``
+  now means the same thing; it previously fell back to the 1.5 default in the
+  renderer.
+- Added three 2-D overlay widget kinds: ``line``
+  (:meth:`~anyplotlib.Plot2D.add_line_widget`), a bare two-endpoint segment for
+  line profiles and two-point measurements, and ``vline`` / ``hline``, full-height
+  and full-width rules grabbable anywhere along their length.
+- Clicking a 1-D panel now emits a ``pointer_down`` event carrying the clicked
+  position as ``xdata``/``ydata``, matching 2-D panels; it previously fired only
+  when the click landed on a line.  Clicks on a line still report ``line_id``,
+  so existing line-click handlers are unaffected.
+- Panels expose their geometry through :meth:`~anyplotlib.Plot1D.plot_box`,
+  :meth:`~anyplotlib.Plot1D.data_to_display` and
+  :meth:`~anyplotlib.Plot1D.display_to_data`, so callers working in display space
+  no longer have to re-derive the renderer's layout constants and letterbox maths
+  themselves.
+- Sized marker types take ``size_units="px"`` so their radii and widths stay
+  fixed in screen pixels through a zoom instead of scaling with the data — what
+  a marker standing in for a *point* wants, and what matplotlib does by sizing
+  scatter markers in display points.
+- ``edgecolors`` and ``facecolors`` accept a sequence of colours parallel to the
+  markers — matplotlib's ``edgecolors=[...]`` / scatter ``c=[...]`` — for every
+  marker type on both 1-D and 2-D panels, where previously only ``points`` and
+  ``polygons`` on 1-D panels honoured it.  A short sequence cycles.
+
+
+Bug Fixes
+---------
+
+- A ``crosshair`` widget can now be grabbed anywhere along either of its rules
+  rather than only at the one-pixel centre hotspot; grabbing a rule constrains
+  the drag to that rule's own axis.
+- The 1-D y-axis label is no longer drawn through the tick numbers; its position
+  was a fixed fraction of the left gutter and is now measured against the widest
+  tick string.
+- The colorbar strip is no longer drawn flush against the image: there is now a
+  6 px gap, taken out of the image width so the strip cannot be pushed off the
+  panel, and settable with :meth:`~anyplotlib.Plot2D.set_colorbar_pad`.  This
+  shifts every colorbar plot by 4 px.
+- ``save_html`` / ``to_html`` / ``figure_state`` now capture overlay widgets at
+  their current positions; widget moves reach JS as targeted events that never
+  rewrite the panel traits, so a snapshot used to show every widget where it was
+  created.
+
+
 0.4.1 (2026-07-26)
 ==================
 
