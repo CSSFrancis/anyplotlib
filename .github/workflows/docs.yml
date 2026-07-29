@@ -11,10 +11,13 @@ on:
   # Allow manual re-builds from the Actions tab.
   workflow_dispatch:
 
-# Only one docs deployment should run at a time to avoid race conditions on
-# the gh-pages branch.
+# Per-ref grouping so a new push supersedes an in-flight BUILD of the same
+# ref (PR iterations, repeated pushes to main). This deliberately does NOT
+# serialise deployments: a push to main and its release tag are different
+# refs, so they land in different groups. The deploy job carries its own
+# ref-independent group for that — see below.
 concurrency:
-  group: docs-${{ github.ref }}
+  group: docs-build-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -90,6 +93,17 @@ jobs:
     runs-on: ubuntu-latest
     # Skip deployment for pull requests.
     if: github.event_name != 'pull_request'
+
+    # Every deploy pushes to the SAME branch (gh-pages), so they must be
+    # serialised across refs, not per-ref. Releasing tags main and v* almost
+    # simultaneously, which previously raced: whichever run pushed second was
+    # rejected with "cannot lock ref 'refs/heads/gh-pages'" and its version
+    # directory never appeared, while switcher.json still advertised it.
+    # cancel-in-progress is false because these runs must QUEUE — cancelling
+    # one would drop a version directory just as surely as the race did.
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
 
     steps:
       - name: Checkout repository
