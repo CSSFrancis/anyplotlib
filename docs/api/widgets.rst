@@ -25,6 +25,7 @@ Interactive Widgets
    AnnularWidget
    CrosshairWidget
    PolygonWidget
+   BrushWidget
    LabelWidget
    VLineWidget
    HLineWidget
@@ -63,6 +64,12 @@ Interactive Widgets
    :no-index:
 
 .. autoclass:: anyplotlib.widgets.PolygonWidget
+   :members:
+   :show-inheritance:
+   :member-order: bysource
+   :no-index:
+
+.. autoclass:: anyplotlib.widgets.BrushWidget
    :members:
    :show-inheritance:
    :member-order: bysource

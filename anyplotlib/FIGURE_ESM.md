@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~9,000 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~9,200 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -62,16 +62,16 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | `draw2d` | 2680 |
 | `drawScaleBar2d` / `drawColorbar2d` | 2875 / 2961 |
 | `_drawAxes2d` (ticks, labels, title) | 3016 |
-| `drawOverlay2d` / `drawMarkers2d` | 3169 / 3287 |
+| `drawOverlay2d` / `drawMarkers2d` | 3169 / 3333 |
 | **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2500 / 2524 / 2585 |
 | Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 730 / 761 |
-| **3D drawing**: `draw3d` | 4623 |
-| Event emission `_emitEvent` | 5270 |
-| 3D event handlers `_attachEvents3d` | 5322 |
-| **1D drawing**: `draw1d` | 5536 |
-| `_drawLine` (1D series + markers) | 5689 |
-| `drawOverlay1d` / `drawMarkers1d` | 5982 / 6066 |
-| Marker hit-test `_markerHitTest2d` | 6334 |
+| **3D drawing**: `draw3d` | 4669 |
+| Event emission `_emitEvent` | 5316 |
+| 3D event handlers `_attachEvents3d` | 5368 |
+| **1D drawing**: `draw1d` | 5582 |
+| `_drawLine` (1D series + markers) | 5735 |
+| `drawOverlay1d` / `drawMarkers1d` | 6028 / 6112 |
+| Marker hit-test `_markerHitTest2d` | 6380 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -80,15 +80,31 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 6591 |
-| 2D events `_attachEvents2d` | 6615 |
-| 1D events `_attachEvents1d` | 6962 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 7229 / 7363 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 7473 / 7546 |
-| Shared-axis propagation `_getShareGroups` | 7617 |
-| Figure resize `_applyFigResizeDOM` | 7681 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 7872 / 7935 / 8311 |
-| Generic redraw `_redrawPanel` | 8501 |
+| Panel event dispatch `_attachPanelEvents` | 6637 |
+| 2D events `_attachEvents2d` | 6661 |
+| 1D events `_attachEvents1d` | 7036 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 7308 / 7568 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 7489 / 7503 / 7532 / 7559 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 7691 / 7764 |
+| Shared-axis propagation `_getShareGroups` | 7835 |
+| Figure resize `_applyFigResizeDOM` | 7899 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8090 / 8153 / 8529 |
+| Generic redraw `_redrawPanel` | 8719 |
+
+> **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
+> that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
+> argument and runs a FIRST PASS that claims the drag for an armed brush
+> (`active !== false`) only when `mods.shift` is set — so a bare drag still pans
+> and still drags other widgets, and a Shift-drag beats every widget regardless
+> of z-order. The hit carries `silent:true`, which suppresses the per-move
+> `pointer_move` emit, and `_doDrag2d` returns before its
+> `_viewStateJson`/`save_changes()` tail. The in-progress stroke lives in
+> `p._brushLive` (a per-panel scratch), NOT in `p.state.overlay_widgets`: the
+> panel trait is deliberately stale for the whole stroke, so any unrelated
+> `save_changes()` re-fires `change:panel_<id>_json` and would replace `p.state`
+> — wiping a stroke held there (a `pointer_leave` at the panel edge is enough).
+> `drawOverlay2d` prefers the scratch; the mouseup handler calls `_brushCommit`
+> and the existing generic branch pushes + emits exactly ONCE per stroke.
 
 ---
 
