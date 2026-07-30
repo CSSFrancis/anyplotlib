@@ -1075,11 +1075,12 @@ translucent dark pill.</p></li>
 <p>Dispatches to the dedicated <code class="docutils literal notranslate"><span class="pre">add_&lt;kind&gt;_widget</span></code> method.
 Supported kinds: <code class="docutils literal notranslate"><span class="pre">&quot;circle&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;rectangle&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;annular&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;polygon&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;crosshair&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;label&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;arrow&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;vline&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hline&quot;</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">&quot;brush&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;vline&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hline&quot;</span></code>.</p>
 <p>Every kind also accepts <code class="docutils literal notranslate"><span class="pre">show_handles</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>) to toggle
 the grab-handle dots without changing hit-testing / draggability.
 <code class="docutils literal notranslate"><span class="pre">vline</span></code> / <code class="docutils literal notranslate"><span class="pre">hline</span></code> have no handles — the whole line is the grab
-target — so they ignore it.</p>
+target — so they ignore it, and neither does <code class="docutils literal notranslate"><span class="pre">brush</span></code> (a freehand
+stroke has no grab point).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1176,6 +1177,48 @@ The rectangle then physically stops growing at the cap while dragging
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="anyplotlib.PolygonWidget.html#anyplotlib.PolygonWidget" title="anyplotlib.widgets._widgets2d.PolygonWidget"><em>PolygonWidget</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Plot2D.add_brush_widget">
+<span class="sig-name descname"><span class="pre">add_brush_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#00e5ff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strokes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stroke_classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">erase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.add_brush_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot2D.add_brush_widget" title="Link to this definition">#</a></dt>
+<dd><p>Add a freehand paint-brush overlay for labelling regions.</p>
+<p><strong>Shift</strong> + drag paints a stroke; a <em>bare</em> drag still pans the image and
+still drags other widgets.  One brush can hold several label classes at
+once — a stroke is tagged with the widget’s current <code class="docutils literal notranslate"><span class="pre">class_id</span></code> and
+drawn in <code class="docutils literal notranslate"><span class="pre">colors[class_id]</span></code>.</p>
+<p>The stroke accumulates in the browser and reaches Python <strong>once</strong>, on
+release, as a <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code> event — <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> does not fire for
+a brush.  See <code class="xref py py-class docutils literal notranslate"><span class="pre">BrushWidget</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Brush radius in image pixels; the painted band is <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">radius</span></code>
+wide.  Defaults to 2 % of the smaller image dimension (at least 2),
+so the default is visible on a 4096² image and usable on a 64² one.</p></li>
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour for classes not covered by <code class="docutils literal notranslate"><span class="pre">colors</span></code>.  Default
+<code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
+<li><p><strong>colors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Per-class CSS colours, indexed by <code class="docutils literal notranslate"><span class="pre">class_id</span></code>.</p></li>
+<li><p><strong>class_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Label class new strokes are tagged with.  Default 0.</p></li>
+<li><p><strong>strokes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>, </em><em>optional</em>) – Pre-existing strokes <code class="docutils literal notranslate"><span class="pre">[[[x,</span> <span class="pre">y],</span> <span class="pre">...],</span> <span class="pre">...]</span></code> in image pixels.</p></li>
+<li><p><strong>stroke_classes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Class id per entry of <code class="docutils literal notranslate"><span class="pre">strokes</span></code>; must be the same length.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Stroke opacity.  Default 0.6, so the labelled feature stays visible
+underneath.</p></li>
+<li><p><strong>active</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Accept Shift-drag painting.  Default <code class="docutils literal notranslate"><span class="pre">True</span></code>; <code class="docutils literal notranslate"><span class="pre">False</span></code> parks the
+tool with its strokes still drawn.</p></li>
+<li><p><strong>erase</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Armed drags remove stroke points within <code class="docutils literal notranslate"><span class="pre">radius</span></code> instead of
+painting.  Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Widget object.  <code class="docutils literal notranslate"><span class="pre">widget.strokes</span></code> / <code class="docutils literal notranslate"><span class="pre">widget.stroke_classes</span></code> hold
+the painted geometry; <code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_strokes()</span></code>
+and <code class="xref py py-meth docutils literal notranslate"><span class="pre">strokes_for_class()</span></code> manage it.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BrushWidget</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1637,6 +1680,7 @@ scatter markers in display points.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.add_rectangle_widget"><code class="docutils literal notranslate"><span class="pre">Plot2D.add_rectangle_widget()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.add_annular_widget"><code class="docutils literal notranslate"><span class="pre">Plot2D.add_annular_widget()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.add_polygon_widget"><code class="docutils literal notranslate"><span class="pre">Plot2D.add_polygon_widget()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.add_brush_widget"><code class="docutils literal notranslate"><span class="pre">Plot2D.add_brush_widget()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.add_crosshair_widget"><code class="docutils literal notranslate"><span class="pre">Plot2D.add_crosshair_widget()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.add_label_widget"><code class="docutils literal notranslate"><span class="pre">Plot2D.add_label_widget()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.add_arrow_widget"><code class="docutils literal notranslate"><span class="pre">Plot2D.add_arrow_widget()</span></code></a></li>

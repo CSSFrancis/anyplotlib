@@ -693,6 +693,254 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_coerce_strokes</span><span class="p">(</span><span class="n">strokes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate/normalise a stroke list into plain ``[[[x, y], ...], ...]``.</span>
+
+<span class="sd">    Accepts anything iterable-of-iterable-of-pairs (lists, tuples, numpy rows)</span>
+<span class="sd">    and returns nested plain ``float`` lists so the result is JSON-serialisable</span>
+<span class="sd">    for the wire.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If a stroke is empty or a point is not a 2-element ``(x, y)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">stroke</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">strokes</span><span class="p">):</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pt</span> <span class="ow">in</span> <span class="n">stroke</span><span class="p">:</span>
+            <span class="n">pair</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;stroke </span><span class="si">{</span><span class="n">si</span><span class="si">}</span><span class="s2">: every point must be (x, y); got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;values&quot;</span>
+                <span class="p">)</span>
+            <span class="n">pts</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stroke </span><span class="si">{</span><span class="n">si</span><span class="si">}</span><span class="s2"> is empty — a stroke needs &gt;= 1 point&quot;</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<div class="viewcode-block" id="BrushWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BrushWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Freehand paint-brush overlay widget for 2-D plots.</span>
+
+<span class="sd">    Shift-drag on the image to paint a stroke; every stroke is a polyline of</span>
+<span class="sd">    image-pixel points, stroked with round caps and joins at a width of</span>
+<span class="sd">    ``2 * radius`` image pixels.  Built for labelling regions — painting</span>
+<span class="sd">    training scribbles for a pixel classifier, marking a defect, masking a</span>
+<span class="sd">    beam stop — where a polygon or a rectangle is the wrong shape.</span>
+
+<span class="sd">    Two gates govern the painting so a brush can coexist with pan / click /</span>
+<span class="sd">    other widgets on the same panel:</span>
+
+<span class="sd">    1. ``active`` — Python-side arming.  ``False`` keeps the strokes drawn but</span>
+<span class="sd">       ignores all input, which is how you park the tool without losing work.</span>
+<span class="sd">    2. **Shift** — the drag modifier.  A *bare* drag still pans the image and</span>
+<span class="sd">       still drags other widgets; only ``Shift`` + drag paints.  A brush that</span>
+<span class="sd">       claimed a plain drag would hit-test as &quot;anywhere in the image&quot; and kill</span>
+<span class="sd">       panning and click-to-select outright.</span>
+
+<span class="sd">    While the stroke is being drawn the points accumulate **in the browser** and</span>
+<span class="sd">    only the finished stroke reaches Python, once, as a ``pointer_up`` event.</span>
+<span class="sd">    So ``pointer_move`` does **not** fire for a brush stroke — register on</span>
+<span class="sd">    ``pointer_up``::</span>
+
+<span class="sd">        brush = plot.add_brush_widget(radius=6, colors=[&quot;#f44&quot;, &quot;#4f4&quot;])</span>
+
+<span class="sd">        @brush.add_event_handler(&quot;pointer_up&quot;)</span>
+<span class="sd">        def stroke_done(event):</span>
+<span class="sd">            update_labels(brush.strokes, brush.stroke_classes)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    radius : float, optional</span>
+<span class="sd">        Brush radius in image pixels — the painted band is ``2 * radius`` wide,</span>
+<span class="sd">        and an erase drag removes stroke points within this distance.</span>
+<span class="sd">        Default 8.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour used when ``colors`` has no entry for a stroke&#39;s class.</span>
+<span class="sd">        Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    colors : list of str, optional</span>
+<span class="sd">        Per-class CSS colours, indexed by ``class_id``.  Lets one brush carry</span>
+<span class="sd">        several label classes at once.  Default ``None`` (every class draws in</span>
+<span class="sd">        ``color``).</span>
+<span class="sd">    class_id : int, optional</span>
+<span class="sd">        Label class new strokes are tagged with.  Default 0.</span>
+<span class="sd">    strokes : list, optional</span>
+<span class="sd">        Pre-existing strokes, ``[[[x, y], ...], ...]`` in image-pixel</span>
+<span class="sd">        coordinates.  Default ``None`` (empty).</span>
+<span class="sd">    stroke_classes : list of int, optional</span>
+<span class="sd">        Class id per entry of ``strokes``; must be the same length.  Default</span>
+<span class="sd">        ``None`` (every seeded stroke takes ``class_id``).</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Stroke opacity in ``[0, 1]``.  Default 0.6 — a scribble you can see</span>
+<span class="sd">        the image through, since the point is to label what is underneath.</span>
+<span class="sd">    active : bool, optional</span>
+<span class="sd">        Accept Shift-drag painting.  Default ``True``.</span>
+<span class="sd">    erase : bool, optional</span>
+<span class="sd">        When ``True`` an armed drag *removes* stroke points within ``radius``</span>
+<span class="sd">        instead of painting.  Default ``False``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    strokes : list</span>
+<span class="sd">        Painted strokes, ``[[[x, y], ...], ...]`` in image pixels.  Read-only</span>
+<span class="sd">        in practice — mutating the list in place does not reach the renderer;</span>
+<span class="sd">        use :meth:`add_stroke` / :meth:`set_strokes` / :meth:`clear_strokes`.</span>
+<span class="sd">    stroke_classes : list of int</span>
+<span class="sd">        Class id of each stroke, parallel to ``strokes``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If ``radius &lt;= 0``, ``class_id &lt; 0``, ``alpha`` is outside ``[0, 1]``,</span>
+<span class="sd">        ``colors`` is not a sequence of strings, a stroke is malformed, or</span>
+<span class="sd">        ``stroke_classes`` does not match ``strokes`` in length.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    PolygonWidget : Closed straight-edged region with draggable vertices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">class_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">strokes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+                 <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">erase</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">radius</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">radius</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;radius must be &gt; 0, got </span><span class="si">{</span><span class="n">radius</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">class_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">class_id</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;class_id must be &gt;= 0, got </span><span class="si">{</span><span class="n">class_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;alpha must be in [0, 1], got </span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cols</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;colors must be a list of CSS colours, not a &quot;</span>
+                             <span class="s2">&quot;single string — use color= for that&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colors</span><span class="p">]</span>
+        <span class="n">strks</span> <span class="o">=</span> <span class="n">_coerce_strokes</span><span class="p">(</span><span class="n">strokes</span> <span class="ow">or</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="n">stroke_classes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">class_id</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stroke_classes</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;stroke_classes has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span><span class="si">}</span><span class="s2"> entries but there are &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span><span class="si">}</span><span class="s2"> strokes&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;stroke_classes must all be &gt;= 0&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;brush&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span>
+                         <span class="n">class_id</span><span class="o">=</span><span class="n">class_id</span><span class="p">,</span> <span class="n">strokes</span><span class="o">=</span><span class="n">strks</span><span class="p">,</span>
+                         <span class="n">stroke_classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+                         <span class="n">active</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">active</span><span class="p">),</span> <span class="n">erase</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">erase</span><span class="p">))</span>
+
+    <span class="c1"># ── stroke management ─────────────────────────────────────────────────</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_strokes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of painted strokes.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="BrushWidget.clear_strokes">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.clear_strokes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_strokes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Discard every painted stroke.  Does not change ``class_id``.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="p">[],</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="p">[])</span></div>
+
+
+<div class="viewcode-block" id="BrushWidget.add_stroke">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.add_stroke">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_stroke</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">class_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append one stroke.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        points : list of tuple</span>
+<span class="sd">            ``[(x, y), ...]`` in image-pixel coordinates; at least one point.</span>
+<span class="sd">        class_id : int, optional</span>
+<span class="sd">            Label class for this stroke.  Defaults to the widget&#39;s current</span>
+<span class="sd">            ``class_id``.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``points`` is empty or a point is not an ``(x, y)`` pair.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">stroke</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_coerce_strokes</span><span class="p">([</span><span class="n">points</span><span class="p">])</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;class_id&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">class_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">class_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cid</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;class_id must be &gt;= 0, got </span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">stroke</span><span class="p">],</span>
+                 <span class="n">stroke_classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">cid</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="BrushWidget.set_strokes">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.set_strokes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_strokes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strokes</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace every stroke (and its class) in one push.</span>
+
+<span class="sd">        This is the sanctioned way to write ``strokes``: it keeps the parallel</span>
+<span class="sd">        ``stroke_classes`` list in lockstep, which a bare</span>
+<span class="sd">        ``brush.strokes = ...`` assignment cannot do.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        strokes : list</span>
+<span class="sd">            ``[[[x, y], ...], ...]`` in image-pixel coordinates.</span>
+<span class="sd">        classes : list of int, optional</span>
+<span class="sd">            Class id per stroke.  Defaults to the widget&#39;s current</span>
+<span class="sd">            ``class_id`` for every stroke.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If a stroke is malformed or ``classes`` has the wrong length.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strks</span> <span class="o">=</span> <span class="n">_coerce_strokes</span><span class="p">(</span><span class="n">strokes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">classes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;class_id&quot;</span><span class="p">])]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;classes has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="si">}</span><span class="s2"> entries but there are &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span><span class="si">}</span><span class="s2"> strokes&quot;</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="n">strks</span><span class="p">,</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="bp">cls</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BrushWidget.strokes_for_class">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.strokes_for_class">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">strokes_for_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">class_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return only the strokes tagged with ``class_id``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        class_id : int</span>
+<span class="sd">            Label class to select.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            ``[[[x, y], ...], ...]`` — the matching strokes, in paint order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">cid</span><span class="p">]</span></div>
+</div>
+
+
+
 <div class="viewcode-block" id="ArrowWidget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.ArrowWidget.html#anyplotlib.ArrowWidget">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ArrowWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
