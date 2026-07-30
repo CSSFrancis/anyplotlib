@@ -27,7 +27,7 @@ from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
     CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget, LineWidget,
-    VLineWidget, HLineWidget,
+    BrushWidget, VLineWidget, HLineWidget,
 )
 from anyplotlib._utils import (_normalize_image, _build_colormap_lut,
                                _build_tint_lut, _to_rgba_u8)
@@ -1643,12 +1643,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         Dispatches to the dedicated ``add_<kind>_widget`` method.
         Supported kinds: ``"circle"``, ``"rectangle"``, ``"annular"``,
         ``"polygon"``, ``"crosshair"``, ``"label"``, ``"arrow"``, ``"line"``,
-        ``"vline"``, ``"hline"``.
+        ``"brush"``, ``"vline"``, ``"hline"``.
 
         Every kind also accepts ``show_handles`` (default ``True``) to toggle
         the grab-handle dots without changing hit-testing / draggability.
         ``vline`` / ``hline`` have no handles — the whole line is the grab
-        target — so they ignore it.
+        target — so they ignore it, and neither does ``brush`` (a freehand
+        stroke has no grab point).
         """
         dispatch = {
             "circle":    self.add_circle_widget,
@@ -1659,6 +1660,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "label":     self.add_label_widget,
             "arrow":     self.add_arrow_widget,
             "line":      self.add_line_widget,
+            "brush":     self.add_brush_widget,
             "vline":     self.add_vline_widget,
             "hline":     self.add_hline_widget,
         }
@@ -1752,6 +1754,69 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                         [iw * .75, ih * .75], [iw * .25, ih * .75]]
         widget = PolygonWidget(lambda: None, vertices=vertices, color=color,
                                linewidth=linewidth, show_handles=show_handles)
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
+    def add_brush_widget(self, radius: float | None = None,
+                         color: str = "#00e5ff", colors=None,
+                         class_id: int = 0, strokes=None, stroke_classes=None,
+                         alpha: float = 0.6, active: bool = True,
+                         erase: bool = False) -> BrushWidget:
+        """Add a freehand paint-brush overlay for labelling regions.
+
+        **Shift** + drag paints a stroke; a *bare* drag still pans the image and
+        still drags other widgets.  One brush can hold several label classes at
+        once — a stroke is tagged with the widget's current ``class_id`` and
+        drawn in ``colors[class_id]``.
+
+        The stroke accumulates in the browser and reaches Python **once**, on
+        release, as a ``pointer_up`` event — ``pointer_move`` does not fire for
+        a brush.  See :class:`~anyplotlib.BrushWidget`.
+
+        Parameters
+        ----------
+        radius : float, optional
+            Brush radius in image pixels; the painted band is ``2 * radius``
+            wide.  Defaults to 2 % of the smaller image dimension (at least 2),
+            so the default is visible on a 4096² image and usable on a 64² one.
+        color : str, optional
+            CSS colour for classes not covered by ``colors``.  Default
+            ``"#00e5ff"``.
+        colors : list of str, optional
+            Per-class CSS colours, indexed by ``class_id``.
+        class_id : int, optional
+            Label class new strokes are tagged with.  Default 0.
+        strokes : list, optional
+            Pre-existing strokes ``[[[x, y], ...], ...]`` in image pixels.
+        stroke_classes : list of int, optional
+            Class id per entry of ``strokes``; must be the same length.
+        alpha : float, optional
+            Stroke opacity.  Default 0.6, so the labelled feature stays visible
+            underneath.
+        active : bool, optional
+            Accept Shift-drag painting.  Default ``True``; ``False`` parks the
+            tool with its strokes still drawn.
+        erase : bool, optional
+            Armed drags remove stroke points within ``radius`` instead of
+            painting.  Default ``False``.
+
+        Returns
+        -------
+        BrushWidget
+            Widget object.  ``widget.strokes`` / ``widget.stroke_classes`` hold
+            the painted geometry; :meth:`~anyplotlib.BrushWidget.clear_strokes`
+            and :meth:`~anyplotlib.BrushWidget.strokes_for_class` manage it.
+        """
+        iw, ih = self._state["image_width"], self._state["image_height"]
+        if radius is None:
+            radius = max(2.0, min(iw, ih) * 0.02)
+        widget = BrushWidget(lambda: None,
+                             radius=radius, color=color, colors=colors,
+                             class_id=class_id, strokes=strokes,
+                             stroke_classes=stroke_classes, alpha=alpha,
+                             active=active, erase=erase)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()

@@ -17,7 +17,7 @@ from anyplotlib import embed
 from anyplotlib.markers import MarkerRegistry, MarkerGroup
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,
-    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget,
+    CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget, BrushWidget,
     VLineWidget, HLineWidget, RangeWidget, PointWidget, PlaneWidget,
 )
 
@@ -46,6 +46,7 @@ __all__ = [
     "MarkerRegistry", "MarkerGroup",
     "Widget", "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget", "ArrowWidget",
+    "BrushWidget",
     "VLineWidget", "HLineWidget", "RangeWidget", "PointWidget", "PlaneWidget",
     "show_help", "get_color_cycle",
     "embed",

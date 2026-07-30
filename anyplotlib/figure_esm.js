@@ -3255,6 +3255,52 @@ function render({ model, el, onResize }) {
           ovCtx.closePath();ovCtx.stroke();
           if(_handles) for(const v of verts){const[px,py]=_imgToCanvas2d(v[0],v[1],st,imgW,imgH);_drawHandle2d(ovCtx,px,py,w.color);}
         }
+      } else if(w.type==='brush'){
+        // Freehand painted strokes (region labelling). Each stroke is a polyline
+        // of IMAGE-pixel points; `radius` is the brush RADIUS, so the band is
+        // 2*radius image px wide — the same disk the erase hit-test uses and a
+        // downstream rasteriser must use, so what is drawn is what is labelled.
+        // Round cap+join is what makes a polyline read as a brush stroke rather
+        // than a chain of mitred segments.
+        // A stroke IN PROGRESS lives in the panel scratch, not in the widget
+        // dict (see _brushLiveBegin) — prefer it, so the live stroke keeps
+        // drawing even through the redraw an unrelated model echo triggers.
+        const _bL=(p._brushLive&&p._brushLive.wid===w.id)?p._brushLive:null;
+        const _bs=(_bL?_bL.strokes:w.strokes)||[];
+        const _bc=(_bL?_bL.classes:w.stroke_classes)||[];
+        const _bcols=w.colors||[];
+        const _brad=(w.radius!=null?w.radius:8);
+        const _blw=Math.max(1,_brad*2*scale);
+        ovCtx.lineCap='round'; ovCtx.lineJoin='round'; ovCtx.lineWidth=_blw;
+        ovCtx.globalAlpha=(w.alpha!=null?w.alpha:0.6);
+        const _bgeom=[];
+        for(let s=0;s<_bs.length;s++){
+          const pts=_bs[s]; if(!pts||!pts.length) continue;
+          const _col=_bcols[_bc[s]|0]||w.color||'#00e5ff';
+          ovCtx.strokeStyle=_col; ovCtx.fillStyle=_col;
+          const cpts=[];
+          for(let k=0;k<pts.length;k++) cpts.push(_imgToCanvas2d(pts[k][0],pts[k][1],st,imgW,imgH));
+          if(cpts.length===1){
+            // A tap with no motion is one dot. A zero-length subpath is not
+            // portably stroked, so draw the round cap explicitly.
+            ovCtx.beginPath();ovCtx.arc(cpts[0][0],cpts[0][1],_blw/2,0,Math.PI*2);ovCtx.fill();
+          } else {
+            ovCtx.beginPath();ovCtx.moveTo(cpts[0][0],cpts[0][1]);
+            for(let k=1;k<cpts.length;k++) ovCtx.lineTo(cpts[k][0],cpts[k][1]);
+            ovCtx.stroke();
+          }
+          _bgeom.push(cpts);
+        }
+        // Canvas-space readback for Playwright, same role as the rectangle
+        // branch — but a brush has no handle to aim at, and with zero strokes
+        // nothing is drawn at all. So publish the image->canvas TRANSFORM too
+        // (origin of image px (0,0) plus canvas-px-per-image-px), which is what
+        // a test actually needs to start a stroke at a known image coordinate.
+        if(!window._aplWidgetGeom) window._aplWidgetGeom={};
+        if(!window._aplWidgetGeom[p.id]) window._aplWidgetGeom[p.id]={};
+        const _borg=_imgToCanvas2d(0,0,st,imgW,imgH);
+        window._aplWidgetGeom[p.id][w.id]={type:'brush',ox:_borg[0],oy:_borg[1],
+          scale,radius_px:_blw/2,n_strokes:_bgeom.length,strokes:_bgeom};
       } else if(w.type==='label'){
         const [lx,ly]=_imgToCanvas2d(w.x,w.y,st,imgW,imgH);
         ovCtx.font=`${w.fontsize||14}px sans-serif`;ovCtx.fillStyle=w.color||'#00e5ff';
@@ -6662,10 +6708,25 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       overlayCanvas.focus();
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
-      const hit=_ovHitTest2d(mx, my, p);
+      // Modifiers go in so an ARMED brush can claim a Shift-drag (and only a
+      // Shift-drag) before pan/click ever see it — see _ovHitTest2d's first pass.
+      const hit=_ovHitTest2d(mx, my, p, {shift:e.shiftKey});
       if(hit){
         p.ovDrag2d=hit;
         p.lastWidgetId=(st.overlay_widgets||[])[hit.idx]?.id||null;
+        if(hit.mode==='paint'||hit.mode==='erase'){
+          // Open the stroke HERE, not on the first move: a Shift-click with no
+          // motion must still paint (or erase) a single dot.
+          const _bw=(st.overlay_widgets||[])[hit.idx];
+          if(_bw){
+            const _L=_brushLiveBegin(p,_bw);
+            const [_bix,_biy]=_canvasToImg2d(mx,my,st,imgW,imgH);
+            _brushPaintAt(_L,st,_bix,_biy,hit);
+          }
+          drawOverlay2d(p);
+          overlayCanvas.style.cursor='crosshair';
+          e.preventDefault(); return;
+        }
         overlayCanvas.style.cursor='move';
         e.preventDefault(); return;
       }
@@ -6682,8 +6743,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     document.addEventListener('mousemove',(e)=>{
       if(p.ovDrag2d){
         _doDrag2d(e,p);
-        const _dw=(p.state.overlay_widgets||[])[p.ovDrag2d.idx]||{};
-        _emitEvent(p.id,'pointer_move',_dw.id||null,{..._dw,..._pointerFields(e)});
+        // A `silent` drag (brush stroke) emits nothing until release. Spreading
+        // a growing stroke list into an event_json every tick is exactly the
+        // O(n²) the local-accumulate design exists to avoid; the mouseup handler
+        // below ships the finished stroke once.
+        if(!p.ovDrag2d.silent){
+          const _dw=(p.state.overlay_widgets||[])[p.ovDrag2d.idx]||{};
+          _emitEvent(p.id,'pointer_move',_dw.id||null,{..._dw,..._pointerFields(e)});
+        }
         return;
       }
       if(!p.isPanning) return;
@@ -6705,6 +6772,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     document.addEventListener('mouseup',(e)=>{
       settled.clear();
       if(p.ovDrag2d){
+        // A brush stroke lived in the panel scratch for the whole drag (see
+        // _brushLiveBegin) — fold it into p.state FIRST, so the generic push +
+        // emit below is what ships the finished stroke to Python, exactly once.
+        if(p._brushLive) _brushCommit(p);
         const _idx=p.ovDrag2d.idx;
         const _dw=(p.state.overlay_widgets||[])[_idx]||{};
         const _did=_dw.id||null;
@@ -6763,11 +6834,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if(p.ovDrag2d) return; // handled by document mousemove
       const st=p.state; if(!st) return;
 
-      // Update cursor based on widget hit
-      const whit=_ovHitTest2d(mx, my, p);
+      // Update cursor based on widget hit. Modifiers go in so holding Shift over
+      // an armed brush previews the paint cursor (and so the brush does not
+      // claim the cursor when it is NOT armed by the modifier).
+      const whit=_ovHitTest2d(mx, my, p, {shift:e.shiftKey});
       if(whit){
         const m=whit.mode;
         overlayCanvas.style.cursor = m==='move' ? 'move'
+          : (m==='paint'||m==='erase')          ? 'crosshair'
           : (m==='resize_br'||m==='resize_tl') ? 'nwse-resize'
           : (m==='resize_bl'||m==='resize_tr') ? 'nesw-resize'
           : (m==='resize_r'||m==='resize_ir')  ? 'ew-resize'
@@ -7226,13 +7300,39 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   //   'resize_tr'  – rectangle top-right corner
   //   'resize_tl'  – rectangle top-left corner
   //   'vertex_N'   – polygon vertex N
-  function _ovHitTest2d(mx, my, p) {
+  //   'paint'      – armed brush, Shift+drag lays down a stroke
+  //   'erase'      – armed brush in erase mode
+  //
+  // `mods` (optional) carries the mousedown/hover modifier state, currently
+  // only `{shift}`. Callers that pass nothing can never get a brush hit.
+  function _ovHitTest2d(mx, my, p, mods) {
     const st = p.state; if (!st) return null;
     const imgW = p.imgW||Math.max(1, p.pw - PAD_L - PAD_R);
     const imgH = p.imgH||Math.max(1, p.ph - PAD_T - PAD_B);
     const widgets = st.overlay_widgets || [];
     const scale   = _imgScale2d(st, imgW, imgH);
     const HR = 9; // handle grab radius (px)
+
+    // ── First pass: an ARMED brush under a Shift-drag wins outright ──────────
+    // A brush's body is "anywhere in the image", so it must NOT be a hit in the
+    // ordinary sense — that would kill panning and click-to-select. Instead it
+    // takes the drag only when the caller reports Shift held, and then it takes
+    // it absolutely: painting is modal, and a scribble across the image must not
+    // be stolen half way by whatever widget happens to sit under the cursor
+    // (which is what a z-order-dependent hit in the main loop below would do).
+    // Nothing claims a brush hit without the modifier, so a BARE drag still pans
+    // and still drags every other widget. Mirrors the "first pass" precedent in
+    // _ovHitTest1d, where point widgets outrank the range band they sit in.
+    // `silent` tells the drag loop this gesture emits nothing until release.
+    if (mods && mods.shift) {
+      for (let i = widgets.length - 1; i >= 0; i--) {
+        const w = widgets[i];
+        if (w.type !== 'brush') continue;
+        if (w.visible === false || w.active === false) continue;
+        return { idx:i, mode: w.erase ? 'erase' : 'paint', silent:true, _gap:true,
+                 snapW:{...w}, startMX:mx, startMY:my };
+      }
+    }
 
     // iterate top-to-bottom (last drawn = topmost)
     for (let i = widgets.length - 1; i >= 0; i--) {
@@ -7360,6 +7460,111 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     return inside;
   }
 
+  // ── brush stroke accumulation ─────────────────────────────────────────────
+  // The stroke being drawn lives in a per-panel SCRATCH (`p._brushLive`), not in
+  // `p.state.overlay_widgets`, and reaches the model only on mouseup. Both halves
+  // of that are load-bearing:
+  //
+  //  * PERF — widget drags here are unthrottled. Every document mousemove ends
+  //    `_doDrag2d` with a full `_viewStateJson` serialise + `save_changes()`, and
+  //    the caller then spreads the whole widget dict into an `event_json`. A
+  //    stroke growing by a point per tick would re-serialise, re-transmit and
+  //    re-diff the ENTIRE stroke list on every tick — O(n²) over one stroke,
+  //    which makes painting unusable.
+  //  * CORRECTNESS — precisely because we do NOT write the panel trait during the
+  //    stroke, the trait stays STALE for its whole duration. Any unrelated
+  //    `save_changes()` (the `pointer_leave` emit as the cursor crosses the panel
+  //    edge — routine when painting near an edge — a key event, a Python-side
+  //    push) re-fires `change:panel_<id>_json`, which replaces `p.state`
+  //    wholesale from that stale value. A stroke accumulated in `p.state` is
+  //    silently wiped by it mid-drag. The scratch survives, and `drawOverlay2d`
+  //    prefers it, so the stroke also survives the redraw that echo triggers.
+  //
+  // Same shape as the inset drag: `_doInsetDrag` mutates live, `_endInsetDrag`
+  // emits once (see `inset_geometry_change` in figure/_figure.py).
+
+  // Snapshot the widget's committed strokes into the scratch. Each stroke array
+  // is copied so appends never touch p.state's own arrays (the point pairs are
+  // shared but only ever read).
+  function _brushLiveBegin(p, w) {
+    p._brushLive = {
+      wid: w.id,
+      radius: (w.radius != null ? w.radius : 8),
+      class_id: w.class_id | 0,
+      strokes: (w.strokes || []).map(s => s.slice()),
+      classes: (w.stroke_classes || []).slice(),
+    };
+    return p._brushLive;
+  }
+
+  // Fold the scratch back into p.state. Resolves the widget by ID, not by the
+  // drag's index, because an echo may have replaced p.state (and its widget
+  // objects) at any point during the stroke.
+  function _brushCommit(p) {
+    const L = p._brushLive; p._brushLive = null;
+    if (!L || !p.state) return;
+    const w = (p.state.overlay_widgets || []).find(x => x && x.id === L.wid);
+    if (w) { w.strokes = L.strokes; w.stroke_classes = L.classes; }
+  }
+
+  function _brushBegin(L, ix, iy) {
+    L.strokes.push([[ix, iy]]);
+    L.classes.push(L.class_id);
+  }
+
+  function _brushAppend(L, ix, iy) {
+    if (!L.strokes.length) { _brushBegin(L, ix, iy); return; }
+    const cur  = L.strokes[L.strokes.length - 1];
+    const last = cur[cur.length - 1];
+    // Resample. A mousemove can fire many times per image pixel when zoomed in,
+    // and every point ends up on the wire on release — so drop points closer
+    // than a quarter of the brush radius. The round joins hide the coarser
+    // polyline; nothing visible is lost.
+    const step = Math.max(0.5, L.radius * 0.25);
+    if (last && Math.hypot(ix - last[0], iy - last[1]) < step) return;
+    cur.push([ix, iy]);
+  }
+
+  // Erase = drop every stroke point within `radius` image px of (ix,iy), then
+  // keep each surviving RUN of consecutive points as its own stroke. Filtering
+  // a stroke in place instead would rejoin its two ends with one long straight
+  // segment straight across the gap the user just erased.
+  function _brushErase(L, ix, iy) {
+    const r2 = L.radius * L.radius;
+    const src = L.strokes, cls = L.classes;
+    const outS = [], outC = [];
+    for (let s = 0; s < src.length; s++) {
+      const pts = src[s] || [], ci = cls[s] | 0;
+      let run = [];
+      for (let k = 0; k < pts.length; k++) {
+        const dx = pts[k][0] - ix, dy = pts[k][1] - iy;
+        if (dx*dx + dy*dy <= r2) {
+          if (run.length) { outS.push(run); outC.push(ci); }
+          run = [];
+        } else run.push(pts[k]);
+      }
+      if (run.length) { outS.push(run); outC.push(ci); }
+    }
+    L.strokes = outS; L.classes = outC;
+  }
+
+  // Extend (or start) the brush's stroke at image point (ix,iy). Shared by
+  // mousedown (so a Shift-CLICK with no motion still paints one dot) and the
+  // drag loop. Points OUTSIDE the image are dropped and re-entry starts a NEW
+  // stroke: a label coordinate outside the array is useless to a consumer (and
+  // a negative index silently wraps), while bridging the gap would draw a
+  // straight segment across ground the user never painted. `d._gap` is the
+  // per-drag "next in-bounds point starts a stroke" flag — the hit-test seeds
+  // it true, which is what makes mousedown open a fresh stroke.
+  function _brushPaintAt(L, st, ix, iy, d) {
+    if (!(ix >= 0 && ix < st.image_width && iy >= 0 && iy < st.image_height)) {
+      d._gap = true; return;
+    }
+    if (d.mode === 'erase') { _brushErase(L, ix, iy); return; }
+    if (d._gap) { _brushBegin(L, ix, iy); d._gap = false; return; }
+    _brushAppend(L, ix, iy);
+  }
+
   function _doDrag2d(e, p) {
     const st = p.state; if (!st) return;
     const imgW = p.imgW||Math.max(1, p.pw - PAD_L - PAD_R);
@@ -7375,6 +7580,19 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // delta in image pixels from drag-start
     const [imgSX, imgSY] = _canvasToImg2d(d.startMX, d.startMY, st, imgW, imgH);
     const dix = imgMX - imgSX, diy = imgMY - imgSY;
+
+    // ── Brush: paint/erase into the panel scratch, publish NOTHING ───────────
+    // Redraws the overlay locally and returns BEFORE the `_viewStateJson` +
+    // `save_changes()` tail below; the mouseup handler commits the scratch and
+    // ships the finished stroke once. See `_brushLiveBegin` for why.
+    // Gated on the drag MODE rather than the widget type: an echo can have
+    // swapped `p.state` (and therefore `w`) out from under us mid-stroke.
+    if (d.mode === 'paint' || d.mode === 'erase') {
+      if (p._brushLive) _brushPaintAt(p._brushLive, st, imgMX, imgMY, d);
+      drawOverlay2d(p);
+      e.preventDefault();
+      return;
+    }
 
     if (w.type === 'circle') {
       if (d.mode === 'move') {
