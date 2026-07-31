@@ -13,6 +13,7 @@ directly to a class or function.
    figure
    figure_plots
    markers
+   keys
    widgets
    callbacks
 
