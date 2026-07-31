@@ -846,6 +846,12 @@ still drags other widgets; only <code class="docutils literal notranslate"><span
 claimed a plain drag would hit-test as “anywhere in the image” and kill
 panning and click-to-select outright.</p></li>
 </ol>
+<p>Painting is <em>modal</em>: while a brush is armed, a Shift-press that starts over
+the image is consumed by the brush and no longer produces a panel
+<code class="docutils literal notranslate"><span class="pre">pointer_down</span></code>.  If the host binds Shift-click to something else
+(multi-select is the common one), give it a different modifier or set
+<code class="docutils literal notranslate"><span class="pre">active=False</span></code> while that mode is on.  A Shift-drag beginning outside the
+image — in the axis margin — is not a brush gesture and pans as usual.</p>
 <p>While the stroke is being drawn the points accumulate <strong>in the browser</strong> and
 only the finished stroke reaches Python, once, as a <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code> event.
 So <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> does <strong>not</strong> fire for a brush stroke — register on

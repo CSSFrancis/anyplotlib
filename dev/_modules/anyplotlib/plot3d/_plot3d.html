@@ -447,7 +447,8 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._base_plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">_BasePlot</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_arr_to_b64</span><span class="p">,</span> <span class="n">_build_colormap_lut</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">_arr_to_b64</span><span class="p">,</span> <span class="n">_build_colormap_lut</span><span class="p">,</span>
+                               <span class="n">_image_to_data_url</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_triangulate_grid</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
@@ -533,6 +534,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x, y, z must have the same length&quot;</span><span class="p">)</span>
         <span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span>
         <span class="n">faces_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">cols</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="c1"># Encode geometry as b64 (float32 saves 50 % wire size vs float64)</span>
     <span class="n">verts_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">xf</span><span class="p">,</span> <span class="n">yf</span><span class="p">,</span> <span class="n">zf</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>   <span class="c1"># (N, 3)</span>
@@ -559,7 +561,47 @@
         <span class="s2">&quot;faces_count&quot;</span><span class="p">:</span>    <span class="nb">len</span><span class="p">(</span><span class="n">faces_arr</span><span class="p">),</span>
         <span class="s2">&quot;z_values_b64&quot;</span><span class="p">:</span>   <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">zvals_arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
         <span class="s2">&quot;data_bounds&quot;</span><span class="p">:</span>    <span class="n">data_bounds</span><span class="p">,</span>
+        <span class="c1"># Parametric grid shape (0 for non-surface geometry) — texture UVs</span>
+        <span class="c1"># default to this grid&#39;s normalised (col, row) coordinates.</span>
+        <span class="s2">&quot;grid_rows&quot;</span><span class="p">:</span>      <span class="nb">int</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span>
+        <span class="s2">&quot;grid_cols&quot;</span><span class="p">:</span>      <span class="nb">int</span><span class="p">(</span><span class="n">cols</span><span class="p">),</span>
     <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_uv_to_b64</span><span class="p">(</span><span class="n">uv</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">flip_v</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate texture coordinates and encode them as float32 ``(N, 2)`` b64.</span>
+
+<span class="sd">    ``uv=None`` builds the default parametric mapping: ``u`` runs 0→1 across</span>
+<span class="sd">    the grid&#39;s columns and ``v`` 0→1 down its rows, so an equirectangular</span>
+<span class="sd">    image lands on a sphere parameterised the same way.  Otherwise *uv* is</span>
+<span class="sd">    either a ``(U, V)`` pair (each 2-D grid- or flat-shaped) or a single</span>
+<span class="sd">    ``(N, 2)`` array of per-vertex coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">uv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rows</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">cols</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;default texture coordinates need a parametric grid surface; &quot;</span>
+                <span class="s2">&quot;pass uv=(U, V) explicitly&quot;</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">cols</span><span class="p">),</span> <span class="n">rows</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">rows</span><span class="p">),</span> <span class="n">cols</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">uv</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">uv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">uv</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">uv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;uv=(U, V) must each hold </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> values (one per vertex), &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">uv</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;uv must be a (U, V) pair or an (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, 2) array, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;got shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">flip_v</span><span class="p">:</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">_arr_to_b64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Plot3D">
@@ -569,7 +611,8 @@
 
 <span class="sd">    Supports four geometry types:</span>
 
-<span class="sd">    * ``&#39;surface&#39;``  – triangulated surface, Z-coloured via colormap.</span>
+<span class="sd">    * ``&#39;surface&#39;``  – triangulated surface, Z-coloured via colormap, or</span>
+<span class="sd">      wrapped in an image with :meth:`set_texture` (globes, star charts).</span>
 <span class="sd">    * ``&#39;scatter&#39;``  – point cloud; single colour or per-point ``colors``.</span>
 <span class="sd">    * ``&#39;line&#39;``     – connected line through 3-D points.</span>
 <span class="sd">    * ``&#39;voxels&#39;``   – shaded translucent cubes at the given centres;</span>
@@ -594,7 +637,7 @@
     <span class="c1">#: (highlight / camera / planes) never re-transmit them.</span>
     <span class="n">_GEOM_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
         <span class="s2">&quot;vertices_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;faces_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;z_values_b64&quot;</span><span class="p">,</span> <span class="s2">&quot;point_colors_b64&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;colormap_data&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;colormap_data&quot;</span><span class="p">,</span> <span class="s2">&quot;texture_url&quot;</span><span class="p">,</span> <span class="s2">&quot;texture_uv_b64&quot;</span><span class="p">,</span>
     <span class="p">})</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geom_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -613,10 +656,20 @@
                  <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">voxel_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
                  <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">texture</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">gpu</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">:</span>  <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_gpu_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1">#: True while the texture UVs are the auto parametric mapping, so</span>
+        <span class="c1">#: set_data() can rebuild them for the new grid shape.  When they are</span>
+        <span class="c1">#: explicit instead, _texture_uv_n records how many vertices they</span>
+        <span class="c1">#: cover so a shape-changing set_data can reject them.  _texture_flip_v</span>
+        <span class="c1">#: is the flip the mapping was built with — a rebuild has to reapply it</span>
+        <span class="c1">#: or a streaming surface flips vertically on its first update.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_auto</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_flip_v</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="n">geom_type</span> <span class="o">=</span> <span class="n">geom_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">geom_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;surface&quot;</span><span class="p">,</span> <span class="s2">&quot;scatter&quot;</span><span class="p">,</span> <span class="s2">&quot;line&quot;</span><span class="p">,</span> <span class="s2">&quot;voxels&quot;</span><span class="p">):</span>
@@ -657,6 +710,14 @@
             <span class="s2">&quot;colormap_data&quot;</span><span class="p">:</span> <span class="n">cmap_lut</span><span class="p">,</span>
             <span class="s2">&quot;color&quot;</span><span class="p">:</span>         <span class="n">color</span><span class="p">,</span>
             <span class="s2">&quot;point_colors_b64&quot;</span><span class="p">:</span> <span class="n">point_colors_b64</span><span class="p">,</span>
+            <span class="c1"># Image texture wrapped onto a surface (see set_texture).  The</span>
+            <span class="c1"># image rides as a data: URL and the per-vertex UVs as float32</span>
+            <span class="c1"># pairs; both are geometry-channel keys.</span>
+            <span class="s2">&quot;texture_url&quot;</span><span class="p">:</span>     <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;texture_uv_b64&quot;</span><span class="p">:</span>  <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;texture_alpha&quot;</span><span class="p">:</span>   <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">&quot;texture_shade&quot;</span><span class="p">:</span>   <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;texture_cull&quot;</span><span class="p">:</span>    <span class="kc">False</span><span class="p">,</span>
             <span class="c1"># Highlight point: {&quot;x&quot;,&quot;y&quot;,&quot;z&quot;,&quot;color&quot;,&quot;size&quot;} or None</span>
             <span class="s2">&quot;highlight&quot;</span><span class="p">:</span>     <span class="kc">None</span><span class="p">,</span>
             <span class="c1"># Reference sphere: {&quot;radius&quot;,&quot;color&quot;,&quot;alpha&quot;,&quot;wireframe&quot;} or None</span>
@@ -691,6 +752,9 @@
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">texture</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_texture</span><span class="p">(</span><span class="n">texture</span><span class="p">)</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -902,12 +966,149 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace the geometry data (same shape rules as the constructor).</span>
 
-<span class="sd">        Bounds given at construction time (``bounds=``) are preserved.</span>
+<span class="sd">        Bounds given at construction time (``bounds=``) are preserved.  An</span>
+<span class="sd">        auto-mapped texture (:meth:`set_texture` without ``uv=``) follows the</span>
+<span class="sd">        new grid, keeping the ``flip_v`` it was applied with; explicit UVs are</span>
+<span class="sd">        kept and must still match the vertex count.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_geometry_state</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;geom_type&quot;</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_bounds</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;texture_url&quot;</span><span class="p">]:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;vertices_count&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_auto</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;texture_uv_b64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_uv_to_b64</span><span class="p">(</span>
+                    <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;grid_rows&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;grid_cols&quot;</span><span class="p">],</span>
+                    <span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_texture_flip_v</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_n</span> <span class="o">=</span> <span class="n">n</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_n</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;the explicit texture coordinates set by set_texture(uv=…) &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;cover </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_n</span><span class="si">}</span><span class="s2"> vertices but the new data has &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">; call set_texture again with matching uv=&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Image textures (surface only)</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Plot3D.set_texture">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_texture">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_texture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">uv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+                    <span class="n">shade</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">cull_backfaces</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="n">flip_v</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrap an image around this surface (``geom_type == &#39;surface&#39;``).</span>
+
+<span class="sd">        Each triangle is filled with the matching patch of *image*, so the</span>
+<span class="sd">        picture follows the geometry as you orbit — a globe, a planet, or a</span>
+<span class="sd">        star chart on the celestial sphere.  By default the image is mapped</span>
+<span class="sd">        parametrically: its left edge to the surface grid&#39;s first column, its</span>
+<span class="sd">        right edge to the last, its top row to the grid&#39;s first row.  Build the</span>
+<span class="sd">        sphere with longitude along the columns and latitude down the rows and</span>
+<span class="sd">        an equirectangular (plate-carrée) image lands exactly right.</span>
+
+<span class="sd">        Rendering goes through WebGPU when it is available and the surface has</span>
+<span class="sd">        more than ~2k triangles (see the ``gpu`` argument to</span>
+<span class="sd">        :meth:`Axes.plot_surface`), which lifts the practical grid size from a</span>
+<span class="sd">        few thousand triangles to hundreds of thousands.  Without a GPU — or</span>
+<span class="sd">        with ``alpha`` below 1, which needs the Canvas2D compositing path —</span>
+<span class="sd">        every triangle is texture-mapped on the CPU instead, so prefer a</span>
+<span class="sd">        coarse grid there and let the image carry the detail.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        image : array-like, bytes, or path</span>
+<span class="sd">            An ``(H, W, 3|4)`` colour array (uint8, or float 0–1 — a PIL image</span>
+<span class="sd">            works too), the raw bytes of a PNG/JPEG/GIF/WebP, or a path to</span>
+<span class="sd">            such a file.  Encoded input is passed through untouched; arrays</span>
+<span class="sd">            are PNG-compressed.  Very large images cost wire size and decode</span>
+<span class="sd">            time — 2048×1024 is plenty for a sphere.</span>
+<span class="sd">        uv : (U, V) or (N, 2) array, optional</span>
+<span class="sd">            Explicit texture coordinates in 0–1, one per vertex, instead of</span>
+<span class="sd">            the default parametric mapping.  ``U``/``V`` may be given in the</span>
+<span class="sd">            grid&#39;s 2-D shape or already flattened.</span>
+<span class="sd">        alpha : float, optional</span>
+<span class="sd">            Opacity of the whole textured surface, 0–1.  Default 1.  Below 1</span>
+<span class="sd">            the surface is composited as one translucent skin — whatever the</span>
+<span class="sd">            panel draws behind it (a reference sphere, a scatter cloud) shows</span>
+<span class="sd">            through, but the surface&#39;s own far side does not.</span>
+<span class="sd">        shade : bool, optional</span>
+<span class="sd">            Modulate the texture with diffuse lighting from the upper left.</span>
+<span class="sd">            Default False (the image is reproduced faithfully); True gives a</span>
+<span class="sd">            sphere its familiar lit look and makes relief read as relief.</span>
+<span class="sd">        cull_backfaces : bool, optional</span>
+<span class="sd">            Skip triangles facing away from the camera.  Default False.  Set</span>
+<span class="sd">            True for a *closed* surface (sphere, ellipsoid, blob) — it halves</span>
+<span class="sd">            the drawing work with no visual change.  On an open surface it</span>
+<span class="sd">            makes the back side invisible, which is usually not what you want.</span>
+<span class="sd">            Ignored on the WebGPU path, where the depth buffer resolves</span>
+<span class="sd">            occlusion exactly and culling buys nothing.</span>
+<span class="sd">        flip_v : bool, optional</span>
+<span class="sd">            Mirror the mapping vertically (``v → 1 - v``).  Use when the image</span>
+<span class="sd">            is stored bottom-up relative to the grid&#39;s row order.  Remembered</span>
+<span class="sd">            for the auto mapping, so a later :meth:`set_data` rebuilds the UVs</span>
+<span class="sd">            with the same flip.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If this is not a ``&#39;surface&#39;`` panel, ``alpha`` is outside</span>
+<span class="sd">            ``[0, 1]``, *image* is not a decodable image, or *uv* does not</span>
+<span class="sd">            cover every vertex.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        clear_texture : Remove the texture and fall back to colormapped Z.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        ::</span>
+
+<span class="sd">            lat = np.linspace(np.pi / 2, -np.pi / 2, 180)    # rows: N → S</span>
+<span class="sd">            lon = np.linspace(-np.pi, np.pi, 360)            # cols: W → E</span>
+<span class="sd">            LON, LAT = np.meshgrid(lon, lat)</span>
+<span class="sd">            X = np.cos(LAT) * np.cos(LON)</span>
+<span class="sd">            Y = np.cos(LAT) * np.sin(LON)</span>
+<span class="sd">            Z = np.sin(LAT)</span>
+
+<span class="sd">            globe = ax.plot_surface(X, Y, Z, bounds=((-1, 1),) * 3)</span>
+<span class="sd">            globe.set_texture(&quot;earth.jpg&quot;, shade=True, cull_backfaces=True)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;geom_type&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;surface&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;textures are only supported for surface plots&quot;</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;alpha must be in [0, 1], got </span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">_image_to_data_url</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="n">uv_b64</span> <span class="o">=</span> <span class="n">_uv_to_b64</span><span class="p">(</span><span class="n">uv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;grid_rows&quot;</span><span class="p">],</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;grid_cols&quot;</span><span class="p">],</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;vertices_count&quot;</span><span class="p">],</span> <span class="n">flip_v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_auto</span> <span class="o">=</span> <span class="n">uv</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;vertices_count&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_flip_v</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">flip_v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="n">texture_url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
+            <span class="n">texture_uv_b64</span><span class="o">=</span><span class="n">uv_b64</span><span class="p">,</span>
+            <span class="n">texture_alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+            <span class="n">texture_shade</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">shade</span><span class="p">),</span>
+            <span class="n">texture_cull</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">cull_backfaces</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.clear_texture">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.clear_texture">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_texture</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove the image texture; the surface reverts to colormapped Z.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_uv_auto</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_texture_flip_v</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">texture_url</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">texture_uv_b64</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">has_texture</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``True`` when an image texture is currently applied.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;texture_url&quot;</span><span class="p">])</span>
 
 <div class="viewcode-block" id="Plot3D.set_point_colors">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_point_colors">[docs]</a>

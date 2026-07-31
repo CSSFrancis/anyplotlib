@@ -340,6 +340,23 @@ interactions to live Python computations.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A celestial globe wired to a flat star map, with a sidereal clock.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_star_globe_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_star_globe_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Star Globe Explorer — a linked celestial sphere and sky map</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -804,6 +821,23 @@ A collection of short examples showing different plot types.
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">Custom Tile Backend — pan & zoom a huge image you never hold in memory</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="set_texture wraps an image around any 3-D surface, so the picture follows the geometry as you orbit it.  Here we build an equirectangular star map from a real bright-star catalogue and project it onto the celestial sphere.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_3d_texture_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_3d_texture`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Textured 3-D surfaces — a celestial globe</div>
     </div>
 
 

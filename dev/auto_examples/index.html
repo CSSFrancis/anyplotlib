@@ -415,6 +415,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_voxel_grain_explorer.html">3-D Voxel Grain Explorer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_interactive_fitting.html">Interactive 1-D Gaussian Fitting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Interactive/plot_segment_by_contrast_advanced.html">Advanced Interactive Contrast Segmentation (3 × 3 Grid)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Interactive/plot_star_globe_explorer.html">Star Globe Explorer — a linked celestial sphere and sky map</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="Markers/index.html">Markers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -446,6 +447,7 @@
 <li class="toctree-l2"><a class="reference internal" href="PlotTypes/plot_bar.html">Bar Chart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="PlotTypes/plot_gridspec_custom.html">Custom Grid Layouts with GridSpec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="PlotTypes/plot_tile_backend.html">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PlotTypes/plot_3d_texture.html">Textured 3-D surfaces — a celestial globe</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="Widgets/index.html">Widgets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -583,6 +585,9 @@ interactions to live Python computations.</p>
 </div><div class="sphx-glr-thumbcontainer" tooltip="A 3 × 3 grid of synthetic images, each independently segmented by flood-fill.  Pass 8 or 9 images as images_flat; the grid always has 3 columns and enough rows to fit them all (last cell left blank when 8 images are supplied)."><img alt="" src="../_images/sphx_glr_plot_segment_by_contrast_advanced_thumb.png" />
 <p><a class="reference internal" href="Interactive/plot_segment_by_contrast_advanced.html"><span class="doc">Advanced Interactive Contrast Segmentation (3 × 3 Grid)</span></a></p>
   <div class="sphx-glr-thumbnail-title">Advanced Interactive Contrast Segmentation (3 × 3 Grid)</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="A celestial globe wired to a flat star map, with a sidereal clock."><img alt="" src="../_images/sphx_glr_plot_star_globe_explorer_thumb.png" />
+<p><a class="reference internal" href="Interactive/plot_star_globe_explorer.html"><span class="doc">Star Globe Explorer — a linked celestial sphere and sky map</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Star Globe Explorer — a linked celestial sphere and sky map</div>
 </div></div><section id="markers">
 <h2>Markers<a class="headerlink" href="#markers" title="Link to this heading">#</a></h2>
 <p>A collection of short examples using markers</p>
@@ -665,6 +670,9 @@ interactions to live Python computations.</p>
 </div><div class="sphx-glr-thumbcontainer" tooltip="For a very large image, anyplotlib does not need the whole array.  It asks a TileBackend for a downsampled overview to use as the base texture, and then — on every zoom / pan — for a crisp detail tile of just the visible region at the panel&#x27;s resolution. anyplotlib owns that zoom/pan → re-tile lifecycle; the backend owns the data."><img alt="" src="../_images/sphx_glr_plot_tile_backend_thumb.png" />
 <p><a class="reference internal" href="PlotTypes/plot_tile_backend.html"><span class="doc">Custom Tile Backend — pan &amp; zoom a huge image you never hold in memory</span></a></p>
   <div class="sphx-glr-thumbnail-title">Custom Tile Backend — pan & zoom a huge image you never hold in memory</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="set_texture wraps an image around any 3-D surface, so the picture follows the geometry as you orbit it.  Here we build an equirectangular star map from a real bright-star catalogue and project it onto the celestial sphere."><img alt="" src="../_images/sphx_glr_plot_3d_texture_thumb.png" />
+<p><a class="reference internal" href="PlotTypes/plot_3d_texture.html"><span class="doc">Textured 3-D surfaces — a celestial globe</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Textured 3-D surfaces — a celestial globe</div>
 </div></div></section>
 <section id="widgets">
 <h2>Widgets<a class="headerlink" href="#widgets" title="Link to this heading">#</a></h2>

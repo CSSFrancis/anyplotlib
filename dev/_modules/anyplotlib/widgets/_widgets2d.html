@@ -743,6 +743,13 @@
 <span class="sd">       claimed a plain drag would hit-test as &quot;anywhere in the image&quot; and kill</span>
 <span class="sd">       panning and click-to-select outright.</span>
 
+<span class="sd">    Painting is *modal*: while a brush is armed, a Shift-press that starts over</span>
+<span class="sd">    the image is consumed by the brush and no longer produces a panel</span>
+<span class="sd">    ``pointer_down``.  If the host binds Shift-click to something else</span>
+<span class="sd">    (multi-select is the common one), give it a different modifier or set</span>
+<span class="sd">    ``active=False`` while that mode is on.  A Shift-drag beginning outside the</span>
+<span class="sd">    image — in the axis margin — is not a brush gesture and pans as usual.</span>
+
 <span class="sd">    While the stroke is being drawn the points accumulate **in the browser** and</span>
 <span class="sd">    only the finished stroke reaches Python, once, as a ``pointer_up`` event.</span>
 <span class="sd">    So ``pointer_move`` does **not** fire for a brush stroke — register on</span>

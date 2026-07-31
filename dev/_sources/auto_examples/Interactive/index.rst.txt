@@ -276,6 +276,23 @@ interactions to live Python computations.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A celestial globe wired to a flat star map, with a sidereal clock.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Interactive/images/thumb/sphx_glr_plot_star_globe_explorer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Interactive/plot_star_globe_explorer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Star Globe Explorer — a linked celestial sphere and sky map</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -301,4 +318,5 @@ interactions to live Python computations.
    /auto_examples/Interactive/plot_voxel_grain_explorer
    /auto_examples/Interactive/plot_interactive_fitting
    /auto_examples/Interactive/plot_segment_by_contrast_advanced
+   /auto_examples/Interactive/plot_star_globe_explorer
 

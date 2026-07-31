@@ -631,7 +631,7 @@ respectively for an (M, N) data array.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">plot_surface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Z</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'viridis'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'z'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elevation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zoom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/axes/_axes.html#Axes.plot_surface"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">plot_surface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Z</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'viridis'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'z'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elevation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zoom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">texture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/axes/_axes.html#Axes.plot_surface"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Attach a 3-D surface to this axes cell.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -649,6 +649,17 @@ or 1-D centre arrays for X/Y with a 2-D Z.</p></li>
 <li><p><strong>azimuth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional  Initial camera angles in degrees.</em>)</p></li>
 <li><p><strong>elevation</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional  Initial camera angles in degrees.</em>)</p></li>
 <li><p><strong>zoom</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional  Initial zoom factor.</em>)</p></li>
+<li><p><strong>bounds</strong> (<em>(</em><em>(</em><em>xmin</em><em>, </em><em>xmax</em><em>)</em><em>, </em><em>(</em><em>ymin</em><em>, </em><em>ymax</em><em>)</em><em>, </em><em>(</em><em>zmin</em><em>, </em><em>zmax</em><em>)</em><em>)</em><em>, </em><em>optional</em>) – Fix the axes bounds instead of fitting them to the data.  Pass
+<code class="docutils literal notranslate"><span class="pre">((-1,</span> <span class="pre">1),)</span> <span class="pre">*</span> <span class="pre">3</span></code> for a unit sphere so it projects as a true
+circle rather than being stretched to fill the panel.</p></li>
+<li><p><strong>texture</strong> (<em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><em>bytes</em></a><em>, or </em><em>path</em><em>, </em><em>optional</em>) – Image to wrap around the surface — shorthand for
+<a class="reference internal" href="generated/anyplotlib.Plot3D.html#anyplotlib.Plot3D.set_texture" title="anyplotlib.Plot3D.set_texture"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_texture()</span></code></a>, which takes the mapping,
+shading, and culling options.</p></li>
+<li><p><strong>gpu</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> | bool, optional) – WebGPU acceleration policy for a <em>textured</em> surface (a
+colormapped one always renders on Canvas2D).  <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> (default)
+uses the GPU when available above ~2k triangles; <code class="docutils literal notranslate"><span class="pre">True</span></code> always
+attempts it; <code class="docutils literal notranslate"><span class="pre">False</span></code> forces Canvas2D.  Falls back silently when
+WebGPU is unavailable — check <code class="xref py py-attr docutils literal notranslate"><span class="pre">Plot3D.gpu_active</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -3038,6 +3049,11 @@ The rectangle then physically stops growing at the cap while dragging
 still drags other widgets.  One brush can hold several label classes at
 once — a stroke is tagged with the widget’s current <code class="docutils literal notranslate"><span class="pre">class_id</span></code> and
 drawn in <code class="docutils literal notranslate"><span class="pre">colors[class_id]</span></code>.</p>
+<p>Painting is modal: while the brush is armed, a Shift-press over the
+image no longer emits a panel <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code>, so a host that binds
+Shift-click to something else needs a different modifier (or
+<code class="docutils literal notranslate"><span class="pre">active=False</span></code> while that mode is on).  A Shift-drag starting in the
+axis margin is not a brush gesture and pans as usual.</p>
 <p>The stroke accumulates in the browser and reaches Python <strong>once</strong>, on
 release, as a <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code> event — <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> does not fire for
 a brush.  See <code class="xref py py-class docutils literal notranslate"><span class="pre">BrushWidget</span></code>.</p>
@@ -3477,12 +3493,13 @@ matches matplotlib’s <code class="docutils literal notranslate"><span class="p
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.plot3d.</span></span><span class="sig-name descname"><span class="pre">Plot3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'viridis'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'z'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elevation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zoom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.plot3d.</span></span><span class="sig-name descname"><span class="pre">Plot3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'viridis'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'z'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elevation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zoom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">texture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_BasePlot</span></code></p>
 <p>3-D plot panel.</p>
 <p>Supports four geometry types:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">'surface'</span></code>  – triangulated surface, Z-coloured via colormap.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'surface'</span></code>  – triangulated surface, Z-coloured via colormap, or
+wrapped in an image with <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_texture()</span></code> (globes, star charts).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'scatter'</span></code>  – point cloud; single colour or per-point <code class="docutils literal notranslate"><span class="pre">colors</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'line'</span></code>     – connected line through 3-D points.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'voxels'</span></code>   – shaded translucent cubes at the given centres;
@@ -3743,12 +3760,110 @@ the panel’s geometry — important for large voxel/scatter panels.</p>
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">set_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D.set_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Replace the geometry data (same shape rules as the constructor).</p>
-<p>Bounds given at construction time (<code class="docutils literal notranslate"><span class="pre">bounds=</span></code>) are preserved.</p>
+<p>Bounds given at construction time (<code class="docutils literal notranslate"><span class="pre">bounds=</span></code>) are preserved.  An
+auto-mapped texture (<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_texture()</span></code> without <code class="docutils literal notranslate"><span class="pre">uv=</span></code>) follows the
+new grid, keeping the <code class="docutils literal notranslate"><span class="pre">flip_v</span></code> it was applied with; explicit UVs are
+kept and must still match the vertex count.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_texture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">uv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cull_backfaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flip_v</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D.set_texture"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Wrap an image around this surface (<code class="docutils literal notranslate"><span class="pre">geom_type</span> <span class="pre">==</span> <span class="pre">'surface'</span></code>).</p>
+<p>Each triangle is filled with the matching patch of <em>image</em>, so the
+picture follows the geometry as you orbit — a globe, a planet, or a
+star chart on the celestial sphere.  By default the image is mapped
+parametrically: its left edge to the surface grid’s first column, its
+right edge to the last, its top row to the grid’s first row.  Build the
+sphere with longitude along the columns and latitude down the rows and
+an equirectangular (plate-carrée) image lands exactly right.</p>
+<p>Rendering goes through WebGPU when it is available and the surface has
+more than ~2k triangles (see the <code class="docutils literal notranslate"><span class="pre">gpu</span></code> argument to
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">Axes.plot_surface()</span></code>), which lifts the practical grid size from a
+few thousand triangles to hundreds of thousands.  Without a GPU — or
+with <code class="docutils literal notranslate"><span class="pre">alpha</span></code> below 1, which needs the Canvas2D compositing path —
+every triangle is texture-mapped on the CPU instead, so prefer a
+coarse grid there and let the image carry the detail.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><em>bytes</em></a><em>, or </em><em>path</em>) – An <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3|4)</span></code> colour array (uint8, or float 0–1 — a PIL image
+works too), the raw bytes of a PNG/JPEG/GIF/WebP, or a path to
+such a file.  Encoded input is passed through untouched; arrays
+are PNG-compressed.  Very large images cost wire size and decode
+time — 2048×1024 is plenty for a sphere.</p></li>
+<li><p><strong>uv</strong> (<em>(</em><em>U</em><em>, </em><em>V</em><em>) or </em><em>(</em><em>N</em><em>, </em><em>2</em><em>) </em><em>array</em><em>, </em><em>optional</em>) – Explicit texture coordinates in 0–1, one per vertex, instead of
+the default parametric mapping.  <code class="docutils literal notranslate"><span class="pre">U</span></code>/<code class="docutils literal notranslate"><span class="pre">V</span></code> may be given in the
+grid’s 2-D shape or already flattened.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity of the whole textured surface, 0–1.  Default 1.  Below 1
+the surface is composited as one translucent skin — whatever the
+panel draws behind it (a reference sphere, a scatter cloud) shows
+through, but the surface’s own far side does not.</p></li>
+<li><p><strong>shade</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Modulate the texture with diffuse lighting from the upper left.
+Default False (the image is reproduced faithfully); True gives a
+sphere its familiar lit look and makes relief read as relief.</p></li>
+<li><p><strong>cull_backfaces</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Skip triangles facing away from the camera.  Default False.  Set
+True for a <em>closed</em> surface (sphere, ellipsoid, blob) — it halves
+the drawing work with no visual change.  On an open surface it
+makes the back side invisible, which is usually not what you want.
+Ignored on the WebGPU path, where the depth buffer resolves
+occlusion exactly and culling buys nothing.</p></li>
+<li><p><strong>flip_v</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Mirror the mapping vertically (<code class="docutils literal notranslate"><span class="pre">v</span> <span class="pre">→</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">v</span></code>).  Use when the image
+is stored bottom-up relative to the grid’s row order.  Remembered
+for the auto mapping, so a later <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_data()</span></code> rebuilds the UVs
+with the same flip.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If this is not a <code class="docutils literal notranslate"><span class="pre">'surface'</span></code> panel, <code class="docutils literal notranslate"><span class="pre">alpha</span></code> is outside
+    <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>, <em>image</em> is not a decodable image, or <em>uv</em> does not
+    cover every vertex.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_texture</span></code></dt><dd><p>Remove the texture and fall back to colormapped Z.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">lat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">180</span><span class="p">)</span>    <span class="c1"># rows: N → S</span>
+<span class="n">lon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">360</span><span class="p">)</span>            <span class="c1"># cols: W → E</span>
+<span class="n">LON</span><span class="p">,</span> <span class="n">LAT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">LAT</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">LON</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">LAT</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">LON</span><span class="p">)</span>
+<span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">LAT</span><span class="p">)</span>
+
+<span class="n">globe</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot_surface</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">globe</span><span class="o">.</span><span class="n">set_texture</span><span class="p">(</span><span class="s2">&quot;earth.jpg&quot;</span><span class="p">,</span> <span class="n">shade</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cull_backfaces</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">clear_texture</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D.clear_texture"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Remove the image texture; the surface reverts to colormapped Z.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">has_texture</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> when an image texture is currently applied.</p>
 </dd></dl>
 
 <dl class="py method">

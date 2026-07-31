@@ -1189,6 +1189,11 @@ The rectangle then physically stops growing at the cap while dragging
 still drags other widgets.  One brush can hold several label classes at
 once — a stroke is tagged with the widget’s current <code class="docutils literal notranslate"><span class="pre">class_id</span></code> and
 drawn in <code class="docutils literal notranslate"><span class="pre">colors[class_id]</span></code>.</p>
+<p>Painting is modal: while the brush is armed, a Shift-press over the
+image no longer emits a panel <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code>, so a host that binds
+Shift-click to something else needs a different modifier (or
+<code class="docutils literal notranslate"><span class="pre">active=False</span></code> while that mode is on).  A Shift-drag starting in the
+axis margin is not a brush gesture and pans as usual.</p>
 <p>The stroke accumulates in the browser and reaches Python <strong>once</strong>, on
 release, as a <code class="docutils literal notranslate"><span class="pre">pointer_up</span></code> event — <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> does not fire for
 a brush.  See <code class="xref py py-class docutils literal notranslate"><span class="pre">BrushWidget</span></code>.</p>

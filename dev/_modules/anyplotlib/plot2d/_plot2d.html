@@ -2300,6 +2300,12 @@
 <span class="sd">        once — a stroke is tagged with the widget&#39;s current ``class_id`` and</span>
 <span class="sd">        drawn in ``colors[class_id]``.</span>
 
+<span class="sd">        Painting is modal: while the brush is armed, a Shift-press over the</span>
+<span class="sd">        image no longer emits a panel ``pointer_down``, so a host that binds</span>
+<span class="sd">        Shift-click to something else needs a different modifier (or</span>
+<span class="sd">        ``active=False`` while that mode is on).  A Shift-drag starting in the</span>
+<span class="sd">        axis margin is not a brush gesture and pans as usual.</span>
+
 <span class="sd">        The stroke accumulates in the browser and reaches Python **once**, on</span>
 <span class="sd">        release, as a ``pointer_up`` event — ``pointer_move`` does not fire for</span>
 <span class="sd">        a brush.  See :class:`~anyplotlib.BrushWidget`.</span>
