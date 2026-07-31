@@ -377,6 +377,70 @@ def _pw_gpu_browser(_pw_browser):
     browser.close()
 
 
+# ---------------------------------------------------------------------------
+# 3-D render settling (Playwright)
+# ---------------------------------------------------------------------------
+
+_3D_SETTLED_JS = """() => {
+  const api = window._api && window._api.api;
+  if (!api) return false;
+  for (const p of api.panels.values()) {
+    if (p.kind !== '3d') continue;
+    const st = p.state || {};
+    // A declared surface texture must have finished decoding: _texEnsure
+    // builds an <img> and schedules its own redraw, so the frame that first
+    // sees the texture still paints the untextured surface.
+    if (st.texture_url && !(p._3dTex && p._3dTex.ready)) return false;
+    // …and the GPU decision must not be in flight.  'pending' means
+    // _gpuDevice() has not resolved yet; 'active' without _gpuActiveNow means
+    // the activation redraw has not run yet.  'unavailable'/undefined are
+    // terminal — the panel is on Canvas2D and stays there.
+    if (p._gpu === 'pending') return false;
+    if (p._gpu === 'active' && !p._gpuActiveNow) return false;
+  }
+  return true;
+}"""
+
+
+def gpu3d_diag(page):
+    """Return ``globalThis.__apl_gpu3d`` — draw3d's per-panel GPU diagnostic.
+
+    Each entry is ``{geom, gpu, wanted, texUrl, texReady, faces, mode, pw, ph,
+    hasNavGpu}`` as of that panel's last frame, which is what distinguishes
+    "no adapter" from "texture still decoding" from "panel had zero size".
+    """
+    try:
+        return page.evaluate("() => globalThis.__apl_gpu3d || {}")
+    except Exception as exc:                      # page closed / crashed
+        return {"<unavailable>": str(exc)}
+
+
+def wait_3d_settled(page, timeout=20_000):
+    """Block until every 3-D panel in *page* has finished its async work.
+
+    A textured surface takes TWO sequential async hops to reach its final
+    rendering — the ``<img>`` decode, then (when the GPU path is wanted)
+    WebGPU device + pipeline init — and each schedules its own redraw.  A
+    fixed sleep is therefore a race by construction: measured on a fast
+    workstation with a real adapter, decode lands at ~315 ms and activation
+    only at ~950 ms, so the 1200 ms sleep this replaced had ~20 % headroom.
+    The macOS CI runner ran past it and sampled panels while ``_gpu`` was
+    still ``'pending'``.
+
+    Raises ``AssertionError`` carrying the ``__apl_gpu3d`` dump on timeout, so
+    a CI-only failure reports *which* hop never landed.
+    """
+    from playwright.sync_api import Error as PwError
+
+    try:
+        page.wait_for_function(_3D_SETTLED_JS, timeout=timeout)
+    except PwError as exc:
+        raise AssertionError(
+            f"3-D panels never settled within {timeout} ms: {exc}\n"
+            f"__apl_gpu3d = {gpu3d_diag(page)}"
+        ) from None
+
+
 @pytest.fixture
 def gpu_interact_page(_pw_gpu_browser):
     """Like ``interact_page`` but in the WebGPU-capable browser.

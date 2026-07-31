@@ -28,6 +28,7 @@ import anyplotlib as apl
 from anyplotlib._utils import _encode_png
 from anyplotlib.embed import esm_path, figure_state
 from anyplotlib.tests._png_utils import decode_png
+from anyplotlib.tests.conftest import gpu3d_diag, wait_3d_settled
 
 
 # ---------------------------------------------------------------------------
@@ -340,8 +341,11 @@ def _renderer(browser):
         page.goto(tmp.as_uri())
         page.wait_for_function("() => window._aplReady === true", timeout=20_000)
         # The <img> decode is async and schedules its own redraw; on the GPU
-        # path the device init adds a second async hop before activation.
-        page.wait_for_timeout(1200)
+        # path the device init adds a SECOND async hop before activation.
+        # Wait for both to land rather than sleeping a fixed amount — the two
+        # hops already cost ~950 ms on a fast box with a real adapter, so any
+        # constant is a race on a slower runner.
+        wait_3d_settled(page)
         info = None
         if panel_id is not None:
             info = page.evaluate(
@@ -349,6 +353,10 @@ def _renderer(browser):
                     const p = window._api.api.panels.get(pid);
                     return p ? { gpu: p._gpu, active: !!p._gpuActiveNow } : null;
                 }""", panel_id)
+            # Carry draw3d's own diagnostic into the assertion messages, so a
+            # GPU failure that only reproduces in CI says why.
+            if info is not None:
+                info["diag"] = gpu3d_diag(page).get(panel_id)
         url = page.evaluate(
             "() => window._api.exportPNG({scale: 1}).then(r => r.dataUrl)")
         px = decode_png(base64.b64decode(url.split(",", 1)[1])).astype(int)
@@ -370,7 +378,9 @@ def _renderer(browser):
 def render_png(_pw_browser):
     """Mount a figure, wait for the async texture decode, return the pixels.
 
-    The default headless shell has no ``navigator.gpu``, so this always
+    The headless shell resolves no WebGPU adapter (newer Playwright builds do
+    expose ``navigator.gpu``, but ``requestAdapter()`` comes back null, so the
+    panel latches ``_gpu === 'unavailable'``), which means this always
     exercises the Canvas2D path.
     """
     render, cleanup = _renderer(_pw_browser)
@@ -541,12 +551,12 @@ class TestGpuSurface:
     def test_activates_above_the_threshold(self, gpu_render_png):
         fig, s = _gpu_globe("auto")          # 9216 triangles > 2000
         _, info = gpu_render_png(fig, s._id)
-        assert info["gpu"] == "active" and info["active"]
+        assert info["gpu"] == "active" and info["active"], info
 
     def test_gpu_false_forces_canvas(self, gpu_render_png):
         fig, s = _gpu_globe(False)
         _, info = gpu_render_png(fig, s._id)
-        assert not info["active"]
+        assert not info["active"], info
 
     def test_colormapped_surface_stays_on_canvas(self, gpu_render_png):
         """Only TEXTURED surfaces have a GPU path."""
@@ -554,13 +564,13 @@ class TestGpuSurface:
         fig, ax = apl.subplots(1, 1, figsize=(300, 300))
         s = ax.plot_surface(X, Y, Z, bounds=((-1, 1),) * 3, gpu="always")
         _, info = gpu_render_png(fig, s._id)
-        assert not info["active"]
+        assert not info["active"], info
 
     def test_translucent_surface_stays_on_canvas(self, gpu_render_png):
         """alpha < 1 needs the overlap-free Canvas2D composite."""
         fig, s = _gpu_globe("always", alpha=0.5)
         _, info = gpu_render_png(fig, s._id)
-        assert not info["active"]
+        assert not info["active"], info
 
     def test_shows_the_near_hemisphere(self, gpu_render_png):
         """The depth test must keep the NEAREST fragment.
@@ -573,7 +583,7 @@ class TestGpuSurface:
         fig_g, s_g = _gpu_globe("always")
         canvas, _ = gpu_render_png(fig_c, s_c._id)
         gpu, info = gpu_render_png(fig_g, s_g._id)
-        assert info["active"]
+        assert info["active"], info
 
         def split(arr):
             px = _disc(arr, inset=8)
@@ -595,7 +605,7 @@ class TestGpuSurface:
         fig_g, s_g = _gpu_globe("always", tex=tex)
         canvas, _ = gpu_render_png(fig_c, s_c._id)
         gpu, info = gpu_render_png(fig_g, s_g._id)
-        assert info["active"]
+        assert info["active"], info
         assert gpu.shape == canvas.shape
         diff = np.abs(gpu[..., :3] - canvas[..., :3])
         assert diff.mean() < 12, f"mean abs diff {diff.mean():.1f}"
@@ -604,7 +614,7 @@ class TestGpuSurface:
         flat = np.full((128, 256, 3), 200, np.uint8)
         fig, s = _gpu_globe("always", tex=flat, shade=True)
         arr, info = gpu_render_png(fig, s._id)
-        assert info["active"]
+        assert info["active"], info
         h, w = arr.shape[:2]
         cy, cx = h / 2, w / 2
         yy, xx = np.mgrid[0:h, 0:w]
@@ -621,6 +631,6 @@ class TestGpuSurface:
         s.set_texture(np.zeros((64, 128, 3), np.uint8) + np.array(
             [20, 200, 40], np.uint8))
         arr, info = gpu_render_png(fig, s._id)
-        assert info["active"]
+        assert info["active"], info
         px = _disc(arr).mean(0)
         assert px[1] > px[0] + 40 and px[1] > px[2] + 40, f"got {px}"

@@ -31,6 +31,7 @@ import pytest
 import anyplotlib as apl
 from anyplotlib.embed import esm_path, figure_state
 from anyplotlib.tests._png_utils import decode_png
+from anyplotlib.tests.conftest import gpu3d_diag, wait_3d_settled
 
 
 _MOUNT_PAGE = """<!DOCTYPE html>
@@ -67,12 +68,17 @@ def render(_pw_gpu_browser):
         pages.append(page)
         page.goto(tmp.as_uri())
         page.wait_for_function("() => window._aplReady === true", timeout=20_000)
-        page.wait_for_timeout(1200)
+        # Device init is async and schedules the activation redraw itself, so
+        # wait for the panel's GPU decision to settle instead of sleeping a
+        # fixed amount (which races a slow runner — see wait_3d_settled).
+        wait_3d_settled(page)
         info = page.evaluate(
             """(pid) => {
                 const p = window._api.api.panels.get(pid);
                 return p ? { gpu: p._gpu, active: !!p._gpuActiveNow } : null;
             }""", panel_id)
+        if info is not None:
+            info["diag"] = gpu3d_diag(page).get(panel_id)
         url = page.evaluate(
             "() => window._api.exportPNG({scale: 1}).then(r => r.dataUrl)")
         px = decode_png(base64.b64decode(url.split(",", 1)[1])).astype(int)
