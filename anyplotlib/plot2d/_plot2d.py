@@ -71,7 +71,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     #: trait and the binary route recognises them. The consumers only ever iterate the
     #: returned set, so a set-typed property is a drop-in for the old frozenset.
     _BASE_GEOM_KEYS = frozenset({"image_b64", "colormap_data", "overlay_mask_b64",
-                                 "detail_b64"})
+                                 "detail_b64", "key_images"})
 
     @property
     def _GEOM_KEYS(self) -> frozenset:

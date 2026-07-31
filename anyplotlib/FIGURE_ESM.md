@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~9,300 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~9,470 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -55,23 +55,24 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | **2D gutter geometry**: `_cbWidth` / `_cbGap` / `_padT` / `_titlePx` | 301 / 313 / 323 / 333 |
 | **Layout engine** `applyLayout` | 774 |
 | `_buildCanvasStack` | 857 |
-| `_createPanelDOM` | 989 |
-| `_createInsetDOM` / `_applyAllInsetStates` | 1118 / 1500 |
-| `_resizePanelDOM` | 2213 |
-| **2D drawing**: `_imgFitRect` | 2372 |
-| `draw2d` | 2680 |
-| `drawScaleBar2d` / `drawColorbar2d` | 2875 / 2961 |
-| `_drawAxes2d` (ticks, labels, title) | 3016 |
-| `drawOverlay2d` / `drawMarkers2d` | 3169 / 3333 |
-| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2500 / 2524 / 2585 |
+| `_createPanelDOM` | 999 |
+| `_createInsetDOM` / `_applyAllInsetStates` | 1129 / 1512 |
+| `_resizePanelDOM` | 2225 |
+| **2D drawing**: `_imgFitRect` | 2384 |
+| `draw2d` | 2692 |
+| `drawScaleBar2d` / `drawColorbar2d` | 2887 / 3125 |
+| **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 2986 / 3009 / 3022 |
+| `_drawAxes2d` (ticks, labels, title) | 3180 |
+| `drawOverlay2d` / `drawMarkers2d` | 3333 / 3497 |
+| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2512 / 2536 / 2597 |
 | Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 730 / 761 |
-| **3D drawing**: `draw3d` | 5072 |
-| Event emission `_emitEvent` | 5909 |
-| 3D event handlers `_attachEvents3d` | 5961 |
-| **1D drawing**: `draw1d` | 6182 |
-| `_drawLine` (1D series + markers) | 6335 |
-| `drawOverlay1d` / `drawMarkers1d` | 6628 / 6712 |
-| Marker hit-test `_markerHitTest2d` | 6980 |
+| **3D drawing**: `draw3d` | 5236 |
+| Event emission `_emitEvent` | 6073 |
+| 3D event handlers `_attachEvents3d` | 6125 |
+| **1D drawing**: `draw1d` | 6346 |
+| `_drawLine` (1D series + markers) | 6499 |
+| `drawOverlay1d` / `drawMarkers1d` | 6792 / 6876 |
+| Marker hit-test `_markerHitTest2d` | 7144 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -80,16 +81,16 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 7237 |
-| 2D events `_attachEvents2d` | 7261 |
-| 1D events `_attachEvents1d` | 7645 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 7917 / 8190 |
-| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8103 / 8117 / 8146 / 8181 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8313 / 8386 |
-| Shared-axis propagation `_getShareGroups` | 8457 |
-| Figure resize `_applyFigResizeDOM` | 8521 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8712 / 8775 / 9151 |
-| Generic redraw `_redrawPanel` | 9341 |
+| Panel event dispatch `_attachPanelEvents` | 7401 |
+| 2D events `_attachEvents2d` | 7443 |
+| 1D events `_attachEvents1d` | 7827 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8099 / 8372 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8285 / 8299 / 8328 / 8363 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8495 / 8568 |
+| Shared-axis propagation `_getShareGroups` | 8639 |
+| Figure resize `_applyFigResizeDOM` | 8703 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8894 / 8957 / 9333 |
+| Generic redraw `_redrawPanel` | 9523 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`

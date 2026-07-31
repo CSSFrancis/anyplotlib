@@ -646,3 +646,74 @@ def _run_bench(page, panel_id, *, n_warmup=3, n_samples=15,
     finally:
         page.set_default_timeout(30_000)  # restore Playwright default
 
+
+
+# ---------------------------------------------------------------------------
+# Mount-API page fixture
+# ---------------------------------------------------------------------------
+# `interact_page` above calls renderFn({model, el}) directly, which is right for
+# driving widgets but exposes no mount handle — so no exportPNG and no panels
+# map. Tests that need both a live pointer AND the public mount API use this.
+# test_embed/test_export_png.py and test_plot3d/test_texture.py each predate it
+# and keep their own local copies; new tests should use this one.
+
+_MOUNT_PAGE_HTML = """<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>html,body{margin:0;padding:0;}</style></head>
+<body><div id="host"></div>
+<script type="module">
+const STATE = __STATE__;
+const esmSource = __ESM__;
+const blobUrl = URL.createObjectURL(new Blob([esmSource], {type: "text/javascript"}));
+import(blobUrl).then(mod => {
+  window._handle = mod.mount(document.getElementById("host"), STATE, {});
+  window._aplReady = true;
+}).catch(err => { document.body.textContent = "mount error: " + err; });
+</script></body></html>
+"""
+
+
+@pytest.fixture
+def mount_page(_pw_browser):
+    """Open a figure through the public ``mount()`` API; return the live Page.
+
+    The page exposes ``window._handle`` — ``exportPNG(opts)`` and ``api.panels``
+    — and accepts ordinary Playwright mouse events, so one fixture covers
+    "render it, point at it, export it".
+    """
+    import json as _json
+    import pathlib as _pathlib
+    import tempfile as _tempfile
+
+    from anyplotlib.embed import esm_path, figure_state
+
+    pages, paths = [], []
+
+    def _open(fig):
+        html = (_MOUNT_PAGE_HTML
+                .replace("__STATE__", _json.dumps(figure_state(fig)))
+                .replace("__ESM__",
+                         _json.dumps(esm_path().read_text(encoding="utf-8"))))
+        with _tempfile.NamedTemporaryFile(suffix=".html", mode="w",
+                                          encoding="utf-8", delete=False) as fh:
+            fh.write(html)
+            tmp = _pathlib.Path(fh.name)
+        paths.append(tmp)
+        page = _pw_browser.new_page()
+        pages.append(page)
+        page.goto(tmp.as_uri())
+        page.wait_for_function("() => window._aplReady === true", timeout=15_000)
+        page.evaluate(
+            "() => new Promise(r => requestAnimationFrame("
+            "() => requestAnimationFrame(r)))")
+        return page
+
+    yield _open
+
+    for p in pages:
+        try:
+            p.close()
+        except Exception:
+            pass
+    for f in paths:
+        f.unlink(missing_ok=True)

@@ -200,7 +200,7 @@ class Plot3D(_BasePlot):
     #: (highlight / camera / planes) never re-transmit them.
     _GEOM_KEYS = frozenset({
         "vertices_b64", "faces_b64", "z_values_b64", "point_colors_b64",
-        "colormap_data", "texture_url", "texture_uv_b64",
+        "colormap_data", "texture_url", "texture_uv_b64", "key_images",
     })
 
     def __init__(self, geom_type: str,

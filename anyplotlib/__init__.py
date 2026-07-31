@@ -15,6 +15,7 @@ from anyplotlib.plotxy import PlotXY
 from anyplotlib.callbacks import CallbackRegistry, Event
 from anyplotlib import embed
 from anyplotlib.markers import MarkerRegistry, MarkerGroup
+from anyplotlib.keys import KeyOverlay
 from anyplotlib.widgets import (
     Widget, RectangleWidget, CircleWidget, AnnularWidget,
     CrosshairWidget, PolygonWidget, LabelWidget, ArrowWidget, BrushWidget,
@@ -43,7 +44,7 @@ __all__ = [
     "Axes", "InsetAxes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D", "PlotBar",
     "Line1D",
     "CallbackRegistry", "Event",
-    "MarkerRegistry", "MarkerGroup",
+    "MarkerRegistry", "MarkerGroup", "KeyOverlay",
     "Widget", "RectangleWidget", "CircleWidget", "AnnularWidget",
     "CrosshairWidget", "PolygonWidget", "LabelWidget", "ArrowWidget",
     "BrushWidget",
