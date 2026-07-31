@@ -10,6 +10,64 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.6.0 (2026-07-31)
+==================
+
+API and Behaviour Changes
+-------------------------
+
+- **3-D orbit drags have reversed direction.**  Both azimuth and elevation now
+  move the geometry *with* the cursor instead of away from it, matching
+  matplotlib's ``mplot3d`` and every other turntable control — dragging right
+  spins a globe right.  Azimuth and elevation position the *camera*, so adding
+  the drag delta swept the surface the opposite way, as if you had grabbed its
+  far side.  Any muscle memory (or scripted pointer drag) built against the old
+  direction is inverted; panels driven from Python with
+  :meth:`~anyplotlib.Plot3D.set_view` are unaffected.
+
+
+New Features
+------------
+
+- :class:`~anyplotlib.Event` now carries ``azimuth`` and ``elevation`` for 3-D
+  orbit events. The renderer had always emitted them alongside ``zoom``, but they
+  were dropped on the way to Python — and since a JS-side drag does not sync back
+  into ``Plot3D._state``, a handler had no way to react to an orbit at all. See
+  the new ``Star Globe Explorer`` gallery example, which links a celestial sphere
+  to a sky map through them.
+- Added :meth:`~anyplotlib.Plot2D.add_brush_widget` for painting freehand
+  multi-class label strokes on a 2-D image with Shift-drag, leaving a bare drag to
+  pan as before.
+- Added :meth:`~anyplotlib.Plot3D.set_texture` for wrapping an image around a 3-D
+  surface — a globe, a planet, or a star chart on the celestial sphere — with
+  optional diffuse shading and backface culling.  ``Axes.plot_surface`` gained
+  ``texture=``, ``bounds=``, and ``gpu=`` to match.  Textured surfaces render on
+  WebGPU when it is available (roughly 9k triangles at 54 ms/frame on Canvas2D
+  versus 0.4 ms on the GPU), falling back to Canvas2D silently otherwise.
+  ``set_axis_off()`` now also hides a 3-D panel's axis lines, labels, and ticks.
+
+
+Bug Fixes
+---------
+
+- Fixed WebGPU 3-D geometry being clipped at the corners of a cube-shaped
+  dataset.  The clip-space depth scale let ``clip.z`` reach 1.09 for a point at
+  the far corner of the normalised bounds box, outside the ``[0, 1]`` range
+  WebGPU keeps, so the nearest corner of a dense :meth:`~anyplotlib.Axes.scatter3d`
+  cloud silently vanished at the default camera angles.  Spherical geometry was
+  never affected.
+- Fixed an inverted depth comparison in the WebGPU 3-D projection: a GPU-rendered
+  :meth:`~anyplotlib.Axes.scatter3d` cloud drew its far points on top of its near
+  ones wherever two points overlapped on screen.  Voxel panels were unaffected
+  (they disable depth writes), and the Canvas2D path was always correct.
+- Fixed the docs deployment racing itself on release. A push to ``main`` and its
+  release tag are different refs, so the ``docs-${{ github.ref }}`` concurrency
+  group put them in separate groups and both pushed to ``gh-pages`` at once; the
+  loser was rejected and its versioned directory never appeared, while
+  ``switcher.json`` still advertised the version. The deploy job now uses a
+  ref-independent group so deployments queue instead.
+
+
 0.5.0 (2026-07-26)
 ==================
 
