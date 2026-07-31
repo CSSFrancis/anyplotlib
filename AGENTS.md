@@ -95,6 +95,16 @@ make html
 make clean   # wipe build artefacts
 ```
 
+**After editing `figure_esm.js`, docs need `make clean` first.** Sphinx Gallery
+re-executes an example only when its *source* MD5 changes, and each example's
+interactive widget page (`build/html/_static/viewer_widgets/*.html`, ~1 MB) is
+generated during that execution with the renderer **inlined**. A plain
+`make html` therefore rebuilds the pages and the Pyodide wheel but silently
+serves widgets built from an older `figure_esm.js` — the figures still work,
+so nothing looks broken; they just behave like the old renderer. Check with
+`grep -c '<some new symbol>' build/html/_static/viewer_widgets/<page>_001.html`
+when a JS change doesn't seem to reach the docs.
+
 Changelog entries: add a fragment file to `upcoming_changes/` (e.g.
 `123.new_feature.rst`) — towncrier assembles `CHANGELOG.rst` at release time.
 

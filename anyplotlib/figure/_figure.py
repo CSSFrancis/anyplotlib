@@ -671,6 +671,8 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                 image_height=msg.get("image_height"),
                 display_width=msg.get("display_width"),
                 display_height=msg.get("display_height"),
+                azimuth=msg.get("azimuth"),
+                elevation=msg.get("elevation"),
                 key=msg.get("key"),
                 last_widget_id=msg.get("last_widget_id"),
                 target=msg.get("target"),

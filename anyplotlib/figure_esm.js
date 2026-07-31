@@ -3516,6 +3516,68 @@ function render({ model, el, onResize }) {
     return `rgb(${c[0]},${c[1]},${c[2]})`;
   }
 
+  // ── 3D surface textures (Plot3D.set_texture) ─────────────────────────────
+  // st.texture_url is a data: URL and st.texture_uv_b64 the per-vertex (u, v)
+  // pairs; both ride the geometry channel.  Image decode is asynchronous, so
+  // the frame that first sees a texture draws the colormapped surface and
+  // schedules a redraw once the bitmap is ready — the same progressive
+  // pattern the WebGPU init uses.  Returns the ready cache entry or null.
+  //
+  // Every triangle is genuinely texture-mapped (clip + affine drawImage).
+  // A flat "sample one texel per small triangle" shortcut was tried and
+  // dropped: it is ~3× cheaper per triangle, but flat shading makes
+  // neighbours differ in colour, and the deliberate seam overlap below then
+  // widens each of those steps into a visible herringbone across the mesh.
+  // Textures therefore want a COARSE grid — the image carries the detail, so
+  // ~2k triangles (orbiting at ~7 ms/frame) looks better than ~32k flat ones.
+  function _texEnsure(p, url) {
+    const cache = (p._3dTex ||= {});
+    if (cache.url === url) return cache.ready ? cache : null;
+    cache.url = url; cache.ready = false; cache.img = null;
+    if (!url) return null;
+    const img = new Image();
+    img.onload = () => {
+      if (!p._3dTex || p._3dTex.url !== url || !panels.has(p.id)) return;
+      cache.img = img;
+      cache.tw = img.naturalWidth  || img.width;
+      cache.th = img.naturalHeight || img.height;
+      cache.ready = cache.tw > 0 && cache.th > 0;
+      if (cache.ready) _redrawPanel(p);
+    };
+    img.onerror = () => {
+      if (p._3dTex && p._3dTex.url === url) cache.ready = false;
+      console.warn('[anyplotlib] 3-D surface texture failed to decode');
+    };
+    img.src = url;
+    return null;
+  }
+
+  // Light direction in VIEW space — (right, into-screen, up) — mostly from
+  // the camera with an upper-left bias, which reads as a lit sphere rather
+  // than a crescent.  Dotted against a camera-facing normal, so shading is
+  // independent of the surface's triangle winding.
+  const _TEX_LIGHT = (() => {
+    const v = [-0.35, -0.85, 0.40];
+    const m = Math.hypot(v[0], v[1], v[2]);
+    return [v[0]/m, v[1]/m, v[2]/m];
+  })();
+
+  // Outward edge offset, in CSS px, applied to every textured triangle so
+  // neighbours overlap instead of leaving antialiased hairlines between them.
+  const _TEX_EXPAND = 0.75;
+  // Cap on how far a vertex may travel: the exact miter length runs away as a
+  // corner sharpens, and the near-degenerate slivers a sphere shows at its
+  // limb would otherwise spray far outside the surface.
+  const _TEX_MITER_MAX = 4.0;
+
+  // Scale factor for a miter offset: `t·(nA+nB)/(1+nA·nB)`, length-clamped.
+  // `sx`/`sy` are nA+nB and `den` is 1+nA·nB.
+  function _miter(sx, sy, den) {
+    const k = _TEX_EXPAND / Math.max(1e-4, den);
+    const len = Math.hypot(sx, sy) * k;
+    return len > _TEX_MITER_MAX ? k * (_TEX_MITER_MAX / len) : k;
+  }
+
   // ═══════════════════════════════════════════════════════════════════════
   // WebGPU geometry renderer (progressive enhancement — Phase 1 prototype).
   //
@@ -3538,6 +3600,12 @@ function render({ model, el, onResize }) {
   // this many pixels — below it the Canvas2D atob+LUT loop is already instant.
   // ~1 megapixel: a 1024² image and up (a large in-situ movie frame is 16-64 Mpx).
   const GPU_IMAGE_THRESHOLD = 1 << 20;
+  // A textured surface is worth the GPU almost immediately: each Canvas2D
+  // triangle costs a clip + affine drawImage (~6 µs), so a few thousand
+  // already misses 60 fps, while the GPU draws hundreds of thousands in one
+  // indexed pass.  Below this a surface renders identically on canvas and
+  // skips the device-init round trip.
+  const GPU_SURFACE_THRESHOLD = 2000;
   let _gpuDevicePromise = null;   // module singleton: Promise<GPUDevice|null>
 
   function _gpuDevice() {
@@ -3590,11 +3658,23 @@ function render({ model, el, onResize }) {
   }
 
   // Should this 3-D panel try the GPU path for its current state?
-  function _gpuWanted(st) {
+  // `texReady` says a textured surface's image has finished decoding — a
+  // surface can only go to the GPU once there is something to sample.
+  function _gpuWanted(st, texReady) {
     if (typeof navigator === 'undefined' || !navigator.gpu) return false;
     const mode = st.gpu_mode || 'auto';
     if (mode === 'off') return false;
     const geom = st.geom_type;
+    if (geom === 'surface') {
+      // Only TEXTURED surfaces have a GPU path; a colormapped one still draws
+      // its sorted, outlined triangles on Canvas2D.  alpha < 1 also stays on
+      // canvas: the overlapping-triangle composite that makes a translucent
+      // skin look right has no cheap depth-buffer equivalent.
+      if (!st.texture_url || !texReady) return false;
+      if ((st.texture_alpha == null ? 1 : st.texture_alpha) < 1) return false;
+      if (mode === 'always') return true;
+      return (st.faces_count || 0) > GPU_SURFACE_THRESHOLD;
+    }
     if (geom !== 'scatter' && geom !== 'voxels') return false;
     if (mode === 'always') return true;
     const thr = geom === 'voxels' ? GPU_VOXEL_THRESHOLD : GPU_POINT_THRESHOLD;
@@ -3754,6 +3834,137 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // The quad is fullscreen with NO zoom/pan: the GPU path is used only when the
   // view is unzoomed/uncentred (see _gpuWanted2d); a zoomed/panned view falls
   // back to Canvas2D so the base image stays registered with the axes/overlays.
+  // ── Textured surface (Plot3D.set_texture on the GPU) ─────────────────────
+  // Indexed triangles with per-vertex UVs and normals, depth-tested.  Three
+  // things the Canvas2D path has to fake come for free here:
+  //   • occlusion — the depth buffer replaces the per-frame painter's sort
+  //     AND makes backface culling unnecessary (an open surface stays correct
+  //     when viewed from behind, which `cull_backfaces` cannot manage);
+  //   • seams — neighbouring triangles share vertices exactly, so there is no
+  //     antialiased hairline to paper over with the miter expansion;
+  //   • shading — Lambert per PIXEL against an interpolated vertex normal,
+  //     instead of one flat value per triangle.
+  // `rot` is the camera rotation R.  `norm()` scales all three axes by the
+  // same 2/maxR, so a data-space normal only needs rotating to reach view
+  // space (right, into-screen, up) — where the light lives.
+  // mat4x4 (64 B) + five vec4 (80 B).  Keep in step with the struct below and
+  // with the float offsets written in _gpuDrawSurface.
+  const _GPU_SURFACE_UBO = 144;
+
+  const _GPU_SURFACE_WGSL = `
+struct U {
+  mvp   : mat4x4<f32>,
+  rot0  : vec4<f32>,
+  rot1  : vec4<f32>,
+  rot2  : vec4<f32>,
+  light : vec4<f32>,   // xyz = light direction (view space), w = shade flag
+  misc  : vec4<f32>,   // x = surface alpha
+};
+@group(0) @binding(0) var<uniform> u : U;
+@group(0) @binding(1) var samp : sampler;
+@group(0) @binding(2) var tex  : texture_2d<f32>;
+
+struct VsOut {
+  @builtin(position) pos : vec4<f32>,
+  @location(0)       uv  : vec2<f32>,
+  @location(1)       nrm : vec3<f32>,
+};
+
+@vertex
+fn vs(@location(0) p  : vec3<f32>,
+      @location(1) uv : vec2<f32>,
+      @location(2) n  : vec3<f32>) -> VsOut {
+  var o : VsOut;
+  o.pos = u.mvp * vec4<f32>(p, 1.0);
+  o.uv  = uv;
+  o.nrm = vec3<f32>(dot(u.rot0.xyz, n), dot(u.rot1.xyz, n), dot(u.rot2.xyz, n));
+  return o;
+}
+
+@fragment
+fn fs(in : VsOut) -> @location(0) vec4<f32> {
+  var c = textureSample(tex, samp, in.uv);
+  if (u.light.w > 0.5) {
+    let n = normalize(in.nrm);
+    // Orient toward the camera (which sits at -y) so shading never depends on
+    // the grid's triangle winding — matching the Canvas2D path.
+    let o = select(1.0, -1.0, n.y > 0.0);
+    let lam = max(0.0, o * dot(n, u.light.xyz));
+    c = vec4<f32>(c.rgb * (0.35 + 0.65 * lam), c.a);
+  }
+  return vec4<f32>(c.rgb, c.a * u.misc.x);
+}
+`;
+
+  // ── Mipmap generation ─────────────────────────────────────────────────────
+  // WebGPU has no built-in mipmapper, and without one a 1440x720 sky texture
+  // minified onto a 300 px sphere aliases into sparkling noise — visibly WORSE
+  // than the Canvas2D path, which gets mip-like filtering free from
+  // drawImage + imageSmoothingQuality. So downsample level by level with a
+  // fullscreen-triangle blit. The pipeline is per (device, format) and cached.
+  const _GPU_MIP_WGSL = `
+@group(0) @binding(0) var samp : sampler;
+@group(0) @binding(1) var src  : texture_2d<f32>;
+struct VsOut { @builtin(position) pos : vec4<f32>, @location(0) uv : vec2<f32> };
+@vertex
+fn vs(@builtin(vertex_index) vi : u32) -> VsOut {
+  var xy = array<vec2<f32>, 3>(
+    vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0));
+  var o : VsOut;
+  o.pos = vec4<f32>(xy[vi], 0.0, 1.0);
+  o.uv  = vec2<f32>((xy[vi].x + 1.0) * 0.5, (1.0 - xy[vi].y) * 0.5);
+  return o;
+}
+@fragment
+fn fs(in : VsOut) -> @location(0) vec4<f32> { return textureSample(src, samp, in.uv); }
+`;
+
+  let _gpuMipCache = null;   // { device, pipeline, sampler }
+
+  function _gpuMipTools(device, format) {
+    if (_gpuMipCache && _gpuMipCache.device === device
+        && _gpuMipCache.format === format) return _gpuMipCache;
+    const module = device.createShaderModule({ code: _GPU_MIP_WGSL });
+    _gpuMipCache = {
+      device, format,
+      pipeline: device.createRenderPipeline({
+        layout: 'auto',
+        vertex:   { module, entryPoint: 'vs' },
+        fragment: { module, entryPoint: 'fs', targets: [{ format }] },
+        primitive: { topology: 'triangle-list' },
+      }),
+      sampler: device.createSampler({ magFilter: 'linear', minFilter: 'linear' }),
+    };
+    return _gpuMipCache;
+  }
+
+  function _gpuGenerateMips(device, texture, format, levels) {
+    if (levels < 2) return;
+    const { pipeline, sampler } = _gpuMipTools(device, format);
+    const enc = device.createCommandEncoder();
+    for (let lvl = 1; lvl < levels; lvl++) {
+      const bind = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: sampler },
+          { binding: 1, resource: texture.createView({
+              baseMipLevel: lvl - 1, mipLevelCount: 1 }) },
+        ],
+      });
+      const pass = enc.beginRenderPass({
+        colorAttachments: [{
+          view: texture.createView({ baseMipLevel: lvl, mipLevelCount: 1 }),
+          loadOp: 'clear', storeOp: 'store',
+          clearValue: { r: 0, g: 0, b: 0, a: 0 } }],
+      });
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(0, bind);
+      pass.draw(3);
+      pass.end();
+    }
+    device.queue.submit([enc.finish()]);
+  }
+
   const _GPU_IMAGE_WGSL = `
 // rect   = the on-screen quad in CLIP space (x0,y0,x1,y1). For zoom<=1 this is the
 //          fit-rect shrunk by zoom (centred); for zoom>=1 it's the full fit-rect.
@@ -4397,6 +4608,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Opaque canvas: voxel alpha-blending happens inside the render pass over
     // the opaque background clear, so the canvas itself stays opaque.
     ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
+    if (geom === 'surface') { _gpuInitSurfacePanel(p, device, ctx, fmt); return; }
     const isVox = geom === 'voxels';
     const module = device.createShaderModule({
       code: isVox ? _GPU_VOXEL_WGSL : _GPU_POINT_WGSL });
@@ -4437,6 +4649,172 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     p._gpuObj = { device, ctx, fmt, pipeline, uniformBuf, bindGroup, geom,
                   posBuf: null, colBuf: null, depthTex: null,
                   count: 0, geomKey: null };
+  }
+
+  // ── Textured surface: pipeline, buffers, texture ─────────────────────────
+  function _gpuInitSurfacePanel(p, device, ctx, fmt) {
+    const module = device.createShaderModule({ code: _GPU_SURFACE_WGSL });
+    const pipeline = device.createRenderPipeline({
+      layout: 'auto',
+      vertex: {
+        module, entryPoint: 'vs',
+        buffers: [
+          { arrayStride: 12,   // position
+            attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] },
+          { arrayStride: 8,    // uv
+            attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x2' }] },
+          { arrayStride: 12,   // normal
+            attributes: [{ shaderLocation: 2, offset: 0, format: 'float32x3' }] },
+        ],
+      },
+      fragment: { module, entryPoint: 'fs', targets: [{ format: fmt, blend: {
+        // Only matters for a texture carrying its own per-texel alpha; an
+        // opaque one blends as a plain overwrite, so draw order is irrelevant.
+        color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+        alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' },
+      } }] },
+      // No culling: the depth buffer resolves occlusion exactly, so an open
+      // surface stays visible from behind (which `cull_backfaces` cannot do)
+      // and a closed one hides its own far side for free.
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      depthStencil: { format: 'depth24plus',
+                      depthWriteEnabled: true, depthCompare: 'less' },
+    });
+    const uniformBuf = device.createBuffer({
+      size: _GPU_SURFACE_UBO,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    const sampler = device.createSampler({
+      magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
+      // U wraps so a sphere's 0h/24h seam interpolates across; V clamps so the
+      // poles do not bleed round to the opposite hemisphere.
+      addressModeU: 'repeat', addressModeV: 'clamp-to-edge',
+    });
+    p._gpuObj = { device, ctx, fmt, pipeline, uniformBuf, sampler,
+                  geom: 'surface', bindGroup: null,
+                  posBuf: null, uvBuf: null, nrmBuf: null, idxBuf: null,
+                  texture: null, texKey: null, depthTex: null,
+                  count: 0, geomKey: null };
+  }
+
+  function _gpuUploadSurface(p, tex) {
+    const g = p._gpuObj, st = p.state, device = g.device;
+    const key = (st.vertices_b64 || '') + '|' + (st.faces_b64 || '')
+              + '|' + (st.texture_uv_b64 || '');
+    if (g.geomKey !== key) {
+      g.geomKey = key;
+      for (const b of ['posBuf', 'uvBuf', 'nrmBuf', 'idxBuf']) {
+        if (g[b]) { g[b].destroy(); g[b] = null; }
+      }
+      const verts = p._3dVerts || [], uv = p._3dUV;
+      const idx = p._3dFacesFlat;
+      const n = verts.length;
+      if (!n || !uv || !idx || !idx.length) { g.count = 0; return; }
+
+      const pos = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+        pos[i*3] = verts[i][0]; pos[i*3+1] = verts[i][1]; pos[i*3+2] = verts[i][2];
+      }
+      // Smooth vertex normals: accumulate each face's normal onto its three
+      // corners.  The absolute sign does not matter (the shader orients toward
+      // the camera), only that neighbouring faces agree — which a grid
+      // triangulation guarantees.  This is what buys per-pixel shading.
+      const nrm = new Float32Array(n * 3);
+      for (let f = 0; f + 2 < idx.length; f += 3) {
+        const a = idx[f], b = idx[f+1], c = idx[f+2];
+        const ax = pos[a*3], ay = pos[a*3+1], az = pos[a*3+2];
+        const e1x = pos[b*3] - ax, e1y = pos[b*3+1] - ay, e1z = pos[b*3+2] - az;
+        const e2x = pos[c*3] - ax, e2y = pos[c*3+1] - ay, e2z = pos[c*3+2] - az;
+        const fx = e1y*e2z - e1z*e2y;
+        const fy = e1z*e2x - e1x*e2z;
+        const fz = e1x*e2y - e1y*e2x;
+        for (const v of [a, b, c]) {
+          nrm[v*3] += fx; nrm[v*3+1] += fy; nrm[v*3+2] += fz;
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        const x = nrm[i*3], y = nrm[i*3+1], z = nrm[i*3+2];
+        const L = Math.hypot(x, y, z);
+        if (L > 0) { nrm[i*3] = x/L; nrm[i*3+1] = y/L; nrm[i*3+2] = z/L; }
+        else { nrm[i*3+2] = 1; }
+      }
+      // UVs may be shorter than the vertex count only if state is mid-update;
+      // the caller already gates on length, so copy straight through.
+      const uvs = new Float32Array(uv.buffer, uv.byteOffset, n * 2);
+
+      const mk = (data, usage) => {
+        const buf = device.createBuffer({
+          size: Math.max(16, data.byteLength), usage: usage | GPUBufferUsage.COPY_DST });
+        device.queue.writeBuffer(buf, 0, data);
+        return buf;
+      };
+      g.posBuf = mk(pos, GPUBufferUsage.VERTEX);
+      g.uvBuf  = mk(uvs, GPUBufferUsage.VERTEX);
+      g.nrmBuf = mk(nrm, GPUBufferUsage.VERTEX);
+      // Indices are non-negative, so the int32 bit patterns are already uint32.
+      g.idxBuf = mk(new Uint32Array(idx.buffer, idx.byteOffset, idx.length),
+                    GPUBufferUsage.INDEX);
+      g.count = idx.length;
+    }
+
+    // Texture: uploaded from the decoded <img>, with a full mip chain.
+    if (g.texKey !== tex.url) {
+      const lim = device.limits.maxTextureDimension2D || 8192;
+      if (tex.tw > lim || tex.th > lim) {
+        throw new Error(`texture ${tex.tw}x${tex.th} exceeds the device limit ${lim}`);
+      }
+      if (g.texture) g.texture.destroy();
+      const levels = 1 + Math.floor(Math.log2(Math.max(tex.tw, tex.th)));
+      g.texture = device.createTexture({
+        size: [tex.tw, tex.th], format: 'rgba8unorm', mipLevelCount: levels,
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+             | GPUTextureUsage.RENDER_ATTACHMENT });
+      device.queue.copyExternalImageToTexture(
+        { source: tex.img }, { texture: g.texture }, [tex.tw, tex.th]);
+      _gpuGenerateMips(device, g.texture, 'rgba8unorm', levels);
+      g.texKey = tex.url;
+      g.bindGroup = device.createBindGroup({
+        layout: g.pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: g.uniformBuf } },
+          { binding: 1, resource: g.sampler },
+          { binding: 2, resource: g.texture.createView() },
+        ],
+      });
+    }
+  }
+
+  function _gpuDrawSurface(p, R, scale, cx, cy) {
+    const g = p._gpuObj;
+    if (!g || !g.count || !g.bindGroup) return;
+    const st = p.state, device = g.device;
+    const { W, H, dpr } = _gpuEnsureSize(p);
+    const gm = p._gpuGeom;
+    const mvp = _gpuMatrix(R, scale * dpr, cx * dpr, cy * dpr, W, H,
+                           gm.bnds, gm.maxR, gm.xr, gm.yr, gm.zr);
+    // Uniform layout, in floats: mvp 0..15 | rot0 16..19 | rot1 20..23 |
+    // rot2 24..27 | light.xyz + shade flag 28..31 | misc.x = alpha 32..35.
+    // 36 floats = 144 bytes (mat4 + five vec4), matching _GPU_SURFACE_UBO.
+    const u = new Float32Array(36);
+    u.set(mvp, 0);
+    u[16] = R[0][0]; u[17] = R[0][1]; u[18] = R[0][2];
+    u[20] = R[1][0]; u[21] = R[1][1]; u[22] = R[1][2];
+    u[24] = R[2][0]; u[25] = R[2][1]; u[26] = R[2][2];
+    u[28] = _TEX_LIGHT[0]; u[29] = _TEX_LIGHT[1]; u[30] = _TEX_LIGHT[2];
+    u[31] = st.texture_shade ? 1 : 0;
+    u[32] = st.texture_alpha == null ? 1 : st.texture_alpha;
+    device.queue.writeBuffer(g.uniformBuf, 0, u);
+
+    const enc = device.createCommandEncoder();
+    const pass = _gpuBeginPass(g, enc);
+    pass.setPipeline(g.pipeline);
+    pass.setBindGroup(0, g.bindGroup);
+    pass.setVertexBuffer(0, g.posBuf);
+    pass.setVertexBuffer(1, g.uvBuf);
+    pass.setVertexBuffer(2, g.nrmBuf);
+    pass.setIndexBuffer(g.idxBuf, 'uint32');
+    pass.drawIndexed(g.count);
+    pass.end();
+    device.queue.submit([enc.finish()]);
   }
 
   function _gpuUploadGeometry(p) {
@@ -4495,7 +4873,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // Substituting n = k*v - o, each clip component is affine in v:
   //   clip.x = (2*scale*k/pw)*(r0·v) + [ -(2*scale/pw)*(r0·o) + (2*cx/pw - 1) ]
   //   clip.y = -(2*scale*k/ph)*(r2·v) + [  (2*scale/ph)*(r2·o) + (1 - 2*cy/ph) ]
-  //   clip.z = -0.35*k*(r1·v) + [ 0.35*(r1·o) + 0.5 ]
+  //   clip.z = +0.35*k*(r1·v) + [ -0.35*(r1·o) + 0.5 ]   →  0.5 + 0.35*depth
+  //
+  // DEPTH SIGN: r1·n is depth INTO the screen, so clip.z must INCREASE with it
+  // for `depthCompare: 'less'` against a 1.0 clear to keep the nearest
+  // fragment.  This row used to be negated, which inverted every depth-tested
+  // GPU draw — a scatter cloud painted its far points over its near ones, and
+  // a textured surface rendered inside-out (you saw the far hemisphere).  It
+  // went unnoticed because voxels, the other GPU consumer, disable depth
+  // writes entirely.  The range stays inside [0,1] for the normalised
+  // [-1,1]³ box the renderer works in.
   //
   // Build the 4 ROWS, then transpose into WGSL's column-major storage.
   function _gpuMatrix(R, scale, cx, cy, pw, ph, bnds, maxR, xr, yr, zr) {
@@ -4513,7 +4900,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // negations CANCEL, so rowY's coefficients are +sy*r2, not -sy*r2.
     const rowX = [ sx*r0[0],  sx*r0[1],  sx*r0[2],  -(2*scale/pw)*r0o + (2*cx/pw - 1) ];
     const rowY = [ sy*r2[0],  sy*r2[1],  sy*r2[2],  -(2*scale/ph)*r2o + (1 - 2*cy/ph) ];
-    const rowZ = [-0.35*k*r1[0], -0.35*k*r1[1], -0.35*k*r1[2], 0.35*r1o + 0.5 ];
+    const rowZ = [ 0.35*k*r1[0],  0.35*k*r1[1],  0.35*k*r1[2], -0.35*r1o + 0.5 ];
     const rowW = [0, 0, 0, 1];
     // Column-major: column j = [rowX[j], rowY[j], rowZ[j], rowW[j]]
     return new Float32Array([
@@ -4646,6 +5033,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       g.colBuf && g.colBuf.destroy();
       g.depthTex && g.depthTex.destroy();
       g.uniformBuf && g.uniformBuf.destroy();
+      // Textured-surface resources (the mip-chained texture can be tens of MB).
+      g.uvBuf && g.uvBuf.destroy();
+      g.nrmBuf && g.nrmBuf.destroy();
+      g.idxBuf && g.idxBuf.destroy();
+      g.texture && g.texture.destroy();
     } catch (_) {}
     p._gpuObj = null;
   }
@@ -4699,11 +5091,17 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const arr = new Array(nf);
         for (let i = 0; i < nf; i++) arr[i] = [ff[i*3], ff[i*3+1], ff[i*3+2]];
         p._3dFaces = arr;
-      } else { p._3dFaces = st.faces || []; }
+        p._3dFacesFlat = ff;      // straight to a GPU index buffer
+      } else { p._3dFaces = st.faces || []; p._3dFacesFlat = null; }
     }
     if (p._3dZKey !== zKey) {
       p._3dZKey = zKey;
       p._3dZVals = zKey ? _decodeF32(zKey) : (st.z_values || []);
+    }
+    const uvKey = st.texture_uv_b64 || '';
+    if (p._3dUVKey !== uvKey) {
+      p._3dUVKey = uvKey;
+      p._3dUV = uvKey ? _decodeF32(uvKey) : null;
     }
     const verts = p._3dVerts  || [];
     const faces = p._3dFaces  || [];
@@ -4736,7 +5134,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const cx = pw / 2, cy = ph / 2;
     const scale = zoom * Math.min(pw, ph) * 0.32;
 
-    // ── WebGPU geometry path (instanced points + voxels) ──────────────────
+    // Resolve a surface texture BEFORE the GPU decision — a surface only wants
+    // the GPU once its image has decoded, and _texEnsure is what starts that
+    // (returning null and scheduling a redraw until the bitmap is ready).
+    const surfTex = (geom === 'surface' && p._3dUV
+                     && p._3dUV.length >= verts.length * 2)
+      ? _texEnsure(p, st.texture_url || '') : null;
+
+    // ── WebGPU geometry path (instanced points + voxels, textured surfaces) ─
     // Decide once whether this panel renders geometry on the GPU.  On the
     // first frame that wants it, kick off async device init; until it
     // resolves (or if it fails) the canvas path below runs unchanged.
@@ -4744,7 +5149,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     let gpuActive = false;
     const gpuGeomChanged = p._gpuObj && p._gpuObj.geom !== geom;
     if (gpuGeomChanged) { _gpuDisposePanel(p); p._gpu = undefined; }
-    if (p.kind === '3d' && _gpuWanted(st)) {
+    // Test/diagnostic hook, mirroring __apl_gpu2d: what did the GPU decision
+    // depend on this frame?  Cheap, and the only way to tell "no adapter" from
+    // "texture not decoded yet" from "panel had zero size" after the fact.
+    try { (globalThis.__apl_gpu3d ||= {})[p.id] = {
+      geom, gpu: p._gpu, wanted: _gpuWanted(st, !!surfTex),
+      texUrl: !!st.texture_url, texReady: !!surfTex,
+      faces: st.faces_count || 0, mode: st.gpu_mode, pw, ph,
+      hasNavGpu: typeof navigator !== 'undefined' && !!navigator.gpu }; } catch (_) {}
+    if (p.kind === '3d' && _gpuWanted(st, !!surfTex)) {
       // Zero-drawable-size guard: SpyDE (and any host) mounts a 3-D panel HIDDEN
       // (display:none) and reveals it later, so the FIRST draw3d can run with
       // pw/ph == 0 (a zero-size layout) and the gpuCanvas collapsed to 0 client
@@ -4814,9 +5227,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       p.plotCanvas.style.background = 'transparent';
       ctx.clearRect(0, 0, pw, ph);
       try {
-        _gpuUploadGeometry(p);
-        if (geom === 'voxels') _gpuDrawVoxels(p, R, scale, cx, cy);
-        else                   _gpuDrawPoints(p, R, scale, cx, cy);
+        if (geom === 'surface') {
+          _gpuUploadSurface(p, surfTex);
+          _gpuDrawSurface(p, R, scale, cx, cy);
+        } else {
+          _gpuUploadGeometry(p);
+          if (geom === 'voxels') _gpuDrawVoxels(p, R, scale, cx, cy);
+          else                   _gpuDrawPoints(p, R, scale, cx, cy);
+        }
       } catch (e) {
         console.warn('[anyplotlib] GPU draw failed — falling back:', e);
         p._gpu = 'unavailable'; gpuActive = false;
@@ -4910,7 +5328,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       ctx.restore();
     }
 
-    if (geom === 'surface' && faces.length > 0) {
+    if (geom === 'surface' && faces.length > 0 && !gpuActive) {
+      // An image texture replaces the Z colormap when one is attached AND
+      // decoded; until the bitmap loads (or if it fails) the colormap path
+      // below renders unchanged.  Already resolved above, because the GPU
+      // decision depends on it.
+      const uv  = p._3dUV;
+      const tex = surfTex;
+
       // Compute per-face mean depth and mean z for colour
       const faceData = faces.map(f => {
         const d = (proj[f[0]].d + proj[f[1]].d + proj[f[2]].d) / 3;
@@ -4920,20 +5345,172 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // Painter's algorithm: draw back-to-front
       faceData.sort((a, b) => b.d - a.d);
 
-      for (const { f, zMean } of faceData) {
-        const t  = (zMean - zMin) / zRange;
-        const fc = _colourFromLut(lut, t);
-        const [ax2, ay2] = proj[f[0]].s;
-        const [bx,  by ] = proj[f[1]].s;
-        const [ccx2,ccy2] = proj[f[2]].s;
-        ctx.beginPath();
-        ctx.moveTo(ax2, ay2); ctx.lineTo(bx, by); ctx.lineTo(ccx2, ccy2);
-        ctx.closePath();
-        ctx.fillStyle = fc;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-        ctx.lineWidth = 0.4;
-        ctx.stroke();
+      if (tex) {
+        const texA  = st.texture_alpha == null ? 1 : st.texture_alpha;
+        const shade = !!st.texture_shade;
+        const cull  = !!st.texture_cull;
+        const tw = tex.tw, th = tex.th;
+
+        // A translucent surface has to be built opaque on a scratch canvas and
+        // composited ONCE, because the triangles deliberately overlap (see the
+        // seam note below): drawing them at globalAlpha < 1 straight onto the
+        // panel would double-composite every overlap and etch the mesh into
+        // the surface as a scaly grid.
+        let dctx = ctx, off = null;
+        if (texA < 1) {
+          off = (p._3dTexOff ||= new OffscreenCanvas(1, 1));
+          if (off.width !== ctx.canvas.width || off.height !== ctx.canvas.height) {
+            off.width  = ctx.canvas.width;
+            off.height = ctx.canvas.height;
+          }
+          dctx = off.getContext('2d');
+          dctx.setTransform(1, 0, 0, 1, 0, 0);
+          dctx.clearRect(0, 0, off.width, off.height);
+          dctx.setTransform(ctx.getTransform());   // inherit the DPR scale
+        }
+        const passA = off ? 1 : texA;              // alpha applied at composite
+
+        dctx.save();
+        dctx.imageSmoothingEnabled = true;
+        dctx.imageSmoothingQuality = 'high';
+        for (const { f } of faceData) {
+          const i0 = f[0], i1 = f[1], i2 = f[2];
+          const [x0, y0] = proj[i0].s;
+          const [x1, y1] = proj[i1].s;
+          const [x2, y2] = proj[i2].s;
+
+          // View-space edge vectors, recovered from the screen position and
+          // depth (all three components carry the same `scale` factor, which
+          // cancels out of a normal direction).  The mesh centre is the
+          // origin here: `norm` maps the data-bounds midpoint to (0,0,0).
+          const ax3 = x0 - cx, ay3 = proj[i0].d * scale, az3 = cy - y0;
+          const e1x = (x1 - cx) - ax3, e1y = proj[i1].d * scale - ay3, e1z = (cy - y1) - az3;
+          const e2x = (x2 - cx) - ax3, e2y = proj[i2].d * scale - ay3, e2z = (cy - y2) - az3;
+          let nx = e1y * e2z - e1z * e2y;
+          let ny = e1z * e2x - e1x * e2z;
+          let nz = e1x * e2y - e1y * e2x;
+          const nLen = Math.hypot(nx, ny, nz);
+          if (!(nLen > 0)) continue;            // degenerate (pole) triangle
+          nx /= nLen; ny /= nLen; nz /= nLen;
+
+          if (cull) {
+            // Orient the normal outward per face using the vector from the
+            // mesh centre to the face centroid — no dependence on the
+            // triangulation's winding, and exact for any star-shaped closed
+            // surface (sphere, ellipsoid, blob).  Skip it when it points
+            // away from the camera, which sits at -y.
+            const gx3 = ax3 + (e1x + e2x) / 3;
+            const gy3 = ay3 + (e1y + e2y) / 3;
+            const gz3 = az3 + (e1z + e2z) / 3;
+            const s = (nx * gx3 + ny * gy3 + nz * gz3) >= 0 ? 1 : -1;
+            if (s * ny > 0) continue;
+          }
+
+          // Lambert against a camera-facing normal (flip when it points into
+          // the screen).  Orienting by the camera rather than by triangle
+          // winding makes the shading independent of how the grid was
+          // generated, while still keeping the light's upper-left bias that
+          // an unsigned |n·L| would wash out.
+          let bright = 1;
+          if (shade) {
+            const o = ny > 0 ? -1 : 1;
+            const lam = o * (nx * _TEX_LIGHT[0] + ny * _TEX_LIGHT[1]
+                             + nz * _TEX_LIGHT[2]);
+            bright = 0.35 + 0.65 * (lam > 0 ? lam : 0);
+          }
+
+          // Grow the triangle before clipping.  Adjacent triangles each cover
+          // about half the pixels along their shared edge, and source-over of
+          // two half-covered fills leaves a hairline of background showing —
+          // a mesh etched over the whole surface.  Overlapping them paints
+          // those pixels fully; the overlap is harmless because the nearer
+          // triangle simply wins and everything inside is drawn opaque.
+          //
+          // The growth must offset the three EDGES, not push the vertices
+          // away from the centroid: for the sliver triangles a quad-split
+          // grid produces near a sphere's limb, the centroid lies almost on
+          // the long edges, so a vertex nudge moves them barely at all.
+          // Each vertex therefore travels along its miter direction,
+          // t·(nA + nB)/(1 + nA·nB) for unit outward edge normals — clamped
+          // at a very sharp corner, where the exact miter runs away.
+          const gx = (x0 + x1 + x2) / 3, gy = (y0 + y1 + y2) / 3;
+          let n0x = y1 - y0, n0y = x0 - x1;    // outward normals, edge i → i+1
+          let n1x = y2 - y1, n1y = x1 - x2;
+          let n2x = y0 - y2, n2y = x2 - x0;
+          const l0 = Math.hypot(n0x, n0y) || 1, l1 = Math.hypot(n1x, n1y) || 1,
+                l2 = Math.hypot(n2x, n2y) || 1;
+          n0x /= l0; n0y /= l0; n1x /= l1; n1y /= l1; n2x /= l2; n2y /= l2;
+          if (n0x * ((x0 + x1) / 2 - gx) + n0y * ((y0 + y1) / 2 - gy) < 0) {
+            n0x = -n0x; n0y = -n0y; n1x = -n1x; n1y = -n1y; n2x = -n2x; n2y = -n2y;
+          }
+          const m01 = _miter(n0x + n1x, n0y + n1y, 1 + n0x*n1x + n0y*n1y);
+          const m12 = _miter(n1x + n2x, n1y + n2y, 1 + n1x*n2x + n1y*n2y);
+          const m20 = _miter(n2x + n0x, n2y + n0y, 1 + n2x*n0x + n2y*n0y);
+          const ex0 = x0 + (n2x + n0x) * m20, ey0 = y0 + (n2y + n0y) * m20;
+          const ex1 = x1 + (n0x + n1x) * m01, ey1 = y1 + (n0y + n1y) * m01;
+          const ex2 = x2 + (n1x + n2x) * m12, ey2 = y2 + (n1y + n2y) * m12;
+
+          // Texture coordinates in texel units.  A degenerate UV triangle has
+          // no affine map onto the screen; skip it (it covers no texels).
+          const u0 = uv[i0*2] * tw, v0 = uv[i0*2+1] * th;
+          const u1 = uv[i1*2] * tw, v1 = uv[i1*2+1] * th;
+          const u2 = uv[i2*2] * tw, v2 = uv[i2*2+1] * th;
+          const den = (u1 - u0) * (v2 - v0) - (u2 - u0) * (v1 - v0);
+          if (Math.abs(den) < 1e-9) continue;
+
+          // Affine map taking (u, v) texel space onto the screen triangle.
+          const a = ((x1-x0)*(v2-v0) - (x2-x0)*(v1-v0)) / den;
+          const b = ((y1-y0)*(v2-v0) - (y2-y0)*(v1-v0)) / den;
+          const c = ((x2-x0)*(u1-u0) - (x1-x0)*(u2-u0)) / den;
+          const d = ((y2-y0)*(u1-u0) - (y1-y0)*(u2-u0)) / den;
+
+          dctx.save();
+          dctx.beginPath();
+          dctx.moveTo(ex0, ey0); dctx.lineTo(ex1, ey1); dctx.lineTo(ex2, ey2);
+          dctx.closePath();
+          dctx.clip();
+          if (shade) {
+            // Diffuse falloff as an opaque black base the texture is drawn
+            // over at `bright` — modulating this way keeps the seam overlap
+            // free of the double-darkened grid a translucent second pass
+            // would leave.
+            dctx.globalAlpha = passA;
+            dctx.fillStyle = '#000';
+            dctx.fill();
+          }
+          dctx.globalAlpha = passA * bright;
+          // transform(), not setTransform(): the panel's device-pixel-ratio
+          // scale is already on the context and must survive.
+          dctx.transform(a, b, c, d, x0 - a*u0 - c*v0, y0 - b*u0 - d*v0);
+          dctx.drawImage(tex.img, 0, 0);
+          dctx.restore();
+        }
+        dctx.restore();
+
+        if (off) {
+          ctx.save();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);   // off is already device-sized
+          ctx.globalAlpha = texA;
+          ctx.drawImage(off, 0, 0);
+          ctx.restore();
+        }
+
+      } else {
+        for (const { f, zMean } of faceData) {
+          const t  = (zMean - zMin) / zRange;
+          const fc = _colourFromLut(lut, t);
+          const [ax2, ay2] = proj[f[0]].s;
+          const [bx,  by ] = proj[f[1]].s;
+          const [ccx2,ccy2] = proj[f[2]].s;
+          ctx.beginPath();
+          ctx.moveTo(ax2, ay2); ctx.lineTo(bx, by); ctx.lineTo(ccx2, ccy2);
+          ctx.closePath();
+          ctx.fillStyle = fc;
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+          ctx.lineWidth = 0.4;
+          ctx.stroke();
+        }
       }
 
     } else if (geom === 'scatter' && !gpuActive) {
@@ -5220,65 +5797,70 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
 
     // ── Draw axes ────────────────────────────────────────────────────────────
-    const axisVerts = [
-      [-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]
-    ];
-    const ap = axisVerts.map(v => _project3(_applyRot(R, v), cx, cy, scale));
+    // set_axis_off() hides the axis lines, labels, and ticks — worth having on
+    // a 3-D panel whose geometry IS the subject (a textured globe reads badly
+    // with three dashed lines drawn through it).
+    if (st.axis_visible !== false) {
+      const axisVerts = [
+        [-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]
+      ];
+      const ap = axisVerts.map(v => _project3(_applyRot(R, v), cx, cy, scale));
 
-    const axDefs = [
-      { i0:0, i1:1, label: st.x_label||'x', col:'#e06c75', size: st.x_label_size||11 },
-      { i0:2, i1:3, label: st.y_label||'y', col:'#98c379', size: st.y_label_size||11 },
-      { i0:4, i1:5, label: st.z_label||'z', col:'#61afef', size: st.z_label_size||11 },
-    ];
-    for (const { i0, i1, label, col, size } of axDefs) {
-      ctx.beginPath();
-      ctx.moveTo(ap[i0][0], ap[i0][1]);
-      ctx.lineTo(ap[i1][0], ap[i1][1]);
-      ctx.strokeStyle = col;
-      ctx.lineWidth   = 1.5;
-      ctx.setLineDash([4, 3]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      // Positive-end label
-      ctx.fillStyle   = col;
-      ctx.textBaseline = 'middle';
-      _drawTex(ctx, label, ap[i1][0], ap[i1][1], size,
-               { align: 'center', weight: 'bold' });
-    }
-
-    // ── Tick marks on each axis (5 evenly spaced) ─────────────────────────
-    ctx.font = '9px sans-serif';
-    ctx.fillStyle = theme.tickText;
-    const NTICK = 5;
-    const axisData = [
-      { lo: bnds.xmin, hi: bnds.xmax, baseN: [0,0,0], dir: [1/maxR*2,0,0] },
-      { lo: bnds.ymin, hi: bnds.ymax, baseN: [0,0,0], dir: [0,1/maxR*2,0] },
-      { lo: bnds.zmin, hi: bnds.zmax, baseN: [0,0,0], dir: [0,0,1/maxR*2] },
-    ];
-    const axisColours = ['#e06c75','#98c379','#61afef'];
-    for (let ai = 0; ai < 3; ai++) {
-      const { lo, hi } = axisData[ai];
-      const range = hi - lo || 1;
-      const step  = findNice(range / NTICK);
-      ctx.fillStyle   = axisColours[ai];
-      ctx.strokeStyle = axisColours[ai];
-      ctx.lineWidth   = 0.8;
-      for (let tv = Math.ceil(lo / step) * step; tv <= hi + step * 0.01; tv += step) {
-        const t = (tv - lo) / range; // 0..1
-        // Normalised position on the axis
-        let nv;
-        if (ai === 0) nv = [2*t*xr/maxR - xr/maxR, -yr/maxR, -zr/maxR];
-        else if(ai===1) nv = [-xr/maxR, 2*t*yr/maxR - yr/maxR, -zr/maxR];
-        else            nv = [-xr/maxR, -yr/maxR, 2*t*zr/maxR - zr/maxR];
-        const [tx, ty] = _project3(_applyRot(R, nv), cx, cy, scale);
-        // Small tick cross
+      const axDefs = [
+        { i0:0, i1:1, label: st.x_label||'x', col:'#e06c75', size: st.x_label_size||11 },
+        { i0:2, i1:3, label: st.y_label||'y', col:'#98c379', size: st.y_label_size||11 },
+        { i0:4, i1:5, label: st.z_label||'z', col:'#61afef', size: st.z_label_size||11 },
+      ];
+      for (const { i0, i1, label, col, size } of axDefs) {
         ctx.beginPath();
-        ctx.arc(tx, ty, 1.5, 0, Math.PI * 2);
-        ctx.fill();
-        // Label (only every other tick to avoid crowding)
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(fmtVal(tv), tx + 3, ty - 1);
+        ctx.moveTo(ap[i0][0], ap[i0][1]);
+        ctx.lineTo(ap[i1][0], ap[i1][1]);
+        ctx.strokeStyle = col;
+        ctx.lineWidth   = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Positive-end label
+        ctx.fillStyle   = col;
+        ctx.textBaseline = 'middle';
+        _drawTex(ctx, label, ap[i1][0], ap[i1][1], size,
+                 { align: 'center', weight: 'bold' });
+      }
+
+      // ── Tick marks on each axis (5 evenly spaced) ─────────────────────────
+      ctx.font = '9px sans-serif';
+      ctx.fillStyle = theme.tickText;
+      const NTICK = 5;
+      const axisData = [
+        { lo: bnds.xmin, hi: bnds.xmax, baseN: [0,0,0], dir: [1/maxR*2,0,0] },
+        { lo: bnds.ymin, hi: bnds.ymax, baseN: [0,0,0], dir: [0,1/maxR*2,0] },
+        { lo: bnds.zmin, hi: bnds.zmax, baseN: [0,0,0], dir: [0,0,1/maxR*2] },
+      ];
+      const axisColours = ['#e06c75','#98c379','#61afef'];
+      for (let ai = 0; ai < 3; ai++) {
+        const { lo, hi } = axisData[ai];
+        const range = hi - lo || 1;
+        const step  = findNice(range / NTICK);
+        ctx.fillStyle   = axisColours[ai];
+        ctx.strokeStyle = axisColours[ai];
+        ctx.lineWidth   = 0.8;
+        for (let tv = Math.ceil(lo / step) * step; tv <= hi + step * 0.01; tv += step) {
+          const t = (tv - lo) / range; // 0..1
+          // Normalised position on the axis
+          let nv;
+          if (ai === 0) nv = [2*t*xr/maxR - xr/maxR, -yr/maxR, -zr/maxR];
+          else if(ai===1) nv = [-xr/maxR, 2*t*yr/maxR - yr/maxR, -zr/maxR];
+          else            nv = [-xr/maxR, -yr/maxR, 2*t*zr/maxR - zr/maxR];
+          const [tx, ty] = _project3(_applyRot(R, nv), cx, cy, scale);
+          // Small tick cross
+          ctx.beginPath();
+          ctx.arc(tx, ty, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          // Label (only every other tick to avoid crowding)
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(fmtVal(tv), tx + 3, ty - 1);
+        }
       }
     }
 
@@ -5444,8 +6026,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const {mx:_d3mx2, my:_d3my2} = _clientPos(e, overlayCanvas, p.pw, p.ph);
       const dx = _d3mx2 - dragStart.mx;
       const dy = _d3my2 - dragStart.my;
-      p.state.azimuth   = dragStart.az + dx * 0.5;
-      p.state.elevation = Math.max(-89, Math.min(89, dragStart.el - dy * 0.5));
+      // DIRECT MANIPULATION: the surface under the cursor follows the cursor,
+      // the way a globe does.  Both signs are inverted relative to the camera
+      // angles because azimuth/elevation move the CAMERA: a feature's screen x
+      // is `cx + scale*cos(az - θ)`, so raising azimuth sweeps the surface
+      // LEFT, and raising elevation lifts the camera to show more of the top.
+      // Adding dx (and subtracting dy) therefore made a rightward drag push
+      // the surface left — it felt like grabbing the far side of the sphere.
+      p.state.azimuth   = dragStart.az - dx * 0.5;
+      p.state.elevation = Math.max(-89, Math.min(89, dragStart.el + dy * 0.5));
       draw3d(p);
       _writeState();
       _emitEvent(p.id, 'pointer_move', null,
@@ -8988,7 +9577,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           let _need = false;
           for (const p of panels.values()) {
             if (p.kind === '3d' && p._gpu === undefined && p.state
-                && _gpuWanted(p.state)) { _need = true; break; }
+                && _gpuWanted(p.state, !!(p._3dTex && p._3dTex.ready))) {
+              _need = true; break;
+            }
           }
           if (_need) redrawAll();
         });

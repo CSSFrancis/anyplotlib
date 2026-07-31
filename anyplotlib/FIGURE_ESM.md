@@ -404,6 +404,73 @@ triangles, draws axes with per-axis `_drawTex` labels (`x/y/z_label_size`).
 - **Reference sphere**: `st.sphere = {radius,color,alpha,wireframe}` draws a
   shaded silhouette disk + lat/long wireframe behind the geometry; far-side
   wireframe segments and scatter points are dimmed.
+- **Surface textures** (`Plot3D.set_texture`, `geom_type 'surface'`):
+  `st.texture_url` (a `data:` URL) + `st.texture_uv_b64` (float32 per-vertex
+  `(u,v)`) ride the geom channel; `texture_alpha` / `texture_shade` /
+  `texture_cull` are light view fields. `_texEnsure(p, url)` decodes into
+  `p._3dTex` via an `Image` — asynchronous, so the first frame draws the
+  colormapped surface and the `onload` calls `_redrawPanel`. Each triangle is
+  then clipped and painted with an affine `drawImage` mapping texel space onto
+  the screen triangle (`ctx.transform`, **not** `setTransform` — the panel's
+  DPR scale must survive). Three things are easy to get wrong here:
+  - **Seams.** Neighbours each cover ~half the pixels on a shared edge, so
+    source-over leaves a mesh of background hairlines. Triangles are grown by
+    `_TEX_EXPAND` so they overlap — offsetting the three **edges** (a miter,
+    `_miter()`, capped at `_TEX_MITER_MAX`), never pushing vertices away from
+    the centroid: for the slivers a quad-split grid makes at a sphere's limb
+    the centroid sits on the long edges and barely moves them.
+    `test_no_seams_between_neighbouring_triangles` guards this.
+  - **`alpha < 1`.** Because the triangles overlap, drawing them translucent
+    double-composites every overlap into a scaly grid. The surface is instead
+    built opaque on a cached `p._3dTexOff` OffscreenCanvas (same DPR
+    transform) and blitted once at `texture_alpha`.
+  - **Shading.** `texture_shade` fills the clip black then draws the texture at
+    `globalAlpha = bright`, rather than darkening with a second translucent
+    pass (which would double-darken the overlaps). `bright` is Lambert against
+    a *camera-facing* normal (flipped when it points into the screen), so it
+    never depends on the grid's winding.
+
+  A flat "sample one texel per small triangle" fast path was tried and removed:
+  it is ~3× cheaper per triangle but makes neighbours differ in colour, which
+  the seam overlap then widens into a visible herringbone. On Canvas2D,
+  textures therefore want a **coarse** grid (the image carries the detail) —
+  ~2k triangles orbits at ~7 ms/frame, ~32k at ~350 ms. **The WebGPU path
+  below removes that constraint entirely.**
+- **Textured surfaces on WebGPU** (`_GPU_SURFACE_WGSL`, `_gpuInitSurfacePanel`
+  / `_gpuUploadSurface` / `_gpuDrawSurface`): indexed triangles with per-vertex
+  UVs and smooth normals, depth-tested, above `GPU_SURFACE_THRESHOLD` (2000
+  faces) — measured 9k triangles 54 ms → 0.4 ms, 160k triangles 1.75 s →
+  2.4 ms. Everything the Canvas2D path has to fake is free here: the depth
+  buffer replaces the per-frame painter's sort *and* makes `cull_backfaces`
+  unnecessary (`cullMode: 'none'` is correct for open and closed surfaces
+  alike); shared vertices mean no seams, so no miter expansion; and Lambert
+  runs per PIXEL against an interpolated normal. Normals are accumulated per
+  vertex at upload — `norm()` scales all axes by the same `2/maxR`, so a
+  data-space normal only needs the camera rotation (passed as `rot0..rot2`) to
+  reach view space. `_gpuWanted(st, texReady)` gates it: only textured
+  surfaces, and only once the `<img>` has decoded. **`texture_alpha < 1` stays
+  on Canvas2D** — the overlapping-triangle composite that makes a translucent
+  skin look right has no cheap depth-buffer equivalent.
+  - **Mipmaps are mandatory**, not a nicety: without them a 1440×720 texture
+    minified onto a 300 px sphere aliases into sparkling noise, visibly worse
+    than Canvas2D (which gets mip-like filtering free from `drawImage` +
+    `imageSmoothingQuality`). WebGPU has no built-in mipmapper, so
+    `_gpuGenerateMips` downsamples level by level with a fullscreen-triangle
+    blit (`_GPU_MIP_WGSL`, pipeline cached per device+format).
+  - **Diagnosing "why is this on Canvas2D?"** — `draw3d` records
+    `globalThis.__apl_gpu3d[panelId]` every frame (`{geom, gpu, wanted,
+    texUrl, texReady, faces, mode, pw, ph, hasNavGpu}`), mirroring
+    `__apl_gpu2d`. It is the only way after the fact to tell "no adapter" from
+    "texture still decoding" from "panel had zero size at init" — and from "the
+    page is serving a stale inlined renderer", which is what a `make html`
+    without `make clean` produces (see AGENTS.md).
+  - **`_gpuMatrix`'s clip.z sign matters.** It must INCREASE with depth into
+    the screen for `depthCompare: 'less'` against a 1.0 clear to keep the
+    nearest fragment. It was originally negated, which inverted every
+    depth-tested GPU draw — scatter painted far points over near ones, and a
+    textured sphere rendered inside-out (you saw the far hemisphere). Voxels
+    never caught it because they disable depth writes. Pinned by
+    `tests/test_plot3d/test_gpu_depth.py`.
 - **Voxels** (`geom_type 'voxels'`): shaded translucent cubes at the vertex
   centres.  `st.voxel_size`, `st.voxel_alpha`, `st.voxel_slice_alpha`.
   Performance design (budget ~3–6 µs/cube, ≤ ~20k cubes interactive):
