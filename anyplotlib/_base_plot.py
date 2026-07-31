@@ -76,6 +76,159 @@ class _BasePlot(_EventMixin):
         self._state["axis_visible"] = True
         self._push()
 
+    # ------------------------------------------------------------------
+    # Floating image keys (see anyplotlib/keys.py)
+    # ------------------------------------------------------------------
+    def add_key(self, image, *, corner: str = "top-right", anchor=None,
+                size: float = 0.22, margin: float = 10.0,
+                bgcolor=None, border=None, border_width: float = 1.0,
+                radius: float = 4.0, alpha: float = 1.0,
+                hover_only: bool = False, visible: bool = True,
+                label=None, label_size: float = 10.0, label_color=None,
+                name=None) -> "KeyOverlay":
+        """Pin a floating image key over this panel.
+
+        A key is a small picture that floats in screen space over the plot
+        area — it does not pan or zoom with the data.  Use it for a colour
+        legend a colorbar cannot express: an inverse pole figure triangle over
+        an orientation map, a hue wheel over a polarization field, a phase key
+        over a segmentation::
+
+            key = plot.add_key(ipf_triangle, corner="bottom-right", size=0.28)
+            wheel = plot.add_key(hue_wheel, corner="top-left",
+                                 bgcolor="none", hover_only=True)
+
+        This is the lightweight sibling of :meth:`Figure.add_inset`.  An inset
+        is a draggable window with a title bar and its own canvas stack — the
+        right tool when the overlay is a live plot.  A key is a static picture
+        with no chrome unless you ask for it, so it reads as part of the
+        figure rather than as a floating panel.
+
+        Parameters
+        ----------
+        image : array-like, bytes, or path
+            An ``(H, W, 3|4)`` colour array (uint8, or float 0–1), the raw
+            bytes of a PNG/JPEG/GIF/WebP, or a path to such a file.  An RGBA
+            array is the usual choice: alpha 0 outside the shape lets a
+            triangle or a disc sit on the image without a rectangular card
+            around it.
+        corner : str, optional
+            ``"top-right"`` (default), ``"top-left"``, ``"bottom-right"`` or
+            ``"bottom-left"``.  Ignored when *anchor* is given.
+        anchor : (x_frac, y_frac), optional
+            Free placement: the key's centre as a fraction of the plot area,
+            from its top-left.  Overrides *corner*.
+        size : float, optional
+            Width as a fraction of the plot area's **shorter** side, so a key
+            keeps its proportions when the panel is resized.  Default 0.22.
+            Height follows the image's aspect ratio.
+        margin : float, optional
+            Gap in CSS px between the key and the plot-area edge, for corner
+            placement.  Default 10.
+        bgcolor : str, optional
+            CSS colour painted behind the image — e.g. ``"rgba(0,0,0,0.45)"``
+            for a legible card over busy data.  Default ``None`` (fully
+            transparent); ``"none"`` means the same thing.
+        border : str, optional
+            CSS colour for a hairline around the card.  Default ``None``.
+        border_width : float, optional
+            Border stroke width in px.  Default 1.
+        radius : float, optional
+            Corner radius of the card in px.  Default 4.
+        alpha : float, optional
+            Opacity of the whole key, 0–1.  Default 1.
+        hover_only : bool, optional
+            Show the key only while the pointer is over the panel.  Default
+            ``False``.  Useful when the key is informative but you do not want
+            it in an exported figure or in the way while reading the data.
+            Note that a hover-only key is **omitted from PNG export**, since
+            export runs with no pointer over the panel.
+        visible : bool, optional
+            Draw the key at all.  Default ``True``.
+        label : str, optional
+            Caption drawn under the image, mini-TeX enabled like axis labels.
+        label_size : float, optional
+            Caption size in px.  Default 10.
+        label_color : str, optional
+            Caption colour.  Default ``None`` (the theme's tick-label colour).
+        name : str, optional
+            Handle for :meth:`get_key`.  Defaults to the generated id.
+
+        Returns
+        -------
+        KeyOverlay
+
+        See Also
+        --------
+        remove_key, list_keys, get_key
+        anyplotlib.Figure.add_inset : a full floating axes, for live plots.
+        """
+        from anyplotlib._utils import _image_to_data_url
+        from anyplotlib.keys import KeyOverlay, _validate
+
+        fields = _validate(dict(
+            corner=corner, anchor=anchor, size=size, margin=margin,
+            bgcolor=bgcolor, border=border, border_width=border_width,
+            radius=radius, alpha=alpha, hover_only=hover_only,
+            visible=visible, label=label, label_size=label_size,
+            label_color=label_color))
+        key = KeyOverlay(self, _image_to_data_url(image), name=name, **fields)
+        if any(k.name == key.name for k in self._key_map.values()):
+            raise ValueError(f"a key named {key.name!r} already exists on this "
+                             "panel; pass a different name=")
+        self._key_map[key.id] = key
+        self._push_keys()
+        return key
+
+    @property
+    def _key_map(self) -> dict:
+        """Lazily-created ``{id: KeyOverlay}`` — panels predate this feature."""
+        if getattr(self, "_keys_dict", None) is None:
+            self._keys_dict = {}
+        return self._keys_dict
+
+    def _push_keys(self) -> None:
+        """Re-serialise the key list + image table, then push.
+
+        The pictures ride the geometry channel under ``key_images`` so that
+        restyling a key — or a hover toggle — never re-transmits them.
+        """
+        keys = list(self._key_map.values())
+        self._state["keys"] = [k.to_dict() for k in keys]
+        self._state["key_images"] = {k.id: k.image_url for k in keys}
+        self._push()
+
+    def get_key(self, name):
+        """Return the key with this *name* (or id).
+
+        Raises
+        ------
+        KeyError
+            If no key matches.
+        """
+        for k in self._key_map.values():
+            if k.name == name or k.id == name:
+                return k
+        raise KeyError(f"no key named {name!r}")
+
+    def remove_key(self, key) -> None:
+        """Remove a key, by object, name, or id."""
+        from anyplotlib.keys import KeyOverlay
+        kid = key.id if isinstance(key, KeyOverlay) else self.get_key(key).id
+        if kid not in self._key_map:
+            raise KeyError(kid)
+        del self._key_map[kid]
+        self._push_keys()
+
+    def list_keys(self) -> list:
+        """Every key on this panel, in creation order."""
+        return list(self._key_map.values())
+
+    def clear_keys(self) -> None:
+        """Remove every key from this panel."""
+        self._key_map.clear()
+        self._push_keys()
+
     @contextmanager
     def _python_view_push(self):
         """Context manager for view setters that must signal _view_from_python.
