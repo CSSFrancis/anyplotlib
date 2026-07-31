@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:37.880** total execution time for 14 files **from auto_examples/PlotTypes**:
+**00:38.352** total execution time for 14 files **from auto_examples/PlotTypes**:
 
 .. container::
 
@@ -33,44 +33,44 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_gridspec_custom.py` (``plot_gridspec_custom.py``)
-     - 00:04.295
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_bar.py` (``plot_bar.py``)
-     - 00:04.221
+     - 00:04.353
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_3d_texture.py` (``plot_3d_texture.py``)
-     - 00:04.219
+     - 00:04.273
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_line_styles.py` (``plot_line_styles.py``)
-     - 00:04.192
+     - 00:04.238
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_bar.py` (``plot_bar.py``)
+     - 00:04.226
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_gpu_voxels.py` (``plot_gpu_voxels.py``)
-     - 00:02.985
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_tile_backend.py` (``plot_tile_backend.py``)
-     - 00:02.983
+     - 00:03.039
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_3d.py` (``plot_3d.py``)
-     - 00:02.867
+     - 00:02.961
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_tile_backend.py` (``plot_tile_backend.py``)
+     - 00:02.902
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_spectra1d.py` (``plot_spectra1d.py``)
-     - 00:02.794
+     - 00:02.869
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_image2d.py` (``plot_image2d.py``)
-     - 00:02.201
+     - 00:02.260
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_pcolormesh.py` (``plot_pcolormesh.py``)
-     - 00:02.104
+     - 00:02.147
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_twinx.py` (``plot_twinx.py``)
-     - 00:02.104
+     - 00:02.111
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_step_and_log.py` (``plot_step_and_log.py``)
-     - 00:01.394
+     - 00:01.412
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_inset.py` (``plot_inset.py``)
-     - 00:00.787
+     - 00:00.804
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_label_formatting.py` (``plot_label_formatting.py``)
-     - 00:00.733
+     - 00:00.758
      - 0.0

@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:17.721** total execution time for 16 files **from auto_examples/Interactive**:
+**00:18.182** total execution time for 16 files **from auto_examples/Interactive**:
 
 .. container::
 
@@ -33,50 +33,50 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_figure_annotations.py` (``plot_figure_annotations.py``)
-     - 00:02.868
+     - 00:02.980
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_star_globe_explorer.py` (``plot_star_globe_explorer.py``)
-     - 00:02.455
+     - 00:02.527
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_spectra_roi_inspector.py` (``plot_spectra_roi_inspector.py``)
-     - 00:01.449
+     - 00:01.526
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_interactive_fitting.py` (``plot_interactive_fitting.py``)
-     - 00:01.441
+     - 00:01.462
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_segment_by_contrast_advanced.py` (``plot_segment_by_contrast_advanced.py``)
-     - 00:00.931
+     - 00:00.986
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_particle_picker.py` (``plot_particle_picker.py``)
-     - 00:00.928
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_ipf_density_map.py` (``plot_ipf_density_map.py``)
-     - 00:00.864
+     - 00:00.943
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_threshold_explorer.py` (``plot_threshold_explorer.py``)
-     - 00:00.839
+     - 00:00.867
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_ipf_density_map.py` (``plot_ipf_density_map.py``)
+     - 00:00.862
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_voxel_grain_explorer.py` (``plot_voxel_grain_explorer.py``)
-     - 00:00.798
+     - 00:00.807
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_ipf_explorer.py` (``plot_ipf_explorer.py``)
-     - 00:00.766
+     - 00:00.785
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_interactive_fft.py` (``plot_interactive_fft.py``)
-     - 00:00.752
+     - 00:00.767
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_3d_spectral_viewer.py` (``plot_3d_spectral_viewer.py``)
-     - 00:00.749
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_key_bindings.py` (``plot_key_bindings.py``)
-     - 00:00.735
+     - 00:00.750
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_segment_by_contrast.py` (``plot_segment_by_contrast.py``)
-     - 00:00.735
+     - 00:00.747
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_key_bindings.py` (``plot_key_bindings.py``)
+     - 00:00.738
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_eels_explorer.py` (``plot_eels_explorer.py``)
-     - 00:00.718
+     - 00:00.725
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_point_widget.py` (``plot_point_widget.py``)
-     - 00:00.692
+     - 00:00.711
      - 0.0
