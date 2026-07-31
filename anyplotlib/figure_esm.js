@@ -980,8 +980,18 @@ function render({ model, el, onResize }) {
       wrapNode = wrap;
     }
 
+    // Floating image keys (Plot.add_key) — ONE canvas per panel holding every
+    // key, covering the whole panel box, appended last so it sits above the
+    // scale bar. Built generically for all three kinds: every branch above
+    // ends with a positioned wrap in `wrapNode`, and a key means the same
+    // thing over a 2-D map as over a 3-D scatter.
+    const keyCanvas = document.createElement('canvas');
+    keyCanvas.style.cssText =
+      'position:absolute;top:0;left:0;pointer-events:none;z-index:7;display:none;';
+    if (wrapNode) wrapNode.appendChild(keyCanvas);
+
     return { plotCanvas, overlayCanvas, markersCanvas, statusBar,
-             xAxisCanvas, yAxisCanvas, scaleBar,
+             xAxisCanvas, yAxisCanvas, scaleBar, keyCanvas,
              cbCanvas, cbCtx, plotWrap, wrapNode, titleCanvas,
              gpuCanvas: stack3dGpuCanvas || stack2dGpuCanvas };
   }
@@ -1022,6 +1032,7 @@ function render({ model, el, onResize }) {
       titleCanvas:   stack.titleCanvas || null,
       titleCtx,
       scaleBar:      stack.scaleBar,
+      keyCanvas:     stack.keyCanvas,
       statusBar:     stack.statusBar,
       statsDiv,
       frameTimes: [],
@@ -1193,6 +1204,7 @@ function render({ model, el, onResize }) {
       yAxisCanvas:   stack.yAxisCanvas,
       xCtx, yCtx,
       scaleBar:      stack.scaleBar,
+      keyCanvas:     stack.keyCanvas,
       statusBar:     stack.statusBar,
       statsDiv,
       frameTimes: [], blitCache,
@@ -2956,6 +2968,200 @@ function render({ model, el, onResize }) {
     ctx.fillRect(lineX+barPx-2, lineY-3, 2, lineH+3);
 
     sb.style.display='block';
+  }
+
+  // ── Floating image keys (Plot.add_key) ────────────────────────────────────
+  // The scale bar's sibling: a picture pinned in SCREEN space over the plot
+  // area, so it neither pans nor zooms with the data. Every key on a panel
+  // shares one canvas (p.keyCanvas, z 7). Because that canvas is separate from
+  // plotCanvas, an ordinary data redraw does NOT erase it — keys are redrawn
+  // only when the key state, the panel size, or the hover flag changes, which
+  // is what makes `hover_only` free.
+  //
+  // Images decode asynchronously, exactly like a 3-D surface texture: the
+  // first frame that sees a new URL draws nothing for that key and schedules
+  // a redraw from onload.
+  const _keyCache = new Map();          // url -> {img, ready, w, h}
+
+  function _keyEnsure(url, onReady) {
+    let e = _keyCache.get(url);
+    if (e) return e.ready ? e : null;
+    e = { img: null, ready: false, w: 0, h: 0 };
+    _keyCache.set(url, e);
+    const img = new Image();
+    img.onload = () => {
+      e.img = img;
+      e.w = img.naturalWidth || img.width;
+      e.h = img.naturalHeight || img.height;
+      e.ready = e.w > 0 && e.h > 0;
+      if (e.ready) onReady();
+    };
+    img.onerror = () => console.warn('[anyplotlib] key image failed to decode');
+    img.src = url;
+    return null;
+  }
+
+  // The rect keys are placed against — the panel's IMAGE / plot area, the same
+  // box the scale bar pins itself to (see _resizePanelDOM, which drives the
+  // scale bar off exactly these four numbers). Deliberately not the letterbox
+  // fit-rect: a key belongs to the axes box, so it stays put when the data's
+  // aspect ratio changes, which is what you want while stepping frames.
+  function _keyRect(p) {
+    if (p.kind === '2d' && p.imgW && p.imgH) {
+      return { x: p.imgX || 0, y: p.imgY || 0, w: p.imgW, h: p.imgH };
+    }
+    if (p.kind === '3d') return { x: 0, y: 0, w: p.pw, h: p.ph };
+    return { x: PAD_L, y: p._padT || PAD_T,
+             w: Math.max(1, p.pw - PAD_L - PAD_R),
+             h: Math.max(1, p.ph - (p._padT || PAD_T) - PAD_B) };
+  }
+
+  // `target` overrides p.keyCanvas — used by the export path to re-render the
+  // keys onto a scratch canvas with hover suppressed. Returns true if it drew
+  // anything, so the caller can skip compositing an empty canvas.
+  function drawKeys(p, target) {
+    const kc = target || p.keyCanvas; if (!kc) return false;
+    const st = p.state || {};
+    const keys = st.keys || [];
+    const imgs = st.key_images || {};
+    // `hover_only` keys are drawn only while the pointer is over the panel.
+    // p._hover is set by the panel's mouseenter/mouseleave handlers.
+    // Two filters, and the difference matters. `declared` decides whether the
+    // canvas EXISTS on screen; `shown` decides what gets painted on it. A panel
+    // whose only keys are hover_only still keeps a sized, displayed (but empty)
+    // canvas, because the export path measures against its bounding rect — and
+    // a display:none canvas measures 0x0, which would silently drop the key.
+    const declared = keys.filter(k => k && k.visible !== false);
+    if (!declared.length) { if (!target) kc.style.display = 'none'; return false; }
+    const shown = declared.filter(k => !k.hover_only || p._hover);
+
+    const pw = p.pw, ph = p.ph;
+    const W = Math.round(pw * dpr), H = Math.round(ph * dpr);
+    if (kc.width !== W || kc.height !== H) { kc.width = W; kc.height = H; }
+    if (!target) {
+      kc.style.width = pw + 'px'; kc.style.height = ph + 'px';
+      kc.style.display = 'block';
+    }
+    const ctx = kc.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, pw, ph);
+
+    // Start decoding EVERY declared key, not just the ones drawn this frame.
+    // A hover_only key that has never been on screen would otherwise not have
+    // begun decoding, so the first hover would reveal nothing until a second
+    // redraw — and an export would silently omit it, since the export path
+    // renders once with no chance to wait for onload.
+    for (const k of declared) {
+      const u = imgs[k.id];
+      if (u) _keyEnsure(u, () => drawKeys(p));
+    }
+
+    const R = _keyRect(p);
+    let drew = false;
+    for (const k of shown) {
+      const url = imgs[k.id]; if (!url) continue;
+      const e = _keyEnsure(url, () => drawKeys(p));
+      if (!e) continue;                       // still decoding
+      drew = true;
+
+      // `size` is a fraction of the SHORTER side, so a key keeps its
+      // proportions when the panel is resized to any aspect ratio.
+      const kw = Math.max(1, (k.size != null ? k.size : 0.22) * Math.min(R.w, R.h));
+      const kh = kw * (e.h / e.w);
+      const lblSize = k.label ? (k.label_size || 10) : 0;
+      const lblGap  = k.label ? 3 : 0;
+      const pad     = (k.bgcolor && k.bgcolor !== 'none') || k.border ? 5 : 0;
+      const cardW = kw + pad * 2;
+      const cardH = kh + lblSize + lblGap + pad * 2;
+
+      let cx, cy;                              // card top-left, panel coords
+      if (k.anchor) {                          // free placement: anchor = CENTRE
+        cx = R.x + k.anchor[0] * R.w - cardW / 2;
+        cy = R.y + k.anchor[1] * R.h - cardH / 2;
+      } else {
+        const m = k.margin != null ? k.margin : 10;
+        const corner = k.corner || 'top-right';
+        cx = corner.endsWith('left') ? R.x + m : R.x + R.w - cardW - m;
+        cy = corner.startsWith('top') ? R.y + m : R.y + R.h - cardH - m;
+      }
+
+      ctx.save();
+      ctx.globalAlpha = k.alpha != null ? k.alpha : 1;
+      const rad = k.radius != null ? k.radius : 4;
+      if ((k.bgcolor && k.bgcolor !== 'none') || k.border) {
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(cx, cy, cardW, cardH, rad);
+        else ctx.rect(cx, cy, cardW, cardH);
+        if (k.bgcolor && k.bgcolor !== 'none') {
+          ctx.fillStyle = k.bgcolor; ctx.fill();
+        }
+        if (k.border) {
+          ctx.strokeStyle = k.border;
+          ctx.lineWidth = k.border_width != null ? k.border_width : 1;
+          ctx.stroke();
+        }
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(e.img, cx + pad, cy + pad, kw, kh);
+
+      // Text drawn INSIDE the picture — an IPF triangle's corner indices, a
+      // wheel's compass points. Positions are fractions of the image box, so
+      // they track the picture through a resize. Drawn over the image with a
+      // thin dark halo, because a key's own colours are arbitrary and there is
+      // no background colour to key the text off.
+      for (const L of (k.labels || [])) {
+        const tx = cx + pad + (L.x || 0) * kw, ty = cy + pad + (L.y || 0) * kh;
+        const ts = L.size || 9;
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.lineJoin = 'round';
+        const prevFill = ctx.fillStyle;
+        // _drawTex strokes nothing, so lay a halo down with the same call
+        // under a stroke-only style, then paint the glyphs on top.
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        for (const [ox, oy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+          _drawTex(ctx, L.text, tx + ox, ty + oy, ts,
+                   { align: L.align || 'center' });
+        }
+        ctx.fillStyle = L.color || '#ffffff';
+        _drawTex(ctx, L.text, tx, ty, ts, { align: L.align || 'center' });
+        ctx.fillStyle = prevFill;
+      }
+
+      if (k.label) {
+        // A caption on a card follows the card, not the figure: the usual card
+        // is a translucent dark slab, and theme.tickText is near-black under a
+        // light theme, which would put dark text on a dark pill. With no card
+        // the label sits on the figure and takes the tick colour as usual.
+        const onCard = k.bgcolor && k.bgcolor !== 'none';
+        ctx.fillStyle = k.label_color || (onCard ? '#f0f0f0' : theme.tickText);
+        ctx.textBaseline = 'top';
+        _drawTex(ctx, k.label, cx + cardW / 2, cy + pad + kh + lblGap,
+                 lblSize, { align: 'center' });
+      }
+      ctx.restore();
+    }
+    return drew;
+  }
+
+  // Export helper: an exported figure shows EVERY key, `hover_only` included —
+  // the export renders the panel as though the pointer were over it, so what
+  // you save is what you would see while reading the plot. The live canvas
+  // already shows them when the pointer happens to be there; otherwise
+  // re-render onto a scratch with the flag forced on, mirroring the
+  // _drawPanelWidgetsNoHandles precedent. Returns null when the live canvas is
+  // already correct (the common case), undefined when there is nothing to draw.
+  function _drawPanelKeysForExport(p) {
+    const st = p.state || {};
+    if (p._hover || !(st.keys || []).some(k => k && k.hover_only)) return null;
+    const scratch = document.createElement('canvas');
+    const saved = p._hover;
+    p._hover = true;
+    let drew;
+    try { drew = drawKeys(p, scratch); } finally { p._hover = saved; }
+    return drew ? scratch : undefined;
   }
 
   function drawColorbar2d(p) {
@@ -7240,6 +7446,24 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     else if (p.kind === 'bar') _attachEventsBar(p);
     else                       _attachEvents1d(p);
     _attachTouch(p);   // touch bridge — translates gestures to mouse/wheel
+
+    // Hover flag for `hover_only` keys. Attached HERE rather than inside each
+    // per-kind handler because it is the one panel behaviour that is identical
+    // for all four, and it must not depend on a kind remembering to wire it.
+    // Redraws only the key canvas, never the data — this fires on every
+    // pointer entry, so it has to stay cheap.
+    if (p.overlayCanvas) {
+      p.overlayCanvas.addEventListener('mouseenter', () => {
+        if (p._hover) return;
+        p._hover = true;
+        if ((p.state?.keys || []).some(k => k && k.hover_only)) drawKeys(p);
+      });
+      p.overlayCanvas.addEventListener('mouseleave', () => {
+        if (!p._hover) return;
+        p._hover = false;
+        if ((p.state?.keys || []).some(k => k && k.hover_only)) drawKeys(p);
+      });
+    }
   }
 
   function _canvasToImg2d(px, py, st, pw, ph) {
@@ -9344,6 +9568,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     else if(p.kind==='3d') draw3d(p);
     else if(p.kind==='bar') drawBar(p);
     else                   draw1d(p);
+    // Keys live on their own canvas, so a data redraw does not erase them —
+    // but the panel may have resized or the key state changed, and this is
+    // the one path every state change and resize funnels through.
+    drawKeys(p);
     // Region indications track the parent's zoom/pan: any panel redraw
     // refreshes ALL callouts (cheap no-op when there are none). Redrawing all
     // (not just this panel's) keeps rect + leaders consistent when a parent
@@ -9495,6 +9723,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
       _drawEl(p.markersCanvas);  // z 6 — static marker groups
       _drawEl(p.scaleBar);       // z 7 — physical scale bar
+      // z 7 — floating image keys, `hover_only` ones included: the export
+      // renders as though the pointer were over the panel. When one is not
+      // currently on screen the scratch re-render below stands in for the live
+      // canvas (null = live canvas already correct, undefined = nothing to
+      // draw at all).
+      const keyScratch = _drawPanelKeysForExport(p);
+      if (keyScratch === null) _drawEl(p.keyCanvas);
+      else if (keyScratch) _drawEl(keyScratch, p.keyCanvas);
       _drawEl(p.titleCanvas);    // z 8 — 2-D title strip
       // (statusBar / statsDiv are hover chrome — intentionally excluded.)
     };

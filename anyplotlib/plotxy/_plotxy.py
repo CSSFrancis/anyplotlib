@@ -80,7 +80,7 @@ class PlotXY(Plot1D):
     #: ``pcolormesh`` raster (keyed by marker-set id), so re-aiming the view
     #: never re-transmits the image.  Declared here rather than on Plot1D so
     #: plain line/bar panels keep the single-trait path (no empty geom trait).
-    _GEOM_KEYS = frozenset({"raster_geom"})
+    _GEOM_KEYS = frozenset({"raster_geom", "key_images"})
 
     def __init__(self, *, xlim=(0.0, 1.0), ylim=(0.0, 1.0), aspect=None,
                  units: str = "", y_units: str = ""):
