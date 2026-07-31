@@ -399,10 +399,40 @@ def _flat_globe(rgb, **kwargs):
     return fig, s
 
 
+def _drawn_mask(arr, tol=6):
+    """Boolean mask of the pixels the sphere actually painted.
+
+    "Not background", derived from the render itself: the figure paints two
+    flat colours behind the sphere (the figure margin and the panel's plot
+    background), and the projected sphere's radius is only ~0.32 x the panel
+    size, so every colour covering a meaningful share of the image OUTSIDE a
+    0.45 radius is a background by construction.  Sparse decorations out
+    there (axis lines, tick labels) fall under the 5 % share cut.
+
+    This replaces a fixed ``arr[..., :3].sum(2) < 600`` threshold — "darker
+    than the lightest background".  That threshold sits EXACTLY on the flat
+    (200, 200, 200) texture the shading tests use (200 x 3 == 600), so a
+    strict ``<`` classified the whole sphere as background: on Windows and
+    Ubuntu a handful of antialiased 199-greys squeaked under and the test
+    limped along on 5 % of the disc, on macOS none did and the mask came back
+    empty.  Keying on the background colours instead is independent of how
+    light or dark the texture happens to be.
+    """
+    rgb = arr[..., :3]
+    h, w = rgb.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    ring = rgb[np.hypot(yy - h / 2, xx - w / 2) > 0.45 * min(h, w)].reshape(-1, 3)
+    cols, counts = np.unique(ring, axis=0, return_counts=True)
+    mask = np.ones((h, w), bool)
+    for bg in cols[counts > 0.05 * len(ring)]:
+        mask &= np.abs(rgb - bg).max(2) > tol
+    return mask
+
+
 def _disc(arr, inset=3):
     """Pixels well inside the sphere's silhouette (its own outline excluded)."""
     h, w = arr.shape[:2]
-    non_bg = arr[..., :3].sum(2) < 600
+    non_bg = _drawn_mask(arr)
     ys, xs = np.nonzero(non_bg)
     assert len(ys), "nothing was drawn"
     cy, cx = h / 2, w / 2
@@ -451,7 +481,7 @@ class TestRender:
             cy, cx = h / 2, w / 2
             yy, xx = np.mgrid[0:h, 0:w]
             r = np.hypot(yy - cy, xx - cx)
-            drawn = arr[..., :3].sum(2) < 600
+            drawn = _drawn_mask(arr)
             inside = drawn & (r < r[drawn].max() - 4)
             ul = inside & (yy < cy) & (xx < cx)
             lr = inside & (yy > cy) & (xx > cx)
@@ -579,7 +609,7 @@ class TestGpuSurface:
         cy, cx = h / 2, w / 2
         yy, xx = np.mgrid[0:h, 0:w]
         r = np.hypot(yy - cy, xx - cx)
-        drawn = arr[..., :3].sum(2) < 600
+        drawn = _drawn_mask(arr)
         inside = drawn & (r < r[drawn].max() - 4)
         ul = arr[inside & (yy < cy) & (xx < cx)][:, :3].mean()
         lr = arr[inside & (yy > cy) & (xx > cx)][:, :3].mean()
