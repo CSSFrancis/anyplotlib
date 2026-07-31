@@ -139,10 +139,10 @@ class _BasePlot(_EventMixin):
             Opacity of the whole key, 0–1.  Default 1.
         hover_only : bool, optional
             Show the key only while the pointer is over the panel.  Default
-            ``False``.  Useful when the key is informative but you do not want
-            it in an exported figure or in the way while reading the data.
-            Note that a hover-only key is **omitted from PNG export**, since
-            export runs with no pointer over the panel.
+            ``False``.  Useful for a reading aid you do not want sitting over
+            the data all the time.  PNG export renders the panel as though the
+            pointer were over it, so a hover-only key **is** included in an
+            exported figure — what you save is what you see while reading.
         visible : bool, optional
             Draw the key at all.  Default ``True``.
         label : str, optional

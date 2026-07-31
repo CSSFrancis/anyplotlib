@@ -3026,9 +3026,14 @@ function render({ model, el, onResize }) {
     const imgs = st.key_images || {};
     // `hover_only` keys are drawn only while the pointer is over the panel.
     // p._hover is set by the panel's mouseenter/mouseleave handlers.
-    const shown = keys.filter(k => k && k.visible !== false
-                                   && (!k.hover_only || p._hover));
-    if (!shown.length) { if (!target) kc.style.display = 'none'; return false; }
+    // Two filters, and the difference matters. `declared` decides whether the
+    // canvas EXISTS on screen; `shown` decides what gets painted on it. A panel
+    // whose only keys are hover_only still keeps a sized, displayed (but empty)
+    // canvas, because the export path measures against its bounding rect — and
+    // a display:none canvas measures 0x0, which would silently drop the key.
+    const declared = keys.filter(k => k && k.visible !== false);
+    if (!declared.length) { if (!target) kc.style.display = 'none'; return false; }
+    const shown = declared.filter(k => !k.hover_only || p._hover);
 
     const pw = p.pw, ph = p.ph;
     const W = Math.round(pw * dpr), H = Math.round(ph * dpr);
@@ -3040,6 +3045,16 @@ function render({ model, el, onResize }) {
     const ctx = kc.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, pw, ph);
+
+    // Start decoding EVERY declared key, not just the ones drawn this frame.
+    // A hover_only key that has never been on screen would otherwise not have
+    // begun decoding, so the first hover would reveal nothing until a second
+    // redraw — and an export would silently omit it, since the export path
+    // renders once with no chance to wait for onload.
+    for (const k of declared) {
+      const u = imgs[k.id];
+      if (u) _keyEnsure(u, () => drawKeys(p));
+    }
 
     const R = _keyRect(p);
     let drew = false;
@@ -3105,21 +3120,22 @@ function render({ model, el, onResize }) {
     return drew;
   }
 
-  // Export helper: a `hover_only` key must not be baked into a saved figure,
-  // but the key canvas is PERSISTENT — if the pointer happens to be over the
-  // panel when exportPNG runs, that key is already painted on it and would
-  // composite straight through. Re-render onto a scratch canvas with the
-  // hover flag suppressed, mirroring _drawPanelWidgetsNoHandles. Returns null
-  // when the live canvas is already correct (the common case).
-  function _drawPanelKeysNoHover(p) {
+  // Export helper: an exported figure shows EVERY key, `hover_only` included —
+  // the export renders the panel as though the pointer were over it, so what
+  // you save is what you would see while reading the plot. The live canvas
+  // already shows them when the pointer happens to be there; otherwise
+  // re-render onto a scratch with the flag forced on, mirroring the
+  // _drawPanelWidgetsNoHandles precedent. Returns null when the live canvas is
+  // already correct (the common case), undefined when there is nothing to draw.
+  function _drawPanelKeysForExport(p) {
     const st = p.state || {};
-    if (!p._hover || !(st.keys || []).some(k => k && k.hover_only)) return null;
+    if (p._hover || !(st.keys || []).some(k => k && k.hover_only)) return null;
     const scratch = document.createElement('canvas');
     const saved = p._hover;
-    p._hover = false;
+    p._hover = true;
     let drew;
     try { drew = drawKeys(p, scratch); } finally { p._hover = saved; }
-    return drew ? scratch : undefined;   // undefined = "drew nothing, skip"
+    return drew ? scratch : undefined;
   }
 
   function drawColorbar2d(p) {
@@ -9681,11 +9697,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
       _drawEl(p.markersCanvas);  // z 6 — static marker groups
       _drawEl(p.scaleBar);       // z 7 — physical scale bar
-      // z 7 — floating image keys. `hover_only` keys are excluded from the
-      // export; when one is currently on screen the scratch re-render below
-      // stands in for the live canvas (null = live canvas already correct,
-      // undefined = nothing to draw at all).
-      const keyScratch = _drawPanelKeysNoHover(p);
+      // z 7 — floating image keys, `hover_only` ones included: the export
+      // renders as though the pointer were over the panel. When one is not
+      // currently on screen the scratch re-render below stands in for the live
+      // canvas (null = live canvas already correct, undefined = nothing to
+      // draw at all).
+      const keyScratch = _drawPanelKeysForExport(p);
       if (keyScratch === null) _drawEl(p.keyCanvas);
       else if (keyScratch) _drawEl(keyScratch, p.keyCanvas);
       _drawEl(p.titleCanvas);    // z 8 — 2-D title strip
