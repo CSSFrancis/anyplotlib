@@ -227,9 +227,12 @@ class Plot3D(_BasePlot):
         #: True while the texture UVs are the auto parametric mapping, so
         #: set_data() can rebuild them for the new grid shape.  When they are
         #: explicit instead, _texture_uv_n records how many vertices they
-        #: cover so a shape-changing set_data can reject them.
+        #: cover so a shape-changing set_data can reject them.  _texture_flip_v
+        #: is the flip the mapping was built with — a rebuild has to reapply it
+        #: or a streaming surface flips vertically on its first update.
         self._texture_uv_auto: bool = True
         self._texture_uv_n: int = 0
+        self._texture_flip_v: bool = False
 
         geom_type = geom_type.lower()
         if geom_type not in ("surface", "scatter", "line", "voxels"):
@@ -481,7 +484,8 @@ class Plot3D(_BasePlot):
 
         Bounds given at construction time (``bounds=``) are preserved.  An
         auto-mapped texture (:meth:`set_texture` without ``uv=``) follows the
-        new grid; explicit UVs are kept and must still match the vertex count.
+        new grid, keeping the ``flip_v`` it was applied with; explicit UVs are
+        kept and must still match the vertex count.
         """
         self._state.update(_geometry_state(
             self._state["geom_type"], x, y, z, bounds=self._bounds))
@@ -490,7 +494,7 @@ class Plot3D(_BasePlot):
             if self._texture_uv_auto:
                 self._state["texture_uv_b64"] = _uv_to_b64(
                     None, self._state["grid_rows"], self._state["grid_cols"],
-                    n, False)
+                    n, self._texture_flip_v)
                 self._texture_uv_n = n
             elif self._texture_uv_n != n:
                 raise ValueError(
@@ -553,7 +557,16 @@ class Plot3D(_BasePlot):
             occlusion exactly and culling buys nothing.
         flip_v : bool, optional
             Mirror the mapping vertically (``v → 1 - v``).  Use when the image
-            is stored bottom-up relative to the grid's row order.
+            is stored bottom-up relative to the grid's row order.  Remembered
+            for the auto mapping, so a later :meth:`set_data` rebuilds the UVs
+            with the same flip.
+
+        Raises
+        ------
+        ValueError
+            If this is not a ``'surface'`` panel, ``alpha`` is outside
+            ``[0, 1]``, *image* is not a decodable image, or *uv* does not
+            cover every vertex.
 
         See Also
         --------
@@ -575,16 +588,20 @@ class Plot3D(_BasePlot):
         """
         if self._state["geom_type"] != "surface":
             raise ValueError("textures are only supported for surface plots")
+        alpha = float(alpha)
+        if not 0.0 <= alpha <= 1.0:
+            raise ValueError(f"alpha must be in [0, 1], got {alpha}")
         url = _image_to_data_url(image)
         uv_b64 = _uv_to_b64(uv, self._state["grid_rows"],
                             self._state["grid_cols"],
                             self._state["vertices_count"], flip_v)
         self._texture_uv_auto = uv is None
         self._texture_uv_n = self._state["vertices_count"]
+        self._texture_flip_v = bool(flip_v)
         self._state.update(
             texture_url=url,
             texture_uv_b64=uv_b64,
-            texture_alpha=float(alpha),
+            texture_alpha=alpha,
             texture_shade=bool(shade),
             texture_cull=bool(cull_backfaces),
         )
@@ -593,6 +610,7 @@ class Plot3D(_BasePlot):
     def clear_texture(self) -> None:
         """Remove the image texture; the surface reverts to colormapped Z."""
         self._texture_uv_auto = True
+        self._texture_flip_v = False
         self._state.update(texture_url="", texture_uv_b64="")
         self._push()
 

@@ -4873,7 +4873,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // Substituting n = k*v - o, each clip component is affine in v:
   //   clip.x = (2*scale*k/pw)*(r0·v) + [ -(2*scale/pw)*(r0·o) + (2*cx/pw - 1) ]
   //   clip.y = -(2*scale*k/ph)*(r2·v) + [  (2*scale/ph)*(r2·o) + (1 - 2*cy/ph) ]
-  //   clip.z = +0.35*k*(r1·v) + [ -0.35*(r1·o) + 0.5 ]   →  0.5 + 0.35*depth
+  //   clip.z = +DK*k*(r1·v) + [ -DK*(r1·o) + 0.5 ]   →  0.5 + DK*depth
   //
   // DEPTH SIGN: r1·n is depth INTO the screen, so clip.z must INCREASE with it
   // for `depthCompare: 'less'` against a 1.0 clear to keep the nearest
@@ -4881,10 +4881,20 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // GPU draw — a scatter cloud painted its far points over its near ones, and
   // a textured surface rendered inside-out (you saw the far hemisphere).  It
   // went unnoticed because voxels, the other GPU consumer, disable depth
-  // writes entirely.  The range stays inside [0,1] for the normalised
-  // [-1,1]³ box the renderer works in.
+  // writes entirely.
   //
   // Build the 4 ROWS, then transpose into WGSL's column-major storage.
+  //
+  // DEPTH SCALE: `norm()` puts the geometry in a box that reaches [-1,1] on its
+  // longest axis, so |r1·n| can reach √3 at a corner (r1 is a unit row).  WebGPU
+  // clips fragments outside z ∈ [0,1] — there is no depth clamp without the
+  // `depth-clip-control` feature — so DK must satisfy DK*√3 ≤ 0.5, i.e.
+  // DK ≤ 0.2887.  This was 0.35, which put the corners of a CUBE-shaped dataset
+  // outside the range: at the default camera (az -60, el 30) r1 = [.75,.433,-.5]
+  // and ‖r1‖₁ = 1.683, so clip.z peaked at 1.089 and the near corner of a dense
+  // scatter cloud was silently clipped away.  A sphere (|n| = 1) never noticed.
+  // depth24plus has ample precision left at this scale.
+  const _GPU_DEPTH_K = 0.28;
   function _gpuMatrix(R, scale, cx, cy, pw, ph, bnds, maxR, xr, yr, zr) {
     const r0 = R[0], r1 = R[1], r2 = R[2];
     const k = 2 / maxR;
@@ -4900,7 +4910,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // negations CANCEL, so rowY's coefficients are +sy*r2, not -sy*r2.
     const rowX = [ sx*r0[0],  sx*r0[1],  sx*r0[2],  -(2*scale/pw)*r0o + (2*cx/pw - 1) ];
     const rowY = [ sy*r2[0],  sy*r2[1],  sy*r2[2],  -(2*scale/ph)*r2o + (1 - 2*cy/ph) ];
-    const rowZ = [ 0.35*k*r1[0],  0.35*k*r1[1],  0.35*k*r1[2], -0.35*r1o + 0.5 ];
+    const DK = _GPU_DEPTH_K;
+    const rowZ = [ DK*k*r1[0],  DK*k*r1[1],  DK*k*r1[2], -DK*r1o + 0.5 ];
     const rowW = [0, 0, 0, 1];
     // Column-major: column j = [rowX[j], rowY[j], rowZ[j], rowW[j]]
     return new Float32Array([
@@ -7303,6 +7314,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if(hit){
         p.ovDrag2d=hit;
         p.lastWidgetId=(st.overlay_widgets||[])[hit.idx]?.id||null;
+        // Stash the ID as well as the index: a model echo can replace p.state
+        // (and reorder overlay_widgets) mid-drag, after which `hit.idx` points
+        // at the wrong widget. mouseup resolves by ID and falls back to index.
+        hit.wid=p.lastWidgetId;
         if(hit.mode==='paint'||hit.mode==='erase'){
           // Open the stroke HERE, not on the first move: a Shift-click with no
           // motion must still paint (or erase) a single dot.
@@ -7365,8 +7380,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         // _brushLiveBegin) — fold it into p.state FIRST, so the generic push +
         // emit below is what ships the finished stroke to Python, exactly once.
         if(p._brushLive) _brushCommit(p);
-        const _idx=p.ovDrag2d.idx;
-        const _dw=(p.state.overlay_widgets||[])[_idx]||{};
+        // Resolve by ID the way _brushCommit does — an echo may have replaced
+        // p.state during the drag, and emitting the widget that happens to sit
+        // at the drag's original INDEX would ship the wrong payload (for a
+        // brush, another widget's dict in place of the finished stroke).
+        const _wid=p.ovDrag2d.wid, _idx=p.ovDrag2d.idx;
+        const _ws=p.state.overlay_widgets||[];
+        const _dw=(_wid?_ws.find(x=>x&&x.id===_wid):null)||_ws[_idx]||{};
         const _did=_dw.id||null;
         p.ovDrag2d=null; overlayCanvas.style.cursor='default';
         model.set(`panel_${p.id}_json`, _viewStateJson(p));
@@ -7913,7 +7933,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // and still drags every other widget. Mirrors the "first pass" precedent in
     // _ovHitTest1d, where point widgets outrank the range band they sit in.
     // `silent` tells the drag loop this gesture emits nothing until release.
-    if (mods && mods.shift) {
+    //
+    // The START must be inside the image. `_brushPaintAt` drops out-of-image
+    // points, so a gesture begun in the axis margin would claim the drag and
+    // then paint nothing — a dead zone that also swallowed the pan. Leaving the
+    // image MID-stroke is still fine (it just breaks the stroke).
+    if (mods && mods.shift && _inImage2d(mx, my, st, imgW, imgH)) {
       for (let i = widgets.length - 1; i >= 0; i--) {
         const w = widgets[i];
         if (w.type !== 'brush') continue;
@@ -8135,6 +8160,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if (run.length) { outS.push(run); outC.push(ci); }
     }
     L.strokes = outS; L.classes = outC;
+  }
+
+  // Is CANVAS point (mx,my) over the image itself (not the axis margin)? Same
+  // bounds rule `_brushPaintAt` applies, so the hit-test can refuse to start a
+  // stroke exactly where painting would drop every point.
+  function _inImage2d(mx, my, st, imgW, imgH) {
+    const [ix, iy] = _canvasToImg2d(mx, my, st, imgW, imgH);
+    return ix >= 0 && ix < st.image_width && iy >= 0 && iy < st.image_height;
   }
 
   // Extend (or start) the brush's stroke at image point (ix,iy). Shared by

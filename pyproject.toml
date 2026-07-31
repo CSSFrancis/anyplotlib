@@ -105,6 +105,13 @@ issue_format     = "`#{issue} <https://github.com/CSSFrancis/anyplotlib/pull/{is
 title_format     = "{version} ({project_date})"
 underlines       = ["=", "-", "~"]
 
+# Behaviour changes lead the release notes: they are the entries a reader
+# upgrading has to act on, and they are easy to miss filed under "Bug Fixes".
+[[tool.towncrier.type]]
+directory    = "api_change"
+name         = "API and Behaviour Changes"
+showcontent  = true
+
 [[tool.towncrier.type]]
 directory    = "new_feature"
 name         = "New Features"

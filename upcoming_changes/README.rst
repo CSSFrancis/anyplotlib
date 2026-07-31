@@ -24,6 +24,11 @@ it, the slug is rendered as a broken PR link in the changelog (this bit the
 =================  ==============================================================
 Type               Use when …
 =================  ==============================================================
+``api_change``     Existing behaviour changed in a way a user has to act on —
+                   a signature, a default, or a gesture that now does something
+                   different.  Use this even when the change is a *fix*: what
+                   matters to a reader upgrading is that the old behaviour is
+                   gone, and that is easy to miss under ``bugfix``.
 ``new_feature``    A user-visible capability has been added.
 ``bugfix``         A bug has been fixed.
 ``deprecation``    Something is deprecated and will be removed in a future release.
