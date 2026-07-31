@@ -41,7 +41,8 @@ Python side for every frame. anyplotlib makes the opposite trade-off:
 - **Plot types** — `plot` (1-D lines with markers, linestyles, legends, log y),
   `imshow` (2-D images with colormaps, colorbars, scale bars, overlay masks),
   `pcolormesh` (non-uniform 2-D meshes), `bar` (grouped, horizontal, log,
-  value labels), and 3-D `plot_surface` / `scatter3d` / `plot3d`.
+  value labels), and 3-D `plot_surface` / `scatter3d` / `plot3d`. 3-D surfaces
+  can be wrapped in an image with `set_texture` — globes, planets, star charts.
 - **Layouts** — `subplots`, matplotlib-compatible `GridSpec` indexing
   (slices, spans, negative indices), `width_ratios`/`height_ratios`,
   `sharex`/`sharey` linked pan-zoom, and floating inset axes with

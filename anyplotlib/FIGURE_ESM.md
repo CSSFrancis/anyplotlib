@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~9,200 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~9,300 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -52,7 +52,7 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | Shared math helpers | 64 |
 | b64 array decode helpers | 109 |
 | **Rich-text (mini-TeX) engine**: `_texRuns` / `_texLayout` / `_drawTex` | 161 / 228 / 250 |
-| **2D gutter geometry**: `_cbWidth` / `_cbGap` / `_padT` / `_titlePx` | 301 / 310 / 323 / 333 |
+| **2D gutter geometry**: `_cbWidth` / `_cbGap` / `_padT` / `_titlePx` | 301 / 313 / 323 / 333 |
 | **Layout engine** `applyLayout` | 774 |
 | `_buildCanvasStack` | 857 |
 | `_createPanelDOM` | 989 |
@@ -65,13 +65,13 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | `drawOverlay2d` / `drawMarkers2d` | 3169 / 3333 |
 | **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2500 / 2524 / 2585 |
 | Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 730 / 761 |
-| **3D drawing**: `draw3d` | 4669 |
-| Event emission `_emitEvent` | 5316 |
-| 3D event handlers `_attachEvents3d` | 5368 |
-| **1D drawing**: `draw1d` | 5582 |
-| `_drawLine` (1D series + markers) | 5735 |
-| `drawOverlay1d` / `drawMarkers1d` | 6028 / 6112 |
-| Marker hit-test `_markerHitTest2d` | 6380 |
+| **3D drawing**: `draw3d` | 5072 |
+| Event emission `_emitEvent` | 5909 |
+| 3D event handlers `_attachEvents3d` | 5961 |
+| **1D drawing**: `draw1d` | 6182 |
+| `_drawLine` (1D series + markers) | 6335 |
+| `drawOverlay1d` / `drawMarkers1d` | 6628 / 6712 |
+| Marker hit-test `_markerHitTest2d` | 6980 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -80,16 +80,16 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 6637 |
-| 2D events `_attachEvents2d` | 6661 |
-| 1D events `_attachEvents1d` | 7036 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 7308 / 7568 |
-| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 7489 / 7503 / 7532 / 7559 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 7691 / 7764 |
-| Shared-axis propagation `_getShareGroups` | 7835 |
-| Figure resize `_applyFigResizeDOM` | 7899 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8090 / 8153 / 8529 |
-| Generic redraw `_redrawPanel` | 8719 |
+| Panel event dispatch `_attachPanelEvents` | 7237 |
+| 2D events `_attachEvents2d` | 7261 |
+| 1D events `_attachEvents1d` | 7645 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 7917 / 8190 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8103 / 8117 / 8146 / 8181 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8313 / 8386 |
+| Shared-axis propagation `_getShareGroups` | 8457 |
+| Figure resize `_applyFigResizeDOM` | 8521 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8712 / 8775 / 9151 |
+| Generic redraw `_redrawPanel` | 9341 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -268,12 +268,12 @@ st.colorbar_label_size            (label font sizes; optional)
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| **`_imgFitRect(iw,ih,cw,ch)`** | **1176** | Largest rect of aspect `iw:ih` centred in `cw×ch`; all 2-D coordinate functions derive from this |
-| `draw2d(p)` | 1258 | Main render: `_resizePanelDOM` → decode → LUT → ImageBitmap → blit; then mask, axes, scale bar, colorbar, overlay, markers |
-| `drawScaleBar2d(p)` | 1360 | Physical scale bar |
-| `drawColorbar2d(p)` | 1436 | Gradient strip + min/max marks + rotated label centred in the `_cbWidth` gutter |
-| `_drawAxes2d(p)` | 1491 | Ticks (edge labels nudged inward both axes), axis labels + title via `_drawTex` |
-| `drawOverlay2d(p)` / `drawMarkers2d(p)` | 1629 / 1685 | Widgets / marker groups |
+| **`_imgFitRect(iw,ih,cw,ch)`** | **2372** | Largest rect of aspect `iw:ih` centred in `cw×ch`; all 2-D coordinate functions derive from this |
+| `draw2d(p)` | 2680 | Main render: `_resizePanelDOM` → decode → LUT → ImageBitmap → blit; then mask, axes, scale bar, colorbar, overlay, markers |
+| `drawScaleBar2d(p)` | 2875 | Physical scale bar |
+| `drawColorbar2d(p)` | 2961 | Gradient strip + min/max marks + rotated label centred in the `_cbWidth` gutter |
+| `_drawAxes2d(p)` | 3016 | Ticks (edge labels nudged inward both axes), axis labels + title via `_drawTex` |
+| `drawOverlay2d(p)` / `drawMarkers2d(p)` | 3169 / 3333 | Widgets / marker groups |
 
 Zoom model: at `zoom=1` the whole image fills the fit-rect; at `zoom=Z>1` a
 `1/Z` region fills it.  `_imgToCanvas2d` / `_canvasToImg2d` must stay exact
@@ -404,6 +404,73 @@ triangles, draws axes with per-axis `_drawTex` labels (`x/y/z_label_size`).
 - **Reference sphere**: `st.sphere = {radius,color,alpha,wireframe}` draws a
   shaded silhouette disk + lat/long wireframe behind the geometry; far-side
   wireframe segments and scatter points are dimmed.
+- **Surface textures** (`Plot3D.set_texture`, `geom_type 'surface'`):
+  `st.texture_url` (a `data:` URL) + `st.texture_uv_b64` (float32 per-vertex
+  `(u,v)`) ride the geom channel; `texture_alpha` / `texture_shade` /
+  `texture_cull` are light view fields. `_texEnsure(p, url)` decodes into
+  `p._3dTex` via an `Image` — asynchronous, so the first frame draws the
+  colormapped surface and the `onload` calls `_redrawPanel`. Each triangle is
+  then clipped and painted with an affine `drawImage` mapping texel space onto
+  the screen triangle (`ctx.transform`, **not** `setTransform` — the panel's
+  DPR scale must survive). Three things are easy to get wrong here:
+  - **Seams.** Neighbours each cover ~half the pixels on a shared edge, so
+    source-over leaves a mesh of background hairlines. Triangles are grown by
+    `_TEX_EXPAND` so they overlap — offsetting the three **edges** (a miter,
+    `_miter()`, capped at `_TEX_MITER_MAX`), never pushing vertices away from
+    the centroid: for the slivers a quad-split grid makes at a sphere's limb
+    the centroid sits on the long edges and barely moves them.
+    `test_no_seams_between_neighbouring_triangles` guards this.
+  - **`alpha < 1`.** Because the triangles overlap, drawing them translucent
+    double-composites every overlap into a scaly grid. The surface is instead
+    built opaque on a cached `p._3dTexOff` OffscreenCanvas (same DPR
+    transform) and blitted once at `texture_alpha`.
+  - **Shading.** `texture_shade` fills the clip black then draws the texture at
+    `globalAlpha = bright`, rather than darkening with a second translucent
+    pass (which would double-darken the overlaps). `bright` is Lambert against
+    a *camera-facing* normal (flipped when it points into the screen), so it
+    never depends on the grid's winding.
+
+  A flat "sample one texel per small triangle" fast path was tried and removed:
+  it is ~3× cheaper per triangle but makes neighbours differ in colour, which
+  the seam overlap then widens into a visible herringbone. On Canvas2D,
+  textures therefore want a **coarse** grid (the image carries the detail) —
+  ~2k triangles orbits at ~7 ms/frame, ~32k at ~350 ms. **The WebGPU path
+  below removes that constraint entirely.**
+- **Textured surfaces on WebGPU** (`_GPU_SURFACE_WGSL`, `_gpuInitSurfacePanel`
+  / `_gpuUploadSurface` / `_gpuDrawSurface`): indexed triangles with per-vertex
+  UVs and smooth normals, depth-tested, above `GPU_SURFACE_THRESHOLD` (2000
+  faces) — measured 9k triangles 54 ms → 0.4 ms, 160k triangles 1.75 s →
+  2.4 ms. Everything the Canvas2D path has to fake is free here: the depth
+  buffer replaces the per-frame painter's sort *and* makes `cull_backfaces`
+  unnecessary (`cullMode: 'none'` is correct for open and closed surfaces
+  alike); shared vertices mean no seams, so no miter expansion; and Lambert
+  runs per PIXEL against an interpolated normal. Normals are accumulated per
+  vertex at upload — `norm()` scales all axes by the same `2/maxR`, so a
+  data-space normal only needs the camera rotation (passed as `rot0..rot2`) to
+  reach view space. `_gpuWanted(st, texReady)` gates it: only textured
+  surfaces, and only once the `<img>` has decoded. **`texture_alpha < 1` stays
+  on Canvas2D** — the overlapping-triangle composite that makes a translucent
+  skin look right has no cheap depth-buffer equivalent.
+  - **Mipmaps are mandatory**, not a nicety: without them a 1440×720 texture
+    minified onto a 300 px sphere aliases into sparkling noise, visibly worse
+    than Canvas2D (which gets mip-like filtering free from `drawImage` +
+    `imageSmoothingQuality`). WebGPU has no built-in mipmapper, so
+    `_gpuGenerateMips` downsamples level by level with a fullscreen-triangle
+    blit (`_GPU_MIP_WGSL`, pipeline cached per device+format).
+  - **Diagnosing "why is this on Canvas2D?"** — `draw3d` records
+    `globalThis.__apl_gpu3d[panelId]` every frame (`{geom, gpu, wanted,
+    texUrl, texReady, faces, mode, pw, ph, hasNavGpu}`), mirroring
+    `__apl_gpu2d`. It is the only way after the fact to tell "no adapter" from
+    "texture still decoding" from "panel had zero size at init" — and from "the
+    page is serving a stale inlined renderer", which is what a `make html`
+    without `make clean` produces (see AGENTS.md).
+  - **`_gpuMatrix`'s clip.z sign matters.** It must INCREASE with depth into
+    the screen for `depthCompare: 'less'` against a 1.0 clear to keep the
+    nearest fragment. It was originally negated, which inverted every
+    depth-tested GPU draw — scatter painted far points over near ones, and a
+    textured sphere rendered inside-out (you saw the far hemisphere). Voxels
+    never caught it because they disable depth writes. Pinned by
+    `tests/test_plot3d/test_gpu_depth.py`.
 - **Voxels** (`geom_type 'voxels'`): shaded translucent cubes at the vertex
   centres.  `st.voxel_size`, `st.voxel_alpha`, `st.voxel_slice_alpha`.
   Performance design (budget ~3–6 µs/cube, ≤ ~20k cubes interactive):

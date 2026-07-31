@@ -7,6 +7,7 @@ Shared low-level utilities used across plot subpackages.
 from __future__ import annotations
 
 import functools
+import pathlib
 
 import numpy as np
 
@@ -87,6 +88,91 @@ def _to_rgba_u8(data: np.ndarray) -> np.ndarray:
         rgba[..., 3] = 255
         return rgba
     return np.ascontiguousarray(data)
+
+
+def _encode_png(rgba: np.ndarray) -> bytes:
+    """Encode an (H, W, 4) uint8 RGBA array as PNG bytes.
+
+    Stdlib only (``zlib`` + ``struct``) — Pillow is deliberately not a
+    dependency.  Every scanline uses filter type 0 (None), which costs a
+    little compression ratio but keeps this to a handful of lines; for the
+    smooth/procedural imagery textures are made of, zlib still shrinks the
+    raw RGBA by an order of magnitude, which is what matters when the bytes
+    have to cross a notebook comm as a base-64 data URL.
+    """
+    import struct
+    import zlib
+
+    h, w = rgba.shape[:2]
+    # One leading filter byte (0 = None) per scanline, then the RGBA row.
+    raw = np.zeros((h, w * 4 + 1), dtype=np.uint8)
+    raw[:, 1:] = rgba.reshape(h, w * 4)
+
+    def _chunk(tag: bytes, data: bytes) -> bytes:
+        return (struct.pack(">I", len(data)) + tag + data
+                + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
+
+    return (b"\x89PNG\r\n\x1a\n"
+            + _chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+            + _chunk(b"IDAT", zlib.compress(raw.tobytes(), 6))
+            + _chunk(b"IEND", b""))
+
+
+#: ``(magic prefix, MIME type)`` for the raster formats every browser decodes.
+_IMAGE_MAGIC: tuple = (
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"\xff\xd8\xff",      "image/jpeg"),
+    (b"GIF87a",            "image/gif"),
+    (b"GIF89a",            "image/gif"),
+)
+
+
+def _sniff_image_mime(blob: bytes) -> "str | None":
+    """Return the MIME type of *blob* from its magic bytes, or ``None``."""
+    for magic, mime in _IMAGE_MAGIC:
+        if blob.startswith(magic):
+            return mime
+    if blob[:4] == b"RIFF" and blob[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def _image_to_data_url(image) -> str:
+    """Return a ``data:`` URL the browser can decode into a texture.
+
+    Accepts, in order of preference:
+
+    * an already-encoded image — ``bytes`` of a PNG/JPEG/GIF/WebP, or a
+      ``str``/``os.PathLike`` path to such a file — passed through verbatim,
+      so a photo stays JPEG-compressed instead of being re-encoded;
+    * a ``data:`` URL string, returned unchanged;
+    * an ``(H, W, 3|4)`` array (uint8, or float 0–1) — anything
+      :func:`_to_rgba_u8` accepts, which includes a PIL image (it exposes the
+      array interface) — encoded as PNG.
+    """
+    import base64
+    import os
+
+    if isinstance(image, (bytes, bytearray, memoryview)):
+        blob = bytes(image)
+        mime = _sniff_image_mime(blob)
+        if mime is None:
+            raise ValueError(
+                "texture bytes are not a recognised PNG/JPEG/GIF/WebP image")
+        return f"data:{mime};base64," + base64.b64encode(blob).decode("ascii")
+
+    if isinstance(image, (str, os.PathLike)):
+        if isinstance(image, str) and image.startswith("data:"):
+            return image
+        blob = pathlib.Path(image).read_bytes()
+        mime = _sniff_image_mime(blob)
+        if mime is None:
+            raise ValueError(
+                f"{os.fspath(image)!r} is not a PNG/JPEG/GIF/WebP image")
+        return f"data:{mime};base64," + base64.b64encode(blob).decode("ascii")
+
+    png = _encode_png(_to_rgba_u8(np.asarray(image)))
+    return "data:image/png;base64," + base64.b64encode(png).decode("ascii")
 
 
 def _normalize_image(data: np.ndarray, clim: "tuple | None" = None):

@@ -12,6 +12,7 @@ SCRIPTS = [
     "plot_threshold_explorer.py",
     "plot_spectra_roi_inspector.py",
     "plot_voxel_grain_explorer.py",
+    "plot_star_globe_explorer.py",
 ]
 
 

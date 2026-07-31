@@ -116,7 +116,10 @@ class Axes:
                      colormap: str = "viridis",
                      x_label: str = "x", y_label: str = "y", z_label: str = "z",
                      azimuth: float = -60.0, elevation: float = 30.0,
-                     zoom: float = 1.0) -> "Plot3D":
+                     zoom: float = 1.0,
+                     bounds=None,
+                     texture=None,
+                     gpu: "str | bool" = "auto") -> "Plot3D":
         """Attach a 3-D surface to this axes cell.
 
         Parameters
@@ -128,6 +131,20 @@ class Axes:
         x_label, y_label, z_label : str, optional  Axis labels.
         azimuth, elevation : float, optional  Initial camera angles in degrees.
         zoom : float, optional  Initial zoom factor.
+        bounds : ((xmin, xmax), (ymin, ymax), (zmin, zmax)), optional
+            Fix the axes bounds instead of fitting them to the data.  Pass
+            ``((-1, 1),) * 3`` for a unit sphere so it projects as a true
+            circle rather than being stretched to fill the panel.
+        texture : array-like, bytes, or path, optional
+            Image to wrap around the surface — shorthand for
+            :meth:`~anyplotlib.Plot3D.set_texture`, which takes the mapping,
+            shading, and culling options.
+        gpu : ``"auto"`` | bool, optional
+            WebGPU acceleration policy for a *textured* surface (a
+            colormapped one always renders on Canvas2D).  ``"auto"`` (default)
+            uses the GPU when available above ~2k triangles; ``True`` always
+            attempts it; ``False`` forces Canvas2D.  Falls back silently when
+            WebGPU is unavailable — check :attr:`Plot3D.gpu_active`.
 
         Returns
         -------
@@ -135,7 +152,8 @@ class Axes:
         """
         plot = Plot3D("surface", X, Y, Z, colormap=colormap,
                       x_label=x_label, y_label=y_label, z_label=z_label,
-                      azimuth=azimuth, elevation=elevation, zoom=zoom)
+                      azimuth=azimuth, elevation=elevation, zoom=zoom,
+                      bounds=bounds, texture=texture, gpu=gpu)
         self._attach(plot)
         return plot
 

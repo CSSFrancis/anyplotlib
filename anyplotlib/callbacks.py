@@ -99,6 +99,12 @@ class Event:
     image_height: int | None = None
     display_width: int | None = None    # panel device px (JS) → tile output resolution
     display_height: int | None = None
+    # Camera (Plot3D orbit) — the angles the drag just produced, in degrees.
+    # The JS has always sent these alongside `zoom`; without them a handler
+    # cannot react to an orbit, because a JS-side drag does not sync back into
+    # Plot3D._state.
+    azimuth: float | None = None
+    elevation: float | None = None
     # Key
     key: str | None = None
     last_widget_id: str | None = None

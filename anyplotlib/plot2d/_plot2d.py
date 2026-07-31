@@ -1771,6 +1771,12 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         once — a stroke is tagged with the widget's current ``class_id`` and
         drawn in ``colors[class_id]``.
 
+        Painting is modal: while the brush is armed, a Shift-press over the
+        image no longer emits a panel ``pointer_down``, so a host that binds
+        Shift-click to something else needs a different modifier (or
+        ``active=False`` while that mode is on).  A Shift-drag starting in the
+        axis margin is not a brush gesture and pans as usual.
+
         The stroke accumulates in the browser and reaches Python **once**, on
         release, as a ``pointer_up`` event — ``pointer_move`` does not fire for
         a brush.  See :class:`~anyplotlib.BrushWidget`.

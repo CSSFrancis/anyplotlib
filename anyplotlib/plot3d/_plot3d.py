@@ -12,7 +12,8 @@ import numpy as np
 
 from anyplotlib._base_plot import _BasePlot
 from anyplotlib.callbacks import CallbackRegistry
-from anyplotlib._utils import _arr_to_b64, _build_colormap_lut
+from anyplotlib._utils import (_arr_to_b64, _build_colormap_lut,
+                               _image_to_data_url)
 
 
 def _triangulate_grid(rows: int, cols: int) -> list:
@@ -98,6 +99,7 @@ def _geometry_state(geom_type: str, x, y, z, bounds=None) -> dict:
             raise ValueError("x, y, z must have the same length")
         xf, yf, zf = x, y, z
         faces_list = []
+        rows = cols = 0
 
     # Encode geometry as b64 (float32 saves 50 % wire size vs float64)
     verts_arr = np.column_stack([xf, yf, zf]).astype(np.float32)   # (N, 3)
@@ -124,7 +126,47 @@ def _geometry_state(geom_type: str, x, y, z, bounds=None) -> dict:
         "faces_count":    len(faces_arr),
         "z_values_b64":   _arr_to_b64(zvals_arr, np.float32),
         "data_bounds":    data_bounds,
+        # Parametric grid shape (0 for non-surface geometry) — texture UVs
+        # default to this grid's normalised (col, row) coordinates.
+        "grid_rows":      int(rows),
+        "grid_cols":      int(cols),
     }
+
+
+def _uv_to_b64(uv, rows: int, cols: int, n: int, flip_v: bool) -> str:
+    """Validate texture coordinates and encode them as float32 ``(N, 2)`` b64.
+
+    ``uv=None`` builds the default parametric mapping: ``u`` runs 0→1 across
+    the grid's columns and ``v`` 0→1 down its rows, so an equirectangular
+    image lands on a sphere parameterised the same way.  Otherwise *uv* is
+    either a ``(U, V)`` pair (each 2-D grid- or flat-shaped) or a single
+    ``(N, 2)`` array of per-vertex coordinates.
+    """
+    if uv is None:
+        if rows < 2 or cols < 2:
+            raise ValueError(
+                "default texture coordinates need a parametric grid surface; "
+                "pass uv=(U, V) explicitly")
+        u = np.tile(np.linspace(0.0, 1.0, cols), rows)
+        v = np.repeat(np.linspace(0.0, 1.0, rows), cols)
+    elif isinstance(uv, (tuple, list)) and len(uv) == 2:
+        u = np.asarray(uv[0], dtype=float).ravel()
+        v = np.asarray(uv[1], dtype=float).ravel()
+        if len(u) != n or len(v) != n:
+            raise ValueError(
+                f"uv=(U, V) must each hold {n} values (one per vertex), "
+                f"got {len(u)} and {len(v)}")
+    else:
+        arr = np.asarray(uv, dtype=float)
+        if arr.ndim != 2 or arr.shape != (n, 2):
+            raise ValueError(
+                f"uv must be a (U, V) pair or an ({n}, 2) array, "
+                f"got shape {arr.shape}")
+        u, v = arr[:, 0], arr[:, 1]
+
+    if flip_v:
+        v = 1.0 - v
+    return _arr_to_b64(np.column_stack([u, v]).astype(np.float32), np.float32)
 
 
 class Plot3D(_BasePlot):
@@ -132,7 +174,8 @@ class Plot3D(_BasePlot):
 
     Supports four geometry types:
 
-    * ``'surface'``  – triangulated surface, Z-coloured via colormap.
+    * ``'surface'``  – triangulated surface, Z-coloured via colormap, or
+      wrapped in an image with :meth:`set_texture` (globes, star charts).
     * ``'scatter'``  – point cloud; single colour or per-point ``colors``.
     * ``'line'``     – connected line through 3-D points.
     * ``'voxels'``   – shaded translucent cubes at the given centres;
@@ -157,7 +200,7 @@ class Plot3D(_BasePlot):
     #: (highlight / camera / planes) never re-transmit them.
     _GEOM_KEYS = frozenset({
         "vertices_b64", "faces_b64", "z_values_b64", "point_colors_b64",
-        "colormap_data",
+        "colormap_data", "texture_url", "texture_uv_b64",
     })
 
     def __init__(self, geom_type: str,
@@ -176,10 +219,20 @@ class Plot3D(_BasePlot):
                  bounds=None,
                  voxel_size: float = 1.0,
                  alpha: float | None = None,
+                 texture=None,
                  gpu: str | bool = "auto"):
         self._id:  str = ""
         self._fig: object = None
         self._gpu_active: bool = False
+        #: True while the texture UVs are the auto parametric mapping, so
+        #: set_data() can rebuild them for the new grid shape.  When they are
+        #: explicit instead, _texture_uv_n records how many vertices they
+        #: cover so a shape-changing set_data can reject them.  _texture_flip_v
+        #: is the flip the mapping was built with — a rebuild has to reapply it
+        #: or a streaming surface flips vertically on its first update.
+        self._texture_uv_auto: bool = True
+        self._texture_uv_n: int = 0
+        self._texture_flip_v: bool = False
 
         geom_type = geom_type.lower()
         if geom_type not in ("surface", "scatter", "line", "voxels"):
@@ -220,6 +273,14 @@ class Plot3D(_BasePlot):
             "colormap_data": cmap_lut,
             "color":         color,
             "point_colors_b64": point_colors_b64,
+            # Image texture wrapped onto a surface (see set_texture).  The
+            # image rides as a data: URL and the per-vertex UVs as float32
+            # pairs; both are geometry-channel keys.
+            "texture_url":     "",
+            "texture_uv_b64":  "",
+            "texture_alpha":   1.0,
+            "texture_shade":   False,
+            "texture_cull":    False,
             # Highlight point: {"x","y","z","color","size"} or None
             "highlight":     None,
             # Reference sphere: {"radius","color","alpha","wireframe"} or None
@@ -254,6 +315,9 @@ class Plot3D(_BasePlot):
         }
         self.callbacks = CallbackRegistry()
         self._widgets: dict = {}
+
+        if texture is not None:
+            self.set_texture(texture)
 
     # ------------------------------------------------------------------
     def _push(self) -> None:
@@ -418,11 +482,142 @@ class Plot3D(_BasePlot):
     def set_data(self, x, y, z) -> None:
         """Replace the geometry data (same shape rules as the constructor).
 
-        Bounds given at construction time (``bounds=``) are preserved.
+        Bounds given at construction time (``bounds=``) are preserved.  An
+        auto-mapped texture (:meth:`set_texture` without ``uv=``) follows the
+        new grid, keeping the ``flip_v`` it was applied with; explicit UVs are
+        kept and must still match the vertex count.
         """
         self._state.update(_geometry_state(
             self._state["geom_type"], x, y, z, bounds=self._bounds))
+        if self._state["texture_url"]:
+            n = self._state["vertices_count"]
+            if self._texture_uv_auto:
+                self._state["texture_uv_b64"] = _uv_to_b64(
+                    None, self._state["grid_rows"], self._state["grid_cols"],
+                    n, self._texture_flip_v)
+                self._texture_uv_n = n
+            elif self._texture_uv_n != n:
+                raise ValueError(
+                    "the explicit texture coordinates set by set_texture(uv=…) "
+                    f"cover {self._texture_uv_n} vertices but the new data has "
+                    f"{n}; call set_texture again with matching uv=")
         self._push()
+
+    # ------------------------------------------------------------------
+    # Image textures (surface only)
+    # ------------------------------------------------------------------
+    def set_texture(self, image, *, uv=None, alpha: float = 1.0,
+                    shade: bool = False, cull_backfaces: bool = False,
+                    flip_v: bool = False) -> None:
+        """Wrap an image around this surface (``geom_type == 'surface'``).
+
+        Each triangle is filled with the matching patch of *image*, so the
+        picture follows the geometry as you orbit — a globe, a planet, or a
+        star chart on the celestial sphere.  By default the image is mapped
+        parametrically: its left edge to the surface grid's first column, its
+        right edge to the last, its top row to the grid's first row.  Build the
+        sphere with longitude along the columns and latitude down the rows and
+        an equirectangular (plate-carrée) image lands exactly right.
+
+        Rendering goes through WebGPU when it is available and the surface has
+        more than ~2k triangles (see the ``gpu`` argument to
+        :meth:`Axes.plot_surface`), which lifts the practical grid size from a
+        few thousand triangles to hundreds of thousands.  Without a GPU — or
+        with ``alpha`` below 1, which needs the Canvas2D compositing path —
+        every triangle is texture-mapped on the CPU instead, so prefer a
+        coarse grid there and let the image carry the detail.
+
+        Parameters
+        ----------
+        image : array-like, bytes, or path
+            An ``(H, W, 3|4)`` colour array (uint8, or float 0–1 — a PIL image
+            works too), the raw bytes of a PNG/JPEG/GIF/WebP, or a path to
+            such a file.  Encoded input is passed through untouched; arrays
+            are PNG-compressed.  Very large images cost wire size and decode
+            time — 2048×1024 is plenty for a sphere.
+        uv : (U, V) or (N, 2) array, optional
+            Explicit texture coordinates in 0–1, one per vertex, instead of
+            the default parametric mapping.  ``U``/``V`` may be given in the
+            grid's 2-D shape or already flattened.
+        alpha : float, optional
+            Opacity of the whole textured surface, 0–1.  Default 1.  Below 1
+            the surface is composited as one translucent skin — whatever the
+            panel draws behind it (a reference sphere, a scatter cloud) shows
+            through, but the surface's own far side does not.
+        shade : bool, optional
+            Modulate the texture with diffuse lighting from the upper left.
+            Default False (the image is reproduced faithfully); True gives a
+            sphere its familiar lit look and makes relief read as relief.
+        cull_backfaces : bool, optional
+            Skip triangles facing away from the camera.  Default False.  Set
+            True for a *closed* surface (sphere, ellipsoid, blob) — it halves
+            the drawing work with no visual change.  On an open surface it
+            makes the back side invisible, which is usually not what you want.
+            Ignored on the WebGPU path, where the depth buffer resolves
+            occlusion exactly and culling buys nothing.
+        flip_v : bool, optional
+            Mirror the mapping vertically (``v → 1 - v``).  Use when the image
+            is stored bottom-up relative to the grid's row order.  Remembered
+            for the auto mapping, so a later :meth:`set_data` rebuilds the UVs
+            with the same flip.
+
+        Raises
+        ------
+        ValueError
+            If this is not a ``'surface'`` panel, ``alpha`` is outside
+            ``[0, 1]``, *image* is not a decodable image, or *uv* does not
+            cover every vertex.
+
+        See Also
+        --------
+        clear_texture : Remove the texture and fall back to colormapped Z.
+
+        Examples
+        --------
+        ::
+
+            lat = np.linspace(np.pi / 2, -np.pi / 2, 180)    # rows: N → S
+            lon = np.linspace(-np.pi, np.pi, 360)            # cols: W → E
+            LON, LAT = np.meshgrid(lon, lat)
+            X = np.cos(LAT) * np.cos(LON)
+            Y = np.cos(LAT) * np.sin(LON)
+            Z = np.sin(LAT)
+
+            globe = ax.plot_surface(X, Y, Z, bounds=((-1, 1),) * 3)
+            globe.set_texture("earth.jpg", shade=True, cull_backfaces=True)
+        """
+        if self._state["geom_type"] != "surface":
+            raise ValueError("textures are only supported for surface plots")
+        alpha = float(alpha)
+        if not 0.0 <= alpha <= 1.0:
+            raise ValueError(f"alpha must be in [0, 1], got {alpha}")
+        url = _image_to_data_url(image)
+        uv_b64 = _uv_to_b64(uv, self._state["grid_rows"],
+                            self._state["grid_cols"],
+                            self._state["vertices_count"], flip_v)
+        self._texture_uv_auto = uv is None
+        self._texture_uv_n = self._state["vertices_count"]
+        self._texture_flip_v = bool(flip_v)
+        self._state.update(
+            texture_url=url,
+            texture_uv_b64=uv_b64,
+            texture_alpha=alpha,
+            texture_shade=bool(shade),
+            texture_cull=bool(cull_backfaces),
+        )
+        self._push()
+
+    def clear_texture(self) -> None:
+        """Remove the image texture; the surface reverts to colormapped Z."""
+        self._texture_uv_auto = True
+        self._texture_flip_v = False
+        self._state.update(texture_url="", texture_uv_b64="")
+        self._push()
+
+    @property
+    def has_texture(self) -> bool:
+        """``True`` when an image texture is currently applied."""
+        return bool(self._state["texture_url"])
 
     def set_point_colors(self, colors) -> None:
         """Set (or clear) per-point colours on a scatter or voxels panel.
