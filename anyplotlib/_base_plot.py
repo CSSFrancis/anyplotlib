@@ -85,7 +85,7 @@ class _BasePlot(_EventMixin):
                 radius: float = 4.0, alpha: float = 1.0,
                 hover_only: bool = False, visible: bool = True,
                 label=None, label_size: float = 10.0, label_color=None,
-                name=None) -> "KeyOverlay":
+                labels=None, name=None) -> "KeyOverlay":
         """Pin a floating image key over this panel.
 
         A key is a small picture that floats in screen space over the plot
@@ -151,6 +151,19 @@ class _BasePlot(_EventMixin):
             Caption size in px.  Default 10.
         label_color : str, optional
             Caption colour.  Default ``None`` (the theme's tick-label colour).
+        labels : list, optional
+            Text drawn *inside* the key, for annotating the picture itself —
+            an IPF triangle's corner indices, a wheel's compass points.  Each
+            entry is ``(x, y, text)`` or a dict with those keys plus optional
+            ``size`` / ``color`` / ``align``.  ``x`` and ``y`` are fractions of
+            the key image, so the text follows the picture when the key is
+            resized.  Mini-TeX works here as in any label::
+
+                tri.add_key(ipf, labels=[
+                    (0.02, 0.97, "[1 0 0]"),
+                    (0.98, 0.97, "[1 1 0]"),
+                    (0.98, 0.03, "[1 1 1]"),
+                ])
         name : str, optional
             Handle for :meth:`get_key`.  Defaults to the generated id.
 
@@ -171,7 +184,7 @@ class _BasePlot(_EventMixin):
             bgcolor=bgcolor, border=border, border_width=border_width,
             radius=radius, alpha=alpha, hover_only=hover_only,
             visible=visible, label=label, label_size=label_size,
-            label_color=label_color))
+            label_color=label_color, labels=labels))
         key = KeyOverlay(self, _image_to_data_url(image), name=name, **fields)
         if any(k.name == key.name for k in self._key_map.values()):
             raise ValueError(f"a key named {key.name!r} already exists on this "

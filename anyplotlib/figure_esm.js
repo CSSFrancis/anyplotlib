@@ -3104,6 +3104,32 @@ function render({ model, el, onResize }) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(e.img, cx + pad, cy + pad, kw, kh);
+
+      // Text drawn INSIDE the picture — an IPF triangle's corner indices, a
+      // wheel's compass points. Positions are fractions of the image box, so
+      // they track the picture through a resize. Drawn over the image with a
+      // thin dark halo, because a key's own colours are arbitrary and there is
+      // no background colour to key the text off.
+      for (const L of (k.labels || [])) {
+        const tx = cx + pad + (L.x || 0) * kw, ty = cy + pad + (L.y || 0) * kh;
+        const ts = L.size || 9;
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.lineJoin = 'round';
+        const prevFill = ctx.fillStyle;
+        // _drawTex strokes nothing, so lay a halo down with the same call
+        // under a stroke-only style, then paint the glyphs on top.
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        for (const [ox, oy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+          _drawTex(ctx, L.text, tx + ox, ty + oy, ts,
+                   { align: L.align || 'center' });
+        }
+        ctx.fillStyle = L.color || '#ffffff';
+        _drawTex(ctx, L.text, tx, ty, ts, { align: L.align || 'center' });
+        ctx.fillStyle = prevFill;
+      }
+
       if (k.label) {
         // A caption on a card follows the card, not the figure: the usual card
         // is a translucent dark slab, and theme.tickText is near-black under a

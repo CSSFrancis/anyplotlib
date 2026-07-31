@@ -53,7 +53,7 @@ class KeyOverlay:
     _FIELDS = (
         "corner", "anchor", "size", "margin", "bgcolor", "border",
         "border_width", "radius", "alpha", "hover_only", "visible",
-        "label", "label_size", "label_color",
+        "label", "label_size", "label_color", "labels",
     )
 
     def __init__(self, plot, image_url: str, *, name=None, **kwargs):
@@ -202,4 +202,51 @@ def _validate(kw: dict) -> dict:
         if k in out and out[k] is not None:
             out[k] = str(out[k])
 
+    if "labels" in out:
+        out["labels"] = _coerce_labels(out["labels"])
+
+    return out
+
+
+def _coerce_labels(labels) -> list:
+    """Normalise in-image text annotations to plain JSON-able dicts.
+
+    Accepts ``(x, y, text)`` triples or dicts with the same keys plus optional
+    ``size`` / ``color`` / ``align``.  ``x``/``y`` are fractions of the key
+    IMAGE box, so they follow the picture when the key is resized — which is
+    the point: an IPF triangle's corner labels have to stay on the corners.
+    """
+    if labels is None:
+        return []
+    out = []
+    for i, item in enumerate(labels):
+        if isinstance(item, dict):
+            d = dict(item)
+        else:
+            seq = list(item)
+            if len(seq) != 3:
+                raise ValueError(
+                    f"labels[{i}]: expected (x, y, text) or a dict, got "
+                    f"{len(seq)} values")
+            d = {"x": seq[0], "y": seq[1], "text": seq[2]}
+        missing = {"x", "y", "text"} - set(d)
+        if missing:
+            raise ValueError(f"labels[{i}] is missing {sorted(missing)!r}")
+        unknown = set(d) - {"x", "y", "text", "size", "color", "align"}
+        if unknown:
+            raise ValueError(
+                f"labels[{i}]: unknown key(s) {sorted(unknown)!r}; valid: "
+                "x, y, text, size, color, align")
+        if d.get("align") not in (None, "left", "center", "right"):
+            raise ValueError(
+                f"labels[{i}]: align must be 'left', 'center' or 'right', "
+                f"got {d['align']!r}")
+        entry = {"x": float(d["x"]), "y": float(d["y"]), "text": str(d["text"])}
+        if d.get("size") is not None:
+            entry["size"] = float(d["size"])
+        if d.get("color") is not None:
+            entry["color"] = str(d["color"])
+        if d.get("align") is not None:
+            entry["align"] = d["align"]
+        out.append(entry)
     return out

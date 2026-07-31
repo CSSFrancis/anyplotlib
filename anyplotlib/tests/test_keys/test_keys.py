@@ -346,3 +346,68 @@ class TestExport:
         k.visible = False
         arr = _export(mount_page(fig))
         assert not _mask(arr, RED).any()
+
+
+class TestLabels:
+    """Text drawn inside the key — an IPF triangle's corner indices."""
+
+    def test_tuples_and_dicts_both_coerce(self):
+        _, p = _panel()
+        k = p.add_key(_disc(), labels=[
+            (0.1, 0.2, "[1 0 0]"),
+            {"x": 0.9, "y": 0.2, "text": "[1 1 0]", "align": "right",
+             "size": 8, "color": "#fff"},
+        ])
+        got = p._state["keys"][0]["labels"]
+        assert got[0] == {"x": 0.1, "y": 0.2, "text": "[1 0 0]"}
+        assert got[1]["align"] == "right" and got[1]["size"] == 8.0
+
+    def test_missing_key_raises(self):
+        _, p = _panel()
+        with pytest.raises(ValueError, match=r"missing \['text'\]"):
+            p.add_key(_disc(), labels=[{"x": 0.1, "y": 0.2}])
+
+    def test_wrong_tuple_length_raises(self):
+        _, p = _panel()
+        with pytest.raises(ValueError, match=r"expected \(x, y, text\)"):
+            p.add_key(_disc(), labels=[(0.1, 0.2)])
+
+    def test_unknown_label_key_raises(self):
+        _, p = _panel()
+        with pytest.raises(ValueError, match="unknown key"):
+            p.add_key(_disc(), labels=[{"x": 0, "y": 0, "text": "a", "bold": 1}])
+
+    def test_bad_align_raises(self):
+        _, p = _panel()
+        with pytest.raises(ValueError, match="align must be"):
+            p.add_key(_disc(), labels=[{"x": 0, "y": 0, "text": "a",
+                                        "align": "middle"}])
+
+    def _glyph_px(self, arr):
+        """Non-red (glyph) pixels well INSIDE the disc.
+
+        The red mask's bounding box also contains the four background corners
+        outside the circle, which are near-white themselves — cropping to the
+        central 60% keeps the measurement on the key's own colours.
+        """
+        ys, xs = np.nonzero(_mask(arr, RED))
+        h0, h1, w0, w1 = ys.min(), ys.max(), xs.min(), xs.max()
+        dy, dx = (h1 - h0) * 0.2, (w1 - w0) * 0.2
+        sub = arr[int(h0 + dy):int(h1 - dy), int(w0 + dx):int(w1 - dx), :3]
+        # The disc is pure red, so any pixel with strong green AND blue is
+        # glyph, not key. Cheaper and far less brittle than an exact white.
+        return int(((sub[..., 1] > 140) & (sub[..., 2] > 140)).sum())
+
+    def test_labels_are_drawn_inside_the_key(self, mount_page):
+        """White glyphs with a dark halo must appear over the key's colours."""
+        fig, p = _panel()
+        p.add_key(_disc(), corner="top-right", size=0.4,
+                  labels=[{"x": 0.5, "y": 0.5, "text": "[1 0 0]"}])
+        n = self._glyph_px(_export(mount_page(fig), scale=2))
+        assert n > 30, f"no label glyphs found inside the key ({n} px)"
+
+    def test_no_labels_means_no_glyphs(self, mount_page):
+        """Control: the same crop must be free of white without labels."""
+        fig, p = _panel()
+        p.add_key(_disc(), corner="top-right", size=0.4)
+        assert self._glyph_px(_export(mount_page(fig), scale=2)) == 0
