@@ -575,6 +575,60 @@ class TestImshowOverlayMask:
         with pytest.raises(ValueError, match="mask shape"):
             plot.set_overlay_mask(bad_mask)
 
+    def test_overlay_mask_in_TILE_mode_ships_the_overview_size(self):
+        """The mask must be sized for what the RENDERER checks.
+
+        The renderer sizes the mask against ``base_width || image_width`` — the
+        OVERVIEW grid — and on a mismatch sets ``maskCache=null``: no error, no
+        overlay, nothing in the log. Tile mode sets ``image_width`` to the FULL
+        native frame, so validating a mask only against the image shape both
+        rejected the one shape that renders and accepted the one the renderer
+        drops. A caller that did the reduction itself got a ValueError; one that
+        did not got 22 MB of bytes silently discarded.
+
+        Either shape in, overview-sized bytes out.
+        """
+        import base64
+
+        plot = apl.subplots(1, 1)[1].imshow(
+            np.zeros((2048, 2048), np.uint8), tile="auto")
+        st = plot._state
+        bw, bh = st.get("base_width"), st.get("base_height")
+        assert bw and bh and (bw, bh) != (st["image_width"], st["image_height"]), \
+            "this test needs a genuinely tiled plot with a smaller base grid"
+
+        for shape in [(st["image_height"], st["image_width"]), (bh, bw)]:
+            mask = np.zeros(shape, bool)
+            mask[::5, ::5] = True
+            plot.set_overlay_mask(mask)
+            sent = base64.b64decode(st["overlay_mask_b64"])
+            assert len(sent) == bw * bh, (
+                f"a {shape} mask shipped {len(sent)} bytes; the renderer "
+                f"expects {bw * bh} and drops anything else silently")
+            assert any(sent), "the reduction emptied the mask"
+
+    def test_overlay_mask_reduction_is_block_ANY_not_a_subsample(self):
+        """A single-pixel object 4 blocks in must survive the reduction.
+
+        Objects here are often a few pixels across; a strided sample of a 2048²
+        mask at 512² keeps one pixel in sixteen and drops them at random.
+        """
+        import base64
+
+        plot = apl.subplots(1, 1)[1].imshow(
+            np.zeros((2048, 2048), np.uint8), tile="auto")
+        st = plot._state
+        bw, bh = st["base_width"], st["base_height"]
+        mask = np.zeros((st["image_height"], st["image_width"]), bool)
+        # Deliberately NOT on a block boundary — a subsample would miss it.
+        mask[537, 921] = True
+        plot.set_overlay_mask(mask)
+        sent = np.frombuffer(base64.b64decode(st["overlay_mask_b64"]), np.uint8)
+        # Bytes are 0/255, so COUNT the lit ones rather than summing them.
+        assert np.count_nonzero(sent.reshape(bh, bw)) == 1, (
+            "the single lit pixel did not survive the reduction — this is a "
+            "subsample, not a block ANY")
+
     def test_set_overlay_mask_alpha_boundary(self):
         plot = _img(n=16)
         mask = np.zeros((16, 16), dtype=bool)
