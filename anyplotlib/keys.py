@@ -37,14 +37,6 @@ class KeyOverlay:
         key = plot.add_key(ipf_triangle, corner="bottom-right")
         key.set(size=0.3, bgcolor="none")
         key.visible = False          # plain attribute assignment also pushes
-
-    Attributes
-    ----------
-    id : str
-        Short unique identifier.
-    name : str
-        Caller-supplied name, or the id when none was given.  Use it with
-        :meth:`~anyplotlib.Plot2D.get_key`.
     """
 
     #: Fields that live on the light view channel.  The image itself does NOT
@@ -68,10 +60,15 @@ class KeyOverlay:
 
     @property
     def id(self) -> str:
+        """Short unique identifier."""
         return self._id
 
     @property
     def name(self) -> str:
+        """Caller-supplied name, or the id when none was given.
+
+        Use it with :meth:`~anyplotlib.Plot2D.get_key`.
+        """
         return self._name
 
     # ── attribute access ──────────────────────────────────────────────
