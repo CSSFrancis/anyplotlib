@@ -1,4 +1,0 @@
-Fixed the documentation build failing on
-:class:`~anyplotlib.keys.KeyOverlay`, whose ``id`` and ``name`` were described
-both in the class docstring and by the properties themselves — a duplicate
-object description, which the build treats as an error.

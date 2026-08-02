@@ -10,6 +10,28 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.8.0 (2026-08-02)
+==================
+
+Bug Fixes
+---------
+
+- Fixed ``save_html`` / ``to_html`` / ``figure_state`` dropping image pixels
+  under the Electron binary transport: the snapshot kept the ``"\x00bin:"``
+  change-tokens whose bytes only ever ride the live PLOTBIN channel, so an
+  overlay added with :meth:`~anyplotlib.Plot2D.add_layer` did not render in the
+  exported document. (`#52 <https://github.com/CSSFrancis/anyplotlib/pull/52>`_)
+
+
+Documentation
+-------------
+
+- Fixed the documentation build failing on
+  :class:`~anyplotlib.keys.KeyOverlay`, whose ``id`` and ``name`` were described
+  both in the class docstring and by the properties themselves — a duplicate
+  object description, which the build treats as an error. (`#53 <https://github.com/CSSFrancis/anyplotlib/pull/53>`_)
+
+
 0.7.0 (2026-07-31)
 ==================
 
