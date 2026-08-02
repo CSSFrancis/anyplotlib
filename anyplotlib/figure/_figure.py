@@ -300,7 +300,7 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         self._push(pid)
         self._push_layout()
 
-    def _push(self, panel_id: str) -> None:
+    def _push(self, panel_id: str, *, resolve_pixels: bool = False) -> None:
         """Serialise one panel and write to its trait.
 
         Inside a :meth:`batch` block, pushes are coalesced: each panel is
@@ -309,6 +309,14 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         many per-frame pushes of a linked-view update (set_data + set_title +
         widget moves on the same panel) into one serialise/transfer per panel
         — the dominant cost over a Pyodide comm boundary.
+
+        Parameters
+        ----------
+        resolve_pixels : bool, optional
+            Force pixel change-tokens to be materialised to inline base64 even
+            when the binary transport is live.  Set by :meth:`_sync_for_export`
+            because a snapshot has no PLOTBIN channel to carry the bytes; see
+            the token discussion below.
         """
         plot = self._plots_map.get(panel_id)
         if plot is None:
@@ -329,7 +337,15 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         # save_html / Jupyter figure with no binary channel — materialise the
         # real base64 inline so the pixels actually travel. ``_binary_wire``
         # matches the producer's gate (``Plot2D._encode_pixels``).
-        if geom_keys and not _binary_wire() and hasattr(plot, "resolve_pixel_tokens"):
+        #
+        # ``resolve_pixels`` overrides that gate for an EXPORT. A snapshot is by
+        # definition off-wire: whatever PLOTBIN would have delivered never
+        # arrives, so a token left in the state is a dangling reference and the
+        # pixels are simply lost. The gate reads a process-global env var, which
+        # is on in a host app even while THIS push is serialising a snapshot —
+        # so the export has to say so explicitly.
+        if (geom_keys and (resolve_pixels or not _binary_wire())
+                and hasattr(plot, "resolve_pixel_tokens")):
             plot.resolve_pixel_tokens(state)
         if geom_keys and self.has_trait(gname):
             # Split heavy geometry into its own channel.  Detect change by
@@ -814,9 +830,17 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         Called from ``_repr_utils._widget_state``, the one chokepoint every
         export path goes through.  The live Jupyter path deliberately keeps
         using targeted pushes and does not pay this cost.
+
+        The re-push passes ``resolve_pixels=True``: this rewrites the panel
+        traits, and under a live binary transport an ordinary push leaves pixel
+        change-tokens in place for PLOTBIN to fill in.  A snapshot has no
+        PLOTBIN, so those tokens would be dangling — and because the re-push
+        rewrites ``panel_<id>_json`` unconditionally it would also undo any
+        materialisation the caller did beforehand.  An export always ships real
+        pixels.
         """
         for panel_id in list(self._plots_map):
-            self._push(panel_id)
+            self._push(panel_id, resolve_pixels=True)
 
     def _push_panel_fields(self, panel_id: str, fields: dict) -> None:
         """Apply a small set of changed *fields* to a panel, then push once.

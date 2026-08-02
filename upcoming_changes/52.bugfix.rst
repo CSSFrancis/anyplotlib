@@ -1,0 +1,5 @@
+Fixed ``save_html`` / ``to_html`` / ``figure_state`` dropping image pixels
+under the Electron binary transport: the snapshot kept the ``"\x00bin:"``
+change-tokens whose bytes only ever ride the live PLOTBIN channel, so an
+overlay added with :meth:`~anyplotlib.Plot2D.add_layer` did not render in the
+exported document.
