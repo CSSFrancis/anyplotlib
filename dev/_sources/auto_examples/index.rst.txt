@@ -792,6 +792,23 @@ A collection of short examples showing different plot types.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Some plots are coloured by a direction, not by a magnitude, and a colorbar cannot say what the colours mean.  An orientation map is coloured by which crystal axis points at you; a polarization map by which way the moment lies in the plane.  Both need a small picture as their legend: an inverse pole figure triangle, or a hue wheel.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_key_overlays_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_key_overlays`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Floating keys — IPF triangles and colour wheels</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="GridSpec lets you build multi-panel figures where panels have different sizes and span multiple grid cells.  This gallery shows the most common patterns.">
 
 .. only:: html

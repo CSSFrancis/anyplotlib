@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>anyplotlib.figure._figure &#8212; anyplotlib 0.6.0 documentation</title>
+    <title>anyplotlib.figure._figure &#8212; anyplotlib 0.7.0 documentation</title>
   
   
   
@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
 
-    <script src="../../../_static/documentation_options.js?v=8fa8b3e9"></script>
+    <script src="../../../_static/documentation_options.js?v=fe7df9b0"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script defer="defer" src="../../../_static/anywidget_config.js?v=cd5adc06"></script>
@@ -746,7 +746,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_layout</span><span class="p">()</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">panel_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">panel_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">resolve_pixels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialise one panel and write to its trait.</span>
 
 <span class="sd">        Inside a :meth:`batch` block, pushes are coalesced: each panel is</span>
@@ -755,6 +755,14 @@
 <span class="sd">        many per-frame pushes of a linked-view update (set_data + set_title +</span>
 <span class="sd">        widget moves on the same panel) into one serialise/transfer per panel</span>
 <span class="sd">        — the dominant cost over a Pyodide comm boundary.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        resolve_pixels : bool, optional</span>
+<span class="sd">            Force pixel change-tokens to be materialised to inline base64 even</span>
+<span class="sd">            when the binary transport is live.  Set by :meth:`_sync_for_export`</span>
+<span class="sd">            because a snapshot has no PLOTBIN channel to carry the bytes; see</span>
+<span class="sd">            the token discussion below.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">panel_id</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -775,7 +783,15 @@
         <span class="c1"># save_html / Jupyter figure with no binary channel — materialise the</span>
         <span class="c1"># real base64 inline so the pixels actually travel. ``_binary_wire``</span>
         <span class="c1"># matches the producer&#39;s gate (``Plot2D._encode_pixels``).</span>
-        <span class="k">if</span> <span class="n">geom_keys</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_binary_wire</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;resolve_pixel_tokens&quot;</span><span class="p">):</span>
+        <span class="c1">#</span>
+        <span class="c1"># ``resolve_pixels`` overrides that gate for an EXPORT. A snapshot is by</span>
+        <span class="c1"># definition off-wire: whatever PLOTBIN would have delivered never</span>
+        <span class="c1"># arrives, so a token left in the state is a dangling reference and the</span>
+        <span class="c1"># pixels are simply lost. The gate reads a process-global env var, which</span>
+        <span class="c1"># is on in a host app even while THIS push is serialising a snapshot —</span>
+        <span class="c1"># so the export has to say so explicitly.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">geom_keys</span> <span class="ow">and</span> <span class="p">(</span><span class="n">resolve_pixels</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_binary_wire</span><span class="p">())</span>
+                <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;resolve_pixel_tokens&quot;</span><span class="p">)):</span>
             <span class="n">plot</span><span class="o">.</span><span class="n">resolve_pixel_tokens</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">geom_keys</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_trait</span><span class="p">(</span><span class="n">gname</span><span class="p">):</span>
             <span class="c1"># Split heavy geometry into its own channel.  Detect change by</span>
@@ -1269,9 +1285,17 @@
 <span class="sd">        Called from ``_repr_utils._widget_state``, the one chokepoint every</span>
 <span class="sd">        export path goes through.  The live Jupyter path deliberately keeps</span>
 <span class="sd">        using targeted pushes and does not pay this cost.</span>
+
+<span class="sd">        The re-push passes ``resolve_pixels=True``: this rewrites the panel</span>
+<span class="sd">        traits, and under a live binary transport an ordinary push leaves pixel</span>
+<span class="sd">        change-tokens in place for PLOTBIN to fill in.  A snapshot has no</span>
+<span class="sd">        PLOTBIN, so those tokens would be dangling — and because the re-push</span>
+<span class="sd">        rewrites ``panel_&lt;id&gt;_json`` unconditionally it would also undo any</span>
+<span class="sd">        materialisation the caller did beforehand.  An export always ships real</span>
+<span class="sd">        pixels.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">panel_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">(</span><span class="n">panel_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">(</span><span class="n">panel_id</span><span class="p">,</span> <span class="n">resolve_pixels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_push_panel_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">panel_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply a small set of changed *fields* to a panel, then push once.</span>
