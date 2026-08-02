@@ -1,0 +1,23 @@
+/*
+ * custom.css — anyplotlib docs overrides
+ *
+ * Hide empty syntax-highlight blocks that sphinx-gallery emits when an
+ * entire code cell is wrapped in # sphinx_gallery_start/end_ignore.
+ * The cell still executes (figures are scraped) but produces a visible
+ * blank <pre> element; this rule makes those invisible.
+ */
+.highlight pre:not(:has(:not(:empty))) {
+    display: none;
+}
+.highlight-Python:has(pre > span:only-child:empty) {
+    display: none;
+}
+
+/*
+ * Fallback for browsers that don't support :has() — target the pattern
+ * sphinx produces for an empty highlighted block:
+ *   <div class="highlight"><pre><span></span>\n</pre></div>
+ * We can't do this in pure CSS without :has, so we rely on the rule above
+ * for modern browsers and accept a small blank gap on older ones.
+ */
+
