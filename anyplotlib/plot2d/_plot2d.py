@@ -45,6 +45,40 @@ def _binary_transport_active() -> bool:
     return os.environ.get("APL_BINARY_TRANSPORT") == "1"
 
 
+def _reduce_mask_any(mask, out_h: int, out_w: int):
+    """Reduce a boolean *mask* to ``(out_h, out_w)`` with a block ANY.
+
+    A block of the source is True in the output if ANY of its pixels is. For a
+    mask that is the only defensible reduction: it marks *where objects are*,
+    and an object smaller than one output block must not vanish because the
+    sampled pixel happened to miss it.
+
+    The tail rows/columns that do not divide evenly are folded into the last
+    block rather than cropped, so an object at the right or bottom edge is kept.
+    """
+    import numpy as _np
+
+    src_h, src_w = mask.shape
+    if (src_h, src_w) == (out_h, out_w):
+        return mask
+    ys = max(1, src_h // out_h)
+    xs = max(1, src_w // out_w)
+    keep_h, keep_w = (src_h // ys) * ys, (src_w // xs) * xs
+    small = mask[:keep_h, :keep_w].reshape(
+        keep_h // ys, ys, keep_w // xs, xs).any(axis=(1, 3))
+    out = _np.zeros((out_h, out_w), bool)
+    sh, sw = min(out_h, small.shape[0]), min(out_w, small.shape[1])
+    out[:sh, :sw] = small[:sh, :sw]
+    # Fold any cropped tail into the final block so edge objects survive.
+    if keep_h < src_h and sh > 0:
+        out[sh - 1, :sw] |= mask[keep_h:, :keep_w].reshape(
+            1, src_h - keep_h, keep_w // xs, xs).any(axis=(1, 3))[0, :sw]
+    if keep_w < src_w and sw > 0:
+        out[:sh, sw - 1] |= mask[:keep_h, keep_w:].reshape(
+            keep_h // ys, ys, 1, src_w - keep_w).any(axis=(1, 3))[:sh, 0]
+    return out
+
+
 class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     """2-D image plot panel.
 
@@ -1115,6 +1149,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             Boolean array aligned to the image data.  ``True`` / non-zero
             pixels are filled with *color* at transparency *alpha*.
             Pass ``None`` to clear the overlay.
+
+            In TILE mode pass the mask at the FULL image resolution: the
+            renderer composites the mask against the OVERVIEW texture, so it
+            is reduced to the base grid here.  A mask already at the base grid
+            is accepted unchanged.  (Both are accepted because neither is
+            wrong; what was wrong was accepting only the full-resolution one
+            and then shipping bytes the renderer silently discards.)
         color : str, optional
             CSS hex colour for the overlay, e.g. ``"#ff4444"``.  Default red.
             Must be in ``#RRGGBB`` format.
@@ -1137,14 +1178,32 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._state["overlay_mask_alpha"] = alpha
         else:
             arr = np.asarray(mask)
-            if arr.shape != (self._state["image_height"], self._state["image_width"]):
-                raise ValueError(
-                    f"mask shape {arr.shape} does not match image "
-                    f"({self._state['image_height']} x {self._state['image_width']})"
-                )
+            ih, iw = self._state["image_height"], self._state["image_width"]
+            bh = int(self._state.get("base_height") or 0)
+            bw = int(self._state.get("base_width") or 0)
+            # THE TILE-MODE SHAPE TRAP. The renderer sizes the mask against
+            # `base_width || image_width` -- the OVERVIEW grid -- but tile mode
+            # sets image_width/height to the FULL native frame. So validating
+            # only against the image shape rejected the one shape that renders
+            # and accepted the one the renderer drops on the floor
+            # (`mBytes.length===iw*ih` else `maskCache=null`, silently). Both
+            # shapes are legal here; the overview is what actually ships.
+            tiled = bw > 0 and bh > 0 and (bh, bw) != (ih, iw)
+            if arr.shape != (ih, iw) and not (tiled and arr.shape == (bh, bw)):
+                want = f"({ih} x {iw})"
+                if tiled:
+                    want += f" or the tile overview ({bh} x {bw})"
+                raise ValueError(f"mask shape {arr.shape} does not match image {want}")
             # For origin='lower' the image data was flipped; flip mask to match.
             if self._origin == "lower":
                 arr = np.flipud(arr)
+            if tiled and arr.shape == (ih, iw):
+                # Block ANY, never a subsample: a mask marks objects that are
+                # often only a few pixels across, and striding a 4096² mask
+                # down to 1024² drops three quarters of them at random. ANY
+                # keeps every object visible at the cost of fattening it, which
+                # is the right trade for an overlay you are looking at.
+                arr = _reduce_mask_any(np.asarray(arr, dtype=bool), bh, bw)
             # Convert to uint8: True/non-zero → 255, False/zero → 0
             u8 = (np.asarray(arr, dtype=bool).view(np.uint8) * 255).astype(np.uint8)
             self._state["overlay_mask_b64"]   = base64.b64encode(u8.tobytes()).decode("ascii")
