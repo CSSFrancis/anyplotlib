@@ -2578,9 +2578,16 @@ remove any existing overlay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mask</strong> (<em>ndarray</em><em> of </em><em>shape</em><em> (</em><em>H</em><em>, </em><em>W</em><em>)</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em> or </em><em>uint8</em><em>, or </em><em>None</em>) – Boolean array aligned to the image data.  <code class="docutils literal notranslate"><span class="pre">True</span></code> / non-zero
+<li><p><strong>mask</strong> (<em>ndarray</em><em> of </em><em>shape</em><em> (</em><em>H</em><em>, </em><em>W</em><em>)</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em> or </em><em>uint8</em><em>, or </em><em>None</em>) – <p>Boolean array aligned to the image data.  <code class="docutils literal notranslate"><span class="pre">True</span></code> / non-zero
 pixels are filled with <em>color</em> at transparency <em>alpha</em>.
-Pass <code class="docutils literal notranslate"><span class="pre">None</span></code> to clear the overlay.</p></li>
+Pass <code class="docutils literal notranslate"><span class="pre">None</span></code> to clear the overlay.</p>
+<p>In TILE mode pass the mask at the FULL image resolution: the
+renderer composites the mask against the OVERVIEW texture, so it
+is reduced to the base grid here.  A mask already at the base grid
+is accepted unchanged.  (Both are accepted because neither is
+wrong; what was wrong was accepting only the full-resolution one
+and then shipping bytes the renderer silently discards.)</p>
+</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS hex colour for the overlay, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;#ff4444&quot;</span></code>.  Default red.
 Must be in <code class="docutils literal notranslate"><span class="pre">#RRGGBB</span></code> format.</p></li>
 <li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity in [0, 1].  Default 0.4 (40 % opaque).</p></li>
