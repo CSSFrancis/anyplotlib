@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**04:30.790** total execution time for 56 files **from all galleries**:
+**04:33.281** total execution time for 56 files **from all galleries**:
 
 .. container::
 
@@ -33,170 +33,170 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_Benchmarks_plot_benchmark_comparison.py` (``../Examples/Benchmarks/plot_benchmark_comparison.py``)
-     - 03:05.436
+     - 03:06.046
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_gridspec_custom.py` (``../Examples/PlotTypes/plot_gridspec_custom.py``)
-     - 00:04.322
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_line_styles.py` (``../Examples/PlotTypes/plot_line_styles.py``)
-     - 00:04.288
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_3d_texture.py` (``../Examples/PlotTypes/plot_3d_texture.py``)
-     - 00:04.279
+     - 00:04.606
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_bar.py` (``../Examples/PlotTypes/plot_bar.py``)
-     - 00:04.242
+     - 00:04.414
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_3d_texture.py` (``../Examples/PlotTypes/plot_3d_texture.py``)
+     - 00:04.289
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_line_styles.py` (``../Examples/PlotTypes/plot_line_styles.py``)
+     - 00:04.261
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_tile_backend.py` (``../Examples/PlotTypes/plot_tile_backend.py``)
-     - 00:03.030
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_gpu_voxels.py` (``../Examples/PlotTypes/plot_gpu_voxels.py``)
-     - 00:02.948
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_figure_annotations.py` (``../Examples/Interactive/plot_figure_annotations.py``)
-     - 00:02.897
+     - 00:03.131
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_spectra1d.py` (``../Examples/PlotTypes/plot_spectra1d.py``)
-     - 00:02.853
+     - 00:03.004
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_gpu_voxels.py` (``../Examples/PlotTypes/plot_gpu_voxels.py``)
+     - 00:02.976
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_3d.py` (``../Examples/PlotTypes/plot_3d.py``)
-     - 00:02.849
+     - 00:02.929
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_figure_annotations.py` (``../Examples/Interactive/plot_figure_annotations.py``)
+     - 00:02.904
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_star_globe_explorer.py` (``../Examples/Interactive/plot_star_globe_explorer.py``)
-     - 00:02.462
+     - 00:02.479
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_image2d.py` (``../Examples/PlotTypes/plot_image2d.py``)
-     - 00:02.217
+     - 00:02.251
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_pcolormesh.py` (``../Examples/PlotTypes/plot_pcolormesh.py``)
-     - 00:02.127
+     - 00:02.196
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_twinx.py` (``../Examples/PlotTypes/plot_twinx.py``)
-     - 00:02.110
+     - 00:02.128
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_key_overlays.py` (``../Examples/PlotTypes/plot_key_overlays.py``)
-     - 00:01.618
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_spectra_roi_inspector.py` (``../Examples/Interactive/plot_spectra_roi_inspector.py``)
-     - 00:01.473
+     - 00:01.681
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_interactive_fitting.py` (``../Examples/Interactive/plot_interactive_fitting.py``)
-     - 00:01.458
+     - 00:01.549
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_spectra_roi_inspector.py` (``../Examples/Interactive/plot_spectra_roi_inspector.py``)
+     - 00:01.499
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_vertical_lines.py` (``../Examples/Markers/plot_vertical_lines.py``)
+     - 00:01.482
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_points.py` (``../Examples/Markers/plot_points.py``)
+     - 00:01.479
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget3d_plane.py` (``../Examples/Widgets/plot_widget3d_plane.py``)
-     - 00:01.453
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_ellipses.py` (``../Examples/Markers/plot_ellipses.py``)
-     - 00:01.442
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_arrow.py` (``../Examples/Widgets/plot_widget2d_arrow.py``)
-     - 00:01.433
+     - 00:01.477
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Markers_plot_transform_markers.py` (``../Examples/Markers/plot_transform_markers.py``)
+     - 00:01.459
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_rectangles.py` (``../Examples/Markers/plot_rectangles.py``)
+     - 00:01.459
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_texts.py` (``../Examples/Markers/plot_texts.py``)
+     - 00:01.447
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_ellipses.py` (``../Examples/Markers/plot_ellipses.py``)
+     - 00:01.441
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_circles.py` (``../Examples/Markers/plot_circles.py``)
+     - 00:01.439
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_line_segments.py` (``../Examples/Markers/plot_line_segments.py``)
+     - 00:01.437
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_arrows.py` (``../Examples/Markers/plot_arrows.py``)
+     - 00:01.435
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_squares.py` (``../Examples/Markers/plot_squares.py``)
+     - 00:01.435
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_arrow.py` (``../Examples/Widgets/plot_widget2d_arrow.py``)
      - 00:01.430
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Markers_plot_polygons.py` (``../Examples/Markers/plot_polygons.py``)
-     - 00:01.425
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_circles.py` (``../Examples/Markers/plot_circles.py``)
-     - 00:01.425
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_rectangles.py` (``../Examples/Markers/plot_rectangles.py``)
-     - 00:01.425
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_line_segments.py` (``../Examples/Markers/plot_line_segments.py``)
-     - 00:01.423
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_texts.py` (``../Examples/Markers/plot_texts.py``)
-     - 00:01.418
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_squares.py` (``../Examples/Markers/plot_squares.py``)
-     - 00:01.413
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_arrows.py` (``../Examples/Markers/plot_arrows.py``)
-     - 00:01.412
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_points.py` (``../Examples/Markers/plot_points.py``)
-     - 00:01.411
+     - 00:01.429
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_point.py` (``../Examples/Widgets/plot_widget1d_point.py``)
-     - 00:01.405
+     - 00:01.429
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Markers_plot_horizontal_lines.py` (``../Examples/Markers/plot_horizontal_lines.py``)
-     - 00:01.393
+     - 00:01.425
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_step_and_log.py` (``../Examples/PlotTypes/plot_step_and_log.py``)
-     - 00:01.391
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_vertical_lines.py` (``../Examples/Markers/plot_vertical_lines.py``)
-     - 00:01.382
+     - 00:01.400
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_segment_by_contrast_advanced.py` (``../Examples/Interactive/plot_segment_by_contrast_advanced.py``)
-     - 00:00.946
+     - 00:01.006
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_particle_picker.py` (``../Examples/Interactive/plot_particle_picker.py``)
-     - 00:00.934
+     - 00:00.935
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_ipf_density_map.py` (``../Examples/Interactive/plot_ipf_density_map.py``)
-     - 00:00.855
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_threshold_explorer.py` (``../Examples/Interactive/plot_threshold_explorer.py``)
-     - 00:00.851
+     - 00:00.872
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_voxel_grain_explorer.py` (``../Examples/Interactive/plot_voxel_grain_explorer.py``)
-     - 00:00.809
+     - 00:00.862
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_threshold_explorer.py` (``../Examples/Interactive/plot_threshold_explorer.py``)
+     - 00:00.848
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_inset.py` (``../Examples/PlotTypes/plot_inset.py``)
-     - 00:00.784
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_interactive_fft.py` (``../Examples/Interactive/plot_interactive_fft.py``)
-     - 00:00.765
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_3d_spectral_viewer.py` (``../Examples/Interactive/plot_3d_spectral_viewer.py``)
-     - 00:00.764
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_ipf_explorer.py` (``../Examples/Interactive/plot_ipf_explorer.py``)
-     - 00:00.761
+     - 00:00.805
      - 0.0
    * - :ref:`sphx_glr_auto_examples_PlotTypes_plot_label_formatting.py` (``../Examples/PlotTypes/plot_label_formatting.py``)
-     - 00:00.740
+     - 00:00.781
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_Interactive_plot_key_bindings.py` (``../Examples/Interactive/plot_key_bindings.py``)
-     - 00:00.736
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_ipf_explorer.py` (``../Examples/Interactive/plot_ipf_explorer.py``)
+     - 00:00.775
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_interactive_fft.py` (``../Examples/Interactive/plot_interactive_fft.py``)
+     - 00:00.769
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_segment_by_contrast.py` (``../Examples/Interactive/plot_segment_by_contrast.py``)
-     - 00:00.735
+     - 00:00.768
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_annular.py` (``../Examples/Widgets/plot_widget2d_annular.py``)
-     - 00:00.728
+     - 00:00.751
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_label.py` (``../Examples/Widgets/plot_widget2d_label.py``)
-     - 00:00.725
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_3d_spectral_viewer.py` (``../Examples/Interactive/plot_3d_spectral_viewer.py``)
+     - 00:00.751
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_rectangle.py` (``../Examples/Widgets/plot_widget2d_rectangle.py``)
-     - 00:00.722
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_circle.py` (``../Examples/Widgets/plot_widget2d_circle.py``)
+     - 00:00.739
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Interactive_plot_key_bindings.py` (``../Examples/Interactive/plot_key_bindings.py``)
+     - 00:00.733
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_eels_explorer.py` (``../Examples/Interactive/plot_eels_explorer.py``)
-     - 00:00.719
+     - 00:00.732
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_rectangle.py` (``../Examples/Widgets/plot_widget2d_rectangle.py``)
+     - 00:00.732
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_label.py` (``../Examples/Widgets/plot_widget2d_label.py``)
+     - 00:00.728
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_crosshair.py` (``../Examples/Widgets/plot_widget2d_crosshair.py``)
+     - 00:00.721
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_polygon.py` (``../Examples/Widgets/plot_widget2d_polygon.py``)
      - 00:00.715
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_circle.py` (``../Examples/Widgets/plot_widget2d_circle.py``)
-     - 00:00.713
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget2d_crosshair.py` (``../Examples/Widgets/plot_widget2d_crosshair.py``)
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_vline.py` (``../Examples/Widgets/plot_widget1d_vline.py``)
      - 00:00.711
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_vline.py` (``../Examples/Widgets/plot_widget1d_vline.py``)
-     - 00:00.699
+   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_hline.py` (``../Examples/Widgets/plot_widget1d_hline.py``)
+     - 00:00.705
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_range.py` (``../Examples/Widgets/plot_widget1d_range.py``)
-     - 00:00.697
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Widgets_plot_widget1d_hline.py` (``../Examples/Widgets/plot_widget1d_hline.py``)
-     - 00:00.697
+     - 00:00.698
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Interactive_plot_point_widget.py` (``../Examples/Interactive/plot_point_widget.py``)
-     - 00:00.694
+     - 00:00.696
      - 0.0
