@@ -1,0 +1,6 @@
+﻿anyplotlib.GridSpec
+===================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: GridSpec
