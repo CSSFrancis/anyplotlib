@@ -514,13 +514,29 @@
 <span class="sd">        Outline stroke width in px. Default 2.</span>
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the radius grab handle. Default ``True``.</span>
+<span class="sd">    lock_center : bool, optional</span>
+<span class="sd">        Pin ``cx, cy`` and let only the radius change. Default ``False``.</span>
+
+<span class="sd">        The centre is refused at HIT-TEST time, not corrected afterwards: a</span>
+<span class="sd">        grab on the ring body is simply not a widget grab, so it falls through</span>
+<span class="sd">        to the plot&#39;s own pan and the hover cursor never promises a move.</span>
+<span class="sd">        Enforcing it from Python instead — snapping the centre back when the</span>
+<span class="sd">        drag settles — cannot work, because the JS drag recomputes the position</span>
+<span class="sd">        from its own grab-time snapshot on every frame; the ring tracks the</span>
+<span class="sd">        cursor for the whole drag and only jumps back on release.</span>
+
+<span class="sd">        Use it when the centre is not a free parameter — a ring on a power</span>
+<span class="sd">        spectrum is centred on the DC term, so a draggable centre is a control</span>
+<span class="sd">        that can only ever be wrong, and one nudged off-centre silently</span>
+<span class="sd">        corrupts every radius measured from it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lock_center</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;circle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
                          <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span> <span class="n">r</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                          <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
-                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">),</span>
+                         <span class="n">lock_center</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">lock_center</span><span class="p">))</span></div>
 
 
 
