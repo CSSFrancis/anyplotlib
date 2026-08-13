@@ -74,13 +74,29 @@ class CircleWidget(Widget):
         Outline stroke width in px. Default 2.
     show_handles : bool, optional
         Draw the radius grab handle. Default ``True``.
+    lock_center : bool, optional
+        Pin ``cx, cy`` and let only the radius change. Default ``False``.
+
+        The centre is refused at HIT-TEST time, not corrected afterwards: a
+        grab on the ring body is simply not a widget grab, so it falls through
+        to the plot's own pan and the hover cursor never promises a move.
+        Enforcing it from Python instead — snapping the centre back when the
+        drag settles — cannot work, because the JS drag recomputes the position
+        from its own grab-time snapshot on every frame; the ring tracks the
+        cursor for the whole drag and only jumps back on release.
+
+        Use it when the centre is not a free parameter — a ring on a power
+        spectrum is centred on the DC term, so a draggable centre is a control
+        that can only ever be wrong, and one nudged off-centre silently
+        corrupts every radius measured from it.
     """
     def __init__(self, push_fn, *, cx, cy, r, color="#00e5ff",
-                 linewidth=2, show_handles=True):
+                 linewidth=2, show_handles=True, lock_center=False):
         super().__init__("circle", push_fn,
                          cx=float(cx), cy=float(cy), r=float(r), color=color,
                          linewidth=float(linewidth),
-                         show_handles=bool(show_handles))
+                         show_handles=bool(show_handles),
+                         lock_center=bool(lock_center))
 
 
 class AnnularWidget(Widget):
