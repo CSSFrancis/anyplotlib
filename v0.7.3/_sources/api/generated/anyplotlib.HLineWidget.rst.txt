@@ -1,0 +1,6 @@
+﻿anyplotlib.HLineWidget
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: HLineWidget

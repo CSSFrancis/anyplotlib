@@ -1,0 +1,1072 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>anyplotlib.widgets._widgets2d &#8212; anyplotlib 0.7.3 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/anywidget_overlay.css?v=a271c467" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=6a9e09cd" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../../_static/documentation_options.js?v=c98573da"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="../../../_static/anywidget_config.js?v=cd5adc06"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script defer="defer" src="../../../_static/anywidget_bridge.js?v=a2d47ea1"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/anyplotlib/widgets/_widgets2d';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://cssfrancis.github.io/anyplotlib/v0.7.3/_modules/anyplotlib/widgets/_widgets2d.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/anyplotlib.svg" class="logo__image only-light" alt=""/>
+    <img src="../../../_static/anyplotlib.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">anyplotlib</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../events.html">
+    Event System
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../embedding.html">
+    Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/index.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
+    Performance
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../dev/index.html">
+    Developer Documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/CSSFrancis/anyplotlib" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">anyplotlib.widgets._widgets2d</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for anyplotlib.widgets._widgets2d</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">widgets/_widgets2d.py</span>
+<span class="sd">=====================</span>
+<span class="sd">Interactive overlay widgets for 2-D image panels (Plot2D / InsetAxes).</span>
+
+<span class="sd">Every 2-D widget accepts ``show_handles`` (default ``True``). When ``False``</span>
+<span class="sd">the widget body still draws and stays fully hit-testable / draggable, but the</span>
+<span class="sd">small square grab-handle dots are omitted — a cleaner look for a finished</span>
+<span class="sd">annotation. It rides along in ``_data`` so it serialises into the panel state&#39;s</span>
+<span class="sd">``overlay_widgets`` list and reaches the JS renderer unchanged.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
+
+
+<div class="viewcode-block" id="RectangleWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.RectangleWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RectangleWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable rectangle overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x, y : float</span>
+<span class="sd">        Top-left corner position in pixel/data coordinates.</span>
+<span class="sd">    w, h : float</span>
+<span class="sd">        Width and height in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the rectangle outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the corner grab handles. Default ``True``.</span>
+<span class="sd">    max_extent : float or (float, float), optional</span>
+<span class="sd">        Maximum width/height in the widget&#39;s coordinates. A scalar caps both</span>
+<span class="sd">        axes; a ``(max_w, max_h)`` pair caps them separately. When set, the</span>
+<span class="sd">        rectangle physically stops growing at the cap while dragging — the</span>
+<span class="sd">        dragged corner pins and the opposite corner stays put. ``None``</span>
+<span class="sd">        (default) leaves it unbounded.</span>
+
+<span class="sd">        Use this when the rectangle&#39;s area costs real work downstream — e.g. an</span>
+<span class="sd">        integrating ROI whose size is a number of frames to read.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">max_extent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_w</span> <span class="o">=</span> <span class="n">max_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">max_extent</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="n">max_w</span><span class="p">,</span> <span class="n">max_h</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">max_extent</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">max_extent</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">max_w</span> <span class="o">=</span> <span class="n">max_h</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">max_extent</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
+                         <span class="n">w</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">h</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">),</span>
+                         <span class="n">max_w</span><span class="o">=</span><span class="n">max_w</span><span class="p">,</span> <span class="n">max_h</span><span class="o">=</span><span class="n">max_h</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="CircleWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.CircleWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CircleWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable circle overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    cx, cy : float</span>
+<span class="sd">        Center position in pixel/data coordinates.</span>
+<span class="sd">    r : float</span>
+<span class="sd">        Radius in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the circle outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the radius grab handle. Default ``True``.</span>
+<span class="sd">    lock_center : bool, optional</span>
+<span class="sd">        Pin ``cx, cy`` and let only the radius change. Default ``False``.</span>
+
+<span class="sd">        The centre is refused at HIT-TEST time, not corrected afterwards: a</span>
+<span class="sd">        grab on the ring body is simply not a widget grab, so it falls through</span>
+<span class="sd">        to the plot&#39;s own pan and the hover cursor never promises a move.</span>
+<span class="sd">        Enforcing it from Python instead — snapping the centre back when the</span>
+<span class="sd">        drag settles — cannot work, because the JS drag recomputes the position</span>
+<span class="sd">        from its own grab-time snapshot on every frame; the ring tracks the</span>
+<span class="sd">        cursor for the whole drag and only jumps back on release.</span>
+
+<span class="sd">        Use it when the centre is not a free parameter — a ring on a power</span>
+<span class="sd">        spectrum is centred on the DC term, so a draggable centre is a control</span>
+<span class="sd">        that can only ever be wrong, and one nudged off-centre silently</span>
+<span class="sd">        corrupts every radius measured from it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lock_center</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;circle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span> <span class="n">r</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">),</span>
+                         <span class="n">lock_center</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">lock_center</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="AnnularWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.AnnularWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnnularWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable annular (ring) overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    cx, cy : float</span>
+<span class="sd">        Center position in pixel/data coordinates.</span>
+<span class="sd">    r_outer, r_inner : float</span>
+<span class="sd">        Outer and inner radii in pixel/data coordinates.</span>
+<span class="sd">        Inner radius must be less than outer radius.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the ring outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the inner/outer radius grab handles. Default ``True``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If r_inner &gt;= r_outer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r_outer</span><span class="p">,</span> <span class="n">r_inner</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">r_inner</span> <span class="o">&gt;=</span> <span class="n">r_outer</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;r_inner must be &lt; r_outer&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;annular&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span>
+                         <span class="n">r_outer</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_outer</span><span class="p">),</span> <span class="n">r_inner</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_inner</span><span class="p">),</span>
+                         <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">LineWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable two-endpoint line segment overlay widget for 2-D plots.</span>
+
+<span class="sd">    A plain segment from ``(x1, y1)`` to ``(x2, y2)``: drag either endpoint</span>
+<span class="sd">    handle to move that end, or drag the shaft to translate the whole</span>
+<span class="sd">    segment.  Unlike :class:`ArrowWidget` it has no head, and unlike</span>
+<span class="sd">    :class:`PolygonWidget` it does not close the path — this is the widget for</span>
+<span class="sd">    a line profile, a cross-section cut, or a two-point measurement.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x1, y1 : float</span>
+<span class="sd">        First endpoint in pixel/data coordinates.</span>
+<span class="sd">    x2, y2 : float</span>
+<span class="sd">        Second endpoint in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the segment. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Stroke width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the endpoint grab handles. Default ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">y1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y1</span><span class="p">),</span>
+                         <span class="n">x2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x2</span><span class="p">),</span> <span class="n">y2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y2</span><span class="p">),</span>
+                         <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Euclidean length of the segment in data coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span>
+            <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">x2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="CrosshairWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.CrosshairWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CrosshairWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable crosshair overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    cx, cy : float</span>
+<span class="sd">        Center position in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the crosshair. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Line stroke width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the centre dot handle. Default ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">),</span> <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="PolygonWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.PolygonWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PolygonWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable polygon overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    vertices : list of tuple</span>
+<span class="sd">        Polygon vertices ``[(x0, y0), (x1, y1), ...]`` in pixel/data coordinates.</span>
+<span class="sd">        Must have at least 3 vertices.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the polygon outline. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Outline stroke width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the per-vertex grab handles. Default ``True``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If fewer than 3 vertices provided.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="p">[[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)]</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">verts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;polygon needs &gt;= 3 vertices&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="n">verts</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="LabelWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.LabelWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LabelWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Text label overlay widget for 2-D plots.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x, y : float</span>
+<span class="sd">        Label position in pixel/data coordinates.</span>
+<span class="sd">    text : str, optional</span>
+<span class="sd">        Label text. Default ``&quot;Label&quot;``.</span>
+<span class="sd">    fontsize : int, optional</span>
+<span class="sd">        Font size in points. Default 14.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the text. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the anchor grab handle. Default ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Label&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
+                         <span class="n">text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">fontsize</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_coerce_strokes</span><span class="p">(</span><span class="n">strokes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate/normalise a stroke list into plain ``[[[x, y], ...], ...]``.</span>
+
+<span class="sd">    Accepts anything iterable-of-iterable-of-pairs (lists, tuples, numpy rows)</span>
+<span class="sd">    and returns nested plain ``float`` lists so the result is JSON-serialisable</span>
+<span class="sd">    for the wire.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If a stroke is empty or a point is not a 2-element ``(x, y)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">stroke</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">strokes</span><span class="p">):</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pt</span> <span class="ow">in</span> <span class="n">stroke</span><span class="p">:</span>
+            <span class="n">pair</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;stroke </span><span class="si">{</span><span class="n">si</span><span class="si">}</span><span class="s2">: every point must be (x, y); got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;values&quot;</span>
+                <span class="p">)</span>
+            <span class="n">pts</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stroke </span><span class="si">{</span><span class="n">si</span><span class="si">}</span><span class="s2"> is empty — a stroke needs &gt;= 1 point&quot;</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<div class="viewcode-block" id="BrushWidget">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BrushWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Freehand paint-brush overlay widget for 2-D plots.</span>
+
+<span class="sd">    Shift-drag on the image to paint a stroke; every stroke is a polyline of</span>
+<span class="sd">    image-pixel points, stroked with round caps and joins at a width of</span>
+<span class="sd">    ``2 * radius`` image pixels.  Built for labelling regions — painting</span>
+<span class="sd">    training scribbles for a pixel classifier, marking a defect, masking a</span>
+<span class="sd">    beam stop — where a polygon or a rectangle is the wrong shape.</span>
+
+<span class="sd">    Two gates govern the painting so a brush can coexist with pan / click /</span>
+<span class="sd">    other widgets on the same panel:</span>
+
+<span class="sd">    1. ``active`` — Python-side arming.  ``False`` keeps the strokes drawn but</span>
+<span class="sd">       ignores all input, which is how you park the tool without losing work.</span>
+<span class="sd">    2. **Shift** — the drag modifier.  A *bare* drag still pans the image and</span>
+<span class="sd">       still drags other widgets; only ``Shift`` + drag paints.  A brush that</span>
+<span class="sd">       claimed a plain drag would hit-test as &quot;anywhere in the image&quot; and kill</span>
+<span class="sd">       panning and click-to-select outright.</span>
+
+<span class="sd">    Painting is *modal*: while a brush is armed, a Shift-press that starts over</span>
+<span class="sd">    the image is consumed by the brush and no longer produces a panel</span>
+<span class="sd">    ``pointer_down``.  If the host binds Shift-click to something else</span>
+<span class="sd">    (multi-select is the common one), give it a different modifier or set</span>
+<span class="sd">    ``active=False`` while that mode is on.  A Shift-drag beginning outside the</span>
+<span class="sd">    image — in the axis margin — is not a brush gesture and pans as usual.</span>
+
+<span class="sd">    While the stroke is being drawn the points accumulate **in the browser** and</span>
+<span class="sd">    only the finished stroke reaches Python, once, as a ``pointer_up`` event.</span>
+<span class="sd">    So ``pointer_move`` does **not** fire for a brush stroke — register on</span>
+<span class="sd">    ``pointer_up``::</span>
+
+<span class="sd">        brush = plot.add_brush_widget(radius=6, colors=[&quot;#f44&quot;, &quot;#4f4&quot;])</span>
+
+<span class="sd">        @brush.add_event_handler(&quot;pointer_up&quot;)</span>
+<span class="sd">        def stroke_done(event):</span>
+<span class="sd">            update_labels(brush.strokes, brush.stroke_classes)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    radius : float, optional</span>
+<span class="sd">        Brush radius in image pixels — the painted band is ``2 * radius`` wide,</span>
+<span class="sd">        and an erase drag removes stroke points within this distance.</span>
+<span class="sd">        Default 8.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour used when ``colors`` has no entry for a stroke&#39;s class.</span>
+<span class="sd">        Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    colors : list of str, optional</span>
+<span class="sd">        Per-class CSS colours, indexed by ``class_id``.  Lets one brush carry</span>
+<span class="sd">        several label classes at once.  Default ``None`` (every class draws in</span>
+<span class="sd">        ``color``).</span>
+<span class="sd">    class_id : int, optional</span>
+<span class="sd">        Label class new strokes are tagged with.  Default 0.</span>
+<span class="sd">    strokes : list, optional</span>
+<span class="sd">        Pre-existing strokes, ``[[[x, y], ...], ...]`` in image-pixel</span>
+<span class="sd">        coordinates.  Default ``None`` (empty).</span>
+<span class="sd">    stroke_classes : list of int, optional</span>
+<span class="sd">        Class id per entry of ``strokes``; must be the same length.  Default</span>
+<span class="sd">        ``None`` (every seeded stroke takes ``class_id``).</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Stroke opacity in ``[0, 1]``.  Default 0.6 — a scribble you can see</span>
+<span class="sd">        the image through, since the point is to label what is underneath.</span>
+<span class="sd">    active : bool, optional</span>
+<span class="sd">        Accept Shift-drag painting.  Default ``True``.</span>
+<span class="sd">    erase : bool, optional</span>
+<span class="sd">        When ``True`` an armed drag *removes* stroke points within ``radius``</span>
+<span class="sd">        instead of painting.  Default ``False``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    strokes : list</span>
+<span class="sd">        Painted strokes, ``[[[x, y], ...], ...]`` in image pixels.  Read-only</span>
+<span class="sd">        in practice — mutating the list in place does not reach the renderer;</span>
+<span class="sd">        use :meth:`add_stroke` / :meth:`set_strokes` / :meth:`clear_strokes`.</span>
+<span class="sd">    stroke_classes : list of int</span>
+<span class="sd">        Class id of each stroke, parallel to ``strokes``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If ``radius &lt;= 0``, ``class_id &lt; 0``, ``alpha`` is outside ``[0, 1]``,</span>
+<span class="sd">        ``colors`` is not a sequence of strings, a stroke is malformed, or</span>
+<span class="sd">        ``stroke_classes`` does not match ``strokes`` in length.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    PolygonWidget : Closed straight-edged region with draggable vertices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">class_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">strokes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+                 <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">erase</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">radius</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">radius</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;radius must be &gt; 0, got </span><span class="si">{</span><span class="n">radius</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">class_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">class_id</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;class_id must be &gt;= 0, got </span><span class="si">{</span><span class="n">class_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;alpha must be in [0, 1], got </span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cols</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;colors must be a list of CSS colours, not a &quot;</span>
+                             <span class="s2">&quot;single string — use color= for that&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colors</span><span class="p">]</span>
+        <span class="n">strks</span> <span class="o">=</span> <span class="n">_coerce_strokes</span><span class="p">(</span><span class="n">strokes</span> <span class="ow">or</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="n">stroke_classes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">class_id</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stroke_classes</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;stroke_classes has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span><span class="si">}</span><span class="s2"> entries but there are &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span><span class="si">}</span><span class="s2"> strokes&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;stroke_classes must all be &gt;= 0&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;brush&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span>
+                         <span class="n">class_id</span><span class="o">=</span><span class="n">class_id</span><span class="p">,</span> <span class="n">strokes</span><span class="o">=</span><span class="n">strks</span><span class="p">,</span>
+                         <span class="n">stroke_classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+                         <span class="n">active</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">active</span><span class="p">),</span> <span class="n">erase</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">erase</span><span class="p">))</span>
+
+    <span class="c1"># ── stroke management ─────────────────────────────────────────────────</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_strokes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of painted strokes.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="BrushWidget.clear_strokes">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.clear_strokes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_strokes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Discard every painted stroke.  Does not change ``class_id``.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="p">[],</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="p">[])</span></div>
+
+
+<div class="viewcode-block" id="BrushWidget.add_stroke">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.add_stroke">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_stroke</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">class_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append one stroke.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        points : list of tuple</span>
+<span class="sd">            ``[(x, y), ...]`` in image-pixel coordinates; at least one point.</span>
+<span class="sd">        class_id : int, optional</span>
+<span class="sd">            Label class for this stroke.  Defaults to the widget&#39;s current</span>
+<span class="sd">            ``class_id``.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``points`` is empty or a point is not an ``(x, y)`` pair.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">stroke</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_coerce_strokes</span><span class="p">([</span><span class="n">points</span><span class="p">])</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;class_id&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">class_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">class_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cid</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;class_id must be &gt;= 0, got </span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">stroke</span><span class="p">],</span>
+                 <span class="n">stroke_classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">cid</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="BrushWidget.set_strokes">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.set_strokes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_strokes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strokes</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace every stroke (and its class) in one push.</span>
+
+<span class="sd">        This is the sanctioned way to write ``strokes``: it keeps the parallel</span>
+<span class="sd">        ``stroke_classes`` list in lockstep, which a bare</span>
+<span class="sd">        ``brush.strokes = ...`` assignment cannot do.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        strokes : list</span>
+<span class="sd">            ``[[[x, y], ...], ...]`` in image-pixel coordinates.</span>
+<span class="sd">        classes : list of int, optional</span>
+<span class="sd">            Class id per stroke.  Defaults to the widget&#39;s current</span>
+<span class="sd">            ``class_id`` for every stroke.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If a stroke is malformed or ``classes`` has the wrong length.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strks</span> <span class="o">=</span> <span class="n">_coerce_strokes</span><span class="p">(</span><span class="n">strokes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">classes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;class_id&quot;</span><span class="p">])]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;classes has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="si">}</span><span class="s2"> entries but there are &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">strks</span><span class="p">)</span><span class="si">}</span><span class="s2"> strokes&quot;</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="n">strks</span><span class="p">,</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="bp">cls</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BrushWidget.strokes_for_class">
+<a class="viewcode-back" href="../../../api/widgets.html#anyplotlib.BrushWidget.strokes_for_class">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">strokes_for_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">class_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return only the strokes tagged with ``class_id``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        class_id : int</span>
+<span class="sd">            Label class to select.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            ``[[[x, y], ...], ...]`` — the matching strokes, in paint order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">cid</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ArrowWidget">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.ArrowWidget.html#anyplotlib.ArrowWidget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ArrowWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draggable arrow overlay widget for 2-D plots.</span>
+
+<span class="sd">    The arrow tail sits at ``(x, y)`` and the head at ``(x + u, y + v)``, all in</span>
+<span class="sd">    image-pixel coordinates. Dragging the body moves the whole arrow; dragging</span>
+<span class="sd">    the head handle re-aims it (updates ``u``/``v``).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    push_fn : Callable</span>
+<span class="sd">        Update callback.</span>
+<span class="sd">    x, y : float</span>
+<span class="sd">        Tail position in pixel/data coordinates.</span>
+<span class="sd">    u, v : float</span>
+<span class="sd">        Arrow vector (head = tail + (u, v)) in pixel/data coordinates.</span>
+<span class="sd">    color : str, optional</span>
+<span class="sd">        CSS colour for the arrow. Default ``&quot;#00e5ff&quot;``.</span>
+<span class="sd">    linewidth : float, optional</span>
+<span class="sd">        Shaft line width in px. Default 2.</span>
+<span class="sd">    show_handles : bool, optional</span>
+<span class="sd">        Draw the tail/head grab handles. Default ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
+                 <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;arrow&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
+                         <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
+                         <span class="n">u</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">v</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                         <span class="n">linewidth</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">linewidth</span><span class="p">),</span>
+                         <span class="n">show_handles</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">show_handles</span><span class="p">))</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, anyplotlib contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
