@@ -8182,7 +8182,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         // outer radius handle
         if (Math.hypot(mx - (ccx + cr), my - ccy) <= HR)
           return { idx:i, mode:'resize_r', snapW:{...w}, startMX:mx, startMY:my };
-        // body (inside ring ± tolerance)
+        // body (inside ring ± tolerance). `lock_center` refuses the grab
+        // outright rather than letting the drag run and correcting afterwards:
+        // a centre snapped back on release still tracks the cursor for the
+        // whole drag, which reads as a broken lock. Refusing here also leaves
+        // the hover cursor at 'default' and lets the drag fall through to the
+        // plot's own pan, so the ring is simply not a handle any more.
+        if (w.lock_center) continue;
         if (Math.abs(Math.hypot(mx-ccx, my-ccy) - cr) <= Math.max(HR, cr*0.18) ||
             Math.hypot(mx-ccx, my-ccy) <= HR)
           return { idx:i, mode:'move', snapW:{...w}, startMX:mx, startMY:my };
@@ -8441,7 +8447,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
 
     if (w.type === 'circle') {
-      if (d.mode === 'move') {
+      // A drag already in flight when `lock_center` is turned on must not keep
+      // translating the widget: the hit-test gate only runs at grab time.
+      if (d.mode === 'move' && !w.lock_center) {
         w.cx = s.cx + dix; w.cy = s.cy + diy;
       } else if (d.mode === 'resize_r') {
         // distance from centre in image-px

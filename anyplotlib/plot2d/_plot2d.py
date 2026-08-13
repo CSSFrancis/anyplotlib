@@ -1731,15 +1731,24 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     def add_circle_widget(self, cx: float | None = None, cy: float | None = None,
                           r: float | None = None, color: str = "#00e5ff",
                           linewidth: float = 2,
-                          show_handles: bool = True) -> CircleWidget:
-        """Add a draggable circle overlay."""
+                          show_handles: bool = True,
+                          lock_center: bool = False) -> CircleWidget:
+        """Add a draggable circle overlay.
+
+        ``lock_center`` pins the centre and leaves only the radius draggable —
+        a grab on the ring body is refused and pans the plot instead. Use it
+        when the centre is fixed by the data (a ring on a power spectrum is
+        centred on the DC term), so it cannot be nudged off and silently
+        corrupt every radius measured from it.
+        """
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CircleWidget(lambda: None,
                               cx=float(cx) if cx is not None else iw / 2,
                               cy=float(cy) if cy is not None else ih / 2,
                               r=float(r) if r is not None else iw * 0.1,
                               color=color, linewidth=linewidth,
-                              show_handles=show_handles)
+                              show_handles=show_handles,
+                              lock_center=lock_center)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
