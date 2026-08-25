@@ -1,9 +1,0 @@
-In tile mode, ``set_data``/``update_tile_source`` now re-derive the quantisation band
-``raw_min``/``raw_max`` from the incoming frame when the current band is unset or
-degenerate (it previously stayed as first derived, even from a flat placeholder). A
-band that is already valid is still never re-derived, so a contrast change keeps
-re-windowing in the LUT with no pixel re-encode. One visible consequence: a tiled plot
-born on a placeholder now quantises subsequent frames over the frame's own range
-rather than the display window, matching what ``imshow`` of a large frame has always
-done — so its wire bytes can differ by a rounding step from the equivalent untiled
-plot, while the displayed image is unchanged.
