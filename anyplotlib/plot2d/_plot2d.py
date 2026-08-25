@@ -507,11 +507,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         # (raw_min/raw_max fixed, display_min/display_max move) with NO pixel re-encode
         # or re-transfer — set_clim just moves the display window (see set_clim). Set
         # once from the full-res range; keep any existing band on a re-enable.
-        if (self._state.get("raw_min") is None
-                or not (self._state.get("raw_max", 0) > self._state.get("raw_min", 0))):
-            rng = self._backend_display_range(self._tile_backend)
-            if rng is not None:
-                self._state["raw_min"], self._state["raw_max"] = rng
+        self._ensure_tile_band()
         _was_on = self._tile_on
         if not self._tile_on:
             self._tile_on = True
@@ -561,6 +557,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             setter = getattr(self._tile_backend, "set_array", None)
             if setter is not None:
                 setter(array)
+        # The quantisation band is derived ONCE (enable_tile) and then held fixed, so
+        # a contrast change re-windows in the LUT with no pixel re-encode. But if it
+        # was never VALIDLY derived — tile mode started on a flat placeholder, so the
+        # probe refused and the band stayed degenerate — the new data in the backend
+        # is the first chance to get it right. Must run BEFORE the overview/detail are
+        # re-sampled below so they quantise over the corrected band in the SAME push.
+        self._ensure_tile_band()
         reg = self._state.get("detail_region") or []
         has_detail = len(reg) == 4
         # Refresh the overview base ONLY when no detail tile is shown (zoomed out) —
@@ -621,6 +624,70 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     self._state.get("image_height"))
         except Exception as e:
             _TLOG.warning("[TILEDBG] overview refresh FAILED: %s", e)
+
+    def _ensure_tile_band(self) -> bool:
+        """Derive the fixed quantisation band (raw_min/raw_max) from the CURRENT tile
+        backend when it is unset or DEGENERATE, by the same rule _tile_quant_clim
+        uses to read it back. Returns True iff the band was (re-)derived.
+
+        The degenerate case is the one that bites: a plot that entered tile mode on a
+        flat placeholder (e.g. zeros before real data exists) probes a range of
+        (0, 0) — _backend_display_range refuses it, so the band keeps the
+        constructor's raw min/max, which for zeros is also (0, 0). Every later
+        set_data then re-sampled the overview against a band the encoder treated as
+        unset (quantising over the display window) while the frontend LUT honoured
+        (0, 0) literally and painted the panel solid black. Calling this on each data
+        swap re-derives the band as soon as a frame with real range arrives, so the
+        two ends of the protocol agree on what the bytes mean.
+        """
+        lo, hi = self._state.get("raw_min"), self._state.get("raw_max")
+        if lo is not None and hi is not None and hi > lo:
+            return False                      # a valid band is kept, never re-derived
+        if self._tile_backend is None:
+            return False
+        rng = self._backend_display_range(self._tile_backend)
+        if rng is None:
+            # Still flat (an all-constant frame): leave the band unset/degenerate —
+            # _tile_quant_clim and the JS LUT both fall back to the display window.
+            return False
+        self._state["raw_min"], self._state["raw_max"] = rng
+        _TLOG.debug("[TILEDBG] tile band (re-)derived from backend → raw=(%s,%s)",
+                    *rng)
+        return True
+
+    def set_tile_band(self, vmin: float, vmax: float) -> None:
+        """PIN the fixed quantisation band the tile bytes are encoded over.
+
+        Tile mode normally derives this band once, from the full-res data (see
+        ``enable_tile``), and then holds it: a contrast change re-windows in the LUT
+        with no pixel re-encode or re-transfer. A live consumer that already KNOWS the
+        honest range — a camera's bit depth, a detector's saturation point — can pin
+        it here instead of letting the first frame decide, so the contrast doesn't
+        shift when a later frame happens to contain a brighter pixel.
+
+        Pinning also survives what auto-derivation cannot: a source whose first frames
+        are flat (a placeholder, a closed shutter) has no range to derive from, and
+        the band stays unset until a frame with real content arrives.
+
+        Re-samples the overview (and any active detail tile) over the new band in a
+        single push, so the pixels and the band the renderer reads them with never
+        disagree. Raises if the plot is not in tile mode or the range is degenerate."""
+        if not self._tile_on:
+            raise RuntimeError(
+                "set_tile_band requires tile mode — the band is the quantisation "
+                "range for the TILE bytes. Call enable_tile() first (or use "
+                "set_clim() to change the display window on a plain plot).")
+        lo, hi = float(vmin), float(vmax)
+        if not (hi > lo):
+            raise ValueError(
+                f"set_tile_band requires vmax > vmin, got ({lo}, {hi}). A degenerate "
+                f"band is what 'unset' means here — both the encoder and the "
+                f"renderer then fall back to the display window.")
+        self._state["raw_min"], self._state["raw_max"] = lo, hi
+        # Re-encode over the new band. update_tile_source() with no array re-samples
+        # from the backend in place (keeping zoom/center and the detail region) and
+        # pushes — so the band and the bytes it describes ship together.
+        self.update_tile_source()
 
     def _tile_quant_clim(self):
         """The FIXED quantisation band (raw_min/raw_max) the tile bytes are encoded

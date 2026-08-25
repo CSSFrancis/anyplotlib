@@ -9,6 +9,8 @@ test injects the tile into state directly; the Python test above covers the loop
 """
 import json
 import base64
+
+import pytest
 import numpy as np
 import anyplotlib as apl
 
@@ -271,8 +273,195 @@ class TestSetDataAutoEnablesTiling:
         assert p._state["image_width"] == 4096                  # plain full-res path
 
 
+class TestTileBandOnPlaceholder:
+    """Tile mode entered on a FLAT placeholder (zeros, before real data exists) derives
+    the fixed quantisation band raw_min/raw_max from that placeholder — a degenerate
+    (0, 0) — and nothing re-derived it on a later set_data. The two ends of the
+    protocol then DISAGREED about what (0, 0) means: the Python encoder treats a
+    degenerate band as unset and quantises over the display window, while the JS LUT
+    honoured it literally, mapping every code below the display floor — a solid black
+    pane beside perfectly healthy stats, on the WebGPU and Canvas2D paths alike, with
+    no warning anywhere. GH #60."""
+
+    @staticmethod
+    def _placeholder():
+        return apl.subplots(1, 1)[1].imshow(np.zeros((2048, 2048), np.float32))
+
+    @staticmethod
+    def _frame(mean=140.0, sd=30.0):
+        return np.random.RandomState(0).normal(
+            mean, sd, (2048, 2048)).astype(np.float32)
+
+    def test_placeholder_band_starts_degenerate(self):
+        # The starting condition the bug needs — documents WHY the guard exists.
+        p = self._placeholder()
+        assert p._state["tile_enabled"] is True
+        assert p._state["raw_min"] == p._state["raw_max"]
+
+    def test_set_data_rederives_degenerate_band(self):
+        p = self._placeholder()
+        p.set_data(self._frame(), clim=(35.0, 240.0))
+        lo, hi = p._state["raw_min"], p._state["raw_max"]
+        assert hi > lo, "degenerate band survived set_data"
+        # Derived from the real FRAME (a native subsample of it), not from the clim.
+        assert lo < 140.0 < hi and (hi - lo) > 100.0
+        assert (p._state["display_min"], p._state["display_max"]) == (35.0, 240.0)
+
+    def test_update_tile_source_rederives_degenerate_band(self):
+        # The other live seam — a host swapping the backing array directly. This is
+        # what downstream had to work around by pinning _state["raw_min"/"raw_max"].
+        p = self._placeholder()
+        p.update_tile_source(self._frame())
+        assert p._state["raw_max"] > p._state["raw_min"]
+
+    def test_valid_band_is_never_rederived(self):
+        # The band is fixed ON PURPOSE: a contrast change must re-window in the LUT
+        # with no pixel re-encode or re-transfer. Only a DEGENERATE band may be
+        # replaced — a frame with a different range must not move a healthy one.
+        p = apl.subplots(1, 1)[1].imshow(self._frame())
+        band = (p._state["raw_min"], p._state["raw_max"])
+        p.set_data(self._frame(mean=900.0, sd=5.0))
+        assert (p._state["raw_min"], p._state["raw_max"]) == band
+
+    def test_still_flat_frame_leaves_band_unset(self):
+        # No honest range to derive → the band stays degenerate and BOTH ends fall
+        # back to the display window. That agreement is the other half of the fix.
+        p = self._placeholder()
+        p.set_data(np.full((2048, 2048), 7.0, np.float32), clim=(0.0, 10.0))
+        assert p._state["raw_min"] == p._state["raw_max"]
+        assert p._tile_quant_clim() == (0.0, 10.0)
+
+
+class TestSetTileBand:
+    """`set_tile_band` — the public way to PIN the quantisation band, so a host with a
+    known honest range (camera bit depth, detector saturation) stops reaching into
+    `_plot2d._state["raw_min"/"raw_max"]` + `update_tile_source()`. GH #60."""
+
+    @staticmethod
+    def _tiled():
+        return apl.subplots(1, 1)[1].imshow(
+            np.random.RandomState(0).rand(2048, 2048).astype(np.float32))
+
+    def test_pins_band_and_reencodes(self):
+        p = self._tiled()
+        before = base64.b64decode(
+            p.resolve_pixel_tokens(p.to_state_dict())["image_b64"])
+        p.set_tile_band(-100.0, 1000.0)
+        assert (p._state["raw_min"], p._state["raw_max"]) == (-100.0, 1000.0)
+        after = base64.b64decode(
+            p.resolve_pixel_tokens(p.to_state_dict())["image_b64"])
+        # The band the renderer reads the bytes with changed, so the bytes must too —
+        # a pinned band that didn't re-encode is exactly the disagreement of GH #60.
+        assert after != before, "band pinned but pixels not re-encoded"
+
+    def test_pinned_band_survives_set_data(self):
+        # The point of pinning: a later frame must not move the contrast.
+        p = self._tiled()
+        p.set_tile_band(0.0, 4095.0)
+        p.set_data(np.random.RandomState(1).rand(2048, 2048).astype(np.float32))
+        assert (p._state["raw_min"], p._state["raw_max"]) == (0.0, 4095.0)
+
+    def test_pinning_recovers_a_placeholder_born_plot(self):
+        # A source whose frames are still flat has no range to auto-derive; pinning
+        # is the only way to get an honest band before real content arrives.
+        p = apl.subplots(1, 1)[1].imshow(np.zeros((2048, 2048), np.float32))
+        assert p._state["raw_min"] == p._state["raw_max"]      # nothing to derive
+        p.set_tile_band(0.0, 255.0)
+        assert p._tile_quant_clim() == (0.0, 255.0)
+
+    def test_rejects_degenerate_range(self):
+        p = self._tiled()
+        band = (p._state["raw_min"], p._state["raw_max"])
+        with pytest.raises(ValueError, match="vmax > vmin"):
+            p.set_tile_band(5.0, 5.0)
+        assert (p._state["raw_min"], p._state["raw_max"]) == band   # unchanged
+
+    def test_rejects_untiled_plot(self):
+        p = apl.subplots(1, 1)[1].imshow(np.zeros((64, 64), np.float32))
+        with pytest.raises(RuntimeError, match="requires tile mode"):
+            p.set_tile_band(0.0, 1.0)
+
+
+class TestTileBandRenderCanvas:
+    """The black-pane half of GH #60 in a real browser: a panel whose quantisation
+    band is degenerate must still render its image, not a solid black rectangle."""
+
+    @staticmethod
+    def _panel_px(page):
+        """min / max / mean red channel over the centre of the largest canvas."""
+        return page.evaluate("""() => {
+            const cs = Array.from(document.querySelectorAll('canvas'));
+            const c = cs.sort((a,b)=>b.width*b.height-a.width*a.height)[0];
+            const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+            let lo=255, hi=0, sum=0, n=0;
+            for(let y=(c.height*0.35)|0; y<(c.height*0.65)|0; y++)
+              for(let x=(c.width*0.35)|0; x<(c.width*0.65)|0; x++){
+                const v=d[(y*c.width+x)*4];
+                if(v<lo) lo=v; if(v>hi) hi=v; sum+=v; n++;
+              }
+            return {lo, hi, mean: sum/n};
+        }""")
+
+    def test_degenerate_band_renders_display_mapped_bytes(self, interact_page):
+        # The band legitimately STAYS degenerate here (a flat frame has no honest
+        # range to derive), so this exercises the JS fallback on its own. The encoder
+        # quantises 7.0 over the display window (0, 10) → code 178; honouring (0, 0)
+        # in the LUT maps that to t≈0.07 → near-black, the fallback to ≈178 (mid gray).
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        p = ax.imshow(np.zeros((2048, 2048), np.float32), cmap="gray", gpu=False)
+        p.set_data(np.full((2048, 2048), 7.0, np.float32), clim=(0.0, 10.0))
+        page = interact_page(fig)
+        page.wait_for_timeout(300)
+        st = json.loads(
+            page.evaluate("(pid) => globalThis.__apl_viewStateJson(pid)", p._id))
+        assert st["raw_min"] == st["raw_max"], "precondition: band must be degenerate"
+        px = self._panel_px(page)
+        assert px["mean"] > 120, f"degenerate band rendered near-black: {px}"
+
+    def test_real_frame_after_placeholder_renders(self, interact_page):
+        # The reported end-to-end case: tile mode born on a zeros placeholder, then a
+        # real frame. A horizontal ramp survives the overview mean-downsample and the
+        # canvas rescale, so "shows structure" is testable, not just "isn't black".
+        ramp = np.tile(np.linspace(35, 240, 2048, dtype=np.float32), (2048, 1))
+        fig, ax = apl.subplots(1, 1, figsize=(300, 300))
+        p = ax.imshow(np.zeros((2048, 2048), np.float32), cmap="gray", gpu=False)
+        p.set_data(ramp, clim=(35.0, 240.0))
+        page = interact_page(fig)
+        page.wait_for_timeout(300)
+        px = self._panel_px(page)
+        assert px["mean"] > 60, f"panel rendered black: {px}"
+        assert px["hi"] - px["lo"] > 30, f"panel rendered flat, no structure: {px}"
+
+
 class TestTilePayloadParity:
-    """Parity guards for scenes where tile=True should be byte-identical to plain."""
+    """Parity guards for scenes where tile=True should match plain.
+
+    At CONSTRUCTION both paths quantise over the same range, so the payloads are
+    byte-identical. After ``set_data`` they need not be: the tiled path quantises
+    over the FIXED band (raw_min/raw_max, the full-res data range) so a contrast
+    change re-windows in the LUT with no pixel re-encode, while the plain path
+    quantises over the caller's clim. The bytes then carry different codes for the
+    same value and the LUT reconciles them — so the invariant to guard there is
+    what the viewer SEES, not the wire bytes."""
+
+    @staticmethod
+    def _display_idx(plot):
+        """Colormap index each pixel resolves to — the JS `_rawBand` + `_buildLut32`
+        (linear) pipeline in numpy, i.e. what actually reaches the screen."""
+        st = plot._state
+        lo, hi = st["raw_min"], st["raw_max"]
+        if lo is None or hi is None:
+            lo, hi = st["display_min"], st["display_max"]
+        elif not hi > lo:
+            # Degenerate band: unset in tile mode (bytes are display-mapped), a
+            # constant-value marker on the plain path. Mirrors _rawBand exactly.
+            lo, hi = ((st["display_min"], st["display_max"])
+                      if st["tile_enabled"] else (lo, hi))
+        dmin, dmax = st["display_min"], st["display_max"]
+        val = lo + (np.arange(256) / 255) * ((hi - lo) or 1)
+        t = (val - dmin) / ((dmax - dmin) or 1)
+        lut = np.clip(np.round(t * 255), 0, 255).astype(np.uint8)
+        return lut[TestTilePayloadParity._decoded_u8(plot)]
 
     @staticmethod
     def _decoded_u8(plot):
@@ -297,8 +486,13 @@ class TestTilePayloadParity:
         ok, msg = compare_arrays_exact(a, b)
         assert ok, f"plain vs tiled payload mismatch: {msg}"
 
-    def test_set_data_stays_identical_between_plain_and_tile(self):
-        base = np.zeros((1024, 1024), np.float32)
+    @pytest.mark.parametrize("base_kind", ["zeros-placeholder", "real-data"])
+    def test_set_data_displays_the_same_plain_and_tiled(self, base_kind):
+        # Both bases matter: "real-data" gives the tiled plot a valid band up front,
+        # "zeros-placeholder" a degenerate one that set_data must re-derive (GH #60).
+        # Either way the two plots must SHOW the same image.
+        base = (np.zeros((1024, 1024), np.float32) if base_kind == "zeros-placeholder"
+                else np.random.RandomState(9).rand(1024, 1024).astype(np.float32))
         nxt = np.random.RandomState(1).rand(1024, 1024).astype(np.float32)
         plain = apl.subplots(1, 1)[1].imshow(
             base, cmap="gray", vmin=0.0, vmax=1.0, tile=False, gpu=False
@@ -308,10 +502,14 @@ class TestTilePayloadParity:
         )
         plain.set_data(nxt, clim=(0.0, 1.0), tile=False)
         tiled.set_data(nxt, clim=(0.0, 1.0), tile=True)
-        a = self._decoded_u8(plain)
-        b = self._decoded_u8(tiled)
-        ok, msg = compare_arrays_exact(a, b)
-        assert ok, f"set_data parity mismatch: {msg}"
+        # The tiled plot quantises over its band, the plain one over the clim, so the
+        # wire bytes may disagree by a rounding step — but once each is read back
+        # through its OWN band, the displayed intensities must agree.
+        d = np.abs(self._display_idx(plain).astype(np.int16)
+                   - self._display_idx(tiled).astype(np.int16))
+        assert d.max() <= 1, (
+            f"plain vs tiled display mismatch: max |diff| = {d.max()} colormap "
+            f"steps over {d.size} px ({int((d > 1).sum())} px worse than rounding)")
 
 
 class TestTiledRenderCanvas:
