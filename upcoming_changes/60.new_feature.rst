@@ -1,0 +1,6 @@
+Added :meth:`~anyplotlib.plot2d.Plot2D.set_tile_band` to pin the fixed quantisation
+band tile bytes are encoded over, for a consumer that already knows the honest range
+(a camera's bit depth, a detector's saturation point) or whose source starts flat and
+so has no range to auto-derive. It re-samples the overview and any active detail tile
+over the new band in a single push, replacing the practice of reaching into
+``plot._state["raw_min"/"raw_max"]`` and calling ``update_tile_source()`` by hand.

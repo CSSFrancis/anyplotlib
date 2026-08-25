@@ -2415,10 +2415,31 @@ function render({ model, el, onResize }) {
     };
   }
 
+  // The quantisation band the uint8 image bytes were encoded over, as [lo, hi].
+  // A DEGENERATE band (raw_max <= raw_min) means DIFFERENT things on the two
+  // encoder paths, and the LUT has to read it the way the bytes were written:
+  //
+  //   plain (_normalize_image): a constant frame quantises to ALL-ZERO bytes and
+  //     reports (c, c) — the band NAMES the single value code 0 stands for, and
+  //     hMin + raw/255 * (range||1) reconstructs it. Keep honouring it.
+  //   tile (_tile_quant_clim): a degenerate band is treated as UNSET and the
+  //     bytes are quantised over the DISPLAY window instead — so they are already
+  //     display-mapped and the LUT must be the identity window over them.
+  //
+  // Reading a tiled degenerate band the plain way is GH #60: a plot that entered
+  // tile mode on a flat placeholder carries the band (0, 0), every code maps to
+  // hMin + raw/255 * 1 in [0, 1], lands below any sane display floor, and the
+  // panel renders solid black beside perfectly healthy stats.
+  function _rawBand(st) {
+    const lo=st.raw_min, hi=st.raw_max;
+    if(lo==null||hi==null) return [st.display_min, st.display_max];
+    if(hi>lo) return [lo,hi];
+    return st.tile_enabled ? [st.display_min, st.display_max] : [lo,hi];
+  }
+
   function _buildLut32(st) {
     const dMin=st.display_min, dMax=st.display_max;
-    const hMin=st.raw_min!=null?st.raw_min:dMin;
-    const hMax=st.raw_max!=null?st.raw_max:dMax;
+    const [hMin,hMax]=_rawBand(st);
     const mode=st.scale_mode||'linear';
     const range=hMax-hMin||1;
     const cmapData=st.colormap_data||[];
@@ -3198,8 +3219,7 @@ function render({ model, el, onResize }) {
 
     // display_min / display_max tick marks
     const dMin=st.display_min, dMax=st.display_max;
-    const hMin=st.raw_min!=null?st.raw_min:dMin;
-    const hMax=st.raw_max!=null?st.raw_max:dMax;
+    const [hMin,hMax]=_rawBand(st);
     const vRange=(hMax-hMin)||1;
     function _vToY(v){return imgH-1-((v-hMin)/vRange)*(imgH-1);}
     ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5;

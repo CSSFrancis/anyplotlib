@@ -59,20 +59,20 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | `_createInsetDOM` / `_applyAllInsetStates` | 1129 / 1512 |
 | `_resizePanelDOM` | 2225 |
 | **2D drawing**: `_imgFitRect` | 2384 |
-| `draw2d` | 2692 |
-| `drawScaleBar2d` / `drawColorbar2d` | 2887 / 3125 |
-| **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 2986 / 3009 / 3022 |
-| `_drawAxes2d` (ticks, labels, title) | 3180 |
-| `drawOverlay2d` / `drawMarkers2d` | 3333 / 3497 |
-| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2512 / 2536 / 2597 |
+| `draw2d` | 2713 |
+| `drawScaleBar2d` / `drawColorbar2d` | 2908 / 3188 |
+| **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 3007 / 3030 / 3043 |
+| `_drawAxes2d` (ticks, labels, title) | 3242 |
+| `drawOverlay2d` / `drawMarkers2d` | 3395 / 3559 |
+| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2533 / 2557 / 2618 |
 | Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 730 / 761 |
-| **3D drawing**: `draw3d` | 5236 |
-| Event emission `_emitEvent` | 6073 |
-| 3D event handlers `_attachEvents3d` | 6125 |
-| **1D drawing**: `draw1d` | 6346 |
-| `_drawLine` (1D series + markers) | 6499 |
-| `drawOverlay1d` / `drawMarkers1d` | 6792 / 6876 |
-| Marker hit-test `_markerHitTest2d` | 7144 |
+| **3D drawing**: `draw3d` | 5298 |
+| Event emission `_emitEvent` | 6135 |
+| 3D event handlers `_attachEvents3d` | 6187 |
+| **1D drawing**: `draw1d` | 6408 |
+| `_drawLine` (1D series + markers) | 6561 |
+| `drawOverlay1d` / `drawMarkers1d` | 6854 / 6938 |
+| Marker hit-test `_markerHitTest2d` | 7206 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -81,16 +81,16 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 7401 |
-| 2D events `_attachEvents2d` | 7443 |
-| 1D events `_attachEvents1d` | 7827 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8099 / 8372 |
-| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8285 / 8299 / 8328 / 8363 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8495 / 8568 |
-| Shared-axis propagation `_getShareGroups` | 8639 |
-| Figure resize `_applyFigResizeDOM` | 8703 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8894 / 8957 / 9333 |
-| Generic redraw `_redrawPanel` | 9523 |
+| Panel event dispatch `_attachPanelEvents` | 7463 |
+| 2D events `_attachEvents2d` | 7505 |
+| 1D events `_attachEvents1d` | 7889 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8161 / 8440 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8353 / 8367 / 8396 / 8431 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8565 / 8638 |
+| Shared-axis propagation `_getShareGroups` | 8709 |
+| Figure resize `_applyFigResizeDOM` | 8773 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8964 / 9027 / 9403 |
+| Generic redraw `_redrawPanel` | 9593 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -269,12 +269,13 @@ st.colorbar_label_size            (label font sizes; optional)
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| **`_imgFitRect(iw,ih,cw,ch)`** | **2372** | Largest rect of aspect `iw:ih` centred in `cw×ch`; all 2-D coordinate functions derive from this |
-| `draw2d(p)` | 2680 | Main render: `_resizePanelDOM` → decode → LUT → ImageBitmap → blit; then mask, axes, scale bar, colorbar, overlay, markers |
-| `drawScaleBar2d(p)` | 2875 | Physical scale bar |
-| `drawColorbar2d(p)` | 2961 | Gradient strip + min/max marks + rotated label centred in the `_cbWidth` gutter |
-| `_drawAxes2d(p)` | 3016 | Ticks (edge labels nudged inward both axes), axis labels + title via `_drawTex` |
-| `drawOverlay2d(p)` / `drawMarkers2d(p)` | 3169 / 3333 | Widgets / marker groups |
+| **`_imgFitRect(iw,ih,cw,ch)`** | **2384** | Largest rect of aspect `iw:ih` centred in `cw×ch`; all 2-D coordinate functions derive from this |
+| `draw2d(p)` | 2713 | Main render: `_resizePanelDOM` → decode → LUT → ImageBitmap → blit; then mask, axes, scale bar, colorbar, overlay, markers |
+| `drawScaleBar2d(p)` | 2908 | Physical scale bar |
+| `_rawBand(st)` / `_buildLut32(st)` | 2433 / 2440 | The quantisation band the u8 bytes were encoded over, then the 256-entry LUT built from it. `_rawBand` mirrors Python `_tile_quant_clim`: a DEGENERATE band (`raw_max <= raw_min`) is UNSET and falls back to `display_min/max`. Both render paths and the colorbar go through it — honouring a `(0, 0)` band paints solid black |
+| `drawColorbar2d(p)` | 3188 | Gradient strip + min/max marks (band-relative, via `_rawBand`) + rotated label centred in the `_cbWidth` gutter |
+| `_drawAxes2d(p)` | 3242 | Ticks (edge labels nudged inward both axes), axis labels + title via `_drawTex` |
+| `drawOverlay2d(p)` / `drawMarkers2d(p)` | 3395 / 3559 | Widgets / marker groups |
 
 Zoom model: at `zoom=1` the whole image fills the fit-rect; at `zoom=Z>1` a
 `1/Z` region fills it.  `_imgToCanvas2d` / `_canvasToImg2d` must stay exact
