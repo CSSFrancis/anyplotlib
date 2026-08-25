@@ -1470,7 +1470,11 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         raw frame, not merely re-windowing the existing codes (which are saturated
         outside the previous band and so couldn't widen past it). For an RGB frame
         (no scalar quantisation) or when no raw frame is cached, fall back to a pure
-        display-window update."""
+        display-window update.
+
+        See :meth:`set_display_window` for the non-destructive counterpart — the
+        one to reach for when the pixels must not move (a tiled plot, or a
+        serialised figure being re-windowed with no Python behind it)."""
         new_min = float(vmin) if vmin is not None else self._state.get("display_min")
         new_max = float(vmax) if vmax is not None else self._state.get("display_max")
 
@@ -1506,6 +1510,40 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._push()
             return
         # Fallback: RGB / no cached frame → just move the display window.
+        if vmin is not None:
+            self._state["display_min"] = float(vmin)
+        if vmax is not None:
+            self._state["display_max"] = float(vmax)
+        self._push()
+
+    def set_display_window(self, vmin=None, vmax=None) -> None:
+        """Move the display window WITHOUT re-quantising the pixels.
+
+        The non-destructive counterpart to :meth:`set_clim`. Both change the
+        contrast; they differ in what they do to the data behind it:
+
+        ``set_clim``
+            re-encodes the cached raw frame over the new range, so the codes
+            always span exactly the visible band — maximum precision for what is
+            on screen, but the pixels are re-encoded and re-sent, and the old
+            band is gone.
+        ``set_display_window``
+            leaves the codes and their ``raw_min``/``raw_max`` band alone and
+            moves only the window the LUT maps through it. Nothing is re-encoded
+            and nothing travels but two floats.
+
+        Use it when the pixels must stay put: a tiled plot, where re-quantising
+        would re-encode the full-res frame on every drag tick (``set_clim``
+        already routes there internally), or a figure that has been serialised
+        and is being re-windowed with no Python behind it — which is how a saved
+        page gets a working contrast control at all.
+
+        The trade is precision. Quantisation spans ``[raw_min, raw_max]``, so a
+        window much narrower than that band resolves in coarse steps, and one
+        WIDER than it recovers nothing: values outside the band were saturated
+        to 0/255 when the frame was encoded. Quantise over the range you want to
+        be able to reach.
+        """
         if vmin is not None:
             self._state["display_min"] = float(vmin)
         if vmax is not None:
