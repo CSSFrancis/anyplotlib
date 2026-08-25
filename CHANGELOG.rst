@@ -10,6 +10,55 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.8.0 (2026-08-25)
+==================
+
+API and Behaviour Changes
+-------------------------
+
+- In tile mode, ``set_data``/``update_tile_source`` now re-derive the quantisation band
+  ``raw_min``/``raw_max`` from the incoming frame when the current band is unset or
+  degenerate (it previously stayed as first derived, even from a flat placeholder). A
+  band that is already valid is still never re-derived, so a contrast change keeps
+  re-windowing in the LUT with no pixel re-encode. One visible consequence: a tiled plot
+  born on a placeholder now quantises subsequent frames over the frame's own range
+  rather than the display window, matching what ``imshow`` of a large frame has always
+  done — so its wire bytes can differ by a rounding step from the equivalent untiled
+  plot, while the displayed image is unchanged. (`#60 <https://github.com/CSSFrancis/anyplotlib/pull/60>`_)
+
+
+New Features
+------------
+
+- Added :meth:`~anyplotlib.plot2d.Plot2D.set_tile_band` to pin the fixed quantisation
+  band tile bytes are encoded over, for a consumer that already knows the honest range
+  (a camera's bit depth, a detector's saturation point) or whose source starts flat and
+  so has no range to auto-derive. It re-samples the overview and any active detail tile
+  over the new band in a single push, replacing the practice of reaching into
+  ``plot._state["raw_min"/"raw_max"]`` and calling ``update_tile_source()`` by hand. (`#60 <https://github.com/CSSFrancis/anyplotlib/pull/60>`_)
+- Added :meth:`~anyplotlib.plot2d.Plot2D.set_display_window`, which moves the
+  contrast window without re-quantising the pixels — the non-destructive
+  counterpart to :meth:`~anyplotlib.plot2d.Plot2D.set_clim`, and what lets a
+  saved page be re-windowed with no Python behind it. (`#61 <https://github.com/CSSFrancis/anyplotlib/pull/61>`_)
+
+
+Bug Fixes
+---------
+
+- Fixed a tiled 2-D image rendering solid black when tile mode was entered on a flat
+  placeholder frame (e.g. ``imshow`` of zeros before real data exists). The fixed
+  quantisation band ``raw_min``/``raw_max`` was derived from that placeholder — a
+  degenerate ``(0, 0)`` — and no later ``set_data`` re-derived it, leaving the two ends
+  of the protocol disagreeing about what it meant: the Python encoder treats a
+  degenerate band as unset and quantises over the display window, while the renderer
+  honoured ``(0, 0)`` and mapped every code below the display floor. The panel rendered
+  black on the WebGPU and Canvas2D paths alike, beside perfectly healthy stats and
+  histograms, with no warning. ``set_data`` and ``update_tile_source`` now re-derive a
+  degenerate band from the incoming frame, and the renderer falls back to the display
+  window for a degenerate band in tile mode — in the image LUT and in the colorbar
+  tick placement, which read the band the same way. (`#60 <https://github.com/CSSFrancis/anyplotlib/pull/60>`_)
+
+
 0.7.3 (2026-08-13)
 ==================
 
