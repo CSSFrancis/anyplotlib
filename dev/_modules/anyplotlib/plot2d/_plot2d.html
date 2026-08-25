@@ -946,11 +946,7 @@
         <span class="c1"># (raw_min/raw_max fixed, display_min/display_max move) with NO pixel re-encode</span>
         <span class="c1"># or re-transfer — set_clim just moves the display window (see set_clim). Set</span>
         <span class="c1"># once from the full-res range; keep any existing band on a re-enable.</span>
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;raw_min&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
-                <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;raw_max&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;raw_min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))):</span>
-            <span class="n">rng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backend_display_range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tile_backend</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;raw_min&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;raw_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rng</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_tile_band</span><span class="p">()</span>
         <span class="n">_was_on</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_on</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_on</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_tile_on</span> <span class="o">=</span> <span class="kc">True</span>
@@ -1003,6 +999,13 @@
             <span class="n">setter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tile_backend</span><span class="p">,</span> <span class="s2">&quot;set_array&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">setter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">setter</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="c1"># The quantisation band is derived ONCE (enable_tile) and then held fixed, so</span>
+        <span class="c1"># a contrast change re-windows in the LUT with no pixel re-encode. But if it</span>
+        <span class="c1"># was never VALIDLY derived — tile mode started on a flat placeholder, so the</span>
+        <span class="c1"># probe refused and the band stayed degenerate — the new data in the backend</span>
+        <span class="c1"># is the first chance to get it right. Must run BEFORE the overview/detail are</span>
+        <span class="c1"># re-sampled below so they quantise over the corrected band in the SAME push.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_tile_band</span><span class="p">()</span>
         <span class="n">reg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;detail_region&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="n">has_detail</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span>
         <span class="c1"># Refresh the overview base ONLY when no detail tile is shown (zoomed out) —</span>
@@ -1064,6 +1067,73 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_height&quot;</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">_TLOG</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;[TILEDBG] overview refresh FAILED: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_tile_band</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Derive the fixed quantisation band (raw_min/raw_max) from the CURRENT tile</span>
+<span class="sd">        backend when it is unset or DEGENERATE, by the same rule _tile_quant_clim</span>
+<span class="sd">        uses to read it back. Returns True iff the band was (re-)derived.</span>
+
+<span class="sd">        The degenerate case is the one that bites: a plot that entered tile mode on a</span>
+<span class="sd">        flat placeholder (e.g. zeros before real data exists) probes a range of</span>
+<span class="sd">        (0, 0) — _backend_display_range refuses it, so the band keeps the</span>
+<span class="sd">        constructor&#39;s raw min/max, which for zeros is also (0, 0). Every later</span>
+<span class="sd">        set_data then re-sampled the overview against a band the encoder treated as</span>
+<span class="sd">        unset (quantising over the display window) while the frontend LUT honoured</span>
+<span class="sd">        (0, 0) literally and painted the panel solid black. Calling this on each data</span>
+<span class="sd">        swap re-derives the band as soon as a frame with real range arrives, so the</span>
+<span class="sd">        two ends of the protocol agree on what the bytes mean.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;raw_min&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;raw_max&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hi</span> <span class="o">&gt;</span> <span class="n">lo</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>                      <span class="c1"># a valid band is kept, never re-derived</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backend_display_range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tile_backend</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Still flat (an all-constant frame): leave the band unset/degenerate —</span>
+            <span class="c1"># _tile_quant_clim and the JS LUT both fall back to the display window.</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;raw_min&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;raw_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rng</span>
+        <span class="n">_TLOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[TILEDBG] tile band (re-)derived from backend → raw=(</span><span class="si">%s</span><span class="s2">,</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span>
+                    <span class="o">*</span><span class="n">rng</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Plot2D.set_tile_band">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_tile_band">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_tile_band</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">vmax</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;PIN the fixed quantisation band the tile bytes are encoded over.</span>
+
+<span class="sd">        Tile mode normally derives this band once, from the full-res data (see</span>
+<span class="sd">        ``enable_tile``), and then holds it: a contrast change re-windows in the LUT</span>
+<span class="sd">        with no pixel re-encode or re-transfer. A live consumer that already KNOWS the</span>
+<span class="sd">        honest range — a camera&#39;s bit depth, a detector&#39;s saturation point — can pin</span>
+<span class="sd">        it here instead of letting the first frame decide, so the contrast doesn&#39;t</span>
+<span class="sd">        shift when a later frame happens to contain a brighter pixel.</span>
+
+<span class="sd">        Pinning also survives what auto-derivation cannot: a source whose first frames</span>
+<span class="sd">        are flat (a placeholder, a closed shutter) has no range to derive from, and</span>
+<span class="sd">        the band stays unset until a frame with real content arrives.</span>
+
+<span class="sd">        Re-samples the overview (and any active detail tile) over the new band in a</span>
+<span class="sd">        single push, so the pixels and the band the renderer reads them with never</span>
+<span class="sd">        disagree. Raises if the plot is not in tile mode or the range is degenerate.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_on</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;set_tile_band requires tile mode — the band is the quantisation &quot;</span>
+                <span class="s2">&quot;range for the TILE bytes. Call enable_tile() first (or use &quot;</span>
+                <span class="s2">&quot;set_clim() to change the display window on a plain plot).&quot;</span><span class="p">)</span>
+        <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmin</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmax</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">hi</span> <span class="o">&gt;</span> <span class="n">lo</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;set_tile_band requires vmax &gt; vmin, got (</span><span class="si">{</span><span class="n">lo</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">hi</span><span class="si">}</span><span class="s2">). A degenerate &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;band is what &#39;unset&#39; means here — both the encoder and the &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;renderer then fall back to the display window.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;raw_min&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;raw_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span>
+        <span class="c1"># Re-encode over the new band. update_tile_source() with no array re-samples</span>
+        <span class="c1"># from the backend in place (keeping zoom/center and the detail region) and</span>
+        <span class="c1"># pushes — so the band and the bytes it describes ship together.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_tile_source</span><span class="p">()</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_tile_quant_clim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The FIXED quantisation band (raw_min/raw_max) the tile bytes are encoded</span>

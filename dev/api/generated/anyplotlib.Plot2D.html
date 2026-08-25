@@ -610,6 +610,35 @@ ndarray case). For a custom backend that already mutated its own source, call
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Plot2D.set_tile_band">
+<span class="sig-name descname"><span class="pre">set_tile_band</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.set_tile_band"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot2D.set_tile_band" title="Link to this definition">#</a></dt>
+<dd><p>PIN the fixed quantisation band the tile bytes are encoded over.</p>
+<p>Tile mode normally derives this band once, from the full-res data (see
+<code class="docutils literal notranslate"><span class="pre">enable_tile</span></code>), and then holds it: a contrast change re-windows in the LUT
+with no pixel re-encode or re-transfer. A live consumer that already KNOWS the
+honest range — a camera’s bit depth, a detector’s saturation point — can pin
+it here instead of letting the first frame decide, so the contrast doesn’t
+shift when a later frame happens to contain a brighter pixel.</p>
+<p>Pinning also survives what auto-derivation cannot: a source whose first frames
+are flat (a placeholder, a closed shutter) has no range to derive from, and
+the band stays unset until a frame with real content arrives.</p>
+<p>Re-samples the overview (and any active detail tile) over the new band in a
+single push, so the pixels and the band the renderer reads them with never
+disagree. Raises if the plot is not in tile mode or the range is degenerate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>vmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Plot2D.to_state_dict">
 <span class="sig-name descname"><span class="pre">to_state_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.to_state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot2D.to_state_dict" title="Link to this definition">#</a></dt>
 <dd><p>Return a JSON-serialisable copy of the current state.</p>
@@ -1705,6 +1734,7 @@ scatter markers in display points.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.gpu_active"><code class="docutils literal notranslate"><span class="pre">Plot2D.gpu_active</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.enable_tile"><code class="docutils literal notranslate"><span class="pre">Plot2D.enable_tile()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.update_tile_source"><code class="docutils literal notranslate"><span class="pre">Plot2D.update_tile_source()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_tile_band"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_tile_band()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.to_state_dict"><code class="docutils literal notranslate"><span class="pre">Plot2D.to_state_dict()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.resolve_pixel_tokens"><code class="docutils literal notranslate"><span class="pre">Plot2D.resolve_pixel_tokens()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.data"><code class="docutils literal notranslate"><span class="pre">Plot2D.data</span></code></a></li>
