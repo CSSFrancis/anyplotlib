@@ -1936,7 +1936,11 @@
 <span class="sd">        raw frame, not merely re-windowing the existing codes (which are saturated</span>
 <span class="sd">        outside the previous band and so couldn&#39;t widen past it). For an RGB frame</span>
 <span class="sd">        (no scalar quantisation) or when no raw frame is cached, fall back to a pure</span>
-<span class="sd">        display-window update.&quot;&quot;&quot;</span>
+<span class="sd">        display-window update.</span>
+
+<span class="sd">        See :meth:`set_display_window` for the non-destructive counterpart — the</span>
+<span class="sd">        one to reach for when the pixels must not move (a tiled plot, or a</span>
+<span class="sd">        serialised figure being re-windowed with no Python behind it).&quot;&quot;&quot;</span>
         <span class="n">new_min</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmin</span><span class="p">)</span> <span class="k">if</span> <span class="n">vmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;display_min&quot;</span><span class="p">)</span>
         <span class="n">new_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmax</span><span class="p">)</span> <span class="k">if</span> <span class="n">vmax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;display_max&quot;</span><span class="p">)</span>
 
@@ -1972,6 +1976,43 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
             <span class="k">return</span>
         <span class="c1"># Fallback: RGB / no cached frame → just move the display window.</span>
+        <span class="k">if</span> <span class="n">vmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;display_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmin</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">vmax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;display_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.set_display_window">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_display_window">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_display_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move the display window WITHOUT re-quantising the pixels.</span>
+
+<span class="sd">        The non-destructive counterpart to :meth:`set_clim`. Both change the</span>
+<span class="sd">        contrast; they differ in what they do to the data behind it:</span>
+
+<span class="sd">        ``set_clim``</span>
+<span class="sd">            re-encodes the cached raw frame over the new range, so the codes</span>
+<span class="sd">            always span exactly the visible band — maximum precision for what is</span>
+<span class="sd">            on screen, but the pixels are re-encoded and re-sent, and the old</span>
+<span class="sd">            band is gone.</span>
+<span class="sd">        ``set_display_window``</span>
+<span class="sd">            leaves the codes and their ``raw_min``/``raw_max`` band alone and</span>
+<span class="sd">            moves only the window the LUT maps through it. Nothing is re-encoded</span>
+<span class="sd">            and nothing travels but two floats.</span>
+
+<span class="sd">        Use it when the pixels must stay put: a tiled plot, where re-quantising</span>
+<span class="sd">        would re-encode the full-res frame on every drag tick (``set_clim``</span>
+<span class="sd">        already routes there internally), or a figure that has been serialised</span>
+<span class="sd">        and is being re-windowed with no Python behind it — which is how a saved</span>
+<span class="sd">        page gets a working contrast control at all.</span>
+
+<span class="sd">        The trade is precision. Quantisation spans ``[raw_min, raw_max]``, so a</span>
+<span class="sd">        window much narrower than that band resolves in coarse steps, and one</span>
+<span class="sd">        WIDER than it recovers nothing: values outside the band were saturated</span>
+<span class="sd">        to 0/255 when the frame was encoded. Quantise over the range you want to</span>
+<span class="sd">        be able to reach.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">vmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;display_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vmin</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">vmax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

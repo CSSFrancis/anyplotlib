@@ -827,6 +827,43 @@ raw frame, not merely re-windowing the existing codes (which are saturated
 outside the previous band and so couldn’t widen past it). For an RGB frame
 (no scalar quantisation) or when no raw frame is cached, fall back to a pure
 display-window update.</p>
+<p>See <a class="reference internal" href="#anyplotlib.Plot2D.set_display_window" title="anyplotlib.Plot2D.set_display_window"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_display_window()</span></code></a> for the non-destructive counterpart — the
+one to reach for when the pixels must not move (a tiled plot, or a
+serialised figure being re-windowed with no Python behind it).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Plot2D.set_display_window">
+<span class="sig-name descname"><span class="pre">set_display_window</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot2d/_plot2d.html#Plot2D.set_display_window"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot2D.set_display_window" title="Link to this definition">#</a></dt>
+<dd><p>Move the display window WITHOUT re-quantising the pixels.</p>
+<p>The non-destructive counterpart to <a class="reference internal" href="#anyplotlib.Plot2D.set_clim" title="anyplotlib.Plot2D.set_clim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_clim()</span></code></a>. Both change the
+contrast; they differ in what they do to the data behind it:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">set_clim</span></code></dt><dd><p>re-encodes the cached raw frame over the new range, so the codes
+always span exactly the visible band — maximum precision for what is
+on screen, but the pixels are re-encoded and re-sent, and the old
+band is gone.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">set_display_window</span></code></dt><dd><p>leaves the codes and their <code class="docutils literal notranslate"><span class="pre">raw_min</span></code>/<code class="docutils literal notranslate"><span class="pre">raw_max</span></code> band alone and
+moves only the window the LUT maps through it. Nothing is re-encoded
+and nothing travels but two floats.</p>
+</dd>
+</dl>
+<p>Use it when the pixels must stay put: a tiled plot, where re-quantising
+would re-encode the full-res frame on every drag tick (<code class="docutils literal notranslate"><span class="pre">set_clim</span></code>
+already routes there internally), or a figure that has been serialised
+and is being re-windowed with no Python behind it — which is how a saved
+page gets a working contrast control at all.</p>
+<p>The trade is precision. Quantisation spans <code class="docutils literal notranslate"><span class="pre">[raw_min,</span> <span class="pre">raw_max]</span></code>, so a
+window much narrower than that band resolves in coarse steps, and one
+WIDER than it recovers nothing: values outside the band were saturated
+to 0/255 when the frame was encoded. Quantise over the range you want to
+be able to reach.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1678,6 +1715,7 @@ scatter markers in display points.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.remove_layer"><code class="docutils literal notranslate"><span class="pre">Plot2D.remove_layer()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_colormap"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_colormap()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_clim"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_clim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_display_window"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_display_window()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_detail"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_detail()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.set_scale_mode"><code class="docutils literal notranslate"><span class="pre">Plot2D.set_scale_mode()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot2D.colormap_name"><code class="docutils literal notranslate"><span class="pre">Plot2D.colormap_name</span></code></a></li>
