@@ -59,30 +59,57 @@ class TileBackend(Protocol):
 
 # ── Integer-friendly area reductions (shared by the numpy backend) ─────────────
 
+def _acc_dtype(dtype: np.dtype, n: int) -> np.dtype:
+    """Accumulator dtype for a box sum of ``n`` elements of ``dtype``.
+
+    Integers get the narrowest same-SIGNEDNESS integer that cannot wrap over ``n``
+    terms. A blanket ``uint32`` is wrong twice over: it reads a negative ``int16``
+    as ~4.3e9, and it silently overflows on anything wider than 16 bits. Floats
+    accumulate at their own width but never below float32 — the result is quantised
+    to 8-bit tile bytes, so a float64 accumulator over a float32 frame buys
+    precision the output cannot express and pays a cast of the whole region for it.
+
+    The float32 sum does bound what a float32 frame may hold: ``n`` terms overflow
+    to inf past ``float32.max / n`` (~5e36 for the default 64-pixel block). A frame
+    that large cannot survive the 8-bit quantisation downstream either, and float64
+    input — where that dynamic range actually turns up — keeps its own width."""
+    if dtype.kind in "bui":
+        hi = 1 if dtype.kind == "b" else int(np.iinfo(dtype).max)
+        lo = -int(np.iinfo(dtype).min) if dtype.kind == "i" else 0
+        need = int(n) * max(hi, lo)
+        for cand in (np.int32, np.int64) if dtype.kind == "i" else (np.uint32, np.uint64):
+            if need <= np.iinfo(cand).max:
+                return np.dtype(cand)
+        return np.dtype(np.float64)   # absurdly large block; float64 still beats wrapping
+    return np.promote_types(dtype, np.float32)
+
+
 def _box_reduce(region: np.ndarray, out_h: int, out_w: int, op: str) -> np.ndarray:
     """Reduce ``region`` (2-D) to ``(out_h, out_w)`` by a block ``op`` ("mean"|"max").
 
-    Fast path (region divisible by the stride): a single VECTORISED reshape-reduce in
-    a wide integer accumulator (no full float cast of the source — the cast of a 16 MP
-    uint16 frame alone is ~34 ms). Ragged path (non-divisible): a strided-accumulate
-    box filter with a per-cell count, so the last partial block is reduced over only
-    its valid pixels. Either way the grid is nearest-resized to the exact (out_h,
-    out_w) the caller asked for."""
+    Fast path (region divisible by the stride): TWO vectorised reshape-reduces in an
+    accumulator sized by :func:`_acc_dtype` (no full float cast of the source — the
+    cast of a 16 MP uint16 frame alone is ~34 ms). Collapsing whole ROWS first and
+    then the contiguous column blocks walks memory in order on both passes; the one
+    ``sum(axis=(1, 3))`` it replaces reduced a strided axis and a contiguous one
+    together, which defeats numpy's fast inner loops and cost ~4x as long on an
+    8192² float32 frame. Ragged path (non-divisible): a strided-accumulate box filter
+    with a per-cell count, so the last partial block is reduced over only its valid
+    pixels. Either way the grid is nearest-resized to the exact (out_h, out_w) the
+    caller asked for."""
     h, w = region.shape
     sy = max(1, h // out_h)
     sx = max(1, w // out_w)
-    is_int = np.issubdtype(region.dtype, np.integer)
 
     if h % sy == 0 and w % sx == 0:
-        # Divisible → one reshape-reduce (fast, vectorised). Integer sum stays uint32
-        # (uint16 × up-to-64 block fits) so there's no giant float cast.
         gh, gw = h // sy, w // sx
-        blk = region.reshape(gh, sy, gw, sx)
         if op == "max":
-            out = blk.max(axis=(1, 3))
-        else:
-            out = (blk.sum(axis=(1, 3), dtype=np.uint32 if is_int else np.float64)
-                   .astype(np.float32) / (sy * sx))
+            return _nearest_resize(region.reshape(gh, sy, gw, sx).max(axis=(1, 3)),
+                                   out_h, out_w)
+        acc = _acc_dtype(region.dtype, sy * sx)
+        rows = region.reshape(gh, sy, w).sum(axis=1, dtype=acc)
+        out = (rows.reshape(gh, gw, sx).sum(axis=2, dtype=acc)
+               .astype(np.float32) / (sy * sx))
         return _nearest_resize(out, out_h, out_w)
 
     # Ragged → strided accumulate with a per-cell count (handles the partial block).
@@ -101,7 +128,7 @@ def _box_reduce(region: np.ndarray, out_h: int, out_w: int, op: str) -> np.ndarr
                     np.maximum(acc[:sh, :sw], sub, out=acc[:sh, :sw])
         out = acc
     else:
-        acc = np.zeros((gh, gw), np.uint32 if is_int else np.float64)
+        acc = np.zeros((gh, gw), _acc_dtype(region.dtype, sy * sx))
         cnt = np.zeros((gh, gw), np.uint32)
         for dy in range(sy):
             for dx in range(sx):
