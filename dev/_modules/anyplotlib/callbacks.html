@@ -480,6 +480,7 @@
 <span class="sd">        button         — 0=left 1=middle 2=right; None on move/enter/leave/settled</span>
 <span class="sd">        buttons        — bitmask of currently held buttons</span>
 <span class="sd">        xdata, ydata   — data-space coordinates (None for Plot3D)</span>
+<span class="sd">        img_x, img_y   — Plot2D/PlotMesh: position in IMAGE PIXELS (column, row; row 0 at the top, origin already applied), so a handler can index the source array directly. None on other plot types.</span>
 <span class="sd">        ray            — Plot3D only: {&quot;origin&quot;: [...], &quot;direction&quot;: [...]}</span>
 <span class="sd">        line_id        — Plot1D only: set when pointer is over a line</span>
 <span class="sd">        dwell_ms       — pointer_settled only: actual dwell time</span>
@@ -517,6 +518,9 @@
     <span class="n">buttons</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">xdata</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">ydata</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Image-pixel position (2-D panels): column/row into the displayed frame.</span>
+    <span class="n">img_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">img_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">ray</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">line_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">dwell_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>

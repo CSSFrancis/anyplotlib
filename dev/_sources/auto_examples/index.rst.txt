@@ -673,6 +673,40 @@ A collection of short examples showing different plot types.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="set_aspect constrains the displayed image canvas so that one unit on the x-axis occupies the same number of pixels as one unit on the y-axis.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_aspect_ratio_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_aspect_ratio`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Aspect Ratio Control</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="subplots_adjust controls the gap between panels in a multi-panel figure.">
+
+.. only:: html
+
+  .. image:: /auto_examples/PlotTypes/images/thumb/sphx_glr_plot_subplots_adjust_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/PlotTypes/plot_subplots_adjust`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Subplot Spacing with subplots_adjust</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="voxels renders shaded translucent cubes for a volumetric field.  With gpu=&quot;auto&quot; (the default) anyplotlib uses WebGPU instancing when a GPU is available and the cube count is large, so hundreds of thousands of voxels stay interactive; otherwise it falls back to the Canvas2D path.  Read gpu_active after the first frame to see which path was chosen.">
 
 .. only:: html

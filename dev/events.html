@@ -646,22 +646,42 @@ detect dragging into the panel).</p></td>
 <td><p>Data-space coordinates. Available on Plot1D, Plot2D, PlotMesh.
 <code class="docutils literal notranslate"><span class="pre">None</span></code> on Plot3D (use <code class="docutils literal notranslate"><span class="pre">ray</span></code> instead) and PlotBar.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ray</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">img_x</span></code>, <code class="docutils literal notranslate"><span class="pre">img_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Plot2D / PlotMesh only: position in <strong>image pixels</strong> (column, row —
+row 0 at the top, <code class="docutils literal notranslate"><span class="pre">origin</span></code> already applied), so a handler can index the
+source array directly without mapping axis units back. <code class="docutils literal notranslate"><span class="pre">None</span></code> on other
+plot types.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ray</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>Plot3D only: <code class="docutils literal notranslate"><span class="pre">{&quot;origin&quot;:</span> <span class="pre">[x,y,z],</span> <span class="pre">&quot;direction&quot;:</span> <span class="pre">[dx,dy,dz]}</span></code>.
 <code class="docutils literal notranslate"><span class="pre">None</span></code> on all other plot types.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">line_id</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">line_id</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>Plot1D only. Set to the overlay line’s ID when the pointer is over a
 named line; <code class="docutils literal notranslate"><span class="pre">None</span></code> when over the primary line or empty space.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dwell_ms</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dwell_ms</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">pointer_settled</span></code> only: actual elapsed dwell time in milliseconds.</p></td>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>2-D panels (<a class="reference internal" href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D" title="anyplotlib.Plot2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot2D</span></code></a>, <a class="reference internal" href="api/generated/anyplotlib.PlotMesh.html#anyplotlib.PlotMesh" title="anyplotlib.PlotMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotMesh</span></code></a>)
+already have a built-in readout — see <a class="reference internal" href="#hover-readout"><span class="std std-ref">Hover readout (2-D)</span></a> — so you rarely
+need a handler just to show a value.  When you do want one, <code class="docutils literal notranslate"><span class="pre">img_x</span></code> /
+<code class="docutils literal notranslate"><span class="pre">img_y</span></code> index the source array directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_settled&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">probe</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">img_y</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">img_x</span><span class="p">)</span>
+    <span class="n">label</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">col</span><span class="p">]</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
 </div>
 </section>
 <section id="plotbar-additional-fields-on-pointer-down">
@@ -760,6 +780,75 @@ Lets key handlers operate on the most-recently-selected widget.</p></td>
 </tbody>
 </table>
 </div>
+</section>
+</section>
+<section id="hover-readout-2-d">
+<span id="hover-readout"></span><h2>Hover readout (2-D)<a class="headerlink" href="#hover-readout-2-d" title="Link to this heading">#</a></h2>
+<p>Hovering a <a class="reference internal" href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D" title="anyplotlib.Plot2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot2D</span></code></a> / <a class="reference internal" href="api/generated/anyplotlib.PlotMesh.html#anyplotlib.PlotMesh" title="anyplotlib.PlotMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotMesh</span></code></a> panel shows a
+small readout naming the physical position, the pixel index and the <strong>value</strong> of the
+pixel under the cursor — no handler required:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="p">:</span><span class="mf">1.2</span> <span class="n">y</span><span class="p">:</span><span class="mf">3.4</span> <span class="n">nm</span>  <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mi">34</span><span class="p">]</span>  <span class="n">v</span><span class="p">:</span><span class="mi">5295</span>        <span class="c1"># colourmapped image</span>
+<span class="n">x</span><span class="p">:</span><span class="mi">5</span> <span class="n">y</span><span class="p">:</span><span class="mi">9</span> <span class="n">px</span>  <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>  <span class="n">rgb</span><span class="p">:</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">30</span>        <span class="c1"># true-colour image (RGBA adds ,a)</span>
+</pre></div>
+</div>
+<section id="how-exact-is-that-value">
+<h3>How exact is that value?<a class="headerlink" href="#how-exact-is-that-value" title="Link to this heading">#</a></h3>
+<p>Pixels reach the browser as 8-bit codes over the <code class="docutils literal notranslate"><span class="pre">raw_min</span></code>/<code class="docutils literal notranslate"><span class="pre">raw_max</span></code> band (that
+is what keeps a 4k movie interactive), so the readout works in three tiers:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 26.0%" />
+<col style="width: 74.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Tier</p></th>
+<th class="head"><p>When</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Exact, no round trip</strong></p></td>
+<td><p>Integer data whose range fits in 255 levels (<code class="docutils literal notranslate"><span class="pre">uint8</span></code> frames, masks, label
+maps, small-range counts): each code maps back to exactly one integer, so the
+renderer inverts the quantisation locally.  Also true-colour images, whose
+channels <em>are</em> the transferred bytes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Exact, via Python</strong></p></td>
+<td><p>Anything else, once the cursor has dwelled ~250 ms on a pixel: the renderer
+asks Python for the true value and swaps it in.  On by default
+(<code class="docutils literal notranslate"><span class="pre">probe_exact</span></code>); costs one small message per dwelled-on pixel, never one
+per mouse move.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Quantised estimate</strong></p></td>
+<td><p>The fallback shown immediately, and the final answer when no live kernel can
+reply (a <code class="xref py py-func docutils literal notranslate"><span class="pre">save_html()</span></code> page, a busy kernel).  Resolves the
+transferred range to <code class="docutils literal notranslate"><span class="pre">range/255</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">vmin</span></code>/<code class="docutils literal notranslate"><span class="pre">vmax</span></code> clip the <em>colourmap</em>, not the data — a pixel far above
+<code class="docutils literal notranslate"><span class="pre">vmax</span></code> still reads its own value.  <code class="docutils literal notranslate"><span class="pre">set_data(clim=...)</span></code> is different: it
+quantises over the clim itself, so outliers saturate at the band edge.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plot</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>                    <span class="c1"># probe on by default</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">set_value_probe</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>                 <span class="c1"># local (quantised) values only</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">set_value_probe</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>          <span class="c1"># snappier dwell</span>
+</pre></div>
+</div>
+</section>
+<section id="turning-it-off-and-putting-it-somewhere-else">
+<h3>Turning it off, and putting it somewhere else<a class="headerlink" href="#turning-it-off-and-putting-it-somewhere-else" title="Link to this heading">#</a></h3>
+<p>Pressing <strong>v</strong> over the plot toggles the pill (alongside the other built-ins —
+<code class="docutils literal notranslate"><span class="pre">r</span></code> reset zoom, <code class="docutils literal notranslate"><span class="pre">c</span></code> colourbar, <code class="docutils literal notranslate"><span class="pre">l</span></code>/<code class="docutils literal notranslate"><span class="pre">s</span></code> log/symlog).  The toggle is local to
+the viewer, so a live update pushing new frames will not undo it.</p>
+<p>From Python, <code class="docutils literal notranslate"><span class="pre">set_readout_visible(False)</span></code> turns the pill off for good — and the
+readout keeps being computed, so an embedding host can draw it wherever it likes: a
+status line in the corner of an Electron window, for instance, where it covers no
+data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plot</span><span class="o">.</span><span class="n">set_readout_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The payload then reaches the host through <code class="docutils literal notranslate"><span class="pre">mount()</span></code>’s <code class="docutils literal notranslate"><span class="pre">opts.onReadout</span></code> callback
+and an <code class="docutils literal notranslate"><span class="pre">apl:readout</span></code> DOM event; see <a class="reference internal" href="embedding.html#embed-readout"><span class="std std-ref">Owning the hover readout</span></a>.</p>
 </section>
 </section>
 <section id="per-line-filtering-on-plot1d">
@@ -1280,6 +1369,11 @@ mouse-only; touch and stylus events are not forwarded.</p></td>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#plotbar-additional-fields-on-pointer-down">PlotBar additional fields on <code class="docutils literal notranslate"><span class="pre">pointer_down</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#wheel-fields">Wheel fields</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#key-fields">Key fields</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#hover-readout-2-d">Hover readout (2-D)</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-exact-is-that-value">How exact is that value?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#turning-it-off-and-putting-it-somewhere-else">Turning it off, and putting it somewhere else</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#per-line-filtering-on-plot1d">Per-line filtering on Plot1D</a></li>

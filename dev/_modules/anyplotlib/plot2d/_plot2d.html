@@ -465,7 +465,7 @@
     <span class="n">BrushWidget</span><span class="p">,</span> <span class="n">VLineWidget</span><span class="p">,</span> <span class="n">HLineWidget</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">_normalize_image</span><span class="p">,</span> <span class="n">_build_colormap_lut</span><span class="p">,</span>
-                               <span class="n">_build_tint_lut</span><span class="p">,</span> <span class="n">_to_rgba_u8</span><span class="p">)</span>
+                               <span class="n">_build_tint_lut</span><span class="p">,</span> <span class="n">_to_rgba_u8</span><span class="p">,</span> <span class="n">_codes_are_int</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_binary_transport_active</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -584,7 +584,9 @@
                  <span class="n">tile</span><span class="p">:</span> <span class="s2">&quot;str | bool&quot;</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
                  <span class="n">integration_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
                  <span class="n">overview_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
-                 <span class="n">tile_backend</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">tile_backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">probe_exact</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">probe_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">250</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">:</span>  <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>       <span class="c1"># assigned by Axes._attach</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># assigned by Axes._attach</span>
 
@@ -749,6 +751,10 @@
             <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>       <span class="n">disp_max</span><span class="p">,</span>
             <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>           <span class="n">raw_vmin</span><span class="p">,</span>
             <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>           <span class="n">raw_vmax</span><span class="p">,</span>
+            <span class="c1"># Integral source → the renderer inverts the codes back to the exact</span>
+            <span class="c1"># values for its hover readout (see _codes_are_int). A tile-mode</span>
+            <span class="c1"># overview is an average, so this is False there even for integer data.</span>
+            <span class="s2">&quot;raw_is_int&quot;</span><span class="p">:</span>        <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_rgb</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_codes_are_int</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
             <span class="s2">&quot;show_colorbar&quot;</span><span class="p">:</span>     <span class="kc">False</span><span class="p">,</span>
             <span class="c1"># None =&gt; the renderer&#39;s default 6 px image-to-strip gap.</span>
             <span class="s2">&quot;colorbar_pad&quot;</span><span class="p">:</span>      <span class="kc">None</span><span class="p">,</span>
@@ -769,6 +775,26 @@
             <span class="s2">&quot;detail_height&quot;</span><span class="p">:</span>     <span class="mi">0</span><span class="p">,</span>
             <span class="s2">&quot;detail_seq&quot;</span><span class="p">:</span>        <span class="mi">0</span><span class="p">,</span>    <span class="c1"># bumped per set_detail so the renderer re-uploads</span>
                                        <span class="c1"># a re-sampled tile even at the same size/region</span>
+            <span class="c1"># The band the tile&#39;s uint8 codes span (None = no tile). The renderer</span>
+            <span class="c1"># reconstructs data values from it for the hover readout, since the</span>
+            <span class="c1"># tile may be quantised over a different range than the base.</span>
+            <span class="s2">&quot;detail_min&quot;</span><span class="p">:</span>        <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;detail_max&quot;</span><span class="p">:</span>        <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;detail_is_int&quot;</span><span class="p">:</span>     <span class="kc">False</span><span class="p">,</span>
+            <span class="c1"># ── Hover readout ────────────────────────────────────────────────</span>
+            <span class="c1"># The on-image pill showing position + pixel value. False hides it —</span>
+            <span class="c1"># an embedding host can render the same payload in its own chrome</span>
+            <span class="c1"># instead (mount()&#39;s opts.onReadout / the `apl:readout` DOM event).</span>
+            <span class="s2">&quot;readout_visible&quot;</span><span class="p">:</span>   <span class="kc">True</span><span class="p">,</span>
+            <span class="c1"># Exact-value probe: dwell time in ms before the renderer asks Python</span>
+            <span class="c1"># for the TRUE value under the cursor (0 disables). The 8-bit codes in</span>
+            <span class="c1"># the browser only resolve the data range to 1/255, so this is what</span>
+            <span class="c1"># makes the readout exact for wide dtypes. See _answer_value_probe.</span>
+            <span class="s2">&quot;probe_ms&quot;</span><span class="p">:</span>          <span class="n">probe_ms</span> <span class="k">if</span> <span class="n">probe_exact</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="c1"># The answer: which pixel it is for, and its exact value.</span>
+            <span class="s2">&quot;probe_x&quot;</span><span class="p">:</span>           <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;probe_y&quot;</span><span class="p">:</span>           <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;probe_value&quot;</span><span class="p">:</span>       <span class="kc">None</span><span class="p">,</span>
             <span class="s2">&quot;overlay_widgets&quot;</span><span class="p">:</span>   <span class="p">[],</span>
             <span class="s2">&quot;markers&quot;</span><span class="p">:</span>           <span class="p">[],</span>
             <span class="c1"># Image LAYERS (see add_layer): each entry is a small metadata dict</span>
@@ -819,6 +845,111 @@
         <span class="c1"># re-supplying data — the layer analogue of ``self._data`` + ``set_clim``.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_layers</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_layer_raw</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Hover readout (position + pixel value)</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Plot2D.set_readout_visible">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_readout_visible">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_readout_visible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visible</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show or hide the on-image hover readout (the pill naming the physical</span>
+<span class="sd">        position, the pixel index and the pixel value).</span>
+
+<span class="sd">        Hiding it does NOT stop the readout being computed: an embedding host still</span>
+<span class="sd">        receives every update through ``mount()``&#39;s ``opts.onReadout`` callback and</span>
+<span class="sd">        the ``apl:readout`` DOM event, so an Electron app can render the same text in</span>
+<span class="sd">        its own status line (e.g. the bottom-right of the window) where it covers no</span>
+<span class="sd">        data.  See ``docs/embedding.rst``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;readout_visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">visible</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.set_value_probe">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_value_probe">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_value_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">250</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Enable/disable the EXACT-value probe behind the hover readout (on by</span>
+<span class="sd">        default; ``Plot2D(..., probe_exact=False)`` opts out at construction).</span>
+
+<span class="sd">        The value the renderer can compute locally comes from the 8-bit codes it</span>
+<span class="sd">        draws, so it is exact for integer data whose range fits 255 levels and</span>
+<span class="sd">        quantised to ``range/255`` otherwise.  With the probe on, the renderer asks</span>
+<span class="sd">        Python for the true value once the cursor has DWELLED ``ms`` milliseconds on</span>
+<span class="sd">        a pixel; the answer replaces the estimate in place.  It costs one small</span>
+<span class="sd">        message per dwelled-on pixel — never one per mouse move — and degrades</span>
+<span class="sd">        silently to the local estimate when there is no live kernel (a ``save_html``</span>
+<span class="sd">        page) or the kernel is busy.</span>
+
+<span class="sd">        ``ms=0`` (or ``enabled=False``) disables it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;probe_ms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="n">enabled</span> <span class="ow">and</span> <span class="n">ms</span> <span class="ow">and</span> <span class="n">ms</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_invalidate_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Drop any exact value answered for the PREVIOUS frame&#39;s pixels.</span>
+
+<span class="sd">        Every path that replaces displayed pixels must call this: with the cursor</span>
+<span class="sd">        parked (a movie scrub is the common case) the frontend would otherwise keep</span>
+<span class="sd">        showing the old frame&#39;s exact value over the new frame&#39;s data. Pass a</span>
+<span class="sd">        pending update dict to fold the reset into that same push.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">reset</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;probe_x&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;probe_y&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;probe_value&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="p">(</span><span class="n">fields</span> <span class="k">if</span> <span class="n">fields</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">reset</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_exact_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The TRUE data value at display pixel (col, row), or None when it can&#39;t be</span>
+<span class="sd">        resolved (out of bounds, RGB image, or a backend that raised).</span>
+
+<span class="sd">        Display pixel means the same coordinate system the readout and the</span>
+<span class="sd">        ``img_x``/``img_y`` event fields use: row 0 at the top, ``origin`` already</span>
+<span class="sd">        applied — matching :attr:`data`.  In tile mode the full-resolution frame</span>
+<span class="sd">        lives in the backend (``self._data`` is only the coarse overview there), so</span>
+<span class="sd">        the probe samples a 1x1 region from it rather than reading the overview.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_rgb</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">col</span> <span class="o">&lt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">row</span> <span class="o">&lt;</span> <span class="n">h</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_on</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_backend</span>
+                <span class="c1"># Backend rows are in SOURCE order; a &#39;lower&#39; origin mirrors them</span>
+                <span class="c1"># for display, so undo that to hit the pixel the cursor is over.</span>
+                <span class="n">sy</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">row</span><span class="p">)</span> <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">origin</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span> <span class="k">else</span> <span class="n">row</span>
+                <span class="c1"># A 1x1 sample is the pixel itself — no reduction, so the</span>
+                <span class="c1"># integration method is irrelevant here.</span>
+                <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">sy</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>          <span class="c1"># already display-oriented</span>
+            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">row</span> <span class="o">&gt;=</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">col</span> <span class="o">&gt;=</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">_TLOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[PROBE] exact value at (</span><span class="si">%d</span><span class="s2">, </span><span class="si">%d</span><span class="s2">) failed: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_answer_value_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Answer the renderer&#39;s dwell probe: look up the exact value under the</span>
+<span class="sd">        cursor and push it back with the pixel it belongs to, so the frontend can</span>
+<span class="sd">        tell a fresh answer from a stale one (the cursor may have moved on).</span>
+
+<span class="sd">        Called straight from ``Figure._dispatch_event`` with the raw message —</span>
+<span class="sd">        deliberately not routed through the callback registry (renderer plumbing,</span>
+<span class="sd">        not a user event).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;probe_ms&quot;</span><span class="p">):</span>
+            <span class="k">return</span>                                  <span class="c1"># probe disabled → ignore</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;img_x&quot;</span><span class="p">))))</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;img_y&quot;</span><span class="p">))))</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exact_value</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;probe_x&quot;</span><span class="p">:</span> <span class="n">col</span><span class="p">,</span> <span class="s2">&quot;probe_y&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">,</span>
+                            <span class="s2">&quot;probe_value&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">gpu_active</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -977,7 +1108,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;base_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;base_height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;detail_b64&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;detail_region&quot;</span><span class="p">:</span> <span class="p">[],</span>
-                            <span class="s2">&quot;detail_width&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;detail_height&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+                            <span class="s2">&quot;detail_width&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;detail_height&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                            <span class="s2">&quot;detail_min&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;detail_max&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="s2">&quot;detail_is_int&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
         <span class="n">_TLOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[TILEDBG] _disable_tile: tile mode OFF (forced plain)&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Plot2D.update_tile_source">
@@ -1053,6 +1186,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_b64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_pixels</span><span class="p">(</span><span class="s2">&quot;image_b64&quot;</span><span class="p">,</span> <span class="n">img_u8</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;base_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ow</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;base_height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">oh</span><span class="p">)</span>
+            <span class="c1"># The overview&#39;s own dtype decides code invertibility (a mean reduction</span>
+            <span class="c1"># of integer data is float, so this usually turns the flag off).</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;raw_is_int&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_codes_are_int</span><span class="p">(</span><span class="n">ov</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate_probe</span><span class="p">()</span>               <span class="c1"># new pixels → old answer is void</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_overview_stale</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="c1"># min/max are two more full passes over the overview — same guard rule</span>
             <span class="c1"># as the FETCH diagnostic below (they are .debug() ARGUMENTS, so lazy</span>
@@ -1550,12 +1687,16 @@
             <span class="s2">&quot;display_max&quot;</span><span class="p">:</span>  <span class="n">disp_max</span><span class="p">,</span>
             <span class="s2">&quot;raw_min&quot;</span><span class="p">:</span>      <span class="n">vmin</span><span class="p">,</span>
             <span class="s2">&quot;raw_max&quot;</span><span class="p">:</span>      <span class="n">vmax</span><span class="p">,</span>
+            <span class="s2">&quot;raw_is_int&quot;</span><span class="p">:</span>   <span class="p">(</span><span class="ow">not</span> <span class="n">is_rgb</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_codes_are_int</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
         <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate_probe</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>   <span class="c1"># new frame → old exact value is void</span>
         <span class="c1"># A new base frame invalidates any detail tile of the OLD frame — clear it</span>
         <span class="c1"># so the shader doesn&#39;t sample a stale hi-res crop over the new image.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;detail_b64&quot;</span><span class="p">):</span>
             <span class="n">fields</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;detail_b64&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;detail_region&quot;</span><span class="p">:</span> <span class="p">[],</span>
-                           <span class="s2">&quot;detail_width&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;detail_height&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+                           <span class="s2">&quot;detail_width&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;detail_height&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                           <span class="s2">&quot;detail_min&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;detail_max&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="s2">&quot;detail_is_int&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
         <span class="c1"># RGB images never use the colormap LUT — skip the (costly) rebuild and</span>
         <span class="c1"># leave the existing entry untouched.  Only recompute for scalar data.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_rgb</span><span class="p">:</span>
@@ -2110,6 +2251,8 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
                     <span class="s2">&quot;detail_b64&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;detail_region&quot;</span><span class="p">:</span> <span class="p">[],</span>
                     <span class="s2">&quot;detail_width&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;detail_height&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;detail_min&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;detail_max&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;detail_is_int&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
                 <span class="p">})</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
             <span class="k">return</span>
@@ -2125,19 +2268,26 @@
             <span class="n">clim</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;display_min&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;display_max&quot;</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">clim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">clim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="n">clim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">clim</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
                 <span class="n">clim</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">img_u8</span><span class="p">,</span> <span class="n">_vmin</span><span class="p">,</span> <span class="n">_vmax</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">tile</span><span class="p">,</span> <span class="n">clim</span><span class="o">=</span><span class="n">clim</span><span class="p">)</span>
+        <span class="n">img_u8</span><span class="p">,</span> <span class="n">tile_min</span><span class="p">,</span> <span class="n">tile_max</span> <span class="o">=</span> <span class="n">_normalize_image</span><span class="p">(</span><span class="n">tile</span><span class="p">,</span> <span class="n">clim</span><span class="o">=</span><span class="n">clim</span><span class="p">)</span>
         <span class="n">th</span><span class="p">,</span> <span class="n">tw</span> <span class="o">=</span> <span class="n">tile</span><span class="o">.</span><span class="n">shape</span>
         <span class="c1"># Monotonic sequence so the renderer&#39;s dedup key CHANGES on every pushed tile</span>
         <span class="c1"># even when length + region are identical (a live movie scrub re-samples the</span>
         <span class="c1"># SAME region every frame — without this the JS skips the re-upload and the</span>
         <span class="c1"># zoomed-in view freezes on the first frame). See _detailBytes in figure_esm.js.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_detail_seq</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_detail_seq&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate_probe</span><span class="p">()</span>      <span class="c1"># the tile is new pixels for this region</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
             <span class="s2">&quot;detail_b64&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">_encode_pixels</span><span class="p">(</span><span class="s2">&quot;detail_b64&quot;</span><span class="p">,</span> <span class="n">img_u8</span><span class="p">),</span>
             <span class="s2">&quot;detail_region&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y0</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y1</span><span class="p">)],</span>
             <span class="s2">&quot;detail_width&quot;</span><span class="p">:</span>  <span class="nb">int</span><span class="p">(</span><span class="n">tw</span><span class="p">),</span>
             <span class="s2">&quot;detail_height&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">th</span><span class="p">),</span>
             <span class="s2">&quot;detail_seq&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">_detail_seq</span><span class="p">,</span>
+            <span class="c1"># The band these codes span, so the renderer&#39;s hover readout can</span>
+            <span class="c1"># reconstruct values from the tile (it need not match the base band),</span>
+            <span class="c1"># plus whether the tile&#39;s own dtype makes them exactly invertible.</span>
+            <span class="s2">&quot;detail_min&quot;</span><span class="p">:</span>    <span class="n">tile_min</span><span class="p">,</span>
+            <span class="s2">&quot;detail_max&quot;</span><span class="p">:</span>    <span class="n">tile_max</span><span class="p">,</span>
+            <span class="s2">&quot;detail_is_int&quot;</span><span class="p">:</span> <span class="n">_codes_are_int</span><span class="p">(</span><span class="n">tile</span><span class="p">),</span>
         <span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 

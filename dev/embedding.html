@@ -495,6 +495,9 @@ JavaScript:</p>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">ev</span><span class="p">.</span><span class="nx">event_type</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;pointer_down&#39;</span><span class="p">)</span>
 <span class="w">      </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;clicked data coords&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">ev</span><span class="p">.</span><span class="nx">xdata</span><span class="p">,</span><span class="w"> </span><span class="nx">ev</span><span class="p">.</span><span class="nx">ydata</span><span class="p">);</span>
 <span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="c1">// 2-D hover readout (position + pixel value) for your own status bar —</span>
+<span class="w">  </span><span class="c1">// see &quot;Owning the hover readout&quot; below.</span>
+<span class="w">  </span><span class="nx">onReadout</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">info</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">statusEl</span><span class="p">.</span><span class="nx">textContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">info</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">info</span><span class="p">.</span><span class="nx">text</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span><span class="w"> </span><span class="p">},</span>
 <span class="p">});</span>
 
 <span class="c1">// Live updates — replace one panel&#39;s state and it re-renders:</span>
@@ -798,6 +801,70 @@ echoing it back through <code class="docutils literal notranslate"><span class="
 Python’s <a class="reference internal" href="api/generated/anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a> carries); <code class="docutils literal notranslate"><span class="pre">opts.onSync(key,</span> <span class="pre">value)</span></code>
 receives every outbound model write for bridging to Python.</p>
 </section>
+<section id="owning-the-hover-readout">
+<span id="embed-readout"></span><h3>Owning the hover readout<a class="headerlink" href="#owning-the-hover-readout" title="Link to this heading">#</a></h3>
+<p>2-D panels show the cursor’s position and pixel value in a small pill drawn on the
+image (see <a class="reference internal" href="events.html#hover-readout"><span class="std std-ref">Hover readout (2-D)</span></a>).  In a desktop app you usually want that in your own
+chrome instead — a status line pinned to the bottom-right of the window, where it
+never covers data.  Hide the pill from Python and take the payload from
+<code class="docutils literal notranslate"><span class="pre">opts.onReadout</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plot</span><span class="o">.</span><span class="n">set_readout_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>      <span class="c1"># before figure_state(fig)</span>
+</pre></div>
+</div>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="kd">const</span><span class="w"> </span><span class="nx">statusEl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;status-bar&#39;</span><span class="p">);</span><span class="w">   </span><span class="c1">// your own chrome</span>
+
+<span class="nx">mount</span><span class="p">(</span><span class="nx">host</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">onReadout</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">info</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// info === null when the cursor leaves the image</span>
+<span class="w">    </span><span class="nx">statusEl</span><span class="p">.</span><span class="nx">textContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">info</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">info</span><span class="p">.</span><span class="nx">text</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+<p>The same payload is also dispatched as an <code class="docutils literal notranslate"><span class="pre">apl:readout</span></code> <code class="xref py py-class docutils literal notranslate"><span class="pre">CustomEvent</span></code> that
+bubbles off the mount container, which is handy when the listener lives somewhere
+other than the <code class="docutils literal notranslate"><span class="pre">mount()</span></code> call site:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">host</span><span class="o">.</span><span class="n">addEventListener</span><span class="p">(</span><span class="s1">&#39;apl:readout&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="n">render</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">detail</span><span class="p">));</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">info</span></code> fields:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">panel_id</span></code></p></td>
+<td><p>Which panel the cursor is over.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">img_x</span></code>, <code class="docutils literal notranslate"><span class="pre">img_y</span></code></p></td>
+<td><p>Fractional position in image pixels.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">col</span></code>, <code class="docutils literal notranslate"><span class="pre">row</span></code></p></td>
+<td><p>Integer pixel index (<code class="docutils literal notranslate"><span class="pre">img_x</span></code>/<code class="docutils literal notranslate"><span class="pre">img_y</span></code> floored).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xdata</span></code>, <code class="docutils literal notranslate"><span class="pre">ydata</span></code></p></td>
+<td><p>Physical position in <code class="docutils literal notranslate"><span class="pre">units</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">units</span></code></p></td>
+<td><p>Axis units string (<code class="docutils literal notranslate"><span class="pre">&quot;px&quot;</span></code> when unset).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Pixel value, or <code class="docutils literal notranslate"><span class="pre">null</span></code> for a true-colour image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">exact</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code> when <code class="docutils literal notranslate"><span class="pre">value</span></code> is the true datum rather than a
+quantised estimate (see <a class="reference internal" href="events.html#hover-readout"><span class="std std-ref">Hover readout (2-D)</span></a>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rgba</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[r,</span> <span class="pre">g,</span> <span class="pre">b,</span> <span class="pre">a]</span></code> for a true-colour image, else <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>The formatted one-line string the built-in pill uses.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Updates are deduplicated by <code class="docutils literal notranslate"><span class="pre">text</span></code>, so a cursor moving inside one pixel does not
+call back repeatedly.  <code class="docutils literal notranslate"><span class="pre">exact</span></code> flips to <code class="docutils literal notranslate"><span class="pre">true</span></code> for the same pixel when a value
+probe resolves, which fires one more callback — render it, don’t ignore it.</p>
+</section>
 </section>
 <section id="notes-and-caveats">
 <h2>Notes and caveats<a class="headerlink" href="#notes-and-caveats" title="Link to this heading">#</a></h2>
@@ -880,6 +947,7 @@ works with any bundler or directly as a <code class="docutils literal notranslat
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#js-handle-reference">JS handle reference</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#owning-the-hover-readout">Owning the hover readout</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#notes-and-caveats">Notes and caveats</a></li>

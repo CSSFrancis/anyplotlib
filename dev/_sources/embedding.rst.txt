@@ -52,6 +52,9 @@ JavaScript:
         if (ev.event_type === 'pointer_down')
           console.log('clicked data coords', ev.xdata, ev.ydata);
       },
+      // 2-D hover readout (position + pixel value) for your own status bar —
+      // see "Owning the hover readout" below.
+      onReadout: (info) => { statusEl.textContent = info ? info.text : ''; },
     });
 
     // Live updates — replace one panel's state and it re-renders:
@@ -167,6 +170,57 @@ JS handle reference
 ``opts.onEvent(ev)`` receives parsed interaction events (the same payloads
 Python's :class:`~anyplotlib.Event` carries); ``opts.onSync(key, value)``
 receives every outbound model write for bridging to Python.
+
+.. _embed-readout:
+
+Owning the hover readout
+------------------------
+
+2-D panels show the cursor's position and pixel value in a small pill drawn on the
+image (see :ref:`hover-readout`).  In a desktop app you usually want that in your own
+chrome instead — a status line pinned to the bottom-right of the window, where it
+never covers data.  Hide the pill from Python and take the payload from
+``opts.onReadout``:
+
+.. code-block:: python
+
+    plot.set_readout_visible(False)      # before figure_state(fig)
+
+.. code-block:: javascript
+
+    const statusEl = document.getElementById('status-bar');   // your own chrome
+
+    mount(host, state, {
+      onReadout: (info) => {
+        // info === null when the cursor leaves the image
+        statusEl.textContent = info ? info.text : '';
+      },
+    });
+
+The same payload is also dispatched as an ``apl:readout`` :class:`CustomEvent` that
+bubbles off the mount container, which is handy when the listener lives somewhere
+other than the ``mount()`` call site::
+
+    host.addEventListener('apl:readout', (e) => render(e.detail));
+
+``info`` fields:
+
+======================  ======================================================
+``panel_id``            Which panel the cursor is over.
+``img_x``, ``img_y``    Fractional position in image pixels.
+``col``, ``row``        Integer pixel index (``img_x``/``img_y`` floored).
+``xdata``, ``ydata``    Physical position in ``units``.
+``units``               Axis units string (``"px"`` when unset).
+``value``               Pixel value, or ``null`` for a true-colour image.
+``exact``               ``true`` when ``value`` is the true datum rather than a
+                        quantised estimate (see :ref:`hover-readout`).
+``rgba``                ``[r, g, b, a]`` for a true-colour image, else ``null``.
+``text``                The formatted one-line string the built-in pill uses.
+======================  ======================================================
+
+Updates are deduplicated by ``text``, so a cursor moving inside one pixel does not
+call back repeatedly.  ``exact`` flips to ``true`` for the same pixel when a value
+probe resolves, which fires one more callback — render it, don't ignore it.
 
 Notes and caveats
 =================

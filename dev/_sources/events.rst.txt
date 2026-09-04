@@ -169,6 +169,12 @@ Present on ``pointer_down``, ``pointer_up``, ``pointer_move``,
      - ``float | None``
      - Data-space coordinates. Available on Plot1D, Plot2D, PlotMesh.
        ``None`` on Plot3D (use ``ray`` instead) and PlotBar.
+   * - ``img_x``, ``img_y``
+     - ``float | None``
+     - Plot2D / PlotMesh only: position in **image pixels** (column, row —
+       row 0 at the top, ``origin`` already applied), so a handler can index the
+       source array directly without mapping axis units back. ``None`` on other
+       plot types.
    * - ``ray``
      - ``dict | None``
      - Plot3D only: ``{"origin": [x,y,z], "direction": [dx,dy,dz]}``.
@@ -180,6 +186,20 @@ Present on ``pointer_down``, ``pointer_up``, ``pointer_move``,
    * - ``dwell_ms``
      - ``float | None``
      - ``pointer_settled`` only: actual elapsed dwell time in milliseconds.
+
+.. note::
+
+   2-D panels (:class:`~anyplotlib.Plot2D`, :class:`~anyplotlib.PlotMesh`)
+   already have a built-in readout — see :ref:`hover-readout` — so you rarely
+   need a handler just to show a value.  When you do want one, ``img_x`` /
+   ``img_y`` index the source array directly:
+
+   .. code-block:: python
+
+       @plot.add_event_handler("pointer_settled", ms=200)
+       def probe(event):
+           row, col = int(event.img_y), int(event.img_x)
+           label.value = f"{data[row, col]:.6g}"
 
 PlotBar additional fields on ``pointer_down``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -245,6 +265,74 @@ Key fields
      - ID of the last overlay widget the user clicked, or ``None``.
        Lets key handlers operate on the most-recently-selected widget.
 
+
+.. _hover-readout:
+
+Hover readout (2-D)
+-------------------
+
+Hovering a :class:`~anyplotlib.Plot2D` / :class:`~anyplotlib.PlotMesh` panel shows a
+small readout naming the physical position, the pixel index and the **value** of the
+pixel under the cursor — no handler required::
+
+    x:1.2 y:3.4 nm  [12, 34]  v:5295        # colourmapped image
+    x:5 y:9 px  [5, 9]  rgb:10,20,30        # true-colour image (RGBA adds ,a)
+
+How exact is that value?
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pixels reach the browser as 8-bit codes over the ``raw_min``/``raw_max`` band (that
+is what keeps a 4k movie interactive), so the readout works in three tiers:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 26 74
+
+   * - Tier
+     - When
+   * - **Exact, no round trip**
+     - Integer data whose range fits in 255 levels (``uint8`` frames, masks, label
+       maps, small-range counts): each code maps back to exactly one integer, so the
+       renderer inverts the quantisation locally.  Also true-colour images, whose
+       channels *are* the transferred bytes.
+   * - **Exact, via Python**
+     - Anything else, once the cursor has dwelled ~250 ms on a pixel: the renderer
+       asks Python for the true value and swaps it in.  On by default
+       (``probe_exact``); costs one small message per dwelled-on pixel, never one
+       per mouse move.
+   * - **Quantised estimate**
+     - The fallback shown immediately, and the final answer when no live kernel can
+       reply (a :func:`~anyplotlib.save_html` page, a busy kernel).  Resolves the
+       transferred range to ``range/255``.
+
+Note that ``vmin``/``vmax`` clip the *colourmap*, not the data — a pixel far above
+``vmax`` still reads its own value.  ``set_data(clim=...)`` is different: it
+quantises over the clim itself, so outliers saturate at the band edge.
+
+.. code-block:: python
+
+    plot = ax.imshow(counts)                    # probe on by default
+    plot.set_value_probe(False)                 # local (quantised) values only
+    plot.set_value_probe(True, ms=100)          # snappier dwell
+
+Turning it off, and putting it somewhere else
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pressing **v** over the plot toggles the pill (alongside the other built-ins —
+``r`` reset zoom, ``c`` colourbar, ``l``/``s`` log/symlog).  The toggle is local to
+the viewer, so a live update pushing new frames will not undo it.
+
+From Python, ``set_readout_visible(False)`` turns the pill off for good — and the
+readout keeps being computed, so an embedding host can draw it wherever it likes: a
+status line in the corner of an Electron window, for instance, where it covers no
+data.
+
+.. code-block:: python
+
+    plot.set_readout_visible(False)
+
+The payload then reaches the host through ``mount()``'s ``opts.onReadout`` callback
+and an ``apl:readout`` DOM event; see :ref:`embed-readout`.
 
 Per-line filtering on Plot1D
 ----------------------------

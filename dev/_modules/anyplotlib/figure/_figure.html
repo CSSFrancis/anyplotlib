@@ -1104,6 +1104,16 @@
                 <span class="n">plot</span><span class="o">.</span><span class="n">_set_gpu_active</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;gpu_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)))</span>
             <span class="k">return</span>
 
+        <span class="c1"># Hover-readout probe: the renderer wants the EXACT value under a pixel the</span>
+        <span class="c1"># cursor dwelled on (its own readout comes from 8-bit codes).  Answered</span>
+        <span class="c1"># directly and NOT fired through the callback registry — this is renderer</span>
+        <span class="c1"># plumbing, so a user&#39;s wildcard handler must not see it and pause_events()</span>
+        <span class="c1"># must not stall the readout.  Same treatment as gpu_status above.</span>
+        <span class="k">if</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s2">&quot;value_probe&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;_answer_value_probe&quot;</span><span class="p">):</span>
+                <span class="n">plot</span><span class="o">.</span><span class="n">_answer_value_probe</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">return</span>
+
         <span class="n">source</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">widget_id</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;_widgets&quot;</span><span class="p">):</span>
             <span class="n">widget</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">widget_id</span><span class="p">)</span>
@@ -1123,6 +1133,8 @@
                 <span class="n">buttons</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;buttons&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
                 <span class="n">xdata</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;xdata&quot;</span><span class="p">),</span>
                 <span class="n">ydata</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ydata&quot;</span><span class="p">),</span>
+                <span class="n">img_x</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;img_x&quot;</span><span class="p">),</span>
+                <span class="n">img_y</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;img_y&quot;</span><span class="p">),</span>
                 <span class="n">ray</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ray&quot;</span><span class="p">),</span>
                 <span class="n">line_id</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line_id&quot;</span><span class="p">),</span>
                 <span class="n">dwell_ms</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dwell_ms&quot;</span><span class="p">),</span>
