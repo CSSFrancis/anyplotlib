@@ -32,6 +32,13 @@ import anyplotlib as apl
 from anyplotlib._repr_utils import build_standalone_html
 from anyplotlib.embed import esm_path, figure_state
 from anyplotlib.tests._png_utils import decode_png
+from anyplotlib.tests.test_embed._export_utils import (
+    MOUNT_PAGE as _MOUNT_PAGE,
+    closest_color,
+    decode_data_url,
+    export_via_handle,
+    is_nonblank,
+)
 
 # Above GPU_IMAGE_THRESHOLD (1 << 20 = 1 Mpx): the GPU image path engages in
 # auto mode for a 1200² frame (1.44 Mpx).
@@ -42,91 +49,17 @@ GPU_IMG_N = 1200
 # mount() page fixture (public embedding contract — no anywidget shim)
 # ---------------------------------------------------------------------------
 
-_MOUNT_PAGE = """<!DOCTYPE html>
-<html><head><meta charset="utf-8"/>
-<style>html,body{margin:0;padding:0;}</style></head>
-<body><div id="host"></div>
-<script type="module">
-const STATE = __STATE__;
-const esmSource = __ESM__;
-const blobUrl = URL.createObjectURL(new Blob([esmSource], {type: "text/javascript"}));
-import(blobUrl).then(mod => {
-  window._handle = mod.mount(document.getElementById("host"), STATE, {});
-  window._aplReady = true;
-}).catch(err => { document.body.textContent = "mount error: " + err; });
-</script></body></html>
-"""
-
-
-@pytest.fixture
-def mount_page(_pw_browser):
-    """Open a figure via the public mount() API; return the live Page."""
-    pages, paths = [], []
-
-    def _open(fig, device_scale_factor=None):
-        html = (_MOUNT_PAGE
-                .replace("__STATE__", json.dumps(figure_state(fig)))
-                .replace("__ESM__", json.dumps(esm_path().read_text(encoding="utf-8"))))
-        with tempfile.NamedTemporaryFile(
-            suffix=".html", mode="w", encoding="utf-8", delete=False
-        ) as fh:
-            fh.write(html)
-            tmp = pathlib.Path(fh.name)
-        paths.append(tmp)
-        new_page_kwargs = {}
-        if device_scale_factor is not None:
-            new_page_kwargs["device_scale_factor"] = device_scale_factor
-        page = _pw_browser.new_page(**new_page_kwargs)
-        pages.append(page)
-        page.goto(tmp.as_uri())
-        page.wait_for_function("() => window._aplReady === true", timeout=15_000)
-        page.evaluate(
-            "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
-        )
-        return page
-
-    yield _open
-    for p in pages:
-        try:
-            p.close()
-        except Exception:
-            pass
-    for f in paths:
-        f.unlink(missing_ok=True)
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _export_via_handle(page, opts=None):
-    """Call window._handle.exportPNG(opts) and return {dataUrl, width, height}."""
-    return page.evaluate(
-        """(opts) => window._handle.exportPNG(opts || {})
-                .then(r => ({dataUrl: r.dataUrl, width: r.width, height: r.height}))
-                .catch(e => ({error: String(e && e.message || e)}))""",
-        opts or {},
-    )
+_export_via_handle = export_via_handle
+_decode_data_url = decode_data_url
+_is_nonblank = is_nonblank
 
 
-def _decode_data_url(data_url: str) -> np.ndarray:
-    assert data_url.startswith("data:image/png;base64,"), (
-        f"unexpected data URL prefix: {data_url[:40]!r}"
-    )
-    raw = base64.b64decode(data_url.split(",", 1)[1])
-    return decode_png(raw)
-
-
-def _is_nonblank(arr: np.ndarray) -> bool:
-    """True when the image is not a single flat colour (has real content)."""
-    rgb = arr[..., :3].reshape(-1, 3)
-    return int(np.unique(rgb, axis=0).shape[0]) > 1
-
-
-def _closest_color(arr: np.ndarray, rgb) -> int:
-    """Number of pixels whose RGB is within tol of `rgb` (per-channel <= 12)."""
-    d = np.abs(arr[..., :3].astype(np.int32) - np.asarray(rgb, dtype=np.int32))
-    return int(((d <= 12).all(axis=-1)).sum())
+def _closest_color(arr, rgb):
+    return closest_color(arr, rgb, tol=12)
 
 
 # ---------------------------------------------------------------------------
@@ -707,7 +640,8 @@ def gpu_mount_page(_pw_gpu_browser):
     def _open(fig, expect_gpu=False):
         html = (_MOUNT_PAGE
                 .replace("__STATE__", json.dumps(figure_state(fig)))
-                .replace("__ESM__", json.dumps(esm_path().read_text(encoding="utf-8"))))
+                .replace("__ESM__", json.dumps(esm_path().read_text(encoding="utf-8")))
+                .replace("__EXTRA_CSS__", ""))
         with tempfile.NamedTemporaryFile(
             suffix=".html", mode="w", encoding="utf-8", delete=False
         ) as fh:
