@@ -101,6 +101,17 @@ blitting instead of SVG.
       pygfx and an implementation-status table.
 
    .. grid-item-card::
+      :link: exporting
+      :link-type: doc
+
+      :octicon:`download;2em;sd-text-info` Exporting Images
+      ^^^
+
+      Saving and copying figures as PNG — the right-click menu, ``Ctrl+C``,
+      light/dark output, native-resolution export, ``Figure.savefig``, and
+      adding your own save formats from an embedding application.
+
+   .. grid-item-card::
       :link: dev/index
       :link-type: doc
 
@@ -117,6 +128,7 @@ blitting instead of SVG.
    getting_started
    events
    embedding
+   exporting
    api/index
    auto_examples/index
    Performance <auto_examples/Benchmarks/plot_benchmark_comparison>

@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import json as _json
 import re
-import tempfile
 from html import escape as _html_escape
 from pathlib import Path
 from uuid import uuid4
@@ -92,7 +91,13 @@ def _find_widget(globals_dict: dict):
 
 
 def _make_thumbnail_png(widget) -> bytes:
-    """Render *widget* in headless Chromium and return a dark-theme PNG screenshot."""
+    """Render *widget* in headless Chromium and return a dark-theme PNG screenshot.
+
+    The browser plumbing (temp file, launch, the ``_aplReady`` wait, and the
+    worker-thread fallback needed because Playwright's *sync* API cannot run
+    inside a live asyncio loop) is shared with :func:`anyplotlib._export.savefig`.
+    """
+    from anyplotlib._export import run_in_page
     from anyplotlib.sphinx_anywidget._repr_utils import build_standalone_html
 
     html = build_standalone_html(widget, resizable=False)
@@ -102,56 +107,12 @@ def _make_thumbnail_png(widget) -> bytes:
     )
     html = html.replace("background: transparent;", "background: #1e1e2e;")
 
-    with tempfile.NamedTemporaryFile(
-        suffix=".html", mode="w", encoding="utf-8", delete=False
-    ) as fh:
-        fh.write(html)
-        tmp_path = Path(fh.name)
-
-    def _run_playwright(tmp_path: Path) -> bytes:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as pw:
-            browser = pw.chromium.launch(
-                headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"]
-            )
-            try:
-                page = browser.new_page()
-                page.emulate_media(color_scheme="dark")
-                page.goto(tmp_path.as_uri())
-                page.wait_for_function(
-                    "() => window._aplReady === true", timeout=15_000
-                )
-                page.evaluate(
-                    "() => new Promise(r =>"
-                    " requestAnimationFrame(() => requestAnimationFrame(r)))"
-                )
-                return page.locator("#widget-root").screenshot()
-            finally:
-                page.close()
-                browser.close()
-
-    try:
-        import asyncio
-        import concurrent.futures
-
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop is not None and loop.is_running():
-            # Playwright sync API cannot be used inside a running asyncio loop.
-            # Run it in a separate thread where there is no event loop.
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                future = pool.submit(_run_playwright, tmp_path)
-                png_bytes = future.result()
-        else:
-            png_bytes = _run_playwright(tmp_path)
-    finally:
-        tmp_path.unlink(missing_ok=True)
-
-    return png_bytes
+    return run_in_page(
+        html,
+        lambda page: page.locator("#widget-root").screenshot(),
+        timeout_ms=15_000,
+        color_scheme="dark",
+    )
 
 
 def _iframe_html(
