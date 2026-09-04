@@ -44,7 +44,8 @@ class Axes:
                tile: "str | bool" = "auto",
                integration_method: str = "mean",
                overview_method: str = "mean",
-               tile_backend=None) -> "Plot2D":
+               tile_backend=None,
+               probe_exact: bool = True) -> "Plot2D":
         """Attach a 2-D image to this axes cell.
 
         Parameters
@@ -71,6 +72,11 @@ class Axes:
             puts row 0 at the top, matching the usual image convention.
             ``"lower"`` puts row 0 at the bottom, matching the matplotlib
             convention for matrices / scientific plots.
+        probe_exact : bool, optional
+            Whether the hover readout asks Python for the EXACT value once the
+            cursor dwells on a pixel (default ``True``).  Without it the value
+            comes from the 8-bit codes the renderer holds, which quantises wide
+            dtypes to ``range/255``.  See :meth:`~anyplotlib.Plot2D.set_value_probe`.
 
         Returns
         -------
@@ -82,7 +88,7 @@ class Axes:
                       cmap=cmap, vmin=vmin, vmax=vmax, origin=origin, gpu=gpu,
                       tile=tile, integration_method=integration_method,
                       overview_method=overview_method,
-                      tile_backend=tile_backend)
+                      tile_backend=tile_backend, probe_exact=probe_exact)
         self._attach(plot)
         return plot
 

@@ -652,6 +652,16 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                 plot._set_gpu_active(bool(msg.get("gpu_active", False)))
             return
 
+        # Hover-readout probe: the renderer wants the EXACT value under a pixel the
+        # cursor dwelled on (its own readout comes from 8-bit codes).  Answered
+        # directly and NOT fired through the callback registry — this is renderer
+        # plumbing, so a user's wildcard handler must not see it and pause_events()
+        # must not stall the readout.  Same treatment as gpu_status above.
+        if event_type == "value_probe":
+            if hasattr(plot, "_answer_value_probe"):
+                plot._answer_value_probe(msg)
+            return
+
         source = None
         if widget_id and hasattr(plot, "_widgets"):
             widget = plot._widgets.get(widget_id)
@@ -671,6 +681,8 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                 buttons=msg.get("buttons", 0),
                 xdata=msg.get("xdata"),
                 ydata=msg.get("ydata"),
+                img_x=msg.get("img_x"),
+                img_y=msg.get("img_y"),
                 ray=msg.get("ray"),
                 line_id=msg.get("line_id"),
                 dwell_ms=msg.get("dwell_ms"),

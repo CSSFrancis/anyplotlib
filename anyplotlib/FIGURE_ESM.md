@@ -66,6 +66,8 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | `drawOverlay2d` / `drawMarkers2d` | 3395 / 3559 |
 | **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2533 / 2557 / 2618 |
 | Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 730 / 761 |
+| **Hover readout**: `_pixelValue2d` / `_readoutInfo2d` | 3942 / 4024 |
+| `_notifyReadout` / `_updateStatus2d` / `_armValueProbe` | 4064 / 4079 / 4100 |
 | **3D drawing**: `draw3d` | 5298 |
 | Event emission `_emitEvent` | 6135 |
 | 3D event handlers `_attachEvents3d` | 6187 |
@@ -259,7 +261,9 @@ Key state fields:
 ```
 st.image_b64, st.image_width/height
 st.zoom, st.center_x/y
-st.display_min/max, st.raw_min/max, st.scale_mode
+st.display_min/max, st.raw_min/max, st.raw_is_int, st.scale_mode
+st.detail_b64, st.detail_region/width/height/seq, st.detail_min/max/is_int
+st.readout_visible, st.probe_ms, st.probe_x/probe_y/probe_value
 st.colormap_data    [[r,g,b], ...] × 256
 st.x_axis, st.y_axis, st.axis_visible
 st.markers, st.overlay_widgets, st.overlay_mask_b64/_color/_alpha
@@ -280,6 +284,37 @@ st.colorbar_label_size            (label font sizes; optional)
 Zoom model: at `zoom=1` the whole image fills the fit-rect; at `zoom=Z>1` a
 `1/Z` region fills it.  `_imgToCanvas2d` / `_canvasToImg2d` must stay exact
 inverses of the blit geometry.
+
+### Hover readout
+
+Visibility: `st.readout_visible` (Python, authoritative) AND `p.readoutHidden` (the
+viewer's `v` key — kept off the state so a per-frame push can't undo it).
+
+`_updateStatus2d(p)` composes it from `p.mouseX/mouseY` and is called from BOTH the
+`mousemove` handler in `_attachEvents2d` and the `change:panel_<id>_json` observer —
+the latter because a probe answer landing under a stationary cursor has no mousemove
+to piggyback on. It writes `p.statusBar` (unless `st.readout_visible === false`) and
+hands `_readoutInfo2d`'s payload to the host via `_notifyReadout`
+(`mount()`'s `opts.onReadout` + an `apl:readout` CustomEvent bubbling off `el`), so an
+embedding app can render the readout in its own chrome with the pill switched off.
+
+Content: physical `x:`/`y:` in `st.units`, the pixel index `[ix, iy]`, and the pixel
+VALUE — `v:<value>` for a scalar image, `rgb:r,g,b` for `st.is_rgb`.
+
+Value precision, in order of preference:
+
+1. **`st.probe_value`** — the exact value Python answered for `st.probe_x/probe_y`.
+   `_armValueProbe` emits a `value_probe` event after the cursor dwells `st.probe_ms`
+   on a pixel (once per pixel, never per move); `Plot2D._answer_value_probe` answers from
+   the array/backend. Ignored unless it matches the pixel now under the cursor.
+2. **Inverted codes** — with `raw_is_int`/`detail_is_int` and a band spanning ≤ 255
+   levels, `_codeToValue` recovers the exact integer from the byte (see its comment).
+3. **Quantised estimate** — `raw_min + code/255*(raw_max-raw_min)`, resolving the
+   band to `range/255`. This is what a kernel-less page (`save_html`) always shows.
+
+`_pixelValue2d` reads the codes from the SAME bytes the blit draws — including the
+detail tile's native pixels above `zoom=1`, where the base is a downsampled overview
+— so the readout always names the source actually on screen.
 
 ---
 
