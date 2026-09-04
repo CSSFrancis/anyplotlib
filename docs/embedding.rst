@@ -155,17 +155,36 @@ JS handle reference
 
 ``mount(el, state, opts) → handle``
 
-================================  ============================================
-``handle.setPanelState(id, st)``  Replace one panel's state (dict or JSON
-                                  string) and re-render it.
-``handle.set(key, value)``        Raw model write + sync flush.
-``handle.get(key)``               Read any model key.
-``handle.applyUpdate(key, v)``    Apply a Python-originated update without
-                                  echoing it back through ``onSync``.
-``handle.resize(w, h)``           Resize the figure (CSS pixels).
-``handle.dispose()``              Remove the figure's DOM and listeners.
-``handle.model``                  The underlying local model (advanced).
-================================  ============================================
+=====================================  ========================================================
+``handle.setPanelState(id, st)``       Replace one panel's state (dict or JSON string) and
+                                       re-render it.
+``handle.set(key, value)``             Raw model write + sync flush.
+``handle.get(key)``                    Read any model key.
+``handle.applyUpdate(key, v)``         Apply a Python-originated update without echoing it back
+                                       through ``onSync``.
+``handle.resize(w, h)``                Resize the figure (CSS pixels).
+``handle.exportPNG(opts)``             Composite to a PNG data URL.  Resolves to ``{dataUrl,
+                                       width, height}``.  See :doc:`exporting`.
+``handle.exportCanvas(opts)``          The same, synchronously, returning ``{canvas, width,
+                                       height}`` so a host can encode it itself (TIFF, JPEG, a
+                                       PDF page).
+``handle.registerExportAction(a)``     Add an entry to the right-click export menu; returns an
+                                       unregister function.
+``handle.unregisterExportAction(id)``  Remove one by id.
+``handle.dispose()``                   Remove the figure's DOM and listeners.
+``handle.model``                       The underlying local model (advanced).
+=====================================  ========================================================
+
+Export options (all optional), shared by ``exportPNG`` and ``exportCanvas``:
+
+==================  ==========================================================
+``scale``           Extra multiplier over ``devicePixelRatio`` (default 1).
+``includeWidgets``  Draw overlay widgets, without their drag handles.
+``panelId``         Export just this panel instead of the whole figure.
+``source``          ``'view'`` (as displayed), ``'full'`` (whole data extent)
+                    or ``'native'`` (one output pixel per data pixel).
+``theme``           ``'current'``, ``'light'`` or ``'dark'``.
+==================  ==========================================================
 
 ``opts.onEvent(ev)`` receives parsed interaction events (the same payloads
 Python's :class:`~anyplotlib.Event` carries); ``opts.onSync(key, value)``

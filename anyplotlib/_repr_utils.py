@@ -245,6 +245,10 @@ import(blobUrl).then(mod => {{
   const renderFn = mod.default?.render ?? mod.render;
   if (typeof renderFn === "function") {{
     _aplRenderApi = renderFn({{ model, el }});
+    // Module scope is not global scope: without this, page.evaluate() and any
+    // host page script cannot reach exportPNG (only the postMessage protocol
+    // below can). anyplotlib.savefig() drives the export through this handle.
+    window._aplRenderApi = _aplRenderApi;
   }} else {{
     el.textContent = "ESM has no render() export";
   }}
@@ -307,7 +311,9 @@ window.addEventListener('message', (e) => {{
 // and receives back, on event.source (targetOrigin '*'):
 //   ← {{ type: 'anyplotlib_export_png_result', requestId, dataUrl, width, height }}
 //   ← {{ type: 'anyplotlib_export_png_result', requestId, error }}   (on failure)
-// `opts` is forwarded verbatim to handle.exportPNG ({{ scale?, includeWidgets? }}).
+// `opts` is forwarded verbatim to exportPNG:
+//   {{ scale?, includeWidgets?, panelId?, source?, theme? }}
+//   source: 'view' | 'full' | 'native'   theme: 'current' | 'light' | 'dark'
 window.addEventListener('message', (e) => {{
   if (!e.data || e.data.type !== 'anyplotlib_export_png') return;
   const requestId = e.data.requestId;
@@ -441,6 +447,7 @@ def repr_html_iframe(widget, *, resizable: bool = False,
             f'<div id="vw-{uid}" style="display:inline-block;overflow:hidden;'
             f'position:relative;width:{init_w}px;height:{init_h}px;">'
             f'<iframe srcdoc="{escaped}" frameborder="0" scrolling="no" '
+            f'allow="clipboard-write" '
             f'style="width:{w}px;height:{h}px;border:none;overflow:hidden;display:block;'
             f'transform-origin:top left;transform:scale({scale_css});'
             f'position:absolute;top:0;left:0;">'
@@ -453,6 +460,7 @@ def repr_html_iframe(widget, *, resizable: bool = False,
         # ── Resizable embed (fills cell width, auto-sizes height) ──────────
         return (
             f'<iframe id="vw-{uid}" srcdoc="{escaped}" frameborder="0" '
+            f'allow="clipboard-write" '
             f'style="width:100%;height:{h}px;border:none;overflow:hidden;" '
             f'onload="setTimeout(function(){{'
             f'var f=document.getElementById(\'vw-{uid}\');'

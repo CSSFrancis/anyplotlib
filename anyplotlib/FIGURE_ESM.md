@@ -53,28 +53,28 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | b64 array decode helpers | 109 |
 | **Rich-text (mini-TeX) engine**: `_texRuns` / `_texLayout` / `_drawTex` | 161 / 228 / 250 |
 | **2D gutter geometry**: `_cbWidth` / `_cbGap` / `_padT` / `_titlePx` | 301 / 313 / 323 / 333 |
-| **Layout engine** `applyLayout` | 774 |
-| `_buildCanvasStack` | 857 |
-| `_createPanelDOM` | 999 |
-| `_createInsetDOM` / `_applyAllInsetStates` | 1129 / 1512 |
-| `_resizePanelDOM` | 2225 |
-| **2D drawing**: `_imgFitRect` | 2384 |
-| `draw2d` | 2713 |
-| `drawScaleBar2d` / `drawColorbar2d` | 2908 / 3188 |
-| **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 3007 / 3030 / 3043 |
-| `_drawAxes2d` (ticks, labels, title) | 3242 |
-| `drawOverlay2d` / `drawMarkers2d` | 3395 / 3559 |
-| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2533 / 2557 / 2618 |
-| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 730 / 761 |
-| **Hover readout**: `_pixelValue2d` / `_readoutInfo2d` | 3942 / 4024 |
-| `_notifyReadout` / `_updateStatus2d` / `_armValueProbe` | 4064 / 4079 / 4100 |
-| **3D drawing**: `draw3d` | 5298 |
-| Event emission `_emitEvent` | 6135 |
-| 3D event handlers `_attachEvents3d` | 6187 |
-| **1D drawing**: `draw1d` | 6408 |
-| `_drawLine` (1D series + markers) | 6561 |
-| `drawOverlay1d` / `drawMarkers1d` | 6854 / 6938 |
-| Marker hit-test `_markerHitTest2d` | 7206 |
+| **Layout engine** `applyLayout` | 778 |
+| `_buildCanvasStack` | 861 |
+| `_createPanelDOM` | 1003 |
+| `_createInsetDOM` / `_applyAllInsetStates` | 1144 / 1538 |
+| `_resizePanelDOM` | 2251 |
+| **2D drawing**: `_imgFitRect` | 2415 |
+| `draw2d` | 2744 |
+| `drawScaleBar2d` / `drawColorbar2d` | 2939 / 3219 |
+| **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 3038 / 3061 / 3074 |
+| `_drawAxes2d` (ticks, labels, title) | 3273 |
+| `drawOverlay2d` / `drawMarkers2d` | 3426 / 3590 |
+| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2564 / 2588 / 2649 |
+| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 734 / 765 |
+| **Hover readout**: `_pixelValue2d` / `_readoutInfo2d` | 4434 / 4516 |
+| `_notifyReadout` / `_updateStatus2d` / `_armValueProbe` | 4556 / 4571 / 4592 |
+| **3D drawing**: `draw3d` | 5568 |
+| Event emission `_emitEvent` | 6405 |
+| 3D event handlers `_attachEvents3d` | 6462 |
+| **1D drawing**: `draw1d` | 6686 |
+| `_drawLine` (1D series + markers) | 6839 |
+| `drawOverlay1d` / `drawMarkers1d` | 7132 / 7216 |
+| Marker hit-test `_markerHitTest2d` | 7484 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -83,16 +83,20 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 7463 |
-| 2D events `_attachEvents2d` | 7505 |
-| 1D events `_attachEvents1d` | 7889 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8161 / 8440 |
-| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8353 / 8367 / 8396 / 8431 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8565 / 8638 |
-| Shared-axis propagation `_getShareGroups` | 8709 |
-| Figure resize `_applyFigResizeDOM` | 8773 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 8964 / 9027 / 9403 |
-| Generic redraw `_redrawPanel` | 9593 |
+| Panel event dispatch `_attachPanelEvents` | 7741 |
+| 2D events `_attachEvents2d` | 7783 |
+| 1D events `_attachEvents1d` | 8176 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8451 / 8730 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8643 / 8657 / 8686 / 8721 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8855 / 8928 |
+| Shared-axis propagation `_getShareGroups` | 8999 |
+| Figure resize `_applyFigResizeDOM` | 9063 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 9254 / 9317 / 9693 |
+| Generic redraw `_redrawPanel` | 9883 |
+| **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10042 / 10238 / 10292 |
+| Native-resolution render `_withNativeSize` | 10018 |
+| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10326 / 10420 / 10563 |
+| Export registry `registerExportAction` | 10451 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -610,63 +614,195 @@ Python → JS (set widget position from Python):
 
 ---
 
-## PNG export (`exportPNG`)
+## PNG export (`exportPNG` / `exportCanvas`)
 
-`render()` now RETURNS an internal API object `{ panels, exportPNG,
-_gpuDisposeImagePanel, _gpuDisposePanel }` (anywidget ignores render()'s return;
-`mount()` captures it — this also fixed a latent bug where the old
-mount-handle `dispose()` referenced `panels`/`_gpuDispose*` from module scope,
-which are inside `render`'s closure, and silently threw). The mount handle
-exposes `handle.exportPNG({scale=1, includeWidgets=false}) →
-Promise<{dataUrl,width,height}>`.
+`render()` RETURNS an internal API object `{ panels, exportPNG, exportCanvas,
+registerExportAction, unregisterExportAction, calloutCanvas, _drawCallouts,
+figMarkerCanvas, _drawFigureMarkers, _gpuDisposeImagePanel, _gpuDisposePanel }`
+(anywidget ignores render()'s return; `mount()` captures it). The mount handle
+re-exposes `exportPNG`, `exportCanvas`, `registerExportAction` and
+`unregisterExportAction`.
 
-`exportPNG(opts)` (inside `render`, near `redrawAll`) composites the WHOLE
-figure onto one offscreen canvas at `devicePixelRatio × scale`:
+```
+exportPNG({ scale=1, includeWidgets=false, panelId=null,
+            source='view'|'full'|'native', theme='current'|'light'|'dark' })
+  → Promise<{dataUrl, width, height}>
+exportCanvas(same opts) → {canvas, width, height}   // synchronous, throws
+```
+
+| Function | Line | Purpose |
+|----------|------|---------|
+| `_cssScale` | 9918 | inverse of `_applyScale`'s `transform:scale()` |
+| `_panelBox` | 9929 | the element whose rect bounds one panel |
+| `_neutralizeView` / `_restoreView` | 9938 / 9963 | transient whole-extent view |
+| `_nativeGeom` / `_nativeGuard` | 9978 / 9993 | native size + why-not message |
+| `_withNativeSize` | 10018 | resize → redraw → run → restore |
+| `_compositeCanvas` | 10042 | the compositor (`_drawEl` / `_drawPanel` …) |
+| `exportCanvas` / `exportPNG` | 10238 / 10292 | orchestrator / data-URL wrapper |
+
+**The whole pipeline is ONE synchronous task** — theme swap, view reset, native
+resize, composite, restore — so the browser never paints an intermediate state
+and nothing flickers. This is only possible because the draw path is fully
+synchronous (no `createImageBitmap`, no rAF in the draw functions).
+
+### `theme`
+
+Swap the closure's `theme`, `redrawAll()`, composite, restore, `redrawAll()`.
+**No CSS work is needed**: `drawImage` copies a canvas's backing store and never
+its CSS `background`, and every draw function fills its own bitmap with theme
+colours (`_blit2d` → `theme.bgCanvas`, `_drawAxes2d` → `theme.axisBg`, `draw3d`
+/ `draw1d` / `drawBar` → `theme.bgPlot`, `_compositeCanvas` → `theme.bg`). The
+inline CSS set at DOM-creation time IS stale during the swap, but is never
+painted. No cache is theme-keyed (`blitCache` keys on bytes+LUT, `_lutKey` has
+no theme term), so nothing survives the redraw.
+
+### `source`
+
+- **`view`** — as displayed. Zoom, pan and contrast exactly as on screen.
+- **`full`** — `_neutralizeView` resets 2-D `zoom`/`center_x`/`center_y`, 1-D
+  `view_x0`/`view_x1`, 3-D `zoom` (NOT azimuth/elevation — orientation is
+  content the user chose). Bar has no view state. It also **clears the detail
+  tile**: a tile covers only the pre-reset region, so leaving it in place lets
+  `_blit2d` stretch that sub-region over the whole fit-rect.
+  Nothing is written to the model — shared-axis propagation
+  (`_propagateZoom2d` / `_propagateView1d`) only runs from event handlers, and
+  `_emitViewChanged` early-returns while `_exporting`.
+- **`native`** — ONE 2-D panel at one output pixel per data pixel, WITH its
+  axes, colorbar, title, markers and widgets. `_withNativeSize` inverts the
+  gutter math at the top of `_resizePanelDOM` (keep the two in step), sets
+  `p._dprOv = 1` so the backing store is exact data pixels, forces
+  `st.gpu_mode='off'` (a native-size WebGPU surface would reconfigure to a
+  buffer far larger than the display), then `_resizePanelDOM` + `_redrawPanel`
+  do all the work — decorations come along for free. Composited at
+  `outScale = 1`.
+  Refused (with a message naming the way out) for a non-2-D panel, a missing
+  `panelId`, an empty panel, a size over `EXPORT_MAX_SIDE` (16384) /
+  `EXPORT_MAX_AREA` (2^28), and — importantly — for a **tiled** panel:
+  `TILE_THRESHOLD` is 1024 and `tile='auto'` is the default, so any image large
+  enough to want a native export holds only an overview + one detail tile in the
+  browser. That case must go through `fig.savefig(path, source='native')`,
+  which re-encodes the backend at full resolution into the snapshot
+  (`_export._temporarily_untiled`) and then runs this same native render
+  headless.
+
+### `panelId`
+
+Changes **only the origin and the extent**; every draw loop is untouched and the
+smaller output canvas clips the rest. So a panel export is by construction the
+matching sub-rectangle of the figure export — overlapping insets and callout
+leaders that cross into the panel included. Pinned by
+`TestPanelCrop::test_panel_export_matches_the_figure_sub_rectangle`.
+
+### Compositing details
 
 - **WebGPU hazard first**: a WebGPU canvas's drawing buffer is only valid right
-  after its render pass, so exportPNG force-calls `draw2d(p)` on every
-  active-GPU 2-D panel and `draw3d(p)` on every active-GPU 3-D panel
-  (`p._gpu==='active' && p.gpuCanvas` visible, `_gpuImg`/`_gpuObj` present) to
-  re-submit its pass, THEN composites in the SAME synchronous task — so
-  `drawImage(gpuCanvas,…)` reads live pixels, not a blank buffer. (draw3d's
-  active-GPU path uploads + submits in-task, no rAF, so the same-task re-render
-  suffices for 3-D too — without it a scatter3d/voxels panel exported as an
-  empty background rectangle; see `TestExportGpu3d` in
-  `tests/test_embed/test_export_png.py`.)
-- **Extent**: `fig_width/height + 2×8 px` gridDiv padding (NOT the measured
-  `gridDiv` width — a bare `mount()` page has no `.apl-outer` inline-block CSS,
-  so the grid container can stretch to the viewport). **Origin**: `gridDiv`'s
-  top-left (grid tracks are fixed-px + left-anchored, so panels sit correctly).
+  after its render pass, so `_compositeCanvas` force-calls `draw2d(p)` on every
+  active-GPU 2-D panel and `draw3d(p)` on every active-GPU 3-D panel, THEN
+  composites in the SAME synchronous task.
+- **`_cssScale`**: `_applyScale` shrinks `outerDiv` with `transform:scale(s)`
+  whenever the figure is wider than its container — the normal Jupyter case for
+  a wide figure. `getBoundingClientRect()` then reports VISUAL px while the
+  extent comes from `fig_width`/`fig_height` (native px), so every rect delta is
+  multiplied by `1/s`, read straight off the computed transform matrix (NOT off
+  `offsetWidth`/rect — a native export resizes a panel mid-flight, which would
+  corrupt a layout-derived ratio). Without this the panels composite into the
+  top-left corner of an otherwise blank canvas; see
+  `TestCssScale::test_export_fills_the_canvas_when_the_figure_is_css_scaled`.
+- **Extent**: figure = `fig_width/height + 2×8 px` gridDiv padding (NOT the
+  measured `gridDiv` width — a bare `mount()` page has no `.apl-outer`
+  inline-block CSS, so the container can stretch); panel = the wrapper's own
+  rect (it is explicitly sized `pw×ph` and cannot stretch). **Origin**: the
+  corresponding element's top-left.
 - **Per-panel z-order** (`_drawEl` positions each canvas by its
   `getBoundingClientRect()` relative to the root): gpuCanvas (z0) → plotCanvas
-  (z1) → x/yAxisCanvas → cbCanvas → [overlayCanvas z5 only if `includeWidgets`]
-  → markersCanvas (z6) → scaleBar (z7) → titleCanvas (z8). Grid panels first,
-  then insets (`p.isInset`) on top — **each titled inset's title bar text is
-  drawn directly onto the output canvas right after its canvas stack**
-  (`_drawInsetTitle`; the title bar is plain DOM — a `<div>`/`<span>`, not a
-  canvas — so `_drawEl` alone never captures it; approximates the on-screen
-  CSS: 11px sans-serif, `theme.tickText` colour, left-padded to the titleBar's
-  rect) — then the figure-level `calloutCanvas` (region indications) composited
-  LAST. Status bars / stats overlays are excluded.
+  (z1) → x/yAxisCanvas → cbCanvas → [overlayCanvas z5 only if `includeWidgets`,
+  redrawn onto a scratch canvas with handles suppressed] → markersCanvas (z6) →
+  scaleBar (z7) → titleCanvas (z8). Grid panels first, then insets — each titled
+  inset's title bar text drawn directly (`_drawInsetTitle`; the title bar is
+  plain DOM, so `_drawEl` never captures it) — then the figure-level
+  `calloutCanvas` and `figMarkerCanvas` last. Status bars / stats overlays are
+  excluded.
 - **Coordinate snapping** (`_drawEl`): `dx`/`dy` are `Math.round()`ed from the
   element's `left`/`top`, and `dw`/`dh` are the ROUNDED `right`/`bottom` edge
   minus the rounded `dx`/`dy` — never `Math.round(width)` directly. This makes
-  two elements that share a CSS edge (e.g. adjacent grid panels, or a
-  panel's axis-gutter canvas against its plotCanvas) round that shared edge to
-  the *same* output pixel on both sides. Without it, at a fractional effective
-  scale (`devicePixelRatio × opts.scale` — e.g. a real 150% Windows display, or
-  `scale: 1.25`), each element's `dx`/`dw` were computed independently as raw
-  floats, and adjacent elements could round their common boundary to different
-  output pixels — a 1px background-coloured seam (or overlap) exactly at the
-  join. See `TestExportMultiPanel::test_fractional_scale_no_seam_between_panels`
-  in `tests/test_embed/test_export_png.py` (reproduced with
-  `device_scale_factor=1.5`).
-- Ends with `out.toDataURL('image/png')`; rejects the promise with a message on
-  failure (no 2-D context, `toDataURL` throw).
+  two elements that share a CSS edge round that edge to the *same* output pixel
+  on both sides; without it a fractional effective scale produced a 1 px
+  background-coloured seam at the join. See
+  `TestExportMultiPanel::test_fractional_scale_no_seam_between_panels`.
+
+## Export UI: menu, clipboard, download, registry
+
+| Function | Line | Purpose |
+|----------|------|---------|
+| `_toast` | 10326 | transient bottom-centre message |
+| `_copyCanvas` | 10361 | clipboard write + feature detection |
+| `_showPngPreview` | 10385 | framed-document download fallback |
+| `_downloadCanvas` | 10420 | `<a download>` or the preview |
+| `registerExportAction` | 10451 | downstream extension point |
+| `_menuRows` / `_openMenu` | 10504 / 10563 | menu model / DOM |
+| `_panelAtPoint` | 10673 | hit test (insets first — they sit on top) |
+
+- **An `exportBtn` badge (⤓, beside the help badge) opens the same menu on an
+  ordinary left click.** Hosts — JupyterLab, PyCharm, VS Code — install their own
+  `contextmenu` and keyboard handlers and may swallow a right-click or Ctrl/Cmd+C
+  before the page sees it, so the badge is the route that always works. Its
+  `mousedown` calls `preventDefault()` so it does not steal focus from the
+  hovered panel, which is what `_focusedPanelId()` uses to scope the menu.
+- **The `contextmenu` and Ctrl+C listeners are on `outerDiv`, not on each
+  `overlayCanvas`.** This deliberately differs from every other input handler:
+  `overlayCanvas` is positioned at `imgX/imgY` with size `imgW×imgH`, so it
+  covers only the *image area* — the axis gutters (`PAD_L` 58, `PAD_B` 42), the
+  colorbar and the title strip are NOT under it, and a per-overlay listener
+  would silently do nothing on 30-40 % of a panel with physical axes.
+- **Ctrl/Cmd+C** is panel-scoped when a panel's `overlayCanvas` is
+  `document.activeElement` (mouseenter focuses it), figure-scoped otherwise.
+  Bound to `outerDiv` rather than `document` so it never hijacks Ctrl+C for the
+  surrounding notebook.
+- **Modifier guard**: the per-panel keydown handlers now `return` on
+  `ctrl/meta/alt` AFTER the unconditional `key_down` emit. Before this, Ctrl+C
+  toggled the colorbar and Cmd+S (JupyterLab's save) flipped the colour scale to
+  symlog, because both matched on the bare letter.
+- **Two save entries.** *Save PNG…* is `<a download>` — no prompt. *Save as…*
+  (only listed when `_canPickFile()`) uses `showSaveFilePicker`, which hands the
+  page a PERSISTENT writable handle and therefore triggers Chrome's
+  file-editing permission prompt — too much for a plain save, right when the
+  user asked to choose a folder. A dialog the user closed and one that never
+  opened *both* reject with `AbortError`, so the name cannot separate them; one
+  that never rendered returns in well under `PICKER_MIN_MS` (250 ms), which is
+  the discriminator.
+- **Download fallback**: a sandboxed frame without `allow-downloads` makes
+  `a.click()` a SILENT no-op — no exception, no event, nothing to feature
+  detect. `window.self !== window.top` is the one checkable condition that
+  separates the reliable case (JupyterLab / Notebook 7 render inline; a
+  `save_html` page opened directly is top-level) from the unreliable one (VS
+  Code webviews, `_repr_html_` iframes, nbconvert output). When framed, the
+  result is posted to the parent under the existing
+  `anyplotlib_export_png_result` message AND shown as an in-figure preview whose
+  caption points at the browser's own "Save image as…", which needs no
+  permission and is never blocked.
+- **Clipboard**: gated on `isSecureContext && navigator.clipboard &&
+  ClipboardItem && clipboard.write`. The Blob is built SYNCHRONOUSLY from the
+  data URL (not via the async `toBlob` callback) so the write stays inside the
+  user-gesture task. The `_repr_html_` iframes carry `allow="clipboard-write"`,
+  without which Chrome blocks the write in an opaque-origin frame.
+- **Registry**: `registerExportAction({id, label, group, scope:'panel'|
+  'figure'|'both', order, enabled, handler})` returns an unregister function.
+  `handler(ctx)` receives `{panelId, kind, isInset, state, theme, themeName,
+  figure, exportPNG, exportCanvas, downloadPNG, copyPNG, toast, model, event}`.
+
+Test hooks: `__apl_menuItems`, `__apl_toastText`, `__apl_menuTheme`,
+`__apl_previewOpen`, `__apl_nativeLimits`, `__apl_nativeGuard`.
+
+Tests: `tests/test_embed/test_export_png.py` (the pre-existing contract),
+`test_export_sources.py` (panelId / source / theme / CSS scale),
+`test_export_menu.py` (menu, clipboard, download, registry),
+`test_savefig.py` (the Python entry point + view reconciliation).
 
 The standalone HTML template (`_repr_utils.build_standalone_html`) captures
-render()'s api into `_aplRenderApi` and adds a `message` listener:
+render()'s api into `_aplRenderApi`, **also assigns it to `window._aplRenderApi`**
+(module scope is not global scope, so `page.evaluate` — and therefore
+`Figure.savefig` — cannot reach it otherwise), and adds a `message` listener:
 `{type:'anyplotlib_export_png', requestId, opts}` → `exportPNG(opts)` → replies
 `{type:'anyplotlib_export_png_result', requestId, dataUrl, width, height}` (or
-`{…, error}`) to `event.source` (targetOrigin `'*'`) — the same channel the
-`awi_state` postMessages ride. Tests: `tests/test_embed/test_export_png.py`.
+`{…, error}`) to `event.source` (targetOrigin `'*'`). `opts` is forwarded
+verbatim, so the new fields work over that channel too.

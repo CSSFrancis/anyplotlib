@@ -515,6 +515,10 @@ function render({ model, el, onResize, onReadout }) {
 
   const outerDiv = document.createElement('div');
   outerDiv.classList.add('apl-outer');
+  // .apl-outer only supplies position:relative on the anywidget path (it lives
+  // in Figure._css). A bare mount() page would leave outerDiv static and every
+  // absolutely-positioned child would anchor elsewhere. No-op when the class applies.
+  outerDiv.style.position = 'relative';
   scaleWrap.appendChild(outerDiv);
 
   const gridDiv = document.createElement('div');
@@ -616,6 +620,21 @@ function render({ model, el, onResize, onReadout }) {
   helpBtn.title = 'Show help';
   outerDiv.appendChild(helpBtn);
 
+  // Export badge. Hosts (JupyterLab, PyCharm, VS Code) routinely swallow
+  // `contextmenu` and Cmd+C before the page sees them, so the menu must also be
+  // reachable by an ordinary left click.
+  const exportBtn = document.createElement('div');
+  exportBtn.style.cssText =
+    'position:absolute;top:9px;right:30px;width:20px;height:20px;' +
+    'border-radius:4px;background:' + _BTN_BG + ';color:#fff;' +
+    'font-size:12px;font-family:sans-serif;' +
+    'display:none;align-items:center;justify-content:center;' +
+    'cursor:pointer;z-index:50;user-select:none;line-height:1;' +
+    'box-shadow:0 1px 4px rgba(0,0,0,0.35);';
+  exportBtn.textContent = '\u2913';           // ⤓ downwards arrow to bar
+  exportBtn.title = 'Copy or save this figure';
+  outerDiv.appendChild(exportBtn);
+
   const helpCard = document.createElement('div');
   helpCard.style.cssText =
     'position:absolute;top:33px;right:6px;padding:10px 14px;' +
@@ -652,8 +671,17 @@ function render({ model, el, onResize, onReadout }) {
     if (_helpExists) helpBtn.style.display = 'flex';
   });
 
+  // Reveal the badge on real pointer MOVEMENT, not on mouseenter: a browser may
+  // synthesise an enter for a stationary cursor when the layout changes under
+  // it, which would put hover chrome into screenshots — the scraper's gallery
+  // thumbnails and the visual baselines both go through that path.
+  outerDiv.addEventListener('mousemove', () => {
+    if (exportBtn.style.display !== 'flex') exportBtn.style.display = 'flex';
+  });
+
   outerDiv.addEventListener('mouseleave', () => {
     _helpHovered = false;
+    if (!_menuDiv) exportBtn.style.display = 'none';
     // Only hide the button if the card is also closed.
     if (!_helpOpen) helpBtn.style.display = 'none';
   });
@@ -2249,11 +2277,16 @@ function render({ model, el, onResize, onReadout }) {
     if (!p) return;
     p.pw = pw; p.ph = ph;
 
+    // Backing-store scale. A native export sets p._dprOv = 1 so canvases are sized
+    // in exact data pixels. draw2d re-invokes this on every state push, so the
+    // override lives on the panel rather than being a parameter.
+    const D = p._dprOv || dpr;
+
     function _sz(c, ctx, w, h) {
       c.style.width=w+'px'; c.style.height=h+'px';
-      c.width=w*dpr; c.height=h*dpr;
+      c.width=w*D; c.height=h*D;
       // ctx is null for a WebGPU canvas (no 2D context to transform).
-      if (ctx) ctx.setTransform(dpr,0,0,dpr,0,0);
+      if (ctx) ctx.setTransform(D,0,0,D,0,0);
     }
 
     if (p.kind === '2d') {
@@ -2293,9 +2326,9 @@ function render({ model, el, onResize, onReadout }) {
         p.titleCanvas.style.display = 'block';
         p.titleCanvas.style.width   = imgW + 'px';
         p.titleCanvas.style.height  = padT + 'px';
-        p.titleCanvas.width  = imgW * dpr;
-        p.titleCanvas.height = padT * dpr;
-        p.titleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        p.titleCanvas.width  = imgW * D;
+        p.titleCanvas.height = padT * D;
+        p.titleCtx.setTransform(D, 0, 0, D, 0, 0);
       }
 
       if (p.plotWrap) {
@@ -2309,7 +2342,7 @@ function render({ model, el, onResize, onReadout }) {
       _sz(p.plotCanvas, p.plotCtx, imgW, imgH);
 
       // The 2D WebGPU image canvas (if present) sits under plotCanvas and matches
-      // the image area exactly. _sz sets CSS size + dpr backing; the WebGPU
+      // the image area exactly. _sz sets CSS size + D backing; the WebGPU
       // context reconfigures to this size on the next GPU draw.
       if (p.gpuCanvas) {
         p.gpuCanvas.style.left = imgX + 'px';
@@ -2349,9 +2382,9 @@ function render({ model, el, onResize, onReadout }) {
           p.yAxisCanvas.style.top  = imgY + 'px';
           p.yAxisCanvas.style.width  = PAD_L + 'px';
           p.yAxisCanvas.style.height = imgH + 'px';
-          p.yAxisCanvas.width  = PAD_L * dpr;
-          p.yAxisCanvas.height = imgH * dpr;
-          p.yCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          p.yAxisCanvas.width  = PAD_L * D;
+          p.yAxisCanvas.height = imgH * D;
+          p.yCtx.setTransform(D, 0, 0, D, 0, 0);
         } else {
           p.yAxisCanvas.style.display = 'none';
         }
@@ -2365,9 +2398,9 @@ function render({ model, el, onResize, onReadout }) {
           p.xAxisCanvas.style.top  = (ph - PAD_B) + 'px';
           p.xAxisCanvas.style.width  = imgW + 'px';
           p.xAxisCanvas.style.height = PAD_B + 'px';
-          p.xAxisCanvas.width  = imgW * dpr;
-          p.xAxisCanvas.height = PAD_B * dpr;
-          p.xCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          p.xAxisCanvas.width  = imgW * D;
+          p.xAxisCanvas.height = PAD_B * D;
+          p.xCtx.setTransform(D, 0, 0, D, 0, 0);
         } else {
           p.xAxisCanvas.style.display = 'none';
         }
@@ -6410,6 +6443,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   const _viewChangeTimers = {};
   function _emitViewChanged(p, immediate) {
     const st = p.state; if (!st) return;
+    // An export transiently rewrites zoom/center (source:'full'/'native') and
+    // redraws; draw2d's one-shot initial emit must not report that as a real
+    // view change, or a tiled plot would fetch a detail tile for a view the
+    // user never navigated to.
+    if (_exporting) return;
     const send = () => {
       _viewChangeTimers[p.id] = null;
       const s = p.state; if (!s) return;
@@ -6599,6 +6637,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         last_widget_id: p.lastWidgetId || null,
         x: p.mouseX ?? 0, y: p.mouseY ?? 0,
       });
+      // Modified keys belong to the host (Ctrl+C copy, Cmd+S save); the key_down
+      // emit above already forwarded them to Python.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key.toLowerCase() === 'r') {
         p.state.azimuth = -60; p.state.elevation = 30; p.state.zoom = 1;
         draw3d(p);
@@ -8109,6 +8150,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         img_x:imgX, img_y:imgY,
         xdata:physX, ydata:physY,
       });
+      // Modified keys belong to the host (Ctrl+C copy, Cmd+S save); the key_down
+      // emit above already forwarded them to Python.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const key=e.key.toLowerCase();
       if(key==='r'){
         st.zoom=1; st.center_x=0.5; st.center_y=0.5;
@@ -8285,6 +8329,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         x:p.mouseX ?? 0, y:p.mouseY ?? 0,
         xdata:physX,
       });
+      // Modified keys belong to the host (Ctrl+C copy, Cmd+S save); the key_down
+      // emit above already forwarded them to Python.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if(e.key.toLowerCase()==='r'){st.view_x0=0;st.view_x1=1;draw1d(p);model.set(`panel_${p.id}_json`,_viewStateJson(p));model.save_changes();e.stopPropagation();e.preventDefault();}
     });
     overlayCanvas.addEventListener('keyup',(e)=>{
@@ -9880,25 +9927,147 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   }
 
   // ── PNG export ────────────────────────────────────────────────────────────
-  // Composite the WHOLE figure (all panels, insets, background) onto one
-  // offscreen canvas and return a PNG data URL.  Used by handle.exportPNG()
-  // and the standalone-HTML postMessage export protocol.
-  //
-  //   opts.scale          extra multiplier on top of devicePixelRatio (1)
-  //   opts.includeWidgets include the interactive overlay canvas (false)
-  //
-  // The composite is positioned by each element's on-screen bounding box
-  // relative to the figure background (`gridDiv`), so multi-panel grids and
-  // corner insets export as one correctly-arranged image without re-deriving
-  // any layout math.  Elements are drawn in DOM/z-order per panel: gpuCanvas
-  // (beneath) → plotCanvas → [overlayCanvas] → markersCanvas → axis canvases →
-  // colorbar → scale bar → title.  Status bars and other hover chrome are
-  // excluded.
-  function exportPNG(opts) {
-    const o = opts || {};
-    const scale = (o.scale != null && o.scale > 0) ? o.scale : 1;
+  //   opts: {scale, includeWidgets, panelId, source, theme}
+  //   source 'view' (as displayed) | 'full' (whole extent) | 'native' (1 px/datum)
+  //   theme  'current' | 'light' | 'dark'
+  // panelId changes only the origin and extent, so a panel export is exactly the
+  // matching sub-rectangle of the figure export.
+  const EXPORT_MAX_SIDE = 16384;          // Chrome/Skia per-side canvas limit
+  const EXPORT_MAX_AREA = 268435456;      // 2^28 — Chrome/Skia total-area limit
+  let _exporting = false;
+
+  // Undo _applyScale's transform:scale(s) — rects are visual px, the extent is
+  // native px. Read s off the transform, not offsetWidth: a native export
+  // resizes a panel mid-flight and would corrupt a layout-derived ratio.
+  function _cssScale() {
+    let t = '';
+    try { t = window.getComputedStyle(outerDiv).transform || ''; } catch (_) { return 1; }
+    if (!t || t === 'none') return 1;
+    const m = t.match(/matrix\(\s*([-\d.eE+]+)/);
+    const s = m ? parseFloat(m[1]) : 1;
+    return (Number.isFinite(s) && s > 0) ? (1 / s) : 1;
+  }
+
+  // plotWrap is exactly pw×ph (2-D only); 1-D/3-D keep no wrapper on p, and the
+  // grid cell is a centring flex box that can be wider than the panel.
+  function _panelBox(p) {
+    if (!p) return null;
+    if (p.isInset) return p.insetDiv || p.cell || null;
+    return p.plotWrap || (p.plotCanvas && p.plotCanvas.parentElement) || p.cell || null;
+  }
+
+  // Transiently show the whole data extent. Never writes the model: shared-axis
+  // propagation runs only from event handlers and _emitViewChanged is gated on
+  // _exporting, so nothing leaks to Python or to linked panels.
+  function _neutralizeView(p) {
+    const st = p.state; if (!st) return null;
+    if (p.kind === '2d') {
+      const s = { zoom: st.zoom, cx: st.center_x, cy: st.center_y,
+                  db: st.detail_b64, dby: st.detail_b64_bytes,
+                  dr: st.detail_region, dw: st.detail_width, dh: st.detail_height,
+                  blend: p._detailBlend };
+      st.zoom = 1; st.center_x = 0.5; st.center_y = 0.5;
+      // The tile covers only the pre-reset region; left in place _blit2d would
+      // stretch it over the whole fit-rect.
+      st.detail_b64 = ''; st.detail_b64_bytes = null;
+      st.detail_region = []; st.detail_width = 0; st.detail_height = 0;
+      return s;
+    }
+    if (p.kind === '1d') {
+      const s = { x0: st.view_x0, x1: st.view_x1 };
+      st.view_x0 = 0; st.view_x1 = 1; return s;
+    }
+    if (p.kind === '3d') {
+      // Zoom only — azimuth/elevation are content the user chose.
+      const s = { zoom: st.zoom }; st.zoom = 1; return s;
+    }
+    return null;   // bar: value-axis limits are content, nothing to reset
+  }
+
+  function _restoreView(p, s) {
+    if (!s) return;
+    const st = p.state; if (!st) return;
+    if (p.kind === '2d') {
+      st.zoom = s.zoom; st.center_x = s.cx; st.center_y = s.cy;
+      st.detail_b64 = s.db; st.detail_b64_bytes = s.dby;
+      st.detail_region = s.dr; st.detail_width = s.dw; st.detail_height = s.dh;
+      p._detailBlend = s.blend;
+    } else if (p.kind === '1d') { st.view_x0 = s.x0; st.view_x1 = s.x1; }
+    else if (p.kind === '3d')   { st.zoom = s.zoom; }
+  }
+
+  // Panel size whose inner image area is exactly image_width × image_height —
+  // inverts the gutter math at the top of _resizePanelDOM; keep the two in step.
+  // st.aspect is left to _resizePanelDOM so a stretched plot exports as shown.
+  function _nativeGeom(p) {
+    const st = p.state || {};
+    const iw = st.image_width | 0, ih = st.image_height | 0;
+    const hasPhysAxis = (st.is_mesh || st.has_axes)
+                     && st.x_axis && st.x_axis.length >= 2
+                     && st.y_axis && st.y_axis.length >= 2;
+    const cbW = _cbWidth(st);
+    return {
+      iw, ih,
+      pw: iw + (cbW ? cbW + _cbGap(st) : 0) + (hasPhysAxis ? PAD_L + PAD_R : 0),
+      ph: ih + _padT(st) + (hasPhysAxis ? PAD_B : 0),
+    };
+  }
+
+  // Returns null when a native export is possible, else the reason why not.
+  function _nativeGuard(p) {
+    if (!p) return "source:'native' needs a panelId — it exports one image panel, "
+                 + "and different panels have different native sizes.";
+    if (p.kind !== '2d')
+      return "source:'native' is only available for 2-D image panels (this panel is "
+           + p.kind + "). Use source:'view' or source:'full'.";
+    const st = p.state;
+    if (!st) return 'panel has no state yet';
+    if (st.tile_enabled)
+      return "source:'native' is unavailable here: this panel streams tiles, so the "
+           + "browser holds only a " + (st.base_width | 0) + "×" + (st.base_height | 0)
+           + " overview plus one detail tile — the full " + (st.image_width | 0)
+           + "×" + (st.image_height | 0) + " data lives in Python. "
+           + "Use fig.savefig(path, source='native').";
+    const g = _nativeGeom(p);
+    if (!g.iw || !g.ih) return 'panel has no image data';
+    if (g.pw > EXPORT_MAX_SIDE || g.ph > EXPORT_MAX_SIDE || g.pw * g.ph > EXPORT_MAX_AREA)
+      return "source:'native': " + g.pw + "×" + g.ph + " exceeds the browser canvas "
+           + "limit (" + EXPORT_MAX_SIDE + " px per side, " + EXPORT_MAX_AREA + " px total). "
+           + "Use source:'view' with a scale, or fig.savefig(path, source='native').";
+    return null;
+  }
+
+  // Resize one 2-D panel to the data resolution, redraw the decorated stack, run
+  // fn, restore. Synchronous throughout, so the intermediate size never paints.
+  function _withNativeSize(p, fn) {
+    const st = p.state;
+    const g = _nativeGeom(p);
+    const savedPw = p.pw, savedPh = p.ph, savedOv = p._dprOv;
+    const savedGpuMode = st.gpu_mode;
+    const savedView = _neutralizeView(p);
+    p._dprOv = 1;                 // backing store in exact data pixels
+    st.gpu_mode = 'off';          // a native-size WebGPU surface would have to
+                                  // reconfigure far beyond the display
+    try {
+      _resizePanelDOM(p.id, g.pw, g.ph);
+      _redrawPanel(p);
+      return fn();
+    } finally {
+      p._dprOv = savedOv;
+      st.gpu_mode = savedGpuMode;
+      _restoreView(p, savedView);
+      _resizePanelDOM(p.id, savedPw, savedPh);
+      _redrawPanel(p);
+    }
+  }
+
+  // Composite the on-screen canvases; the caller has already applied and
+  // redrawn any theme/view/size change.
+  function _compositeCanvas(o) {
     const includeWidgets = !!o.includeWidgets;
-    const outScale = (window.devicePixelRatio || 1) * scale;
+    const outScale = o.outScale;
+    const cs = _cssScale();
+    const target = o.panelId ? panels.get(o.panelId) : null;
 
     // WebGPU hazard: a WebGPU canvas's drawing buffer is only valid right after
     // its render pass.  Force a synchronous re-render of every active-GPU panel
@@ -9917,28 +10086,38 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
     }
 
-    // The figure background element (grid) defines the ORIGIN for every
-    // relative rect.  Its top-left is the figure's top-left; the grid tracks are
-    // fixed-px and left-anchored, so panel canvases sit at the correct offset
-    // even if the grid container itself stretches wider than the figure (it can
-    // in a bare mount() page with no .apl-outer inline-block CSS constraining
-    // it).  So take the ORIGIN from the DOM but the EXTENT from the true figure
-    // size — fig_width/height (the grid content) + the 8 px gridDiv padding on
-    // each side — rather than the possibly-stretched gridDiv width.
-    const rootRect = gridDiv.getBoundingClientRect();
     const GRID_PAD = 8;   // gridDiv padding (see the gridDiv cssText)
-    const figW = Number(model.get('fig_width'))  || 0;
-    const figH = Number(model.get('fig_height')) || 0;
-    // Fall back to the measured content box if the model lacks sizes.
-    const contentW = figW ? figW + 2 * GRID_PAD : rootRect.width;
-    const contentH = figH ? figH + 2 * GRID_PAD : rootRect.height;
+    let rootRect, contentW, contentH;
+    if (target) {
+      // A panel's wrapper is explicitly sized pw×ph and cannot stretch, so its
+      // measured rect IS the extent (unlike gridDiv — see the figure branch).
+      const box = _panelBox(target);
+      if (!box) throw new Error('exportPNG: panel has no DOM container');
+      rootRect = box.getBoundingClientRect();
+      contentW = rootRect.width  * cs;
+      contentH = rootRect.height * cs;
+    } else {
+      // The figure background element (grid) defines the ORIGIN for every
+      // relative rect.  Its top-left is the figure's top-left; the grid tracks
+      // are fixed-px and left-anchored, so panel canvases sit at the correct
+      // offset even if the grid container itself stretches wider than the
+      // figure (it can in a bare mount() page with no .apl-outer inline-block
+      // CSS constraining it).  So take the ORIGIN from the DOM but the EXTENT
+      // from the true figure size — fig_width/height (the grid content) + the
+      // 8 px gridDiv padding on each side.
+      rootRect = gridDiv.getBoundingClientRect();
+      const figW = Number(model.get('fig_width'))  || 0;
+      const figH = Number(model.get('fig_height')) || 0;
+      contentW = figW ? figW + 2 * GRID_PAD : rootRect.width  * cs;
+      contentH = figH ? figH + 2 * GRID_PAD : rootRect.height * cs;
+    }
     const W = Math.max(1, Math.round(contentW * outScale));
     const H = Math.max(1, Math.round(contentH * outScale));
 
     const out = document.createElement('canvas');
     out.width = W; out.height = H;
     const octx = out.getContext('2d');
-    if (!octx) return Promise.reject(new Error('exportPNG: 2D context unavailable'));
+    if (!octx) throw new Error('exportPNG: 2D context unavailable');
     octx.imageSmoothingEnabled = false;
 
     // Figure background first (matches the on-screen gridDiv background).
@@ -9964,16 +10143,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const _drawEl = (elm, rectElm) => {
       if (!elm) return;
       const re = rectElm || elm;
-      const cs = window.getComputedStyle(re);
-      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      const cst = window.getComputedStyle(re);
+      if (cst.display === 'none' || cst.visibility === 'hidden') return;
       // A canvas with 0×0 backing store has nothing to blit.
       if (elm.width === 0 || elm.height === 0) return;
       const r = re.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
-      const left   = (r.left   - rootRect.left) * outScale;
-      const top    = (r.top    - rootRect.top)  * outScale;
-      const right  = (r.right  - rootRect.left) * outScale;
-      const bottom = (r.bottom - rootRect.top)  * outScale;
+      const left   = (r.left   - rootRect.left) * cs * outScale;
+      const top    = (r.top    - rootRect.top)  * cs * outScale;
+      const right  = (r.right  - rootRect.left) * cs * outScale;
+      const bottom = (r.bottom - rootRect.top)  * cs * outScale;
       const dx = Math.round(left);
       const dy = Math.round(top);
       const dw = Math.round(right)  - dx;
@@ -9998,7 +10177,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       scratch.width = oc.width; scratch.height = oc.height;
       const sctx = scratch.getContext('2d');
       if (!sctx) return null;
-      sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const D = p._dprOv || dpr;
+      sctx.setTransform(D, 0, 0, D, 0, 0);
       try {
         drawOverlay2d(p, { ctx: sctx, imgW: p.imgW, imgH: p.imgH, forceNoHandles: true });
       } catch (_) { return null; }
@@ -10039,18 +10219,19 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       if (!p.isInset || !p.titleBar || !p.insetSpec) return;
       const title = p.insetSpec.title;
       if (!title) return;
-      const cs = window.getComputedStyle(p.titleBar);
-      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      const cst = window.getComputedStyle(p.titleBar);
+      if (cst.display === 'none' || cst.visibility === 'hidden') return;
       const r = p.titleBar.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
-      const left = (r.left - rootRect.left) * outScale;
-      const top  = (r.top  - rootRect.top)  * outScale;
+      const left = (r.left - rootRect.left) * cs * outScale;
+      const top  = (r.top  - rootRect.top)  * cs * outScale;
       octx.save();
       octx.fillStyle = theme.tickText;
       octx.textBaseline = 'middle';
       octx.textAlign = 'left';
       // 8px left padding matches titleBar's `padding:0 5px 0 8px`.
-      _drawTex(octx, title, left + 8 * outScale, top + r.height * outScale / 2,
+      _drawTex(octx, title, left + 8 * outScale,
+               top + r.height * cs * outScale / 2,
                11 * outScale, { align: 'left' });
       octx.restore();
     };
@@ -10073,14 +10254,569 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     // Restore the on-screen draw (handles visible again if in edit mode).
     try { _drawFigureMarkers(); } catch (_) {}
 
+    return { canvas: out, width: W, height: H };
+  }
+
+  // The whole pipeline (theme swap, view reset, native resize, composite,
+  // restore) in ONE task, so no intermediate state ever paints.
+  function exportCanvas(opts) {
+    const o = opts || {};
+    const scale   = (o.scale != null && o.scale > 0) ? o.scale : 1;
+    const source  = o.source || 'view';
+    const want    = o.theme  || 'current';
+    const panelId = o.panelId || null;
+    if (source !== 'view' && source !== 'full' && source !== 'native')
+      throw new Error("exportPNG: source must be 'view', 'full' or 'native' (got "
+                      + JSON.stringify(source) + ')');
+    const target = panelId ? panels.get(panelId) : null;
+    if (panelId && !target)
+      throw new Error('exportPNG: no panel with id ' + JSON.stringify(panelId));
+
+    if (source === 'native') {
+      const why = _nativeGuard(target);
+      if (why) throw new Error(why);
+    }
+
+    const savedTheme = theme;
+    const wantDark = want === 'dark' ? true : want === 'light' ? false : null;
+    // drawImage copies a canvas's bitmap, never its CSS background, and every
+    // draw function fills its own bitmap — so the swap needs no CSS work.
+    const themeChanged = (wantDark !== null && wantDark !== theme.dark);
+    const savedViews = [];
+    _exporting = true;
+    try {
+      if (themeChanged) theme = _makeTheme(wantDark);
+
+      if (source === 'native') {
+        return _withNativeSize(target, () => _compositeCanvas({
+          panelId, includeWidgets: o.includeWidgets, outScale: 1,
+        }));
+      }
+
+      if (source === 'full') {
+        for (const p of (target ? [target] : panels.values())) {
+          const sv = _neutralizeView(p);
+          if (sv) savedViews.push([p, sv]);
+        }
+      }
+      if (themeChanged || savedViews.length) redrawAll();
+      return _compositeCanvas({
+        panelId, includeWidgets: o.includeWidgets,
+        outScale: (window.devicePixelRatio || 1) * scale,
+      });
+    } finally {
+      for (const [p, sv] of savedViews) _restoreView(p, sv);
+      if (themeChanged) theme = savedTheme;
+      if (themeChanged || savedViews.length) redrawAll();
+      _exporting = false;
+    }
+  }
+
+  // Promise-returning PNG data URL; public contract unchanged.
+  function exportPNG(opts) {
+    let r;
+    try { r = exportCanvas(opts); }
+    catch (e) { return Promise.reject(e instanceof Error ? e : new Error(String(e))); }
     let dataUrl;
     try {
-      dataUrl = out.toDataURL('image/png');
+      dataUrl = r.canvas.toDataURL('image/png');
     } catch (e) {
       return Promise.reject(new Error('exportPNG: toDataURL failed — ' + e));
     }
-    return Promise.resolve({ dataUrl, width: W, height: H });
+    return Promise.resolve({ dataUrl, width: r.width, height: r.height });
   }
+
+
+
+  // ── export UI: toast, clipboard, download, context menu ───────────────────
+
+  const _CTRL_LABEL = (typeof navigator !== 'undefined'
+                       && /Mac|iPhone|iPad/.test(navigator.platform || ''))
+                      ? '⌘' : 'Ctrl+';
+
+  // Transient message, bottom-centre. Separate node from sizeLabel, which is
+  // owned by the resize drag.
+  const toastDiv = document.createElement('div');
+  toastDiv.style.cssText =
+    'position:absolute;left:50%;bottom:14px;transform:translateX(-50%);' +
+    'padding:6px 12px;font-size:12px;font-family:sans-serif;' +
+    'background:rgba(30,30,30,0.92);color:#fff;border-radius:5px;' +
+    'pointer-events:none;white-space:nowrap;max-width:92%;overflow:hidden;' +
+    'text-overflow:ellipsis;display:none;z-index:60;opacity:0;' +
+    'transition:opacity 120ms linear;box-shadow:0 2px 8px rgba(0,0,0,0.45);';
+  outerDiv.appendChild(toastDiv);
+  let _toastTimer = null;
+
+  function _toast(text, ms) {
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    toastDiv.textContent = text;
+    toastDiv.title = text;               // full text on hover when ellipsised
+    toastDiv.style.display = 'block';
+    // Force a style flush so the opacity transition actually runs.
+    void toastDiv.offsetWidth;
+    toastDiv.style.opacity = '1';
+    _toastTimer = setTimeout(() => {
+      toastDiv.style.opacity = '0';
+      _toastTimer = setTimeout(() => { toastDiv.style.display = 'none'; }, 160);
+    }, ms || 1800);
+  }
+
+  function _stamp() {
+    const d = new Date(), z = (n) => String(n).padStart(2, '0');
+    return '' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate())
+             + 'T' + z(d.getHours()) + z(d.getMinutes()) + z(d.getSeconds());
+  }
+
+  // Synchronous, unlike canvas.toBlob(): the clipboard write must stay in the
+  // same task as the user gesture.
+  function _dataUrlToBlob(dataUrl) {
+    const bin = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
+    const u8 = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+    return new Blob([u8], { type: 'image/png' });
+  }
+
+  function _canCopyImage() {
+    return !!(window.isSecureContext && navigator.clipboard
+              && window.ClipboardItem
+              && typeof navigator.clipboard.write === 'function');
+  }
+
+  function _copyCanvas(canvas) {
+    if (!_canCopyImage()) {
+      _toast('Clipboard image copy needs a secure page (https or localhost) — '
+             + 'use "Save PNG…" instead.', 4200);
+      return Promise.resolve(false);
+    }
+    let blob;
+    try { blob = _dataUrlToBlob(canvas.toDataURL('image/png')); }
+    catch (e) { _toast('Copy failed — ' + e, 4200); return Promise.resolve(false); }
+    try {
+      return navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        .then(() => { _toast('Image copied to clipboard'); return true; })
+        .catch((e) => { _toast('Copy failed — ' + ((e && e.message) || e)
+                               + '. Use "Save PNG…" instead.', 4200); return false; });
+    } catch (e) {
+      _toast('Copy failed — ' + ((e && e.message) || e)
+             + '. Use "Save PNG…" instead.', 4200);
+      return Promise.resolve(false);
+    }
+  }
+
+  // Framed-document fallback: show the PNG and let the browser's own image
+  // context menu save it. Needs no permission and is never blocked.
+  let _previewDiv = null;
+  function _showPngPreview(dataUrl, filename) {
+    _hidePngPreview();
+    const wrap = document.createElement('div');
+    wrap.style.cssText =
+      'position:absolute;inset:0;z-index:70;display:flex;flex-direction:column;' +
+      'align-items:center;justify-content:center;gap:8px;padding:12px;' +
+      'background:rgba(0,0,0,0.72);border-radius:4px;';
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = filename;
+    img.style.cssText =
+      'max-width:100%;max-height:calc(100% - 52px);object-fit:contain;' +
+      'background:#fff;border-radius:3px;box-shadow:0 4px 18px rgba(0,0,0,0.6);';
+    const cap = document.createElement('div');
+    cap.style.cssText =
+      'font:12px sans-serif;color:#fff;text-align:center;line-height:1.5;';
+    cap.textContent = 'Right-click the image → “Save image as…” to save '
+                    + filename + '  ·  Esc to close';
+    const close = document.createElement('div');
+    close.textContent = '×';
+    close.title = 'Close';
+    close.style.cssText =
+      'position:absolute;top:6px;right:8px;width:22px;height:22px;cursor:pointer;' +
+      'display:flex;align-items:center;justify-content:center;color:#fff;' +
+      'font:18px/1 sans-serif;border-radius:4px;background:rgba(255,255,255,0.16);';
+    close.addEventListener('click', _hidePngPreview);
+    wrap.appendChild(img); wrap.appendChild(cap); wrap.appendChild(close);
+    wrap.addEventListener('mousedown', (e) => { if (e.target === wrap) _hidePngPreview(); });
+    outerDiv.appendChild(wrap);
+    _previewDiv = wrap;
+  }
+  function _hidePngPreview() {
+    if (_previewDiv) { try { _previewDiv.remove(); } catch (_) {} _previewDiv = null; }
+  }
+
+  // A showSaveFilePicker rejection faster than this never showed a dialog.
+  const PICKER_MIN_MS = 250;
+
+  // Save routes:
+  //   usePicker → showSaveFilePicker, a real system dialog (Chromium, secure
+  //               context, user gesture) — costs a Chrome permission prompt
+  //   otherwise → <a download>, straight to the downloads folder, no prompt
+  //   framed    → an in-figure preview, since a sandboxed frame makes a.click()
+  //               a SILENT no-op with nothing to feature detect
+  // Is a system Save dialog available at all? Chromium only, secure context.
+  function _canPickFile() {
+    return !!(window.isSecureContext
+              && typeof window.showSaveFilePicker === 'function');
+  }
+
+  async function _downloadCanvas(canvas, filename, usePicker) {
+    let dataUrl;
+    try { dataUrl = canvas.toDataURL('image/png'); }
+    catch (e) { _toast('Export failed — ' + e, 4200); return; }
+    const blob = _dataUrlToBlob(dataUrl);
+
+    // Only when the caller asked: showSaveFilePicker hands the page a PERSISTENT
+    // writable handle, so Chrome prompts for permission to edit files — too much
+    // for a plain "save this image", but the right trade when the user has
+    // explicitly chosen "Save as…".
+    if (usePicker && _canPickFile()) {
+      const t0 = performance.now();
+      try {
+        const h = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'PNG image', accept: { 'image/png': ['.png'] } }],
+        });
+        const w = await h.createWritable();
+        await w.write(blob);
+        await w.close();
+        _toast('Saved ' + (h.name || filename));
+        return;
+      } catch (e) {
+        // A dialog the user closed and a dialog that never opened (headless, an
+        // embedded webview, no transient activation) both reject with
+        // AbortError, so the name cannot separate them — but one that never
+        // rendered comes back almost instantly, whereas a human takes far
+        // longer than this. Below the threshold, fall through and save anyway.
+        const shown = (performance.now() - t0) >= PICKER_MIN_MS;
+        if (e && e.name === 'AbortError' && shown) return;
+      }
+    }
+
+    if (window.self !== window.top) {
+      try {
+        window.parent.postMessage({
+          type: 'anyplotlib_export_png_result', requestId: null,
+          dataUrl, width: canvas.width, height: canvas.height, filename }, '*');
+      } catch (_) {}
+      _showPngPreview(dataUrl, filename);
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} }, 10000);
+    _toast('Saved ' + filename);
+  }
+
+  // ── downstream extensibility ──────────────────────────────────────────────
+  const _exportActions = new Map();
+
+  function registerExportAction(a) {
+    if (!a || !a.id || typeof a.handler !== 'function')
+      throw new Error('registerExportAction needs {id, label, handler}');
+    _exportActions.set(a.id, Object.assign(
+      { label: a.id, group: 'Actions', scope: 'both', order: 100, enabled: true }, a));
+    return () => _exportActions.delete(a.id);
+  }
+  function unregisterExportAction(id) { return _exportActions.delete(String(id)); }
+
+  function _actionCtx(panelId, ev) {
+    const p = panelId ? panels.get(panelId) : null;
+    const want = _menuTheme;
+    const bind = (oo) => Object.assign(
+      { panelId: panelId || null, theme: want }, oo || {});
+    return {
+      panelId: panelId || '',
+      kind: p ? p.kind : null,
+      isInset: !!(p && p.isInset),
+      state: p ? p.state : null,
+      theme: (want === 'current') ? theme : _makeTheme(want === 'dark'),
+      themeName: want,
+      figure: { width: Number(model.get('fig_width')) || 0,
+                height: Number(model.get('fig_height')) || 0 },
+      exportPNG: (oo) => exportPNG(bind(oo)),
+      exportCanvas: (oo) => exportCanvas(bind(oo)),
+      downloadPNG: (c, n) => _downloadCanvas((c && c.canvas) ? c.canvas : c,
+                                             n || ('apl-' + _stamp() + '.png')),
+      copyPNG: (c) => _copyCanvas((c && c.canvas) ? c.canvas : c),
+      toast: (t, ms) => _toast(t, ms),
+      model,
+      event: ev || null,
+    };
+  }
+
+  // ── context menu ──────────────────────────────────────────────────────────
+  // Sticky per-figure theme, applied to every save/copy below it.
+  let _menuTheme = 'current';
+  let _menuDiv = null;
+  let _menuOffHandlers = null;
+
+  function _closeMenu() {
+    if (_menuDiv) { try { _menuDiv.remove(); } catch (_) {} _menuDiv = null; }
+    if (typeof exportBtn !== 'undefined') exportBtn.style.background = _BTN_BG;
+    if (_menuOffHandlers) { _menuOffHandlers(); _menuOffHandlers = null; }
+  }
+
+  function _menuExport(mode, opts, name) {
+    let r;
+    try { r = exportCanvas(opts); }
+    catch (e) { _toast(((e && e.message) || String(e)), 5000); return; }
+    if (mode === 'copy') _copyCanvas(r.canvas);
+    else _downloadCanvas(r.canvas, name, mode === 'saveAs');
+  }
+
+  function _menuRows(panelId) {
+    const p = panelId ? panels.get(panelId) : null;
+    const rows = [];
+    const stamp = () => _stamp();
+    if (p) {
+      const short = String(panelId);
+      const nativeWhy = _nativeGuard(p);
+      rows.push({ type: 'header', label: p.isInset ? 'This inset' : 'This panel' });
+      rows.push({ type: 'item', label: 'Copy image', accel: _CTRL_LABEL + 'C',
+                  run: () => _menuExport('copy',
+                    { panelId, source: 'view', theme: _menuTheme, includeWidgets: true }) });
+      rows.push({ type: 'item', label: 'Save PNG…',
+                  run: () => _menuExport('save',
+                    { panelId, source: 'view', theme: _menuTheme, includeWidgets: true },
+                    'apl-' + short + '-view-' + stamp() + '.png') });
+      if (_canPickFile())
+        rows.push({ type: 'item', label: 'Save as… (choose folder)',
+                    run: () => _menuExport('saveAs',
+                      { panelId, source: 'view', theme: _menuTheme, includeWidgets: true },
+                      'apl-' + short + '-view-' + stamp() + '.png') });
+      rows.push({ type: 'item', label: 'Save full view…',
+                  run: () => _menuExport('save',
+                    { panelId, source: 'full', theme: _menuTheme, includeWidgets: true },
+                    'apl-' + short + '-full-' + stamp() + '.png') });
+      rows.push({ type: 'item', label: 'Save at native resolution…',
+                  disabled: !!nativeWhy, title: nativeWhy || '',
+                  run: () => _menuExport('save',
+                    { panelId, source: 'native', theme: _menuTheme, includeWidgets: true },
+                    'apl-' + short + '-native-' + stamp() + '.png') });
+    }
+    rows.push({ type: 'header', label: 'Whole figure' });
+    rows.push({ type: 'item', label: 'Copy figure',
+                run: () => _menuExport('copy',
+                  { source: 'view', theme: _menuTheme, includeWidgets: true }) });
+    rows.push({ type: 'item', label: 'Save PNG…',
+                run: () => _menuExport('save',
+                  { source: 'view', theme: _menuTheme, includeWidgets: true },
+                  'apl-figure-view-' + stamp() + '.png') });
+    if (_canPickFile())
+      rows.push({ type: 'item', label: 'Save as… (choose folder)',
+                  run: () => _menuExport('saveAs',
+                    { source: 'view', theme: _menuTheme, includeWidgets: true },
+                    'apl-figure-view-' + stamp() + '.png') });
+    rows.push({ type: 'item', label: 'Save full view…',
+                run: () => _menuExport('save',
+                  { source: 'full', theme: _menuTheme, includeWidgets: true },
+                  'apl-figure-full-' + stamp() + '.png') });
+    // No figure-level native: panels have different native sizes.
+    rows.push({ type: 'header', label: 'Theme' });
+    rows.push({ type: 'radio', options: ['current', 'light', 'dark'] });
+
+    const extras = [..._exportActions.values()]
+      .filter((a) => a.scope === 'both'
+                  || (a.scope === 'panel' && p) || (a.scope === 'figure' && !p))
+      .sort((a, b) => (a.order - b.order) || String(a.label).localeCompare(String(b.label)));
+    let lastGroup = null;
+    for (const a of extras) {
+      if (a.group !== lastGroup) { rows.push({ type: 'header', label: a.group }); lastGroup = a.group; }
+      let dis = false;
+      try { dis = (typeof a.enabled === 'function') ? !a.enabled(_actionCtx(panelId, null)) : !a.enabled; }
+      catch (_) { dis = true; }
+      rows.push({ type: 'item', label: a.label, disabled: dis, actionId: a.id,
+                  run: (ev) => { try { a.handler(_actionCtx(panelId, ev)); }
+                                 catch (e) { _toast(((e && e.message) || String(e)), 5000); } } });
+    }
+    return rows;
+  }
+
+
+  function _openMenu(panelId, clientX, clientY, ev) {
+    _closeMenu();
+    const dark = theme.dark;
+    const menu = document.createElement('div');
+    menu.setAttribute('data-apl-menu', '1');
+    menu.style.cssText =
+      'position:absolute;z-index:60;min-width:210px;padding:5px 0;' +
+      'font:12px sans-serif;border-radius:6px;user-select:none;' +
+      'background:' + (dark ? 'rgba(28,28,38,0.98)' : 'rgba(252,252,253,0.99)') + ';' +
+      'color:' + (dark ? '#e0e0e8' : '#1e1e28') + ';' +
+      'border:1px solid ' + (dark ? 'rgba(120,120,160,0.32)' : 'rgba(0,0,0,0.16)') + ';' +
+      'box-shadow:0 6px 22px rgba(0,0,0,' + (dark ? '0.62' : '0.28') + ');';
+
+    const mkHeader = (label) => {
+      const d = document.createElement('div');
+      d.textContent = label;
+      d.style.cssText = 'padding:5px 12px 3px;font-size:10px;font-weight:600;'
+        + 'letter-spacing:0.06em;text-transform:uppercase;opacity:0.55;';
+      return d;
+    };
+    const mkItem = (row) => {
+      const d = document.createElement('div');
+      d.style.cssText = 'padding:5px 12px;display:flex;gap:16px;'
+        + 'align-items:center;justify-content:space-between;'
+        + (row.disabled ? 'opacity:0.42;cursor:default;' : 'cursor:pointer;');
+      const t = document.createElement('span');
+      t.textContent = row.label;
+      d.appendChild(t);
+      if (row.accel) {
+        const a = document.createElement('span');
+        a.textContent = row.accel;
+        a.style.cssText = 'opacity:0.5;font-size:11px;';
+        d.appendChild(a);
+      }
+      if (row.title) d.title = row.title;
+      if (row.actionId) d.setAttribute('data-apl-action', row.actionId);
+      if (!row.disabled) {
+        d.addEventListener('mouseenter', () => {
+          d.style.background = dark ? 'rgba(90,120,200,0.30)' : 'rgba(60,110,220,0.13)';
+        });
+        d.addEventListener('mouseleave', () => { d.style.background = ''; });
+        d.addEventListener('click', (e) => {
+          e.stopPropagation(); _closeMenu(); row.run(e);
+        });
+      }
+      return d;
+    };
+    const mkRadio = (options) => {
+      const d = document.createElement('div');
+      d.style.cssText = 'padding:3px 12px 6px;display:flex;gap:10px;';
+      for (const opt of options) {
+        const b = document.createElement('span');
+        b.setAttribute('data-apl-theme-opt', opt);
+        const on = (_menuTheme === opt);
+        b.textContent = (on ? '● ' : '○ ') + opt;
+        b.style.cssText = 'cursor:pointer;font-size:11px;'
+          + (on ? 'opacity:1;font-weight:600;' : 'opacity:0.62;');
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          _menuTheme = opt;
+          _openMenu(panelId, clientX, clientY, ev);   // rebuild in place
+        });
+        d.appendChild(b);
+      }
+      return d;
+    };
+    const mkSep = () => {
+      const d = document.createElement('div');
+      d.style.cssText = 'height:1px;margin:4px 0;background:'
+        + (dark ? 'rgba(140,140,180,0.20)' : 'rgba(0,0,0,0.10)') + ';';
+      return d;
+    };
+
+    const rows = _menuRows(panelId);
+    let first = true;
+    for (const row of rows) {
+      if (row.type === 'header') { if (!first) menu.appendChild(mkSep());
+                                   menu.appendChild(mkHeader(row.label)); }
+      else if (row.type === 'radio') menu.appendChild(mkRadio(row.options));
+      else menu.appendChild(mkItem(row));
+      first = false;
+    }
+
+    // Positioned in outerDiv, edge-flipped like _showTooltip.
+    outerDiv.appendChild(menu);
+    const host = outerDiv.getBoundingClientRect();
+    const mw = menu.offsetWidth || 210, mh = menu.offsetHeight || 200;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let lx = clientX + 2, ly = clientY + 2;
+    if (lx + mw > vw - 8) lx = Math.max(8, clientX - mw - 2);
+    if (ly + mh > vh - 8) ly = Math.max(8, vh - mh - 8);
+    const sc = _cssScale();
+    menu.style.left = ((lx - host.left) * sc) + 'px';
+    menu.style.top  = ((ly - host.top)  * sc) + 'px';
+    _menuDiv = menu;
+    exportBtn.style.display = 'flex';
+    exportBtn.style.background = _BTN_BG_ACTIVE;
+
+    const onDown = (e) => { if (!menu.contains(e.target)) _closeMenu(); };
+    const onKey  = (e) => { if (e.key === 'Escape') { _closeMenu(); e.stopPropagation(); } };
+    const onScroll = () => _closeMenu();
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('scroll', onScroll, true);
+    _menuOffHandlers = () => {
+      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }
+
+  // Insets sit above grid content, so test them first (panels is grid-then-inset).
+  function _panelAtPoint(node) {
+    const insets = [], grid = [];
+    for (const p of panels.values()) (p.isInset ? insets : grid).push(p);
+    for (const p of insets.concat(grid)) {
+      const box = p.isInset ? (p.insetDiv || p.cell) : (p.cell || _panelBox(p));
+      if (box && box.contains(node)) return p.id;
+    }
+    return null;
+  }
+
+  // The panel a menu/copy should act on: the one with keyboard focus
+  // (mouseenter focuses a panel's overlay canvas), else the whole figure.
+  function _focusedPanelId() {
+    for (const p of panels.values())
+      if (p.overlayCanvas === document.activeElement) return p.id;
+    return null;
+  }
+
+  // On outerDiv, not per overlayCanvas: the overlay covers only the image area,
+  // so the axis gutters, colorbar and title strip are not under it.
+  // Keep focus on whichever panel the pointer came from, so the menu is scoped
+  // to that panel rather than falling back to the whole figure.
+  exportBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  exportBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (_menuDiv) { _closeMenu(); return; }
+    const r = exportBtn.getBoundingClientRect();
+    _openMenu(_focusedPanelId(), r.left, r.bottom + 2, e);
+  });
+
+  outerDiv.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    _openMenu(_panelAtPoint(e.target), e.clientX, e.clientY, e);
+  });
+
+  // Panel-scoped when a panel has focus (mouseenter focuses its overlay),
+  // figure-scoped otherwise. On outerDiv, not document, so it never hijacks
+  // Ctrl+C for the surrounding notebook.
+  outerDiv.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    if (String(e.key).toLowerCase() !== 'c') return;
+    const hit = _focusedPanelId();
+    e.preventDefault();
+    e.stopPropagation();
+    _menuExport('copy', { panelId: hit, source: 'view',
+                          theme: _menuTheme, includeWidgets: true });
+  });
+
+  // Test hooks.
+  try {
+    globalThis.__apl_menuItems = () => {
+      if (!_menuDiv) return null;
+      return [...(_menuDiv.children || [])].map((c) => ({
+        text: c.textContent,
+        disabled: (c.style.cursor === 'default'),
+        actionId: c.getAttribute && c.getAttribute('data-apl-action') || null,
+      }));
+    };
+    globalThis.__apl_toastText = () => ({
+      text: toastDiv.textContent,
+      shown: toastDiv.style.display !== 'none' && toastDiv.style.opacity !== '0',
+    });
+    globalThis.__apl_menuTheme = () => _menuTheme;
+    globalThis.__apl_previewOpen = () => !!_previewDiv;
+    globalThis.__apl_nativeLimits = () => ({ maxSide: EXPORT_MAX_SIDE,
+                                             maxArea: EXPORT_MAX_AREA });
+    globalThis.__apl_nativeGuard = (pid) => _nativeGuard(panels.get(pid));
+  } catch (_) {}
+
 
   // ── cell-aware CSS scaling ────────────────────────────────────────────────
   // When the notebook cell (or any container) is narrower than the figure's
@@ -10231,6 +10967,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   return {
     panels,
     exportPNG,
+    exportCanvas,       // synchronous {canvas,width,height} producer
+    registerExportAction,
+    unregisterExportAction,
     calloutCanvas,      // figure-level region-indication overlay
     _drawCallouts,      // force a callout redraw (tests / external layout sync)
     figMarkerCanvas,    // figure-level annotation overlay (content, exported)
@@ -10363,9 +11102,12 @@ export function mount(el, state, opts) {
       model.set('fig_height', Math.round(height));
       model.save_changes();
     },
-    // Composite the whole figure to a PNG data URL.
+    // Composite the figure (or one panel) to a PNG data URL.
     //   opts.scale (1)               extra multiplier over devicePixelRatio
     //   opts.includeWidgets (false)  include the interactive widget overlay
+    //   opts.panelId (null)          crop to one panel instead of the figure
+    //   opts.source ('view')         'view' | 'full' | 'native'
+    //   opts.theme ('current')       'current' | 'light' | 'dark'
     // Resolves to {dataUrl, width, height}; rejects with a useful message.
     exportPNG(opts) {
       if (typeof api.exportPNG !== 'function') {
@@ -10373,6 +11115,28 @@ export function mount(el, state, opts) {
       }
       try { return api.exportPNG(opts); }
       catch (e) { return Promise.reject(e); }
+    },
+    // Same, but synchronous and returning the raw {canvas, width, height} so a
+    // host can encode it itself (TIFF, JPEG, a PDF page, …). Throws on a bad
+    // request rather than rejecting.
+    exportCanvas(opts) {
+      if (typeof api.exportCanvas !== 'function')
+        throw new Error('exportCanvas unavailable (render() returned no API)');
+      return api.exportCanvas(opts);
+    },
+    // Add an entry to the right-click export menu. Returns an unregister fn.
+    //   {id, label, group, scope:'panel'|'figure'|'both', order, enabled,
+    //    handler(ctx)}
+    // ctx: {panelId, kind, isInset, state, theme, themeName, figure,
+    //       exportPNG, exportCanvas, downloadPNG, copyPNG, toast, model, event}
+    registerExportAction(action) {
+      if (typeof api.registerExportAction !== 'function')
+        throw new Error('registerExportAction unavailable (render() returned no API)');
+      return api.registerExportAction(action);
+    },
+    unregisterExportAction(id) {
+      if (typeof api.unregisterExportAction !== 'function') return false;
+      return api.unregisterExportAction(id);
     },
     // Remove the figure's DOM.  (Window-level listeners registered by the
     // renderer are inert once the DOM is gone; for complete cleanup, discard
