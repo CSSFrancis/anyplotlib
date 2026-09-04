@@ -30,7 +30,7 @@ from anyplotlib.widgets import (
     BrushWidget, VLineWidget, HLineWidget,
 )
 from anyplotlib._utils import (_normalize_image, _build_colormap_lut,
-                               _build_tint_lut, _to_rgba_u8)
+                               _build_tint_lut, _to_rgba_u8, _codes_are_int)
 
 
 def _binary_transport_active() -> bool:
@@ -147,7 +147,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                  tile: "str | bool" = "auto",
                  integration_method: str = "mean",
                  overview_method: str = "mean",
-                 tile_backend=None):
+                 tile_backend=None,
+                 probe_exact: bool = True,
+                 probe_ms: int = 250):
         self._id:  str = ""       # assigned by Axes._attach
         self._fig: object = None  # assigned by Axes._attach
 
@@ -312,6 +314,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "display_max":       disp_max,
             "raw_min":           raw_vmin,
             "raw_max":           raw_vmax,
+            # Integral source → the renderer inverts the codes back to the exact
+            # values for its hover readout (see _codes_are_int). A tile-mode
+            # overview is an average, so this is False there even for integer data.
+            "raw_is_int":        (not self._is_rgb) and _codes_are_int(data),
             "show_colorbar":     False,
             # None => the renderer's default 6 px image-to-strip gap.
             "colorbar_pad":      None,
@@ -332,6 +338,26 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "detail_height":     0,
             "detail_seq":        0,    # bumped per set_detail so the renderer re-uploads
                                        # a re-sampled tile even at the same size/region
+            # The band the tile's uint8 codes span (None = no tile). The renderer
+            # reconstructs data values from it for the hover readout, since the
+            # tile may be quantised over a different range than the base.
+            "detail_min":        None,
+            "detail_max":        None,
+            "detail_is_int":     False,
+            # ── Hover readout ────────────────────────────────────────────────
+            # The on-image pill showing position + pixel value. False hides it —
+            # an embedding host can render the same payload in its own chrome
+            # instead (mount()'s opts.onReadout / the `apl:readout` DOM event).
+            "readout_visible":   True,
+            # Exact-value probe: dwell time in ms before the renderer asks Python
+            # for the TRUE value under the cursor (0 disables). The 8-bit codes in
+            # the browser only resolve the data range to 1/255, so this is what
+            # makes the readout exact for wide dtypes. See _answer_value_probe.
+            "probe_ms":          probe_ms if probe_exact else 0,
+            # The answer: which pixel it is for, and its exact value.
+            "probe_x":           None,
+            "probe_y":           None,
+            "probe_value":       None,
             "overlay_widgets":   [],
             "markers":           [],
             # Image LAYERS (see add_layer): each entry is a small metadata dict
@@ -382,6 +408,105 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         # re-supplying data — the layer analogue of ``self._data`` + ``set_clim``.
         self._layers: list = []
         self._layer_raw: dict = {}
+
+    # ------------------------------------------------------------------
+    # Hover readout (position + pixel value)
+    # ------------------------------------------------------------------
+    def set_readout_visible(self, visible: bool) -> None:
+        """Show or hide the on-image hover readout (the pill naming the physical
+        position, the pixel index and the pixel value).
+
+        Hiding it does NOT stop the readout being computed: an embedding host still
+        receives every update through ``mount()``'s ``opts.onReadout`` callback and
+        the ``apl:readout`` DOM event, so an Electron app can render the same text in
+        its own status line (e.g. the bottom-right of the window) where it covers no
+        data.  See ``docs/embedding.rst``.
+        """
+        self._state["readout_visible"] = bool(visible)
+        self._push()
+
+    def set_value_probe(self, enabled: bool = True, ms: int = 250) -> None:
+        """Enable/disable the EXACT-value probe behind the hover readout (on by
+        default; ``Plot2D(..., probe_exact=False)`` opts out at construction).
+
+        The value the renderer can compute locally comes from the 8-bit codes it
+        draws, so it is exact for integer data whose range fits 255 levels and
+        quantised to ``range/255`` otherwise.  With the probe on, the renderer asks
+        Python for the true value once the cursor has DWELLED ``ms`` milliseconds on
+        a pixel; the answer replaces the estimate in place.  It costs one small
+        message per dwelled-on pixel — never one per mouse move — and degrades
+        silently to the local estimate when there is no live kernel (a ``save_html``
+        page) or the kernel is busy.
+
+        ``ms=0`` (or ``enabled=False``) disables it.
+        """
+        self._state["probe_ms"] = int(ms) if (enabled and ms and ms > 0) else 0
+        self._push()
+
+    def _invalidate_probe(self, fields: dict | None = None) -> None:
+        """Drop any exact value answered for the PREVIOUS frame's pixels.
+
+        Every path that replaces displayed pixels must call this: with the cursor
+        parked (a movie scrub is the common case) the frontend would otherwise keep
+        showing the old frame's exact value over the new frame's data. Pass a
+        pending update dict to fold the reset into that same push.
+        """
+        reset = {"probe_x": None, "probe_y": None, "probe_value": None}
+        (fields if fields is not None else self._state).update(reset)
+
+    def _exact_value(self, col: int, row: int):
+        """The TRUE data value at display pixel (col, row), or None when it can't be
+        resolved (out of bounds, RGB image, or a backend that raised).
+
+        Display pixel means the same coordinate system the readout and the
+        ``img_x``/``img_y`` event fields use: row 0 at the top, ``origin`` already
+        applied — matching :attr:`data`.  In tile mode the full-resolution frame
+        lives in the backend (``self._data`` is only the coarse overview there), so
+        the probe samples a 1x1 region from it rather than reading the overview.
+        """
+        if self._is_rgb:
+            return None
+        h, w = int(self._state["image_height"]), int(self._state["image_width"])
+        if not (0 <= col < w and 0 <= row < h):
+            return None
+        try:
+            if self._tile_on and self._tile_backend is not None:
+                b = self._tile_backend
+                # Backend rows are in SOURCE order; a 'lower' origin mirrors them
+                # for display, so undo that to hit the pixel the cursor is over.
+                sy = (h - 1 - row) if b.origin == "lower" else row
+                # A 1x1 sample is the pixel itself — no reduction, so the
+                # integration method is irrelevant here.
+                return float(np.asarray(b.sample(col, col + 1, sy, sy + 1, 1, 1))[0, 0])
+            arr = np.asarray(self._data)          # already display-oriented
+            if arr.ndim != 2 or row >= arr.shape[0] or col >= arr.shape[1]:
+                return None
+            return float(arr[row, col])
+        except Exception as e:
+            _TLOG.debug("[PROBE] exact value at (%d, %d) failed: %s", col, row, e)
+            return None
+
+    def _answer_value_probe(self, msg: dict) -> None:
+        """Answer the renderer's dwell probe: look up the exact value under the
+        cursor and push it back with the pixel it belongs to, so the frontend can
+        tell a fresh answer from a stale one (the cursor may have moved on).
+
+        Called straight from ``Figure._dispatch_event`` with the raw message —
+        deliberately not routed through the callback registry (renderer plumbing,
+        not a user event)."""
+        if not self._state.get("probe_ms"):
+            return                                  # probe disabled → ignore
+        try:
+            col = int(round(float(msg.get("img_x"))))
+            row = int(round(float(msg.get("img_y"))))
+        except (TypeError, ValueError):
+            return
+        value = self._exact_value(col, row)
+        if value is None:
+            return
+        self._state.update({"probe_x": col, "probe_y": row,
+                            "probe_value": value})
+        self._push()
 
     @property
     def gpu_active(self) -> bool:
@@ -537,7 +662,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         self._state["base_width"] = 0
         self._state["base_height"] = 0
         self._state.update({"detail_b64": "", "detail_region": [],
-                            "detail_width": 0, "detail_height": 0})
+                            "detail_width": 0, "detail_height": 0,
+                            "detail_min": None, "detail_max": None,
+                            "detail_is_int": False})
         _TLOG.debug("[TILEDBG] _disable_tile: tile mode OFF (forced plain)")
 
     def update_tile_source(self, array=None) -> None:
@@ -610,6 +737,10 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             self._state["image_b64"] = self._encode_pixels("image_b64", img_u8)
             self._state["base_width"] = int(ow)
             self._state["base_height"] = int(oh)
+            # The overview's own dtype decides code invertibility (a mean reduction
+            # of integer data is float, so this usually turns the flag off).
+            self._state["raw_is_int"] = _codes_are_int(ov)
+            self._invalidate_probe()               # new pixels → old answer is void
             self._overview_stale = False
             # min/max are two more full passes over the overview — same guard rule
             # as the FETCH diagnostic below (they are .debug() ARGUMENTS, so lazy
@@ -1096,12 +1227,16 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             "display_max":  disp_max,
             "raw_min":      vmin,
             "raw_max":      vmax,
+            "raw_is_int":   (not is_rgb) and _codes_are_int(data),
         }
+        self._invalidate_probe(fields)   # new frame → old exact value is void
         # A new base frame invalidates any detail tile of the OLD frame — clear it
         # so the shader doesn't sample a stale hi-res crop over the new image.
         if self._state.get("detail_b64"):
             fields.update({"detail_b64": "", "detail_region": [],
-                           "detail_width": 0, "detail_height": 0})
+                           "detail_width": 0, "detail_height": 0,
+                           "detail_min": None, "detail_max": None,
+                           "detail_is_int": False})
         # RGB images never use the colormap LUT — skip the (costly) rebuild and
         # leave the existing entry untouched.  Only recompute for scalar data.
         if not is_rgb:
@@ -1635,6 +1770,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                 self._state.update({
                     "detail_b64": "", "detail_region": [],
                     "detail_width": 0, "detail_height": 0,
+                    "detail_min": None, "detail_max": None,
+                    "detail_is_int": False,
                 })
                 self._push()
             return
@@ -1650,19 +1787,26 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             clim = (self._state.get("display_min"), self._state.get("display_max"))
             if clim[0] is None or clim[1] is None or not (clim[1] > clim[0]):
                 clim = None
-        img_u8, _vmin, _vmax = _normalize_image(tile, clim=clim)
+        img_u8, tile_min, tile_max = _normalize_image(tile, clim=clim)
         th, tw = tile.shape
         # Monotonic sequence so the renderer's dedup key CHANGES on every pushed tile
         # even when length + region are identical (a live movie scrub re-samples the
         # SAME region every frame — without this the JS skips the re-upload and the
         # zoomed-in view freezes on the first frame). See _detailBytes in figure_esm.js.
         self._detail_seq = getattr(self, "_detail_seq", 0) + 1
+        self._invalidate_probe()      # the tile is new pixels for this region
         self._state.update({
             "detail_b64":    self._encode_pixels("detail_b64", img_u8),
             "detail_region": [int(x0), int(x1), int(y0), int(y1)],
             "detail_width":  int(tw),
             "detail_height": int(th),
             "detail_seq":    self._detail_seq,
+            # The band these codes span, so the renderer's hover readout can
+            # reconstruct values from the tile (it need not match the base band),
+            # plus whether the tile's own dtype makes them exactly invertible.
+            "detail_min":    tile_min,
+            "detail_max":    tile_max,
+            "detail_is_int": _codes_are_int(tile),
         })
         self._push()
 

@@ -175,6 +175,20 @@ def _image_to_data_url(image) -> str:
     return "data:image/png;base64," + base64.b64encode(png).decode("ascii")
 
 
+def _codes_are_int(data: np.ndarray) -> bool:
+    """True when *data* holds integers, so the uint8 codes it quantises to can be
+    inverted back to the EXACT source values.
+
+    The renderer needs this for its hover readout: with an integral source and a
+    range that fits in 255 levels, each code's quantisation interval is narrower
+    than 1 and so contains exactly ONE integer — the original value (see
+    ``_codeToValue`` in ``figure_esm.js``, which checks the range part). Float data
+    gets no such guarantee, hence the dtype test rather than a value scan: probing
+    4 M pixels for integrality on every frame would cost more than the readout.
+    """
+    return bool(np.issubdtype(np.asarray(data).dtype, np.integer))
+
+
 def _normalize_image(data: np.ndarray, clim: "tuple | None" = None):
     """Normalise data to uint8, returning (img_u8, vmin, vmax) where vmin/vmax are
     the QUANTISATION endpoints the 8-bit codes span (the caller stores them as

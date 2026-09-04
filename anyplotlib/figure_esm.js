@@ -3,7 +3,7 @@
 // Each panel gets its own three-canvas stack (plot / overlay / markers).
 // Panels are drawn independently; only the changed panel's listener fires.
 
-function render({ model, el, onResize }) {
+function render({ model, el, onResize, onReadout }) {
   const dpr = window.devicePixelRatio || 1;
 
   // ── shared plot-area padding (mirrors 1D drawing constants) ─────────────
@@ -1098,6 +1098,17 @@ function render({ model, el, onResize }) {
       catch(_) { return; }
       p2._hoverSi = -1; p2._hoverI = -1;
       _redrawPanel(p2);
+      // The new state may carry the exact-value answer for the pixel the cursor is
+      // resting on (see _armValueProbe) — refresh the readout in place, since no
+      // mousemove follows a stationary cursor. A push may also be a NEW frame (whose
+      // pixels void the previous answer), so clear "already asked" and re-arm: the
+      // dwell timer restarts per push, which means a fast scrub never fires a probe
+      // and the one that lands after it settles is for the frame on screen.
+      p2._probeSent = '';
+      if (p2.kind === '2d' && p2._hoverIn) {
+        const rInfo = _updateStatus2d(p2);
+        if (rInfo) _armValueProbe(p2, rInfo.img_x, rInfo.img_y);
+      }
     });
 
     if (_hasGeom) {
@@ -1276,6 +1287,17 @@ function render({ model, el, onResize }) {
       catch(_) { return; }
       p2._hoverSi = -1; p2._hoverI = -1;
       _redrawPanel(p2);
+      // The new state may carry the exact-value answer for the pixel the cursor is
+      // resting on (see _armValueProbe) — refresh the readout in place, since no
+      // mousemove follows a stationary cursor. A push may also be a NEW frame (whose
+      // pixels void the previous answer), so clear "already asked" and re-arm: the
+      // dwell timer restarts per push, which means a fast scrub never fires a probe
+      // and the one that lands after it settles is for the frame on screen.
+      p2._probeSent = '';
+      if (p2.kind === '2d' && p2._hoverIn) {
+        const rInfo = _updateStatus2d(p2);
+        if (rInfo) _armValueProbe(p2, rInfo.img_x, rInfo.img_y);
+      }
     });
 
     if (_hasGeom) {
@@ -4347,6 +4369,236 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     } catch (_) { return { bytes: null, key: '' }; }
   }
 
+  // ── Hover readout (position + pixel value) ────────────────────────────────
+  // _imageBytes / _detailBytes atob the WHOLE frame on the base64 transport, and
+  // the readout runs per mousemove — so cache the decode by the byte identity.
+  // The binary transport hands over a view (no decode) and needs no cache.
+  function _readoutBytes2d(p, st) {
+    if (st.image_b64_bytes) return _imageBytes(st);
+    if (!st.image_b64) return { bytes: null, key: '' };
+    if (p._roImg && p._roImg.key === st.image_b64) return p._roImg;
+    return (p._roImg = _imageBytes(st));
+  }
+  function _readoutDetailBytes2d(p, st) {
+    if (st.detail_b64_bytes) return _detailBytes(st);
+    if (!st.detail_b64) return { bytes: null, key: '' };
+    if (p._roDet && p._roDet.key === `detail:${st.detail_b64}`) return p._roDet;
+    return (p._roDet = _detailBytes(st));
+  }
+
+  // uint8 code → data value over the quantisation band [lo, hi]. `step` is the
+  // width of one level (0 ⇒ the value is EXACT); null when there is no usable band.
+  //
+  // `isInt` (Python's raw_is_int / detail_is_int) says the quantised array held
+  // integers. Python's _normalize_image TRUNCATES, so code c covers the half-open
+  // interval [lo + c*step, lo + (c+1)*step). When step <= 1 that interval is
+  // narrower than 1 and therefore contains at most ONE integer — which must be the
+  // source value, so the quantisation is fully invertible and the readout is exact
+  // (uint8 frames, masks, label maps, small-range counts). The interval midpoint is
+  // within step/2 <= 0.5 of that integer; the epsilon breaks the step == 1 tie
+  // downwards (midpoint n + 0.5 must round to n, not n + 1).
+  function _codeToValue(lo, hi, code, isInt) {
+    if (lo == null || hi == null || !isFinite(lo) || !isFinite(hi)) return null;
+    if (!(hi > lo)) return { value: lo, step: 0 };
+    const step = (hi - lo) / 255;
+    if (isInt && step <= 1) {
+      return { value: Math.round(lo + (code + 0.5) * step - 1e-9), step: 0 };
+    }
+    return { value: lo + code * step, step };
+  }
+
+  // The data value under the cursor, reconstructed from the SAME uint8 codes the
+  // renderer draws: Python quantises the frame over [raw_min, raw_max]
+  // (_normalize_image in _utils.py), so code c means raw_min + c/255*(raw_max -
+  // raw_min). Only 256 levels cross the wire, so this is exact when the codes are
+  // invertible (see _codeToValue) and a step of range/255 otherwise — for that case
+  // _armValueProbe asks Python for the true value and _readoutInfo2d prefers the
+  // answer. This is the always-available estimate underneath that.
+  //
+  // Prefers the detail tile wherever it covers the pixel: in tile mode the base
+  // texture is a DOWNSAMPLED overview whose codes are block averages, while the
+  // tile carries true native pixels for the visible region. Image LAYERS
+  // (_drawLayers2d) are never probed — the base image is the primary data.
+  //
+  // Returns {value, step} for a scalar image, {rgba:[r,g,b,a]} for a true-colour
+  // one, or null when the bytes / the band are unavailable.
+  function _pixelValue2d(p, st, ix, iy) {
+    const iw = st.image_width, ih = st.image_height;
+    if (!(iw > 0) || !(ih > 0)) return null;
+    if (!(ix >= 0 && iy >= 0 && ix < iw && iy < ih)) return null;
+    // Logical px → base-texture texel (the same kx/ky scale _blit2d draws with,
+    // so the readout names the texel the cursor is actually over).
+    const bw = st.base_width || iw, bh = st.base_height || ih;
+    const bx = Math.min(bw - 1, Math.max(0, Math.floor(ix / iw * bw)));
+    const by = Math.min(bh - 1, Math.max(0, Math.floor(iy / ih * bh)));
+
+    if (st.is_rgb) {
+      const b = _readoutBytes2d(p, st).bytes;
+      if (!b) return null;
+      const o = (by * bw + bx) * 4;
+      if (o + 4 > b.length) return null;
+      return { rgba: [b[o], b[o + 1], b[o + 2], b[o + 3]] };
+    }
+
+    // Only above zoom 1, where the tile is what the blit samples (_detailUV /
+    // _detailOverlayRect both bail at zoom <= 1) — so the readout always names
+    // the source of the pixel actually on screen.
+    const reg = st.detail_region || [];
+    const dw = st.detail_width | 0, dh = st.detail_height | 0;
+    if ((st.zoom || 1) > 1 && reg.length === 4 && dw > 0 && dh > 0 &&
+        ix >= reg[0] && ix < reg[1] && iy >= reg[2] && iy < reg[3]) {
+      const d = _readoutDetailBytes2d(p, st).bytes;
+      if (d && d.length >= dw * dh) {
+        const tx = Math.min(dw - 1, Math.floor((ix - reg[0]) / (reg[1] - reg[0]) * dw));
+        const ty = Math.min(dh - 1, Math.floor((iy - reg[2]) / (reg[3] - reg[2]) * dh));
+        // The tile carries the band it was quantised over (tile mode reuses the
+        // fixed raw band; a manual set_detail matches the display window).
+        const v = _codeToValue(
+          st.detail_min != null ? st.detail_min : st.raw_min,
+          st.detail_max != null ? st.detail_max : st.raw_max,
+          d[ty * dw + tx],
+          st.detail_min != null ? st.detail_is_int : st.raw_is_int);
+        if (v) return v;
+      }
+    }
+
+    const b = _readoutBytes2d(p, st).bytes;
+    if (!b) return null;
+    const o = by * bw + bx;
+    if (o >= b.length) return null;
+    return _codeToValue(st.raw_min, st.raw_max, b[o], st.raw_is_int);
+  }
+
+  // Pixel-value format: keeps 3 significant digits where fmtVal's 2 would hide
+  // real signal (58 400 counts must not read "5.8e+4"), and stays compact — the
+  // status bar is one nowrap line over the image.
+  function fmtPixVal(v) {
+    if (v == null || !isFinite(v)) return String(v);
+    const a = Math.abs(v);
+    if (a === 0) return '0';
+    if (a >= 1e5 || a < 1e-3) return v.toExponential(2);
+    if (a >= 100) return v.toFixed(0);
+    return stripZeros(v.toPrecision(3));
+  }
+
+  // An EXACT value (a Python probe answer, or a losslessly invertible code) — up to
+  // 6 significant digits, past which float32 source data stops being meaningful.
+  // Never abbreviates an integer: an exactly-known 1234567 must not read "1.23e+6".
+  function fmtExactVal(v) {
+    if (v == null || !isFinite(v)) return String(v);
+    if (Number.isInteger(v)) return String(v);
+    const a = Math.abs(v);
+    if (a >= 1e6 || a < 1e-4) return v.toExponential(5);
+    return stripZeros(v.toPrecision(6));
+  }
+
+  // The exact value Python answered for one specific pixel (see the value_probe
+  // event / Plot2D.set_value_probe), or null when there is no answer or it is for a
+  // DIFFERENT pixel — i.e. the cursor moved on before the round trip landed.
+  function _probeValueFor(st, px, py) {
+    if (st.probe_value == null) return null;
+    if (st.probe_x !== px || st.probe_y !== py) return null;
+    return st.probe_value;
+  }
+
+  // Structured hover readout for the pixel under (ix, iy): what the status bar
+  // renders AND the payload handed to an embedding host (see _notifyReadout).
+  // Returns null when the cursor is off-image.
+  function _readoutInfo2d(p, st, ix, iy) {
+    const iw = st.image_width, ih = st.image_height;
+    if (!(ix >= 0 && iy >= 0 && ix < iw && iy < ih)) return null;
+    const xArr = st.x_axis || [], yArr = st.y_axis || [];
+    const showPhys = xArr.length >= 2 || yArr.length >= 2;
+    // For both imshow (centre arrays) and pcolormesh (edge arrays), ix/iw maps the
+    // pixel fraction into the axis array via binary search.
+    const physX = showPhys && xArr.length >= 2 ? _axisFracToVal(xArr, ix / iw) : ix;
+    const physY = showPhys && yArr.length >= 2 ? _axisFracToVal(yArr, iy / ih) : iy;
+    const units = st.units || 'px';
+    const px = Math.floor(ix), py = Math.floor(iy);
+    const pv = _pixelValue2d(p, st, ix, iy);
+    const probe = _probeValueFor(st, px, py);
+
+    let value = null, exact = false, rgba = null, vTxt = '';
+    if (pv && pv.rgba) {
+      rgba = pv.rgba; exact = true;                    // uint8 channels — no quantising
+      vTxt = `  rgb:${rgba[0]},${rgba[1]},${rgba[2]}` +
+             (rgba[3] < 255 ? ',' + rgba[3] : '');
+    } else if (probe != null) {
+      value = probe; exact = true;                     // Python answered for this pixel
+      vTxt = `  v:${fmtExactVal(value)}`;
+    } else if (pv) {
+      value = pv.value; exact = pv.step === 0;         // step 0 ⇒ invertible codes
+      vTxt = `  v:${exact ? fmtExactVal(value) : fmtPixVal(value)}`;
+    }
+    const text = (showPhys
+      ? `x:${fmtVal(physX)} y:${fmtVal(physY)}${units ? ' ' + units : ''}  [${px}, ${py}]`
+      : `x:${px}  y:${py}`) + vTxt;
+    return { panel_id: p.id, img_x: ix, img_y: iy, col: px, row: py,
+             xdata: physX, ydata: physY, units, value, exact, rgba, text };
+  }
+
+  // Hand the readout to an embedding host so it can render the position/value in its
+  // OWN chrome — e.g. a status line in the corner of an Electron window, where it
+  // covers nothing — instead of (or as well as) the overlay pill: mount()'s
+  // opts.onReadout(info) plus an `apl:readout` CustomEvent bubbling off the figure
+  // root. `info` is null when the cursor leaves the image so the host can clear.
+  // Fires regardless of readout_visible — that is what makes "hide the built-in bar
+  // and draw it myself" work. Deduped by text so a host is not spammed at 60 Hz.
+  function _notifyReadout(p, info) {
+    const next = info ? info.text : '';
+    if (next === (p._readoutTxt || '')) return;
+    p._readoutTxt = next;
+    if (typeof onReadout === 'function') { try { onReadout(info); } catch (_) {} }
+    try {
+      el.dispatchEvent(new CustomEvent('apl:readout',
+        { detail: info, bubbles: true }));
+    } catch (_) {}
+  }
+
+  // Recompute the readout from the panel's last known cursor position: write the
+  // status bar (unless readout_visible is false) and notify the host. Called on every
+  // mousemove AND on every panel-state change — a probe answer landing under a
+  // stationary cursor must refresh the text. Returns the info (null ⇒ off-image).
+  function _updateStatus2d(p) {
+    const st = p.state;
+    if (!st || !p.statusBar) return null;
+    const imgW = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
+    const imgH = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
+    const [ix, iy] = _canvasToImg2d(p.mouseX, p.mouseY, st, imgW, imgH);
+    const info = _readoutInfo2d(p, st, ix, iy);
+    p.statusBar.textContent = info ? info.text : '';
+    // Hidden by Python (readout_visible) or by the viewer's `v` toggle.
+    p.statusBar.style.display =
+      (info && st.readout_visible !== false && !p.readoutHidden) ? 'block' : 'none';
+    _notifyReadout(p, info);
+    return info;
+  }
+
+  // Exact-value probe (on by default; st.probe_ms <= 0 disables it): once the cursor
+  // DWELLS on a pixel, ask Python for the true value there — the codes in the browser
+  // are 8-bit, Python has the array. One message per dwell, never per move, and never
+  // twice for the same pixel. The answer arrives as probe_x/probe_y/probe_value and
+  // _updateStatus2d swaps it in. When there is no kernel (static HTML, embedded page
+  // with no bridge) or it is busy, nothing arrives and the quantised value just stays.
+  function _armValueProbe(p, ix, iy) {
+    const st = p.state;
+    clearTimeout(p._probeT); p._probeT = 0;
+    if (!st) return;
+    const ms = st.probe_ms || 0;
+    if (ms <= 0 || st.is_rgb) return;          // RGB channels are already exact
+    if (!(ix >= 0 && iy >= 0 && ix < st.image_width && iy < st.image_height)) return;
+    const px = Math.floor(ix), py = Math.floor(iy);
+    if (st.probe_x === px && st.probe_y === py) return;   // already answered
+    const key = `${px},${py}`;
+    if (p._probeSent === key) return;                     // already asked, no answer yet
+    p._probeT = setTimeout(() => {
+      p._probeT = 0;
+      p._probeSent = key;
+      _emitEvent(p.id, 'value_probe', null,
+        { img_x: px, img_y: py, x: p.mouseX, y: p.mouseY });
+    }, ms);
+  }
+
   // Write single-channel R8 bytes into a device texture, (re)creating it if the size
   // changed. Returns the (possibly new) texture, or null if bytes are missing/short.
   function _gpuWriteR8(device, tex, texWH, iw, ih, bytes) {
@@ -4819,6 +5071,15 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         gpuBytesKey: p._gpuImg && String(p._gpuImg.bytesKey || '').slice(0, 24),
         gpu: p._gpu,
       };
+    };
+    // Test hook: the hover status-bar text for a panel (position + pixel value),
+    // plus whether it is currently shown — the bar is a plain div with no stable
+    // selector, so a test reads it through here after a mouse move.
+    globalThis.__apl_statusText = function (panelId) {
+      const p = panels.get(panelId);
+      if (!p || !p.statusBar) return null;
+      return { text: p.statusBar.textContent,
+               shown: p.statusBar.style.display !== 'none' };
     };
     // Tile debug: __apl_tileDebug(true) then pan/zoom, then __apl_tileDump() to read
     // the ring buffer of detail-tile decisions (detailUV vs FALLBACK->base) + the
@@ -7706,19 +7967,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
 
       const [ix,iy]=_canvasToImg2d(mx,my,st,imgW,imgH);
-      if(ix>=0&&ix<st.image_width&&iy>=0&&iy<st.image_height){
-        const xArr=st.x_axis||[], yArr=st.y_axis||[];
-        const iw=st.image_width, ih=st.image_height;
-        // For both imshow (centre arrays) and pcolormesh (edge arrays),
-        // ix/iw maps the pixel fraction into the axis array via binary search.
-        const physX=xArr.length>=2?_axisFracToVal(xArr,ix/iw):ix;
-        const physY=yArr.length>=2?_axisFracToVal(yArr,iy/ih):iy;
-        const units=st.units||'px';
-        const showPhys=xArr.length>=2||yArr.length>=2;
-        p.statusBar.textContent = showPhys
-          ? `x:${fmtVal(physX)} y:${fmtVal(physY)}${units?' '+units:''}  [${Math.floor(ix)}, ${Math.floor(iy)}]`
-          : `x:${Math.floor(ix)}  y:${Math.floor(iy)}`;
-        p.statusBar.style.display='block';
+      // Position + pixel value → the status bar and/or the embedding host, then arm
+      // the dwell probe that upgrades the value to full precision.
+      p._hoverIn = true;
+      const info = _updateStatus2d(p);
+      _armValueProbe(p, ix, iy);
+      if(info){
         const mhit=_markerHitTest2d(mx,my,st,imgW,imgH);
         const newSi=mhit?mhit.si:-1;
         if(newSi!==p._hoverSi){
@@ -7727,7 +7981,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         }
         if(mhit&&(mhit.collectionLabel||mhit.markerLabel)){const parts=[];if(mhit.collectionLabel)parts.push(mhit.collectionLabel);if(mhit.markerLabel)parts.push(mhit.markerLabel);_showTooltip(parts.join('\n'),e.clientX,e.clientY);settled.clear();return;}
         tooltip.style.display='none';
-      } else { p.statusBar.style.display='none'; tooltip.style.display='none';
+      } else { tooltip.style.display='none';
         if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
       }
       settled.arm(mx, my, e, () => {
@@ -7746,8 +8000,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     });
     overlayCanvas.addEventListener('mouseleave',(e)=>{
       settled.clear();
+      clearTimeout(p._probeT); p._probeT=0;
       _emitEvent(p.id,'pointer_leave',null,{..._pointerFields(e),x:e.offsetX,y:e.offsetY});
+      p._hoverIn=false;
       p.statusBar.style.display='none';tooltip.style.display='none';
+      _notifyReadout(p, null);       // host clears its own readout too
       if(p._hoverSi!==-1){p._hoverSi=-1;p._hoverI=-1;drawMarkers2d(p,null);}
     });
     overlayCanvas.addEventListener('dblclick',(e)=>{
@@ -7833,8 +8090,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     },{passive:true});
 
     // Keyboard shortcuts
-    // Built-ins: r=reset zoom, c=colorbar toggle, l=log scale, s=symlog scale.
-    // All keys are forwarded to Python unconditionally.
+    // Built-ins: r=reset zoom, c=colorbar toggle, l=log scale, s=symlog scale,
+    // v=hover-readout toggle. All keys are forwarded to Python unconditionally.
     overlayCanvas.addEventListener('keydown',(e)=>{
       const st=p.state; if(!st) return;
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
@@ -7869,6 +8126,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if(key==='s'){
         st.scale_mode=st.scale_mode==='symlog'?'linear':'symlog';
         draw2d(p); model.set(`panel_${p.id}_json`,_viewStateJson(p)); model.save_changes();
+        e.stopPropagation(); e.preventDefault();
+      } else if(key==='v'){
+        // Local show/hide of the on-image readout. Held on the PANEL rather than in
+        // the state: a Python push (a movie scrub pushes every frame) must not undo
+        // the viewer's toggle, and hover chrome has no business in the exported
+        // state. set_readout_visible(False) from Python still hides it; pressing v
+        // again re-shows it. The payload keeps flowing to an embedding host either
+        // way (see _notifyReadout), so this only governs the pill.
+        p.readoutHidden = !p.readoutHidden;
+        _updateStatus2d(p);
         e.stopPropagation(); e.preventDefault();
       }
     });
@@ -10052,6 +10319,13 @@ export function createLocalModel(initialState) {
 //   opts.onResize({width,height}) — fired (debounced) when the ROOT CONTAINER
 //                             el resizes, so the host can relayout the figure
 //                             to its new box (e.g. call handle.resize(w,h)).
+//   opts.onReadout(info)    — 2-D hover readout: {panel_id, img_x, img_y, col, row,
+//                             xdata, ydata, units, value, exact, rgba, text}, or
+//                             null when the cursor leaves the image. Render it in
+//                             your own chrome (e.g. a status line in the window
+//                             corner) and call Plot2D.set_readout_visible(False) to
+//                             drop the on-image pill. The same payload also arrives
+//                             as an `apl:readout` CustomEvent bubbling off `el`.
 export function mount(el, state, opts) {
   // Diagnostic marker: proves THIS (WebGPU-2D) build of figure_esm.js is loaded.
   try { globalThis.__apl_build = 'webgpu-2d'; } catch (_) {}
@@ -10070,7 +10344,8 @@ export function mount(el, state, opts) {
   // panel map + drawing helpers (exportPNG / GPU dispose).  opts.onResize (if
   // given) is fired with {width,height} when the ROOT CONTAINER resizes, so an
   // embedding host can relayout the figure to its new box.
-  const api = render({ model, el, onResize: o.onResize }) || {};
+  const api = render({ model, el,
+                       onResize: o.onResize, onReadout: o.onReadout }) || {};
   return {
     model,
     api,               // internal render() API (panels, calloutCanvas, _drawCallouts, …)

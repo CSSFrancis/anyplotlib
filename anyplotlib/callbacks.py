@@ -43,6 +43,7 @@ class Event:
         button         — 0=left 1=middle 2=right; None on move/enter/leave/settled
         buttons        — bitmask of currently held buttons
         xdata, ydata   — data-space coordinates (None for Plot3D)
+        img_x, img_y   — Plot2D/PlotMesh: position in IMAGE PIXELS (column, row; row 0 at the top, origin already applied), so a handler can index the source array directly. None on other plot types.
         ray            — Plot3D only: {"origin": [...], "direction": [...]}
         line_id        — Plot1D only: set when pointer is over a line
         dwell_ms       — pointer_settled only: actual dwell time
@@ -80,6 +81,9 @@ class Event:
     buttons: int = 0
     xdata: float | None = None
     ydata: float | None = None
+    # Image-pixel position (2-D panels): column/row into the displayed frame.
+    img_x: float | None = None
+    img_y: float | None = None
     ray: dict | None = None
     line_id: str | None = None
     dwell_ms: float | None = None

@@ -10,7 +10,8 @@ import numpy as np
 
 from anyplotlib.markers import MarkerRegistry
 from anyplotlib.plot2d._plot2d import Plot2D
-from anyplotlib._utils import _normalize_image, _build_colormap_lut, _resample_mesh
+from anyplotlib._utils import (_normalize_image, _build_colormap_lut,
+                               _resample_mesh, _codes_are_int)
 
 
 class PlotMesh(Plot2D):
@@ -90,6 +91,10 @@ class PlotMesh(Plot2D):
         resampled = _resample_mesh(data, xe, ye)
         img_u8, vmin, vmax = _normalize_image(resampled)
         self._raw_u8, self._raw_vmin, self._raw_vmax = img_u8, vmin, vmax
+        # The resampled grid IS the displayed frame (one texel per cell), so it is
+        # what `.data` reads back and what the hover probe looks values up in —
+        # leaving the previous frame here would answer both with stale values.
+        self._data = resampled
 
         self._state.update({
             "image_b64":      self._encode_pixels("image_b64", img_u8),
@@ -101,7 +106,12 @@ class PlotMesh(Plot2D):
             "display_max":    vmax,
             "raw_min":        vmin,
             "raw_max":        vmax,
+            "raw_is_int":     _codes_are_int(resampled),
             "colormap_data":  _build_colormap_lut(self._state["colormap_name"]),
+            # A new frame invalidates any exact value answered for the old one.
+            "probe_x":        None,
+            "probe_y":        None,
+            "probe_value":    None,
         })
         if units is not None:
             self._state["units"] = units
