@@ -1,0 +1,6 @@
+Fixed a tiled :meth:`~anyplotlib.Axes.imshow` of a **signed** integer frame
+displaying wrapped values — a ``uint32`` accumulator in the overview box-mean read
+an ``int16`` ``-100`` as ``+1073741696``, raised
+``_UFuncOutputCastingError`` on a non-divisible grid, and overflowed on any dtype
+wider than 16 bits; the accumulator is now sized to the data, which also makes the
+overview up to 4x faster on large float frames.
