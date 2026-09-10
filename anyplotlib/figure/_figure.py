@@ -829,6 +829,51 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         payload.update(fields)
         self.event_json = json.dumps(payload)
 
+    #: State keys the JS renderer mutates in response to user interaction, and
+    #: writes back onto ``panel_<id>_json``.  Nothing on the Python side reads
+    #: that trait — ``_push`` re-serialises from ``plot._state`` and overwrites
+    #: it — so a snapshot would otherwise capture the view the plot was
+    #: *created* with rather than the one the viewer is looking at.  Derived by
+    #: enumerating every ``st.<key> =`` / ``p.state.<key> =`` assignment in
+    #: ``figure_esm.js``; keep the two in step when adding an interaction.
+    #: Deliberately excludes ``display_min``/``display_max`` (contrast is
+    #: Python-authoritative — the JS never writes it) and the renderer's own
+    #: transient bookkeeping (``detail_*``, ``gpu_mode``).
+    _JS_VIEW_KEYS = frozenset({
+        "zoom", "center_x", "center_y",   # 2-D wheel / pan / 'r'; 3-D wheel
+        "scale_mode",                     # 2-D 'l' / 's'
+        "show_colorbar",                  # 2-D 'c'
+        "view_x0", "view_x1",             # 1-D drag / 'r'
+        "azimuth", "elevation",           # 3-D orbit
+    })
+
+    def _reconcile_js_view_state(self) -> None:
+        """Merge viewer-driven view changes back into each plot's ``_state``.
+
+        Interactions like zoom, pan and orbit live in the browser and are
+        written to ``panel_<id>_json``; Python has no observer on those traits,
+        so without this pass every export path (``save_html``, ``to_html``,
+        ``figure_state``, ``savefig``) would silently reset the view.
+
+        Only :attr:`_JS_VIEW_KEYS` is merged — the trait carries the plot's
+        whole state, and the rest of it is Python-authoritative.  Malformed or
+        missing traits are skipped rather than raised on: a snapshot must never
+        fail because one panel has not rendered yet.
+        """
+        for panel_id, plot in self._plots_map.items():
+            trait = f"panel_{panel_id}_json"
+            if not self.has_trait(trait):
+                continue
+            try:
+                live = json.loads(getattr(self, trait) or "{}")
+                if not isinstance(live, dict):
+                    continue
+                for key in self._JS_VIEW_KEYS:
+                    if key in live and key in plot._state:
+                        plot._state[key] = live[key]
+            except Exception:
+                continue
+
     def _sync_for_export(self) -> None:
         """Refresh every panel trait so a snapshot sees current widget state.
 
@@ -851,6 +896,7 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         materialisation the caller did beforehand.  An export always ships real
         pixels.
         """
+        self._reconcile_js_view_state()
         for panel_id in list(self._plots_map):
             self._push(panel_id, resolve_pixels=True)
 
@@ -912,6 +958,57 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         """Write :meth:`to_html` output to *path*; returns the ``Path``."""
         from anyplotlib.embed import save_html
         return save_html(self, path, resizable=resizable)
+
+    def savefig(self, path, *, source: str = "view", theme: str = "current",
+                scale: float = 1, include_widgets: bool = True,
+                panel=None, timeout_ms: int = 30_000):
+        """Write this figure to *path* as a PNG; returns the ``Path``.
+
+        Rendering happens in a headless browser, because the renderer is the
+        JavaScript one — so the output is pixel-for-pixel what the figure looks
+        like on screen, including the viewer's current zoom, pan and contrast.
+        Requires Playwright (``pip install "anyplotlib[docs]"`` then
+        ``playwright install chromium``).
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Destination file.  Written as PNG regardless of the suffix.
+        source : ``"view"`` | ``"full"`` | ``"native"``, optional
+            ``"view"`` (default) captures the figure as displayed.  ``"full"``
+            resets the zoom so the whole data extent is shown, at the panel's
+            on-screen resolution.  ``"native"`` renders ONE image panel at one
+            output pixel per data pixel, with its axes, colorbar, title,
+            markers and widgets redrawn at that size — for a tiled plot the
+            full array is re-encoded from the backend for the export only.
+        theme : ``"current"`` | ``"light"`` | ``"dark"``, optional
+            Palette to render with, independent of the ambient theme.
+        scale : float, optional
+            Extra resolution multiplier for ``"view"``/``"full"``.  Ignored by
+            ``"native"``, which is already 1:1 with the data.
+        include_widgets : bool, optional
+            Draw interactive overlay widgets (without their drag handles).
+            Default ``True``.
+        panel : Plot or str, optional
+            Export just this panel (a plot object or its panel id) instead of
+            the whole figure.  Required for ``source="native"`` unless the
+            figure has exactly one 2-D panel.
+        timeout_ms : int, optional
+            How long to wait for the page to render.  Default 30 s.
+
+        Returns
+        -------
+        pathlib.Path
+            The path written.
+
+        See Also
+        --------
+        save_html : interactive, self-contained HTML instead of a raster.
+        """
+        from anyplotlib._export import savefig
+        return savefig(self, path, source=source, theme=theme, scale=scale,
+                       include_widgets=include_widgets, panel=panel,
+                       timeout_ms=timeout_ms)
 
     def close(self) -> None:
         """Close the figure.
