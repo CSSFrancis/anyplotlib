@@ -172,16 +172,16 @@
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="index.html">
-    API Reference
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../exporting.html">
+    Exporting images
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../auto_examples/index.html">
-    Examples
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    API Reference
   </a>
 </li>
 
@@ -193,6 +193,13 @@
                 </button>
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../auto_examples/Benchmarks/plot_benchmark_comparison.html">
     Performance
@@ -314,6 +321,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../embedding.html">
     Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../exporting.html">
+    Exporting images
   </a>
 </li>
 
@@ -822,6 +836,52 @@ Python sync via <code class="docutils literal notranslate"><span class="pre">Fig
 <dd class="field-odd"><p><strong>resizable</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">savefig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'view'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'current'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_widgets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">panel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout_ms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/figure/_figure.html#Figure.savefig"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Write this figure to <em>path</em> as a PNG; returns the <code class="docutils literal notranslate"><span class="pre">Path</span></code>.</p>
+<p>Rendering happens in a headless browser, because the renderer is the
+JavaScript one — so the output is pixel-for-pixel what the figure looks
+like on screen, including the viewer’s current zoom, pan and contrast.
+Requires Playwright (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;anyplotlib[docs]&quot;</span></code> then
+<code class="docutils literal notranslate"><span class="pre">playwright</span> <span class="pre">install</span> <span class="pre">chromium</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Destination file.  Written as PNG regardless of the suffix.</p></li>
+<li><p><strong>source</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;view&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>, optional) – <code class="docutils literal notranslate"><span class="pre">&quot;view&quot;</span></code> (default) captures the figure as displayed.  <code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code>
+resets the zoom so the whole data extent is shown, at the panel’s
+on-screen resolution.  <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code> renders ONE image panel at one
+output pixel per data pixel, with its axes, colorbar, title,
+markers and widgets redrawn at that size — for a tiled plot the
+full array is re-encoded from the backend for the export only.</p></li>
+<li><p><strong>theme</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;current&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;light&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;dark&quot;</span></code>, optional) – Palette to render with, independent of the ambient theme.</p></li>
+<li><p><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Extra resolution multiplier for <code class="docutils literal notranslate"><span class="pre">&quot;view&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code>.  Ignored by
+<code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>, which is already 1:1 with the data.</p></li>
+<li><p><strong>include_widgets</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Draw interactive overlay widgets (without their drag handles).
+Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>panel</strong> (<em>Plot</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Export just this panel (a plot object or its panel id) instead of
+the whole figure.  Required for <code class="docutils literal notranslate"><span class="pre">source=&quot;native&quot;</span></code> unless the
+figure has exactly one 2-D panel.</p></li>
+<li><p><strong>timeout_ms</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – How long to wait for the page to render.  Default 30 s.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The path written.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)">pathlib.Path</a></p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_html</span></code></dt><dd><p>interactive, self-contained HTML instead of a raster.</p>
+</dd>
+</dl>
+</div>
 </dd></dl>
 
 <dl class="py method">

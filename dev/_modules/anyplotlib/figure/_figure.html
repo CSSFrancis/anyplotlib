@@ -170,15 +170,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api/index.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../exporting.html">
+    Exporting images
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../api/index.html">
+    API Reference
   </a>
 </li>
 
@@ -190,6 +190,13 @@
                 </button>
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../../../auto_examples/Benchmarks/plot_benchmark_comparison.html">
     Performance
@@ -309,6 +316,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../embedding.html">
     Embedding outside Jupyter
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../exporting.html">
+    Exporting images
   </a>
 </li>
 
@@ -1284,6 +1298,51 @@
         <span class="n">payload</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">event_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
 
+    <span class="c1">#: State keys the JS renderer mutates in response to user interaction, and</span>
+    <span class="c1">#: writes back onto ``panel_&lt;id&gt;_json``.  Nothing on the Python side reads</span>
+    <span class="c1">#: that trait — ``_push`` re-serialises from ``plot._state`` and overwrites</span>
+    <span class="c1">#: it — so a snapshot would otherwise capture the view the plot was</span>
+    <span class="c1">#: *created* with rather than the one the viewer is looking at.  Derived by</span>
+    <span class="c1">#: enumerating every ``st.&lt;key&gt; =`` / ``p.state.&lt;key&gt; =`` assignment in</span>
+    <span class="c1">#: ``figure_esm.js``; keep the two in step when adding an interaction.</span>
+    <span class="c1">#: Deliberately excludes ``display_min``/``display_max`` (contrast is</span>
+    <span class="c1">#: Python-authoritative — the JS never writes it) and the renderer&#39;s own</span>
+    <span class="c1">#: transient bookkeeping (``detail_*``, ``gpu_mode``).</span>
+    <span class="n">_JS_VIEW_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
+        <span class="s2">&quot;zoom&quot;</span><span class="p">,</span> <span class="s2">&quot;center_x&quot;</span><span class="p">,</span> <span class="s2">&quot;center_y&quot;</span><span class="p">,</span>   <span class="c1"># 2-D wheel / pan / &#39;r&#39;; 3-D wheel</span>
+        <span class="s2">&quot;scale_mode&quot;</span><span class="p">,</span>                     <span class="c1"># 2-D &#39;l&#39; / &#39;s&#39;</span>
+        <span class="s2">&quot;show_colorbar&quot;</span><span class="p">,</span>                  <span class="c1"># 2-D &#39;c&#39;</span>
+        <span class="s2">&quot;view_x0&quot;</span><span class="p">,</span> <span class="s2">&quot;view_x1&quot;</span><span class="p">,</span>             <span class="c1"># 1-D drag / &#39;r&#39;</span>
+        <span class="s2">&quot;azimuth&quot;</span><span class="p">,</span> <span class="s2">&quot;elevation&quot;</span><span class="p">,</span>           <span class="c1"># 3-D orbit</span>
+    <span class="p">})</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reconcile_js_view_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge viewer-driven view changes back into each plot&#39;s ``_state``.</span>
+
+<span class="sd">        Interactions like zoom, pan and orbit live in the browser and are</span>
+<span class="sd">        written to ``panel_&lt;id&gt;_json``; Python has no observer on those traits,</span>
+<span class="sd">        so without this pass every export path (``save_html``, ``to_html``,</span>
+<span class="sd">        ``figure_state``, ``savefig``) would silently reset the view.</span>
+
+<span class="sd">        Only :attr:`_JS_VIEW_KEYS` is merged — the trait carries the plot&#39;s</span>
+<span class="sd">        whole state, and the rest of it is Python-authoritative.  Malformed or</span>
+<span class="sd">        missing traits are skipped rather than raised on: a snapshot must never</span>
+<span class="sd">        fail because one panel has not rendered yet.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">panel_id</span><span class="p">,</span> <span class="n">plot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">trait</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;panel_</span><span class="si">{</span><span class="n">panel_id</span><span class="si">}</span><span class="s2">_json&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_trait</span><span class="p">(</span><span class="n">trait</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">live</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trait</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">live</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_JS_VIEW_KEYS</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">live</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">plot</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span>
+                        <span class="n">plot</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">live</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">continue</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_sync_for_export</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Refresh every panel trait so a snapshot sees current widget state.</span>
 
@@ -1306,6 +1365,7 @@
 <span class="sd">        materialisation the caller did beforehand.  An export always ships real</span>
 <span class="sd">        pixels.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reconcile_js_view_state</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">panel_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">(</span><span class="n">panel_id</span><span class="p">,</span> <span class="n">resolve_pixels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -1375,6 +1435,60 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Write :meth:`to_html` output to *path*; returns the ``Path``.&quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.embed</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_html</span>
         <span class="k">return</span> <span class="n">save_html</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">resizable</span><span class="o">=</span><span class="n">resizable</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Figure.savefig">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.savefig">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">savefig</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;view&quot;</span><span class="p">,</span> <span class="n">theme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;current&quot;</span><span class="p">,</span>
+                <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">include_widgets</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="n">panel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30_000</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write this figure to *path* as a PNG; returns the ``Path``.</span>
+
+<span class="sd">        Rendering happens in a headless browser, because the renderer is the</span>
+<span class="sd">        JavaScript one — so the output is pixel-for-pixel what the figure looks</span>
+<span class="sd">        like on screen, including the viewer&#39;s current zoom, pan and contrast.</span>
+<span class="sd">        Requires Playwright (``pip install &quot;anyplotlib[docs]&quot;`` then</span>
+<span class="sd">        ``playwright install chromium``).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or pathlib.Path</span>
+<span class="sd">            Destination file.  Written as PNG regardless of the suffix.</span>
+<span class="sd">        source : ``&quot;view&quot;`` | ``&quot;full&quot;`` | ``&quot;native&quot;``, optional</span>
+<span class="sd">            ``&quot;view&quot;`` (default) captures the figure as displayed.  ``&quot;full&quot;``</span>
+<span class="sd">            resets the zoom so the whole data extent is shown, at the panel&#39;s</span>
+<span class="sd">            on-screen resolution.  ``&quot;native&quot;`` renders ONE image panel at one</span>
+<span class="sd">            output pixel per data pixel, with its axes, colorbar, title,</span>
+<span class="sd">            markers and widgets redrawn at that size — for a tiled plot the</span>
+<span class="sd">            full array is re-encoded from the backend for the export only.</span>
+<span class="sd">        theme : ``&quot;current&quot;`` | ``&quot;light&quot;`` | ``&quot;dark&quot;``, optional</span>
+<span class="sd">            Palette to render with, independent of the ambient theme.</span>
+<span class="sd">        scale : float, optional</span>
+<span class="sd">            Extra resolution multiplier for ``&quot;view&quot;``/``&quot;full&quot;``.  Ignored by</span>
+<span class="sd">            ``&quot;native&quot;``, which is already 1:1 with the data.</span>
+<span class="sd">        include_widgets : bool, optional</span>
+<span class="sd">            Draw interactive overlay widgets (without their drag handles).</span>
+<span class="sd">            Default ``True``.</span>
+<span class="sd">        panel : Plot or str, optional</span>
+<span class="sd">            Export just this panel (a plot object or its panel id) instead of</span>
+<span class="sd">            the whole figure.  Required for ``source=&quot;native&quot;`` unless the</span>
+<span class="sd">            figure has exactly one 2-D panel.</span>
+<span class="sd">        timeout_ms : int, optional</span>
+<span class="sd">            How long to wait for the page to render.  Default 30 s.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pathlib.Path</span>
+<span class="sd">            The path written.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        save_html : interactive, self-contained HTML instead of a raster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._export</span><span class="w"> </span><span class="kn">import</span> <span class="n">savefig</span>
+        <span class="k">return</span> <span class="n">savefig</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">theme</span><span class="o">=</span><span class="n">theme</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+                       <span class="n">include_widgets</span><span class="o">=</span><span class="n">include_widgets</span><span class="p">,</span> <span class="n">panel</span><span class="o">=</span><span class="n">panel</span><span class="p">,</span>
+                       <span class="n">timeout_ms</span><span class="o">=</span><span class="n">timeout_ms</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Figure.close">
