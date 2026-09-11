@@ -624,7 +624,7 @@ class TestViews:
 
         page.evaluate(
             """async (id) => {
-              document.querySelector(`#apl-views-${id} button[data-block="eyy"]`).click();
+              document.querySelector(`#apl-views-${id} button[data-view="1"]`).click();
               await new Promise((r) => requestAnimationFrame(r));
               await new Promise((r) => requestAnimationFrame(r));
             }""",
@@ -635,7 +635,7 @@ class TestViews:
         pressed = page.evaluate(
             f"() => [...document.querySelectorAll('#apl-views-{panel_id} button')]"
             "        .filter((button) => button.getAttribute('aria-pressed') === 'true')"
-            "        .map((button) => button.dataset.block)")
+            "        .map((button) => button.textContent)")
         assert pressed == ["eyy"]
 
 

@@ -205,19 +205,26 @@ page), ``"driven"`` (it is refreshed on every dispatch) or ``"static"``.
 ``widgets``            Optional ``overlay_widgets`` entries to install on it.
 ``frame``              ``{block, kind}`` — ``"image"`` blits the block's frame,
                        ``"disks"`` splats a ragged block's rows as filled disks
-                       (``radius``, ``combine``).  ``levels`` fixes the display
-                       window; without it each frame gets a robust 2–98 %
-                       window of its own.
+                       (``radius``, ``combine``), ``"points3d"`` loads a dense
+                       ``(M, 3)`` float32 cloud onto a 3-D panel with a dense
+                       ``(M, 3)`` or ``(M, 4)`` uint8 ``colors`` block.
+                       ``levels`` fixes the display window; without it each
+                       frame gets a robust 2–98 % window of its own.
 ``overlays``           ``[{block, kind, style, columns}]`` — ``"circles"``,
                        ``"arrows"`` and ``"lines"`` become markers on a 2-D
-                       panel, ``"curves"`` becomes an extra line on a 1-D one.
+                       panel, ``"curves"`` becomes an extra line on a 1-D one,
+                       and ``"highlight"`` marks one point on a 3-D panel from
+                       a dense ``(nav…, 3)`` or one-row-per-position ragged
+                       block.  ``face_camera: true`` on a ``"highlight"`` entry
+                       turns the sphere to face the marked point; without it the
+                       reader's own orbit is kept.
                        ``style`` keys are the ones ``MarkerGroup.to_wire``
                        emits; ``columns`` renames the block's columns when they
                        are not ``x``/``y`` (and ``u``/``v``, ``x1``…``y2``).
 ``reduce``             ``{block, navigator_panel}`` — a detector widget on this
                        panel re-maps the navigator (see below).  For a ragged
                        block, name the ``x``, ``y`` and ``value`` columns.
-``views``              ``[{label, block}]`` — a committed result's alternative
+``views``              ``[{label, block, colors}]`` — a committed result's alternative
                        frames (a strain map's εxx, εyy, εxy, ω).  The page
                        renders a segmented control that swaps which block the
                        panel's frame is read from, at whatever position the
@@ -231,6 +238,21 @@ page), ``"driven"`` (it is refreshed on every dispatch) or ``"static"``.
 raster is splatted into; they default to the panel's own image size.  A
 navigator binding takes ``initial_index`` to open somewhere other than the
 origin.
+
+How an orientation map flows through it
+---------------------------------------
+
+The map panel carries a ``views`` entry per direction, so the segmented control
+swaps which orientation map is shown without moving the navigator.  A 2-D
+inverse-pole-figure scatter beside it takes a ``"circles"`` overlay of one row
+per position, which marks the picked orientation.  The 3-D sphere takes the
+cloud as its ``"points3d"`` frame (one ``views`` entry per direction, each with
+its own per-point colours) and a ``"highlight"`` overlay of the picked
+direction; with ``face_camera: true`` the sphere also turns so the marked point
+comes to the centre, using the same rule the live view does —
+``elevation = asin(z)``, ``azimuth = atan2(x, -y)``, which is not any angle
+pointing that way: ``atan2(y, x) - 90`` names the same direction half a turn
+out and lands the point on the far edge.
 
 How a virtual image flows through it
 ------------------------------------
