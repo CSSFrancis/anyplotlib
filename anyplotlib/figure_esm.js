@@ -416,6 +416,15 @@ function render({ model, el, onResize, onReadout }) {
       for (const k in prev) {
         if (k.endsWith('_bytes') && next[k] === undefined) next[k] = prev[k];
       }
+      // A live binary frame (setImage, or a PLOTBIN push) is drawn from
+      // `image_b64_bytes`, and the token in `image_b64` is the cache key for
+      // exactly those bytes. A geom push carrying base64 would replace the key
+      // while the bytes stay, freezing the display on whatever was last drawn.
+      // A push with its own token is newer and wins.
+      if (typeof prev.image_b64 === 'string' && prev.image_b64.startsWith('\u0000bin:')
+          && next.image_b64_bytes
+          && !(typeof next.image_b64 === 'string' && next.image_b64.startsWith('\u0000bin:')))
+        next.image_b64 = prev.image_b64;
       p2._geomCache = next;
       p2._geomRev = rev;
     } catch (_) {}
@@ -11125,16 +11134,58 @@ export function mount(el, state, opts) {
   // several frames handed over inside one task repaint once, showing the last.
   // Without this a scrub pays the full LUT blit per frame on the caller's
   // thread, which is the cost the binary path exists to avoid.
-  const pendingImages = new Map();      // panel id → model token for the slot
+  const pendingImages = new Map();      // panel id → the frame to paint next
   let imageFrameRequest = null;
-  let imageSequence = 0;
 
   function commitImages() {
     imageFrameRequest = null;
     const frames = [...pendingImages];
     pendingImages.clear();
-    for (const [panelId, token] of frames)
-      model.applyRemote(`panel_${panelId}_geom::image_b64`, token);
+    for (const [panelId, frame] of frames) {
+      const panel = api.panels && api.panels.get(panelId);
+      if (!panel) continue;
+      // Geometry is patched HERE rather than at push time so it lands in the
+      // same task as the bytes it describes: a frame of a new size would
+      // otherwise paint once at the new dimensions over the previous bytes.
+      const patch = imagePatch(panel.state || {}, frame);
+      if (Object.keys(patch).length) handle.patchPanel(panelId, patch);
+      const slot = `panel_${panelId}_geom::image_b64`;
+      const table = globalThis.__apl_pixbytes || (globalThis.__apl_pixbytes = {});
+      table[slot] = frame.bytes;
+      // The blit cache keys on the geom's image_b64 string, so a frame pushed
+      // under an unchanged key would never reach the canvas. The counter is
+      // per DOCUMENT, not per handle: the side table is global and panel ids
+      // repeat across figures of the same layout.
+      const sequence = (globalThis.__apl_pixseq = (globalThis.__apl_pixseq || 0) + 1);
+      if (!panel._geomCache) panel._geomCache = {};
+      panel._geomCache.image_b64 = `\u0000bin:${sequence}`;
+      model.applyRemote(slot, `${frame.bytes.length}:${sequence}`);
+    }
+  }
+
+  // The state fields a pushed frame implies, limited to the ones that differ.
+  function imagePatch(current, frame) {
+    const patch = {};
+    if (current.image_width !== frame.width) patch.image_width = frame.width;
+    if (current.image_height !== frame.height) patch.image_height = frame.height;
+    if (!!current.is_rgb !== frame.rgb) patch.is_rgb = frame.rgb;
+    // These bytes are the whole frame, so any overview/tile geometry the panel
+    // was built with no longer describes them.
+    if (current.base_width) patch.base_width = 0;
+    if (current.base_height) patch.base_height = 0;
+    if (current.tile_enabled) patch.tile_enabled = false;
+    if (current.detail_b64) patch.detail_b64 = '';
+    // display_* is the colour window; raw_* is the band the codes span. The
+    // caller hands over codes already mapped to its window, so they agree.
+    if (frame.displayMin !== undefined && current.display_min !== frame.displayMin) {
+      patch.display_min = frame.displayMin;
+      patch.raw_min = frame.displayMin;
+    }
+    if (frame.displayMax !== undefined && current.display_max !== frame.displayMax) {
+      patch.display_max = frame.displayMax;
+      patch.raw_max = frame.displayMax;
+    }
+    return patch;
   }
 
   function flushImages() {
@@ -11143,7 +11194,7 @@ export function mount(el, state, opts) {
     imageFrameRequest = null;
   }
 
-  return {
+  const handle = {
     model,
     api,               // internal render() API (panels, calloutCanvas, _drawCallouts, …)
     get(key) { return model.get(key); },
@@ -11191,36 +11242,10 @@ export function mount(el, state, opts) {
         throw new Error(`setImage: expected ${expected} bytes for ${width}x${height}` +
                         `${rgb ? ' RGBA' : ''}, got ${bytes ? bytes.length : 0}`);
 
-      const current = panel.state || {};
-      const patch = {};
-      if (current.image_width !== width) patch.image_width = width;
-      if (current.image_height !== height) patch.image_height = height;
-      if (!!current.is_rgb !== rgb) patch.is_rgb = rgb;
-      // These bytes are the whole frame, so any overview/tile geometry the
-      // panel was built with no longer describes them.
-      if (current.base_width) patch.base_width = 0;
-      if (current.base_height) patch.base_height = 0;
-      if (current.tile_enabled) patch.tile_enabled = false;
-      if (current.detail_b64) patch.detail_b64 = '';
-      // display_* is the colour window; raw_* is the band the codes span. The
-      // caller hands over codes already mapped to its window, so they agree.
-      if (settings.display_min !== undefined && current.display_min !== settings.display_min) {
-        patch.display_min = settings.display_min;
-        patch.raw_min = settings.display_min;
-      }
-      if (settings.display_max !== undefined && current.display_max !== settings.display_max) {
-        patch.display_max = settings.display_max;
-        patch.raw_max = settings.display_max;
-      }
-      if (Object.keys(patch).length) this.patchPanel(panelId, patch);
-
-      const table = globalThis.__apl_pixbytes || (globalThis.__apl_pixbytes = {});
-      table[`panel_${panelId}_geom::image_b64`] = bytes;
-      // The blit cache keys on the geom's image_b64 string, so a frame pushed
-      // under an unchanged key would never reach the canvas.
-      if (!panel._geomCache) panel._geomCache = {};
-      panel._geomCache.image_b64 = `\u0000bin:${++imageSequence}`;
-      pendingImages.set(panelId, `${bytes.length}:${imageSequence}`);
+      pendingImages.set(panelId, {
+        bytes, width, height, rgb,
+        displayMin: settings.display_min, displayMax: settings.display_max,
+      });
       if (imageFrameRequest === null)
         imageFrameRequest = requestAnimationFrame(commitImages);
     },
@@ -11281,6 +11306,7 @@ export function mount(el, state, opts) {
       model.off(); el.replaceChildren();
     },
   };
+  return handle;
 }
 
 
@@ -11323,7 +11349,7 @@ function blockArrayView(buffer, spec) {
 // `packed` is {data: base64 string, manifest: {name: entry}} as produced by
 // `anyplotlib.embed.pack_blocks`; every view aliases the same buffer, so
 // nothing is copied per block.
-export async function decodeBlocks(packed) {
+async function decodeBlocks(packed) {
   const manifest = (packed && packed.manifest) || {};
   const payload = (packed && packed.data) || '';
   const buffer = payload
@@ -11349,7 +11375,7 @@ export async function decodeBlocks(packed) {
 
 // Reader over a dense block whose LEADING dimensions are the navigation axes.
 // `at` returns a view (never a copy); `gather` and `reduce` return new arrays.
-export function dense(block) {
+function dense(block) {
   const shape = block.shape;
   const array = block.array;
 
@@ -11391,9 +11417,12 @@ export function dense(block) {
       return total;
     },
     // One value per navigation position: sum(frame * mask) over the signal
-    // grid.  `mask` is a Uint8Array covering the trailing dimensions.
+    // grid.  `mask` is a Uint8Array covering the trailing two dimensions.
     reduce(mask) {
-      const signalLength = mask.length;
+      const signalLength = shape[shape.length - 2] * shape[shape.length - 1];
+      if (mask.length !== signalLength)
+        throw new Error(`reduce: mask of ${mask.length} does not cover the ` +
+                        `${shape[shape.length - 2]}x${shape[shape.length - 1]} signal grid`);
       const selected = [];
       for (let i = 0; i < signalLength; i++) if (mask[i]) selected.push(i);
       const positions = Math.floor(array.length / signalLength);
@@ -11411,7 +11440,7 @@ export function dense(block) {
 
 // Reader over a ragged block: a row-pointer array plus one value array per
 // column, so each navigation position owns a variable number of rows.
-export function ragged(block) {
+function ragged(block) {
   const offsets = block.offsets;
   const columns = block.columns;
   const columnNames = Object.keys(columns);
@@ -11419,10 +11448,14 @@ export function ragged(block) {
 
   function flatPosition(index) {
     const parts = Array.isArray(index) ? index : [index];
+    if (parts.length !== navShape.length)
+      throw new Error(`ragged index of length ${parts.length} into a ` +
+                      `${navShape.length}-D navigation grid; pack the block ` +
+                      `with nav_shape if it has more than one axis`);
     let flat = 0;
     for (let axis = 0; axis < navShape.length; axis++) {
       const extent = navShape[axis];
-      const clamped = Math.max(0, Math.min(extent - 1, Math.round(parts[axis] || 0)));
+      const clamped = Math.max(0, Math.min(extent - 1, Math.round(parts[axis])));
       flat = flat * extent + clamped;
     }
     return flat;
@@ -11490,7 +11523,7 @@ export function ragged(block) {
 // rectangle, `distance <= r` for a circle, `r_inner <= distance <= r_outer`
 // for an annulus.  The returned array carries `width` and `height` so a
 // consumer can index it without being told the grid again.
-export function maskFromWidget(widget, width, height) {
+function maskFromWidget(widget, width, height) {
   const mask = new Uint8Array(width * height);
   mask.width = width;
   mask.height = height;
@@ -11530,7 +11563,7 @@ export function maskFromWidget(widget, width, height) {
 // Splat `{x, y, intensity}` rows as filled disks into a Float32 image.  This
 // is how a vectors panel gets a base image: `combine` is "max" for one
 // position's rows and "sum" when several positions were gathered.
-export function rasterDisks(rows, width, height, radius, combine) {
+function rasterDisks(rows, width, height, radius, combine) {
   const out = new Float32Array(width * height);
   const xs = rows.x, ys = rows.y;
   const intensity = rows.intensity || null;
@@ -11559,7 +11592,7 @@ export function rasterDisks(rows, width, height, radius, combine) {
 // `hi` are percentages; 0 and 100 return the exact extremes, anything between
 // is read off a 1024-bin histogram so the cost stays one pass over the data
 // rather than a sort.
-export function robustLevels(values, lo, hi) {
+function robustLevels(values, lo, hi) {
   const lowPercent = lo === undefined ? 2 : lo;
   const highPercent = hi === undefined ? 98 : hi;
   const BINS = 1024;
@@ -11598,9 +11631,9 @@ export function robustLevels(values, lo, hi) {
 }
 
 // Map values onto the 8-bit colormap codes the renderer blits.  Matches the
-// Python quantiser: clip into [0, 255], then truncate.  A non-finite value
-// becomes 0.
-export function toU8(values, vmin, vmax) {
+// Python quantiser: clip into [0, 255], then truncate.  An infinity saturates
+// at whichever end it lies past; a NaN fails every comparison and becomes 0.
+function toU8(values, vmin, vmax) {
   const out = new Uint8Array(values.length);
   const scale = 255 / ((vmax - vmin) || 1);
   for (let i = 0; i < values.length; i++) {
@@ -11650,10 +11683,28 @@ function reportEmbedHeight() {
 
 // ── dispatch ───────────────────────────────────────────────────────────────
 
+// Marker and extra-line groups the dispatch writes carry this prefix, so a
+// refresh can tell its own groups from the page's.
+const OVERLAY_ID_PREFIX = 'apl-overlay-';
+
 function indexList(index) {
   if (index === null || index === undefined) return [];
   if (Array.isArray(index)) return Array.isArray(index[0]) ? index : [index];
   return [[index]];
+}
+
+// A 1-D panel's x axis travels as base64 (`x_axis_b64`), and `draw1d` caches
+// the decoded copy on the panel, so read that and fall back to decoding.
+function panelAxis(panel) {
+  if (panel && panel._1dXArr && panel._1dXArr.length) return panel._1dXArr;
+  const state = (panel && panel.state) || {};
+  if (state.x_axis_b64) {
+    const binary = atob(state.x_axis_b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Float64Array(bytes.buffer);
+  }
+  return state.x_axis || [];
 }
 
 function nearestAxisIndex(axis, value) {
@@ -11699,8 +11750,12 @@ export async function mountNavigated(el, page, opts) {
     },
   }));
 
+  function panelFor(panelId) {
+    return (handle.api.panels && handle.api.panels.get(panelId)) || null;
+  }
+
   function panelState(panelId) {
-    const panel = handle.api.panels && handle.api.panels.get(panelId);
+    const panel = panelFor(panelId);
     return (panel && panel.state) || {};
   }
 
@@ -11729,13 +11784,35 @@ export async function mountNavigated(el, page, opts) {
         for (let column = firstColumn; column <= lastColumn; column++) indices.push([line, column]);
       return indices.length ? indices : [[firstLine, firstColumn]];
     }
-    if (widget.type === 'vline') return [nearestAxisIndex(state.x_axis, widget.x)];
-    if (widget.type === 'point') return [nearestAxisIndex(state.x_axis, widget.x)];
+    const axis = panelAxis(panelFor(binding.panel_id));
+    if (widget.type === 'vline' || widget.type === 'point')
+      return [nearestAxisIndex(axis, widget.x)];
+    // The span selector is the 1-D analogue of the rectangle: it selects a
+    // run of positions, and its own max_extent has already capped the drag.
+    if (widget.type === 'range') {
+      const first = nearestAxisIndex(axis, Math.min(widget.x0, widget.x1));
+      const last = nearestAxisIndex(axis, Math.max(widget.x0, widget.x1));
+      const indices = [];
+      for (let position = first; position <= last; position++) indices.push([position]);
+      return indices;
+    }
     return null;
   }
 
+  // Which block the panel's frame is read from. A `views` binding swaps it
+  // from the page's segmented control without moving the navigator.
+  const activeBlocks = new Map();
+
+  function frameBlock(binding) {
+    const chosen = activeBlocks.get(binding.panel_id);
+    if (chosen) return chosen;
+    if (binding.frame && binding.frame.block) return binding.frame.block;
+    if (binding.views && binding.views.length) return binding.views[0].block;
+    throw new Error(`binding for panel ${binding.panel_id} names no frame block`);
+  }
+
   function frameValues(binding, indices) {
-    const reader = readerFor(binding.frame.block);
+    const reader = readerFor(frameBlock(binding));
     const single = indices.length === 1;
     if (binding.frame.kind === 'disks') {
       const rows = single ? reader.at(indices[0]) : reader.gather(indices);
@@ -11747,13 +11824,25 @@ export async function mountNavigated(el, page, opts) {
                width, height };
     }
     const values = single ? reader.at(indices[0]) : reader.gather(indices);
-    const shape = blocks[binding.frame.block].shape;
+    const shape = blocks[frameBlock(binding)].shape;
     return { values, width: shape[shape.length - 1], height: shape[shape.length - 2] };
+  }
+
+  // The panel's own colour window when it has one: a window recomputed per
+  // frame both costs two passes over the data and makes the contrast jump
+  // between neighbouring positions, which reads as the data changing.
+  function frameLevels(binding, values) {
+    if (binding.frame && binding.frame.levels) return binding.frame.levels;
+    const state = panelState(binding.panel_id);
+    if (Number.isFinite(state.display_min) && Number.isFinite(state.display_max)
+        && state.display_max > state.display_min)
+      return [state.display_min, state.display_max];
+    return robustLevels(values, 2, 98);
   }
 
   function paintFrame(binding, indices) {
     const { values, width, height } = frameValues(binding, indices);
-    const levels = binding.frame.levels || robustLevels(values, 2, 98);
+    const levels = frameLevels(binding, values);
     handle.setImage(binding.panel_id, toU8(values, levels[0], levels[1]), width, height,
                     { display_min: levels[0], display_max: levels[1] });
   }
@@ -11807,6 +11896,15 @@ export async function mountNavigated(el, page, opts) {
     return wire;
   }
 
+  // Keep every group the figure was built with, replacing only the ones this
+  // runtime owns: a dispatch that assigned the list wholesale would wipe the
+  // page's own annotations on the first crosshair move.
+  function mergeOverlayGroups(existing, fresh) {
+    const kept = (existing || []).filter(
+      (group) => !String(group && group.id).startsWith(OVERLAY_ID_PREFIX));
+    return kept.concat(fresh);
+  }
+
   function paintOverlays(binding, indices) {
     const markers = [];
     const lines = [];
@@ -11818,9 +11916,10 @@ export async function mountNavigated(el, page, opts) {
       anyMarkers = true;
       markers.push(overlayWire(overlay, rows));
     }
+    const state = panelState(binding.panel_id);
     const patch = {};
-    if (anyMarkers) patch.markers = markers;
-    if (lines.length) patch.extra_lines = lines;
+    if (anyMarkers) patch.markers = mergeOverlayGroups(state.markers, markers);
+    if (lines.length) patch.extra_lines = mergeOverlayGroups(state.extra_lines, lines);
     if (Object.keys(patch).length) handle.patchPanel(binding.panel_id, patch);
   }
 
@@ -11844,14 +11943,26 @@ export async function mountNavigated(el, page, opts) {
     if (node) node.textContent = text;
   }
 
-  function paintChips(binding, indices) {
-    const parts = binding.chips.map((chip) => {
-      const reader = readerFor(chip.block);
-      const values = reader.at(indices[0]);
-      const value = values && values.length ? values[0] : NaN;
-      return `${chip.label} ${Number.isFinite(value) ? value.toPrecision(4) : '-'}`;
-    });
-    writeText(`apl-chips-${binding.panel_id}`, parts.join('   '));
+  // Wire the page's segmented control for a `views` binding: each button names
+  // a block, and picking one re-reads the panel's frame from it at the
+  // position the navigator is already on.
+  function installViews(binding) {
+    activeBlocks.set(binding.panel_id, frameBlock(binding));
+    const group = document.getElementById(`apl-views-${binding.panel_id}`);
+    if (!group) return;
+    const buttons = [...group.querySelectorAll('button[data-block]')];
+    const mark = () => {
+      for (const button of buttons)
+        button.setAttribute('aria-pressed',
+          button.dataset.block === activeBlocks.get(binding.panel_id) ? 'true' : 'false');
+    };
+    for (const button of buttons)
+      button.addEventListener('click', () => {
+        activeBlocks.set(binding.panel_id, button.dataset.block);
+        mark();
+        if (handle.index !== null) dispatch(handle.index);
+      });
+    mark();
   }
 
   // Refresh every driven binding for one navigation index (or index set).
@@ -11861,11 +11972,10 @@ export async function mountNavigated(el, page, opts) {
     handle.index = index;
     for (const binding of bindings) {
       if (binding.role !== 'driven') continue;
-      if (binding.frame) paintFrame(binding, indices);
+      if (binding.frame || binding.views) paintFrame(binding, indices);
       if (binding.overlays && binding.overlays.length) paintOverlays(binding, indices);
       if (binding.readout)
         writeText(`apl-readout-${binding.panel_id}`, formatReadout(binding, indices));
-      if (binding.chips && binding.chips.length) paintChips(binding, indices);
     }
   }
 
@@ -11882,6 +11992,10 @@ export async function mountNavigated(el, page, opts) {
 
   // A detector widget on a driven panel reduces the whole block back onto the
   // navigator: the navigator image becomes sum(frame * mask) per position.
+  // Only these three define a region of the signal grid to sum over; any other
+  // widget on the same panel is left to do whatever else it is there for.
+  const DETECTOR_TYPES = ['rectangle', 'circle', 'annular'];
+
   function paintReduced(binding, widget) {
     const spec = binding.reduce;
     const state = panelState(binding.panel_id);
@@ -11917,7 +12031,8 @@ export async function mountNavigated(el, page, opts) {
       if (index) requestDispatch(index);
       return;
     }
-    if (binding.role === 'driven' && binding.reduce) requestReduce(binding, event);
+    if (binding.role === 'driven' && binding.reduce
+        && DETECTOR_TYPES.includes(event.type)) requestReduce(binding, event);
   }
 
   if (chrome.touch !== false) installTouchShim(el);
@@ -11928,6 +12043,18 @@ export async function mountNavigated(el, page, opts) {
   for (const binding of bindings)
     if (binding.widgets) handle.patchPanel(binding.panel_id,
                                            { overlay_widgets: binding.widgets });
+
+  for (const binding of bindings) {
+    if (binding.views && binding.views.length) installViews(binding);
+    if (!binding.reduce) continue;
+    // A reduce binding with no detector on its panel can never fire, and the
+    // page author has no other way to find that out.
+    const widgets = panelState(binding.panel_id).overlay_widgets || [];
+    if (!widgets.some((widget) => DETECTOR_TYPES.includes(widget.type)))
+      throw new Error(`panel ${binding.panel_id} reduces onto ` +
+                      `${binding.reduce.navigator_panel} but carries no ` +
+                      `${DETECTOR_TYPES.join('/')} widget to reduce under`);
+  }
 
   handle.dispatch = dispatch;
   handle.blocks = blocks;
@@ -11940,3 +12067,11 @@ export async function mountNavigated(el, page, opts) {
   dispatch(initial);
   return handle;
 }
+
+// The readers are one namespace rather than seven top-level exports: they are
+// generic names (`dense`, `ragged`, `toU8`) that would otherwise sit beside
+// `mount` and `render` in every importer's completion list.
+export const embed = {
+  mountNavigated, decodeBlocks, dense, ragged,
+  maskFromWidget, rasterDisks, robustLevels, toU8,
+};

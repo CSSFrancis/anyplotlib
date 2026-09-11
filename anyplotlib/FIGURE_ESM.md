@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~11,940 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~12,080 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -53,28 +53,28 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | b64 array decode helpers | 109 |
 | **Rich-text (mini-TeX) engine**: `_texRuns` / `_texLayout` / `_drawTex` | 161 / 228 / 250 |
 | **2D gutter geometry**: `_cbWidth` / `_cbGap` / `_padT` / `_titlePx` | 301 / 313 / 323 / 333 |
-| **Layout engine** `applyLayout` | 815 |
-| `_buildCanvasStack` | 898 |
-| `_createPanelDOM` | 1040 |
-| `_createInsetDOM` / `_applyAllInsetStates` | 1181 / 1575 |
-| `_resizePanelDOM` | 2288 |
-| **2D drawing**: `_imgFitRect` | 2452 |
-| `draw2d` | 2781 |
-| `drawScaleBar2d` / `drawColorbar2d` | 2976 / 3256 |
-| **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 3075 / 3098 / 3111 |
-| `_drawAxes2d` (ticks, labels, title) | 3310 |
-| `drawOverlay2d` / `drawMarkers2d` | 3463 / 3627 |
-| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2601 / 2625 / 2686 |
-| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 771 / 802 |
-| **Hover readout**: `_pixelValue2d` / `_readoutInfo2d` | 4471 / 4553 |
-| `_notifyReadout` / `_updateStatus2d` / `_armValueProbe` | 4593 / 4608 / 4629 |
-| **3D drawing**: `draw3d` | 5605 |
-| Event emission `_emitEvent` | 6442 |
-| 3D event handlers `_attachEvents3d` | 6499 |
-| **1D drawing**: `draw1d` | 6723 |
-| `_drawLine` (1D series + markers) | 6876 |
-| `drawOverlay1d` / `drawMarkers1d` | 7169 / 7253 |
-| Marker hit-test `_markerHitTest2d` | 7521 |
+| **Layout engine** `applyLayout` | 824 |
+| `_buildCanvasStack` | 907 |
+| `_createPanelDOM` | 1049 |
+| `_createInsetDOM` / `_applyAllInsetStates` | 1190 / 1584 |
+| `_resizePanelDOM` | 2297 |
+| **2D drawing**: `_imgFitRect` | 2461 |
+| `draw2d` | 2790 |
+| `drawScaleBar2d` / `drawColorbar2d` | 2985 / 3265 |
+| **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 3084 / 3107 / 3120 |
+| `_drawAxes2d` (ticks, labels, title) | 3319 |
+| `drawOverlay2d` / `drawMarkers2d` | 3472 / 3636 |
+| **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2610 / 2634 / 2695 |
+| Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 780 / 811 |
+| **Hover readout**: `_pixelValue2d` / `_readoutInfo2d` | 4480 / 4562 |
+| `_notifyReadout` / `_updateStatus2d` / `_armValueProbe` | 4602 / 4617 / 4638 |
+| **3D drawing**: `draw3d` | 5614 |
+| Event emission `_emitEvent` | 6451 |
+| 3D event handlers `_attachEvents3d` | 6508 |
+| **1D drawing**: `draw1d` | 6732 |
+| `_drawLine` (1D series + markers) | 6885 |
+| `drawOverlay1d` / `drawMarkers1d` | 7178 / 7262 |
+| Marker hit-test `_markerHitTest2d` | 7530 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -83,22 +83,22 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 7778 |
-| 2D events `_attachEvents2d` | 7820 |
-| 1D events `_attachEvents1d` | 8213 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8488 / 8767 |
-| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8680 / 8694 / 8723 / 8758 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8892 / 8965 |
-| Shared-axis propagation `_getShareGroups` | 9036 |
-| Figure resize `_applyFigResizeDOM` | 9100 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 9291 / 9354 / 9730 |
-| Generic redraw `_redrawPanel` | 9920 |
-| **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10079 / 10275 / 10334 |
-| Native-resolution render `_withNativeSize` | 10055 |
-| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10368 / 10477 / 10656 |
-| Export registry `registerExportAction` | 10533 |
-| **Embedding API**: `createLocalModel` / `mount` | 11047 / 11103 |
-| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11326 / 11672 |
+| Panel event dispatch `_attachPanelEvents` | 7787 |
+| 2D events `_attachEvents2d` | 7829 |
+| 1D events `_attachEvents1d` | 8222 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8497 / 8776 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8689 / 8703 / 8732 / 8767 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 8901 / 8974 |
+| Shared-axis propagation `_getShareGroups` | 9045 |
+| Figure resize `_applyFigResizeDOM` | 9109 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 9300 / 9363 / 9739 |
+| Generic redraw `_redrawPanel` | 9929 |
+| **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10088 / 10284 / 10343 |
+| Native-resolution render `_withNativeSize` | 10064 |
+| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10377 / 10486 / 10665 |
+| Export registry `registerExportAction` | 10542 |
+| **Embedding API**: `createLocalModel` / `mount` | 11056 / 11112 |
+| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11352 / 11723 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -638,13 +638,13 @@ exportCanvas(same opts) → {canvas, width, height}   // synchronous, throws
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `_cssScale` | 9955 | inverse of `_applyScale`'s `transform:scale()` |
-| `_panelBox` | 9966 | the element whose rect bounds one panel |
-| `_neutralizeView` / `_restoreView` | 9975 / 10000 | transient whole-extent view |
-| `_nativeGeom` / `_nativeGuard` | 10015 / 10030 | native size + why-not message |
-| `_withNativeSize` | 10055 | resize → redraw → run → restore |
-| `_compositeCanvas` | 10079 | the compositor (`_drawEl` / `_drawPanel` …) |
-| `exportCanvas` / `exportPNG` | 10275 / 10334 | orchestrator / data-URL wrapper |
+| `_cssScale` | 9964 | inverse of `_applyScale`'s `transform:scale()` |
+| `_panelBox` | 9975 | the element whose rect bounds one panel |
+| `_neutralizeView` / `_restoreView` | 9984 / 10009 | transient whole-extent view |
+| `_nativeGeom` / `_nativeGuard` | 10024 / 10039 | native size + why-not message |
+| `_withNativeSize` | 10064 | resize → redraw → run → restore |
+| `_compositeCanvas` | 10088 | the compositor (`_drawEl` / `_drawPanel` …) |
+| `exportCanvas` / `exportPNG` | 10284 / 10343 | orchestrator / data-URL wrapper |
 
 **The whole pipeline is ONE synchronous task** — theme swap, view reset, native
 resize, composite, restore — so the browser never paints an intermediate state
@@ -740,13 +740,13 @@ leaders that cross into the panel included. Pinned by
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `_toast` | 10368 | transient bottom-centre message |
-| `_copyCanvas` | 10403 | clipboard write + feature detection |
-| `_showPngPreview` | 10427 | framed-document download fallback |
-| `_downloadCanvas` | 10477 | `<a download>` or the preview |
-| `registerExportAction` | 10533 | downstream extension point |
-| `_menuRows` / `_openMenu` | 10587 / 10656 | menu model / DOM |
-| `_panelAtPoint` | 10768 | hit test (insets first — they sit on top) |
+| `_toast` | 10377 | transient bottom-centre message |
+| `_copyCanvas` | 10412 | clipboard write + feature detection |
+| `_showPngPreview` | 10436 | framed-document download fallback |
+| `_downloadCanvas` | 10486 | `<a download>` or the preview |
+| `registerExportAction` | 10542 | downstream extension point |
+| `_menuRows` / `_openMenu` | 10596 / 10665 | menu model / DOM |
+| `_panelAtPoint` | 10777 | hit test (insets first — they sit on top) |
 
 - **An `exportBtn` badge (⤓, beside the help badge) opens the same menu on an
   ordinary left click.** It is a `role="button"` with `tabIndex=0` and
@@ -820,7 +820,7 @@ verbatim, so the new fields work over that channel too.
 
 ---
 
-## Navigated-embed runtime (line 11288 to the end of the file)
+## Navigated-embed runtime (line 11318 to the end of the file)
 
 Everything below `mount()` is module scope, outside `render()`'s closure: pure
 functions over decoded data plus one entry point that wires them to a mounted
@@ -830,18 +830,22 @@ bindings, let it dispatch", rather than a hand-written program per result kind.
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `decodeBlocks` | 11326 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
-| `dense` | 11351 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
-| `ragged` | 11413 | the same three, over a row-pointer block (`offsets` + one array per column) |
-| `maskFromWidget` | 11492 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
-| `rasterDisks` | 11532 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
-| `robustLevels` / `toU8` | 11561 / 11602 | the percentile window and the 8-bit code map, one implementation |
-| `installTouchShim` / `reportEmbedHeight` | 11617 / 11636 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
-| `mountNavigated` | 11672 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
+| `decodeBlocks` | 11352 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
+| `dense` | 11378 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
+| `ragged` | 11443 | the same three, over a row-pointer block (`offsets` + one array per column) |
+| `maskFromWidget` | 11526 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
+| `rasterDisks` | 11566 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
+| `robustLevels` / `toU8` | 11595 / 11636 | the percentile window and the 8-bit code map, one implementation |
+| `panelAxis` | 11698 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
+| `installTouchShim` / `reportEmbedHeight` | 11651 / 11670 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
+| `mountNavigated` | 11723 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
 
 `mountNavigated(el, page, opts)` is **async** — the blob decode is a `fetch` of
 a `data:` URL — so a host `await`s it.  `page` is `{state, blocks, bindings,
-chrome}` as `anyplotlib.embed.navigated_html` inlines it.
+chrome}` as `anyplotlib.embed.navigated_html` inlines it.  The generic readers
+are reachable as `embed.dense`, `embed.ragged` and so on rather than as
+top-level exports, so `dense` and `toU8` do not sit beside `mount` and `render`
+in an importer's completion list.
 
 **Dispatch.** A navigator widget's `pointer_move` / `pointer_up` maps to a
 navigation index (crosshair: rounded `cy, cx`; rectangle: the index set, capped
@@ -857,13 +861,41 @@ image.
 
 **The navigator panel IS the navigation grid**, which is why no binding has to
 declare its shape: a 2-D widget reports `cx`/`cy` in image pixels, so those
-already are the index.
+already are the index.  A **1-D** navigator is the other half of that: `vline`
+and `point` resolve their data coordinate through the panel's own x axis, and
+`range` (the span selector, the 1-D analogue of the rectangle) resolves both
+edges and selects the run between them.  That axis travels base64-encoded as
+`x_axis_b64`, NOT as `x_axis` — `Plot1D.to_state_dict` pops the plain key — so
+`panelAxis` reads `draw1d`'s decoded cache (`p._1dXArr`) and decodes only as a
+fallback.  Reading `state.x_axis` gives an empty array and every position
+resolves to 0.
+
+**A dispatch owns only the groups it wrote.** Marker and extra-line groups the
+runtime creates carry the `apl-overlay-` id prefix, and `paintOverlays` merges
+by that prefix rather than assigning the list — otherwise the first crosshair
+move wipes the annotations the figure was built with.
+
+**A `views` binding is a committed result's alternative frames** (a strain
+map's εxx / εyy / εxy / ω): the page renders a segmented control, and picking one
+swaps which block `frameBlock` reads at whatever position the navigator is
+already on.  It is not a per-position scalar — `readout` covers those.
+
+**The frame's colour window is the panel's**, not a fresh percentile window per
+frame: recomputing costs two passes over the data on every dispatch AND makes
+the contrast jump between neighbouring positions, which reads as the data
+changing.  `robustLevels` is the fallback for a panel with no window.
+
+**A detector is a rectangle, a circle or an annulus.** `mountNavigated` refuses
+a `reduce` binding whose panel carries none of those, because the binding could
+otherwise never fire and nothing would say so; at dispatch, any other widget on
+that panel is simply not a detector (`maskFromWidget` would throw inside an
+animation frame, where nothing catches it).
 
 ## `setImage` / `patchPanel` / `panelIds` on the mount handle
 
 | Handle method | What it writes |
 |---------------|----------------|
-| `setImage(panelId, bytes, w, h, opts)` | `globalThis.__apl_pixbytes["panel_<id>_geom::image_b64"]` + a fresh `\u0000bin:<n>` token in the panel's `_geomCache`, then one `applyRemote` on that slot |
+| `setImage(panelId, bytes, w, h, opts)` | queues the frame; the next animation frame writes `globalThis.__apl_pixbytes["panel_<id>_geom::image_b64"]`, a fresh `\u0000bin:<n>` token in the panel's `_geomCache`, the geometry patch, and one `applyRemote` on that slot |
 | `patchPanel(panelId, partial)` | parse `panel_<id>_json`, `Object.assign`, `applyRemote` — values verbatim |
 | `panelIds()` | `layout_json.panel_specs[].id`, in layout order |
 | `flushImages()` | paint pending `setImage` frames now instead of on the next frame |
@@ -886,6 +918,18 @@ Two things about it are load-bearing and look like clutter:
   per panel means a task that pushes several frames paints the last one once.
   `exportPNG` / `exportCanvas` call `flushImages()` first, so an export never
   captures the frame before the one just handed over.
+- **The geometry patch rides the SAME animation frame as the bytes** (`imagePatch`,
+  applied inside `commitImages`).  Patching at push time instead lets one frame
+  paint at the new `image_width`/`image_height` over the previous pixels.
+- **The sequence counter is `globalThis.__apl_pixseq`, not per handle.** The
+  side table is global and panel ids hash the layout position, so two
+  identical-layout figures in one document would otherwise mint the same key.
+- **`_loadGeom` keeps a live `\u0000bin:` token** when the cache holds
+  `image_b64_bytes` and the incoming geom does not carry a token of its own: the
+  token names the bytes that are actually drawn (`_imageBytes` prefers the
+  bytes), so letting a geom push rename it to stale base64 desynchronises the
+  blit cache key from its contents.  A push WITH its own token (the Electron
+  `_route_change` path) is newer and wins.
 
 `opts.rgb` means **RGBA, four bytes per pixel** — the renderer's `is_rgb` path
 sets `ImageData` straight from the bytes, so three-byte rows would be read as
