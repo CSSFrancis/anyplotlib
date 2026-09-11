@@ -55,7 +55,9 @@ See ``docs/embedding.rst`` for a complete Electron walkthrough.
 
 from __future__ import annotations
 
+import base64
 import dataclasses
+import json
 import pathlib
 from html import escape
 
@@ -291,7 +293,7 @@ def _validate_bindings(state: dict, blocks: dict, bindings: list) -> None:
             raise ValueError(f"binding names unknown panel {panel_id!r}; "
                              f"the figure has {sorted(panel_ids)}")
         names = []
-        if binding.get("frame"):
+        if binding.get("frame") and binding["frame"].get("block"):
             names.append(binding["frame"]["block"])
         for overlay in binding.get("overlays") or []:
             names.append(overlay["block"])
@@ -300,14 +302,24 @@ def _validate_bindings(state: dict, blocks: dict, bindings: list) -> None:
             navigator = binding["reduce"]["navigator_panel"]
             if navigator not in panel_ids:
                 raise ValueError(f"reduce names unknown navigator panel {navigator!r}")
-        for chip in binding.get("chips") or []:
-            names.append(chip["block"])
+        for view in binding.get("views") or []:
+            names.append(view["block"])
         if binding.get("readout"):
             names.append(binding["readout"]["block"])
         for name in names:
             if name not in blocks:
                 raise ValueError(f"binding names unknown block {name!r}; "
                                  f"the page carries {sorted(blocks)}")
+
+
+def _views_control(binding: dict) -> str:
+    """The segmented control that picks which block a panel's frame comes from."""
+    buttons = "".join(
+        f'<button type="button" data-block="{escape(view["block"], quote=True)}"'
+        f' aria-pressed="false">{escape(view["label"])}</button>'
+        for view in binding["views"])
+    return (f'<div class="apl-views" id="apl-views-{binding["panel_id"]}">'
+            f'{buttons}</div>')
 
 
 _NAVIGATED_PAGE = """\
@@ -329,9 +341,16 @@ _NAVIGATED_PAGE = """\
                  color: #555; }}
   .apl-strip {{ font: 12px ui-monospace, monospace; margin: 2px 4px;
                color: #444; min-height: 1.2em; }}
+  .apl-views {{ margin: 4px; display: flex; }}
+  .apl-views button {{ font: 12px system-ui, sans-serif; padding: 3px 10px;
+                      border: 1px solid #bbb; background: #f6f6f6; color: #222;
+                      cursor: pointer; }}
+  .apl-views button[aria-pressed="true"] {{ background: #2f6fd0; color: #fff;
+                                           border-color: #2f6fd0; }}
   @media (prefers-color-scheme: dark) {{
     .apl-caption {{ color: #aaa; }}
     .apl-strip {{ color: #bbb; }}
+    .apl-views button {{ background: #2a2a2a; border-color: #444; color: #ddd; }}
   }}
 </style>
 </head>
@@ -347,6 +366,9 @@ import(blobUrl).then(async (mod) => {{
   const handle = await mod.mountNavigated(
     document.getElementById("apl-host"), PAGE, {{}});
   window._aplHandle = handle;
+  // The page's own inputs, so a host can mount a second figure from them or
+  // read back what this one was built with.
+  window._aplPage = PAGE;
   // The readers (maskFromWidget, rasterDisks, robustLevels, …) are useful to
   // anything this page grows around the figure, so keep the module reachable.
   window._aplModule = mod;
@@ -374,11 +396,19 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
 
         {panel_id, role: "navigator" | "driven" | "static",
          widgets: [...],
-         frame: {block, kind: "image" | "disks", radius?, combine?, levels?},
+         frame: {block, kind: "image" | "disks", radius?, combine?, levels?,
+                 width?, height?},
+         views: [{label, block}],
          overlays: [{block, kind, style, columns?}],
          reduce: {block, navigator_panel, x?, y?, value?},
-         chips: [{label, block}],
          readout: {block, names, units}}
+
+    ``views`` are a committed result's alternative frames (a strain map's
+    epsilon_xx, epsilon_yy, epsilon_xy, omega): the page renders a segmented
+    control that swaps which block the panel's frame is read from, at whatever
+    position the navigator is already on.  With ``views``, ``frame.block`` may
+    be omitted and the first entry is the one shown first.  A navigator binding
+    may carry ``initial_index`` to open somewhere other than the origin.
 
     The renderer, the figure state, the packed data and the bindings are all
     inlined, so the page needs no network and no Python at view time.
@@ -388,9 +418,6 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
     ValueError
         When a binding names a panel or a block the page does not carry.
     """
-    import base64
-    import json as _json
-
     state = (fig_or_state if isinstance(fig_or_state, dict)
              else figure_state(fig_or_state))
     payload, manifest = pack_blocks(blocks)
@@ -403,9 +430,8 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
     strips = "".join(
         f'<div class="apl-strip" id="apl-readout-{binding["panel_id"]}"></div>'
         for binding in bindings if binding.get("readout"))
-    strips += "".join(
-        f'<div class="apl-strip" id="apl-chips-{binding["panel_id"]}"></div>'
-        for binding in bindings if binding.get("chips"))
+    strips += "".join(_views_control(binding)
+                      for binding in bindings if binding.get("views"))
 
     return _NAVIGATED_PAGE.format(
         title=escape(title or "anyplotlib figure"),
@@ -413,7 +439,7 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
         caption_html=(f'<div class="apl-caption">{escape(caption)}</div>'
                       if caption else ""),
         strips_html=strips,
-        page_json=_json.dumps(page, default=str),
-        esm_json=_json.dumps(esm_path().read_text(encoding="utf-8")),
+        page_json=json.dumps(page, default=str),
+        esm_json=json.dumps(esm_path().read_text(encoding="utf-8")),
         png_harvest=PNG_HARVEST_LISTENER,
     )
