@@ -596,6 +596,180 @@ changes — streams to the window automatically; drags, clicks, and keys
 stream back into your Python callbacks.  Echo is suppressed in both
 directions by the bridge and <code class="docutils literal notranslate"><span class="pre">applyUpdate</span></code>.</p>
 </section>
+<section id="navigated-pages-one-page-that-owns-its-data">
+<h2>Navigated pages — one page that owns its data<a class="headerlink" href="#navigated-pages-one-page-that-owns-its-data" title="Link to this heading">#</a></h2>
+<p>A <em>navigated</em> figure is one where a navigator panel drives the others: move the
+crosshair over the scan and the signal panel shows that position’s frame, its
+overlays follow, and a detector drawn on the signal panel reduces the whole
+dataset back onto the navigator.  <a class="reference internal" href="#anyplotlib.embed.navigated_html" title="anyplotlib.embed.navigated_html"><code class="xref py py-func docutils literal notranslate"><span class="pre">navigated_html()</span></code></a>
+exports that as a single file — the renderer, the figure state, the data and the
+bindings all inlined, no network and no Python at view time.</p>
+<p>The data travels as <em>blocks</em>.  A <strong>dense</strong> block is a numpy array whose leading
+axes are the navigation axes; a <a class="reference internal" href="#anyplotlib.embed.Ragged" title="anyplotlib.embed.Ragged"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ragged</span></code></a> block is a
+row-pointer array plus one value array per column, for a variable number of rows
+per position (diffraction spots, detected particles, peaks).
+<a class="reference internal" href="#anyplotlib.embed.pack_blocks" title="anyplotlib.embed.pack_blocks"><code class="xref py py-func docutils literal notranslate"><span class="pre">pack_blocks()</span></code></a> concatenates them into one little-endian
+byte string, which the page decodes once into a single <code class="docutils literal notranslate"><span class="pre">ArrayBuffer</span></code> and reads
+through typed-array views — no per-block base64, no copy per frame.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.embed</span><span class="w"> </span><span class="kn">import</span> <span class="n">navigated_html</span>
+
+<span class="n">scan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;scan.npy&quot;</span><span class="p">)</span>            <span class="c1"># (32, 32, 128, 128) uint8</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">760</span><span class="p">,</span> <span class="mi">380</span><span class="p">))</span>
+<span class="n">navigator</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">scan</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+<span class="n">signal</span>    <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">scan</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+<span class="n">navigator</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">signal</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>   <span class="c1"># the detector</span>
+
+<span class="n">html</span> <span class="o">=</span> <span class="n">navigated_html</span><span class="p">(</span>
+    <span class="n">fig</span><span class="p">,</span>
+    <span class="p">{</span><span class="s2">&quot;scan&quot;</span><span class="p">:</span> <span class="n">scan</span><span class="p">},</span>
+    <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;panel_id&quot;</span><span class="p">:</span> <span class="n">navigator</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;navigator&quot;</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;panel_id&quot;</span><span class="p">:</span> <span class="n">signal</span><span class="o">.</span><span class="n">_id</span><span class="p">,</span> <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;driven&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;frame&quot;</span><span class="p">:</span>  <span class="p">{</span><span class="s2">&quot;block&quot;</span><span class="p">:</span> <span class="s2">&quot;scan&quot;</span><span class="p">,</span> <span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">},</span>
+         <span class="s2">&quot;reduce&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;block&quot;</span><span class="p">:</span> <span class="s2">&quot;scan&quot;</span><span class="p">,</span> <span class="s2">&quot;navigator_panel&quot;</span><span class="p">:</span> <span class="n">navigator</span><span class="o">.</span><span class="n">_id</span><span class="p">}},</span>
+    <span class="p">],</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Scan&quot;</span><span class="p">,</span> <span class="n">caption</span><span class="o">=</span><span class="s2">&quot;Drag the crosshair; drag the detector to re-map.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">open</span><span class="p">(</span><span class="s2">&quot;scan.html&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Open <code class="docutils literal notranslate"><span class="pre">scan.html</span></code> in any browser, or point an Electron window or an <code class="docutils literal notranslate"><span class="pre">&lt;iframe&gt;</span></code>
+at it.  The page posts <code class="docutils literal notranslate"><span class="pre">{aplEmbedHeight}</span></code> to its parent so a host frame can
+size itself, answers the <code class="docutils literal notranslate"><span class="pre">anyplotlib_export_png</span></code> harvest protocol
+(see <a class="reference internal" href="exporting.html"><span class="doc">Exporting images</span></a>), and translates touches into pointer events so it works
+on a phone.</p>
+<section id="bindings">
+<h3>Bindings<a class="headerlink" href="#bindings" title="Link to this heading">#</a></h3>
+<p>One binding per panel.  <code class="docutils literal notranslate"><span class="pre">role</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;navigator&quot;</span></code> (its widgets drive the
+page), <code class="docutils literal notranslate"><span class="pre">&quot;driven&quot;</span></code> (it is refreshed on every dispatch) or <code class="docutils literal notranslate"><span class="pre">&quot;static&quot;</span></code>.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">panel_id</span></code></p></td>
+<td><p>Which panel this binding describes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">widgets</span></code></p></td>
+<td><p>Optional <code class="docutils literal notranslate"><span class="pre">overlay_widgets</span></code> entries to install on it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">kind}</span></code> — <code class="docutils literal notranslate"><span class="pre">&quot;image&quot;</span></code> blits the block’s frame,
+<code class="docutils literal notranslate"><span class="pre">&quot;disks&quot;</span></code> splats a ragged block’s rows as filled disks
+(<code class="docutils literal notranslate"><span class="pre">radius</span></code>, <code class="docutils literal notranslate"><span class="pre">combine</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;points3d&quot;</span></code> loads a dense
+<code class="docutils literal notranslate"><span class="pre">(M,</span> <span class="pre">3)</span></code> float32 cloud onto a 3-D panel with a dense
+<code class="docutils literal notranslate"><span class="pre">(M,</span> <span class="pre">3)</span></code> or <code class="docutils literal notranslate"><span class="pre">(M,</span> <span class="pre">4)</span></code> uint8 <code class="docutils literal notranslate"><span class="pre">colors</span></code> block.
+<code class="docutils literal notranslate"><span class="pre">levels</span></code> fixes the display window; without it each
+frame gets a robust 2–98 % window of its own.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">overlays</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[{block,</span> <span class="pre">kind,</span> <span class="pre">style,</span> <span class="pre">columns}]</span></code> — <code class="docutils literal notranslate"><span class="pre">&quot;circles&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;arrows&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;lines&quot;</span></code> become markers on a 2-D
+panel, <code class="docutils literal notranslate"><span class="pre">&quot;curves&quot;</span></code> becomes an extra line on a 1-D one,
+and <code class="docutils literal notranslate"><span class="pre">&quot;highlight&quot;</span></code> marks one point on a 3-D panel from
+a dense <code class="docutils literal notranslate"><span class="pre">(nav…,</span> <span class="pre">3)</span></code> or one-row-per-position ragged
+block.  <code class="docutils literal notranslate"><span class="pre">face_camera:</span> <span class="pre">true</span></code> on a <code class="docutils literal notranslate"><span class="pre">&quot;highlight&quot;</span></code> entry
+turns the sphere to face the marked point; without it the
+reader’s own orbit is kept.
+<code class="docutils literal notranslate"><span class="pre">style</span></code> keys are the ones <code class="docutils literal notranslate"><span class="pre">MarkerGroup.to_wire</span></code>
+emits; <code class="docutils literal notranslate"><span class="pre">columns</span></code> renames the block’s columns when they
+are not <code class="docutils literal notranslate"><span class="pre">x</span></code>/<code class="docutils literal notranslate"><span class="pre">y</span></code> (and <code class="docutils literal notranslate"><span class="pre">u</span></code>/<code class="docutils literal notranslate"><span class="pre">v</span></code>, <code class="docutils literal notranslate"><span class="pre">x1</span></code>…<code class="docutils literal notranslate"><span class="pre">y2</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">reduce</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">navigator_panel}</span></code> — a detector widget on this
+panel re-maps the navigator (see below).  For a ragged
+block, name the <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> and <code class="docutils literal notranslate"><span class="pre">value</span></code> columns.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">views</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[{label,</span> <span class="pre">block,</span> <span class="pre">colors}]</span></code> — a committed result’s alternative
+frames (a strain map’s εxx, εyy, εxy, ω).  The page
+renders a segmented control that swaps which block the
+panel’s frame is read from, at whatever position the
+navigator is on.  With <code class="docutils literal notranslate"><span class="pre">views</span></code>, <code class="docutils literal notranslate"><span class="pre">frame.block</span></code> may be
+omitted and the first entry is shown first.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">readout</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">names,</span> <span class="pre">units}</span></code> — written into
+<code class="docutils literal notranslate"><span class="pre">#apl-readout-&lt;panel_id&gt;</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">frame</span></code> also takes <code class="docutils literal notranslate"><span class="pre">width</span></code> and <code class="docutils literal notranslate"><span class="pre">height</span></code>, the pixel grid a <code class="docutils literal notranslate"><span class="pre">&quot;disks&quot;</span></code>
+raster is splatted into; they default to the panel’s own image size.  A
+navigator binding takes <code class="docutils literal notranslate"><span class="pre">initial_index</span></code> to open somewhere other than the
+origin.</p>
+</section>
+<section id="how-an-orientation-map-flows-through-it">
+<h3>How an orientation map flows through it<a class="headerlink" href="#how-an-orientation-map-flows-through-it" title="Link to this heading">#</a></h3>
+<p>The map panel carries a <code class="docutils literal notranslate"><span class="pre">views</span></code> entry per direction, so the segmented control
+swaps which orientation map is shown without moving the navigator.  A 2-D
+inverse-pole-figure scatter beside it takes a <code class="docutils literal notranslate"><span class="pre">&quot;circles&quot;</span></code> overlay of one row
+per position, which marks the picked orientation.  The 3-D sphere takes the
+cloud as its <code class="docutils literal notranslate"><span class="pre">&quot;points3d&quot;</span></code> frame (one <code class="docutils literal notranslate"><span class="pre">views</span></code> entry per direction, each with
+its own per-point colours) and a <code class="docutils literal notranslate"><span class="pre">&quot;highlight&quot;</span></code> overlay of the picked
+direction; with <code class="docutils literal notranslate"><span class="pre">face_camera:</span> <span class="pre">true</span></code> the sphere also turns so the marked point
+comes to the centre, using the same rule the live view does —
+<code class="docutils literal notranslate"><span class="pre">elevation</span> <span class="pre">=</span> <span class="pre">asin(z)</span></code>, <code class="docutils literal notranslate"><span class="pre">azimuth</span> <span class="pre">=</span> <span class="pre">atan2(x,</span> <span class="pre">-y)</span></code>, which is not any angle
+pointing that way: <code class="docutils literal notranslate"><span class="pre">atan2(y,</span> <span class="pre">x)</span> <span class="pre">-</span> <span class="pre">90</span></code> names the same direction half a turn
+out and lands the point on the far edge.</p>
+</section>
+<section id="how-a-virtual-image-flows-through-it">
+<h3>How a virtual image flows through it<a class="headerlink" href="#how-a-virtual-image-flows-through-it" title="Link to this heading">#</a></h3>
+<p>The signal panel carries a detector widget — a rectangle, a circle or an
+annulus — and its binding’s <code class="docutils literal notranslate"><span class="pre">reduce</span></code> names the block to read and the
+navigator panel to write.  When the detector moves, the page turns the widget
+into a mask over the signal grid: every pixel whose integer coordinate lies
+inside the shape.  It then sums, for each navigation position, that position’s
+frame under the mask (a dense block) or the intensity of every row whose
+rounded position falls inside it (a ragged block).  The result is one value per
+navigation position — exactly the navigator’s own shape — and it goes to the
+navigator with <code class="docutils literal notranslate"><span class="pre">setImage</span></code>.  Moving the detector therefore re-maps the whole
+scan, which is what a virtual image is.</p>
+<p>A binding that names a panel or a block the page does not carry raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> at build time rather than rendering an empty figure.</p>
+</section>
+<section id="driving-it-from-javascript">
+<h3>Driving it from JavaScript<a class="headerlink" href="#driving-it-from-javascript" title="Link to this heading">#</a></h3>
+<p>The same runtime is a plain export, so a host that already has the data can
+skip <code class="docutils literal notranslate"><span class="pre">navigated_html</span></code> and mount it directly:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">mountNavigated</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;./figure_esm.js&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">mountNavigated</span><span class="p">(</span><span class="nx">host</span><span class="p">,</span><span class="w"> </span><span class="nx">page</span><span class="p">);</span><span class="w">   </span><span class="c1">// page = {state, blocks, …}</span>
+<span class="nx">handle</span><span class="p">.</span><span class="nx">dispatch</span><span class="p">([</span><span class="mf">12</span><span class="p">,</span><span class="w"> </span><span class="mf">7</span><span class="p">]);</span><span class="w">        </span><span class="c1">// navigate from code</span>
+<span class="nx">handle</span><span class="p">.</span><span class="nx">index</span><span class="p">;</span><span class="w">                    </span><span class="c1">// the current navigation index</span>
+<span class="nx">handle</span><span class="p">.</span><span class="nx">blocks</span><span class="p">;</span><span class="w">                   </span><span class="c1">// the decoded typed-array views</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">mountNavigated</span></code> returns the ordinary <code class="docutils literal notranslate"><span class="pre">mount()</span></code> handle, so everything in
+the table above still works on it.</p>
+<p>The readers are exported too, under the <code class="docutils literal notranslate"><span class="pre">embed</span></code> namespace, for chrome the
+page grows around the figure: <code class="docutils literal notranslate"><span class="pre">embed.dense(block)</span></code> and <code class="docutils literal notranslate"><span class="pre">embed.ragged(block)</span></code>
+give <code class="docutils literal notranslate"><span class="pre">at</span></code> / <code class="docutils literal notranslate"><span class="pre">gather</span></code> / <code class="docutils literal notranslate"><span class="pre">reduce</span></code>, <code class="docutils literal notranslate"><span class="pre">embed.maskFromWidget(widget,</span> <span class="pre">w,</span> <span class="pre">h)</span></code>
+turns a rectangle, circle or annulus widget into a selection mask,
+<code class="docutils literal notranslate"><span class="pre">embed.rasterDisks(rows,</span> <span class="pre">w,</span> <span class="pre">h,</span> <span class="pre">radius,</span> <span class="pre">combine)</span></code> splats rows as disks, and
+<code class="docutils literal notranslate"><span class="pre">embed.robustLevels</span></code> / <code class="docutils literal notranslate"><span class="pre">embed.toU8</span></code> are the percentile window and the 8-bit
+code map the renderer blits.  <code class="docutils literal notranslate"><span class="pre">mountNavigated</span></code> is both a named export and a
+member of that namespace.</p>
+</section>
+<section id="pushing-frames-setimage">
+<h3>Pushing frames: <code class="docutils literal notranslate"><span class="pre">setImage</span></code><a class="headerlink" href="#pushing-frames-setimage" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">handle.setImage(panelId,</span> <span class="pre">bytes,</span> <span class="pre">width,</span> <span class="pre">height,</span> <span class="pre">opts)</span></code> replaces a 2-D panel’s
+image with <strong>raw pixel bytes</strong> — <code class="docutils literal notranslate"><span class="pre">width</span> <span class="pre">*</span> <span class="pre">height</span></code> colormap codes, or
+<code class="docutils literal notranslate"><span class="pre">width</span> <span class="pre">*</span> <span class="pre">height</span> <span class="pre">*</span> <span class="pre">4</span></code> RGBA bytes with <code class="docutils literal notranslate"><span class="pre">opts.rgb</span></code>.  This is the setter a scrub
+needs: pushing a frame through the panel state costs 6.7 ms at 512² and
+129–136 ms at 2048² of main-thread time, against a fraction of a millisecond
+here, because the bytes go straight to the renderer’s draw path instead of
+through base64 and a JSON trait.</p>
+<p><code class="docutils literal notranslate"><span class="pre">opts.display_min</span></code> / <code class="docutils literal notranslate"><span class="pre">opts.display_max</span></code> set the colour window the codes were
+mapped over; geometry follows the bytes in the same animation frame, so a frame
+of a different size never paints once at the new dimensions over the old
+pixels.  The repaint lands on the next animation frame, so several frames pushed
+in one task paint once — call <code class="docutils literal notranslate"><span class="pre">handle.flushImages()</span></code> if you need the pixels
+before then (<code class="docutils literal notranslate"><span class="pre">exportPNG</span></code> and <code class="docutils literal notranslate"><span class="pre">exportCanvas</span></code> already do).</p>
+</section>
+</section>
 <section id="module-anyplotlib.embed">
 <span id="api-reference"></span><h2>API reference<a class="headerlink" href="#module-anyplotlib.embed" title="Link to this heading">#</a></h2>
 <section id="embed-py">
@@ -780,6 +954,109 @@ are stored on the figure without echoing back.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="anyplotlib.embed.Ragged">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">Ragged</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nav_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#Ragged"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.Ragged" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A block with a variable number of rows per navigation position.</p>
+<p><code class="docutils literal notranslate"><span class="pre">offsets</span></code> is the row-pointer array: position <code class="docutils literal notranslate"><span class="pre">i</span></code> owns rows
+<code class="docutils literal notranslate"><span class="pre">offsets[i]</span></code> up to <code class="docutils literal notranslate"><span class="pre">offsets[i</span> <span class="pre">+</span> <span class="pre">1]</span></code>, so it has <code class="docutils literal notranslate"><span class="pre">n_positions</span> <span class="pre">+</span> <span class="pre">1</span></code>
+entries.  <code class="docutils literal notranslate"><span class="pre">columns</span></code> maps a name to one value per row.  <code class="docutils literal notranslate"><span class="pre">nav_shape</span></code>
+gives the navigation grid when it has more than one axis, so a
+two-dimensional index resolves to the right row span.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offsets</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>ndarray</em></a>)</p></li>
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>nav_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="anyplotlib.embed.Ragged.offsets">
+<span class="sig-name descname"><span class="pre">offsets</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span><a class="headerlink" href="#anyplotlib.embed.Ragged.offsets" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="anyplotlib.embed.Ragged.columns">
+<span class="sig-name descname"><span class="pre">columns</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span><a class="headerlink" href="#anyplotlib.embed.Ragged.columns" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="anyplotlib.embed.Ragged.nav_shape">
+<span class="sig-name descname"><span class="pre">nav_shape</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#anyplotlib.embed.Ragged.nav_shape" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="anyplotlib.embed.pack_blocks">
+<span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">pack_blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blocks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#pack_blocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.pack_blocks" title="Link to this definition">#</a></dt>
+<dd><p>Pack arrays into one little-endian byte string plus a manifest.</p>
+<p><em>blocks</em> maps a name to a numpy array (a dense block whose leading axes are
+the navigation axes) or to a <a class="reference internal" href="#anyplotlib.embed.Ragged" title="anyplotlib.embed.Ragged"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ragged</span></code></a>.  The return is
+<code class="docutils literal notranslate"><span class="pre">(payload,</span> <span class="pre">manifest)</span></code>: the page base64-decodes <em>payload</em> once into a
+single <code class="docutils literal notranslate"><span class="pre">ArrayBuffer</span></code> and takes a typed-array view per manifest entry, so
+no block is encoded or copied on its own.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)">bytes</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="anyplotlib.embed.navigated_html">
+<span class="sig-prename descclassname"><span class="pre">anyplotlib.embed.</span></span><span class="sig-name descname"><span class="pre">navigated_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig_or_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bindings</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">chrome</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caption</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/anyplotlib/embed.html#navigated_html"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.embed.navigated_html" title="Link to this definition">#</a></dt>
+<dd><p>Return a self-contained page whose navigator drives its other panels.</p>
+<p><em>fig_or_state</em> is a live <code class="docutils literal notranslate"><span class="pre">Figure</span></code> or the dict <a class="reference internal" href="#anyplotlib.embed.figure_state" title="anyplotlib.embed.figure_state"><code class="xref py py-func docutils literal notranslate"><span class="pre">figure_state()</span></code></a>
+returns.  <em>blocks</em> is the data the page navigates, in the form
+<a class="reference internal" href="#anyplotlib.embed.pack_blocks" title="anyplotlib.embed.pack_blocks"><code class="xref py py-func docutils literal notranslate"><span class="pre">pack_blocks()</span></code></a> takes.  <em>bindings</em> says what each panel does:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>{panel_id, role: &quot;navigator&quot; | &quot;driven&quot; | &quot;static&quot;,
+ widgets: [...],
+ frame: {block, kind: &quot;image&quot; | &quot;disks&quot; | &quot;points3d&quot;, radius?,
+         combine?, levels?, width?, height?, colors?},
+ views: [{label, block, colors?}],
+ overlays: [{block, kind, style, columns?, face_camera?}],
+ reduce: {block, navigator_panel, x?, y?, value?},
+ readout: {block, names, units}}
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">views</span></code> are a committed result’s alternative frames (a strain map’s
+epsilon_xx, epsilon_yy, epsilon_xy, omega): the page renders a segmented
+control that swaps which block the panel’s frame is read from, at whatever
+position the navigator is already on.  With <code class="docutils literal notranslate"><span class="pre">views</span></code>, <code class="docutils literal notranslate"><span class="pre">frame.block</span></code> may
+be omitted and the first entry is the one shown first.  A navigator binding
+may carry <code class="docutils literal notranslate"><span class="pre">initial_index</span></code> to open somewhere other than the origin.</p>
+<p>A 3-D panel takes <code class="docutils literal notranslate"><span class="pre">kind:</span> <span class="pre">&quot;points3d&quot;</span></code> (a dense <code class="docutils literal notranslate"><span class="pre">(M,</span> <span class="pre">3)</span></code> float32 cloud
+plus a <code class="docutils literal notranslate"><span class="pre">colors</span></code> block) and a <code class="docutils literal notranslate"><span class="pre">&quot;highlight&quot;</span></code> overlay marking one point per
+navigation position; <code class="docutils literal notranslate"><span class="pre">face_camera</span></code> on that overlay turns the panel to face
+the marked point.</p>
+<p>The renderer, the figure state, the packed data and the bindings are all
+inlined, so the page needs no network and no Python at view time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – When a binding names a panel or a block the page does not carry.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>blocks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>bindings</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a>)</p></li>
+<li><p><strong>chrome</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>caption</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
 <section id="js-handle-reference">
 <h3>JS handle reference<a class="headerlink" href="#js-handle-reference" title="Link to this heading">#</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">mount(el,</span> <span class="pre">state,</span> <span class="pre">opts)</span> <span class="pre">→</span> <span class="pre">handle</span></code></p>
@@ -788,6 +1065,22 @@ are stored on the figure without echoing back.</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">handle.setPanelState(id,</span> <span class="pre">st)</span></code></p></td>
 <td><p>Replace one panel’s state (dict or JSON string) and
 re-render it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">handle.patchPanel(id,</span> <span class="pre">partial)</span></code></p></td>
+<td><p>Merge <em>partial</em> into one panel’s state and re-render.
+Values are stored verbatim — markers, <code class="docutils literal notranslate"><span class="pre">extra_lines</span></code>,
+<code class="docutils literal notranslate"><span class="pre">display_min</span></code>/<code class="docutils literal notranslate"><span class="pre">max</span></code>, <code class="docutils literal notranslate"><span class="pre">overlay_widgets</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">handle.setImage(id,</span> <span class="pre">b,</span> <span class="pre">w,</span> <span class="pre">h,</span> <span class="pre">o)</span></code></p></td>
+<td><p>Replace a 2-D panel’s image with raw pixel bytes
+(<code class="docutils literal notranslate"><span class="pre">w*h</span></code> codes, or <code class="docutils literal notranslate"><span class="pre">w*h*4</span></code> with <code class="docutils literal notranslate"><span class="pre">o.rgb</span></code>).  Repaints
+on the next animation frame.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">handle.flushImages()</span></code></p></td>
+<td><p>Paint pending <code class="docutils literal notranslate"><span class="pre">setImage</span></code> frames now.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">handle.panelIds()</span></code></p></td>
+<td><p>The panel ids in layout order.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">handle.set(key,</span> <span class="pre">value)</span></code></p></td>
 <td><p>Raw model write + sync flush.</p></td>
@@ -929,6 +1222,14 @@ window-level listeners, host each figure in its own iframe/webview and
 drop the frame (this is also the most robust MDI isolation).</p></li>
 <li><p>One renderer file, no build step: <code class="docutils literal notranslate"><span class="pre">figure_esm.js</span></code> has no imports, so it
 works with any bundler or directly as a <code class="docutils literal notranslate"><span class="pre">&lt;script</span> <span class="pre">type=&quot;module&quot;&gt;</span></code>.</p></li>
+<li><p>An exported page inlines its state and data into a <code class="docutils literal notranslate"><span class="pre">&lt;script&gt;</span></code> block, and an
+HTML parser ends that block at the first <code class="docutils literal notranslate"><span class="pre">&lt;/</span></code> in its text whether or not it
+sits inside a JavaScript string.  Every JSON literal the page embeds therefore
+goes through <code class="docutils literal notranslate"><span class="pre">anyplotlib._repr_utils.script_json</span></code>, which escapes <code class="docutils literal notranslate"><span class="pre">&lt;/</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&lt;!--</span></code> through the <code class="docutils literal notranslate"><span class="pre">&lt;</span></code>, so a title or an axis label read from file
+metadata cannot close the block and run what follows.  Titles and captions are
+HTML-escaped on their way into markup.  If you template your own page around
+<code class="docutils literal notranslate"><span class="pre">figure_state</span></code>, do the same.</p></li>
 </ul>
 </section>
 </section>
@@ -983,6 +1284,14 @@ works with any bundler or directly as a <code class="docutils literal notranslat
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#level-1-self-contained-html-no-python-at-view-time">Level 1 — self-contained HTML (no Python at view time)</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#level-2-js-driven-your-app-owns-the-data">Level 2 — JS-driven: your app owns the data</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#level-3-live-python-backend-full-callback-support">Level 3 — live Python backend (full callback support)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#navigated-pages-one-page-that-owns-its-data">Navigated pages — one page that owns its data</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bindings">Bindings</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-an-orientation-map-flows-through-it">How an orientation map flows through it</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-a-virtual-image-flows-through-it">How a virtual image flows through it</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#driving-it-from-javascript">Driving it from JavaScript</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pushing-frames-setimage">Pushing frames: <code class="docutils literal notranslate"><span class="pre">setImage</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-anyplotlib.embed">API reference</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#embed-py">embed.py</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#three-levels-of-integration">Three levels of integration</a></li>
@@ -998,6 +1307,14 @@ works with any bundler or directly as a <code class="docutils literal notranslat
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.FigureBridge.close"><code class="docutils literal notranslate"><span class="pre">FigureBridge.close()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.Ragged"><code class="docutils literal notranslate"><span class="pre">Ragged</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.Ragged.offsets"><code class="docutils literal notranslate"><span class="pre">Ragged.offsets</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.Ragged.columns"><code class="docutils literal notranslate"><span class="pre">Ragged.columns</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.Ragged.nav_shape"><code class="docutils literal notranslate"><span class="pre">Ragged.nav_shape</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.pack_blocks"><code class="docutils literal notranslate"><span class="pre">pack_blocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.embed.navigated_html"><code class="docutils literal notranslate"><span class="pre">navigated_html()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#js-handle-reference">JS handle reference</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#owning-the-hover-readout">Owning the hover readout</a></li>
 </ul>
