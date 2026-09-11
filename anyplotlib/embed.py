@@ -205,14 +205,12 @@ class FigureBridge:
 # Navigated pages
 # ---------------------------------------------------------------------------
 
-#: Typed-array element sizes the JS runtime can view.  Anything else has to be
+#: The dtypes the JS runtime has a typed array for.  Anything else has to be
 #: cast before packing, because a view it cannot name is a silent wrong answer.
-_BLOCK_DTYPES = {
-    "uint8": 1, "int8": 1, "uint16": 2, "int16": 2,
-    "uint32": 4, "int32": 4, "float32": 4, "float64": 8,
-}
+_BLOCK_DTYPES = frozenset({"uint8", "int8", "uint16", "int16",
+                           "uint32", "int32", "float32", "float64"})
 
-#: Every block view starts here so a typed array is never misaligned.
+#: Block offsets are padded to this, the largest element size above.
 _BLOCK_ALIGNMENT = 8
 
 
@@ -257,7 +255,7 @@ def pack_blocks(blocks: dict) -> tuple[bytes, dict]:
         contiguous = np.ascontiguousarray(array)
         dtype_name = _block_dtype_name(contiguous)
         # A typed array can only view an offset that is a multiple of its
-        # element size; 8 covers every dtype the runtime knows.
+        # element size.
         padding = (-len(payload)) % _BLOCK_ALIGNMENT
         payload.extend(b"\0" * padding)
         spec = {"dtype": dtype_name, "offset": len(payload),
