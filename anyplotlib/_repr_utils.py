@@ -318,8 +318,8 @@ window.addEventListener('message', (e) => {{
 # its figure is mounted, which is also what makes "not ready yet" answerable.
 PNG_HARVEST_LISTENER = '''\
 // ── PNG export protocol ──────────────────────────────────────────────────────
-// Rides the same postMessage channel as the state updates above.  A parent page
-// (or the SpyDE report harvester) requests a composite PNG of the whole figure:
+// A parent page (or the SpyDE report harvester) asks this frame over
+// postMessage for a composite PNG of the whole figure:
 //   → { type: 'anyplotlib_export_png', requestId, opts }
 // and receives back, on event.source (targetOrigin '*'):
 //   ← { type: 'anyplotlib_export_png_result', requestId, dataUrl, width, height }

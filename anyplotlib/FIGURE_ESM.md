@@ -98,7 +98,7 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10368 / 10477 / 10656 |
 | Export registry `registerExportAction` | 10533 |
 | **Embedding API**: `createLocalModel` / `mount` | 11047 / 11103 |
-| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11326 / 11671 |
+| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11326 / 11672 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -837,7 +837,7 @@ bindings, let it dispatch", rather than a hand-written program per result kind.
 | `rasterDisks` | 11532 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
 | `robustLevels` / `toU8` | 11561 / 11602 | the percentile window and the 8-bit code map, one implementation |
 | `installTouchShim` / `reportEmbedHeight` | 11617 / 11636 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
-| `mountNavigated` | 11671 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
+| `mountNavigated` | 11672 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
 
 `mountNavigated(el, page, opts)` is **async** — the blob decode is a `fetch` of
 a `data:` URL — so a host `await`s it.  `page` is `{state, blocks, bindings,
