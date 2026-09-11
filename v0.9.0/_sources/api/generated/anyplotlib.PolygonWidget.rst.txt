@@ -1,0 +1,6 @@
+﻿anyplotlib.PolygonWidget
+========================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: PolygonWidget

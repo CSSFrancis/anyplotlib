@@ -1,0 +1,6 @@
+﻿anyplotlib.PlotBar
+==================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: PlotBar

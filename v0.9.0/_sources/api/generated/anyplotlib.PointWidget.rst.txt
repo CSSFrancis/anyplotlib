@@ -1,0 +1,6 @@
+﻿anyplotlib.PointWidget
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: PointWidget
