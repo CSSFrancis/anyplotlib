@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~12,080 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~12,100 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -98,7 +98,7 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10377 / 10486 / 10665 |
 | Export registry `registerExportAction` | 10542 |
 | **Embedding API**: `createLocalModel` / `mount` | 11056 / 11112 |
-| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11352 / 11723 |
+| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11367 / 11738 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -820,7 +820,7 @@ verbatim, so the new fields work over that channel too.
 
 ---
 
-## Navigated-embed runtime (line 11318 to the end of the file)
+## Navigated-embed runtime (line 11333 to the end of the file)
 
 Everything below `mount()` is module scope, outside `render()`'s closure: pure
 functions over decoded data plus one entry point that wires them to a mounted
@@ -830,15 +830,15 @@ bindings, let it dispatch", rather than a hand-written program per result kind.
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `decodeBlocks` | 11352 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
-| `dense` | 11378 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
-| `ragged` | 11443 | the same three, over a row-pointer block (`offsets` + one array per column) |
-| `maskFromWidget` | 11526 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
-| `rasterDisks` | 11566 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
-| `robustLevels` / `toU8` | 11595 / 11636 | the percentile window and the 8-bit code map, one implementation |
-| `panelAxis` | 11698 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
-| `installTouchShim` / `reportEmbedHeight` | 11651 / 11670 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
-| `mountNavigated` | 11723 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
+| `decodeBlocks` | 11367 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
+| `dense` | 11393 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
+| `ragged` | 11458 | the same three, over a row-pointer block (`offsets` + one array per column) |
+| `maskFromWidget` | 11541 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
+| `rasterDisks` | 11581 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
+| `robustLevels` / `toU8` | 11610 / 11651 | the percentile window and the 8-bit code map, one implementation |
+| `panelAxis` | 11713 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
+| `installTouchShim` / `reportEmbedHeight` | 11666 / 11685 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
+| `mountNavigated` | 11738 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
 
 `mountNavigated(el, page, opts)` is **async** — the blob decode is a `fetch` of
 a `data:` URL — so a host `await`s it.  `page` is `{state, blocks, bindings,
@@ -874,6 +874,11 @@ resolves to 0.
 runtime creates carry the `apl-overlay-` id prefix, and `paintOverlays` merges
 by that prefix rather than assigning the list — otherwise the first crosshair
 move wipes the annotations the figure was built with.
+
+**An overlay's `style` IS its wire dict** (the keys `MarkerGroup.to_wire`
+emits), carried through whole rather than read key by key: an allow-list drops
+whatever it has not heard of, and a `fill_alpha` of 0 or 1 reads as "unset" to
+a `style.fill_alpha || default` test and silently becomes the renderer's 0.3.
 
 **A `views` binding is a committed result's alternative frames** (a strain
 map's εxx / εyy / εxy / ω): the page renders a segmented control, and picking one
@@ -924,6 +929,14 @@ Two things about it are load-bearing and look like clutter:
 - **The sequence counter is `globalThis.__apl_pixseq`, not per handle.** The
   side table is global and panel ids hash the layout position, so two
   identical-layout figures in one document would otherwise mint the same key.
+- **`setImage` refuses anything but a 2-D panel.** A 3-D or 1-D panel has a
+  geometry trait too, so without the check the bytes are accepted and go
+  nowhere.
+- **A new frame voids the detail tile.** A tile is a crop of the PREVIOUS frame
+  at a zoom the viewer may still be sitting at, and `_blit2d` composites it over
+  the base, so the light `detail_*` fields, the geom cache's `detail_b64` /
+  `detail_b64_bytes`, the side-table slot and `p._detailBlit` all go with the
+  frame they came from.
 - **`_loadGeom` keeps a live `\u0000bin:` token** when the cache holds
   `image_b64_bytes` and the incoming geom does not carry a token of its own: the
   token names the bytes that are actually drawn (`_imageBytes` prefers the

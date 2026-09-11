@@ -11159,6 +11159,10 @@ export function mount(el, state, opts) {
       const sequence = (globalThis.__apl_pixseq = (globalThis.__apl_pixseq || 0) + 1);
       if (!panel._geomCache) panel._geomCache = {};
       panel._geomCache.image_b64 = `\u0000bin:${sequence}`;
+      panel._geomCache.detail_b64 = '';
+      delete panel._geomCache.detail_b64_bytes;
+      delete panel._detailBlit;
+      delete globalThis.__apl_pixbytes[`panel_${panelId}_geom::detail_b64`];
       model.applyRemote(slot, `${frame.bytes.length}:${sequence}`);
     }
   }
@@ -11174,7 +11178,15 @@ export function mount(el, state, opts) {
     if (current.base_width) patch.base_width = 0;
     if (current.base_height) patch.base_height = 0;
     if (current.tile_enabled) patch.tile_enabled = false;
-    if (current.detail_b64) patch.detail_b64 = '';
+    // A detail tile is a crop of the PREVIOUS frame at a zoom the viewer may
+    // still be at, and _blit2d composites it over the base. Clearing only the
+    // light field leaves the bytes and the region in the geom cache, which
+    // _applyGeom splices straight back in.
+    if (current.detail_b64 || current.detail_width || current.detail_height)
+      Object.assign(patch, { detail_b64: '', detail_region: [],
+                             detail_width: 0, detail_height: 0,
+                             detail_min: null, detail_max: null,
+                             detail_is_int: false });
     // display_* is the colour window; raw_* is the band the codes span. The
     // caller hands over codes already mapped to its window, so they agree.
     if (frame.displayMin !== undefined && current.display_min !== frame.displayMin) {
@@ -11233,6 +11245,9 @@ export function mount(el, state, opts) {
     setImage(panelId, bytes, width, height, opts) {
       const panel = api.panels && api.panels.get(panelId);
       if (!panel) throw new Error(`setImage: unknown panel id ${panelId}`);
+      if (panel.kind !== '2d')
+        throw new Error(`setImage: panel ${panelId} is a ${panel.kind} panel; ` +
+                        `only a 2-D image panel draws pixel bytes`);
       if (model.get(`panel_${panelId}_geom`) === undefined)
         throw new Error(`setImage: panel ${panelId} has no image channel`);
       const settings = opts || {};
@@ -11855,24 +11870,30 @@ export async function mountNavigated(el, page, opts) {
     const names = overlay.columns || {};
     const xs = rows[names.x || 'x'], ys = rows[names.y || 'y'];
     const count = xs ? xs.length : 0;
+    // The style IS the wire dict (the keys MarkerGroup.to_wire emits), carried
+    // through whole: an allow-list here silently drops whatever it has not
+    // heard of, and `fill_alpha: 0` reads as "unset" to the renderer's default.
+    const wire = Object.assign({}, style);
+    delete wire.radius;          // an input for `sizes`, not a wire field
+    wire.id = `apl-overlay-${overlay.block}`;
+    wire.name = overlay.block;
+    if (wire.color === undefined) wire.color = '#ff0000';
     if (overlay.kind === 'curves') {
-      return { id: `apl-overlay-${overlay.block}`,
-               data: Array.from(rows[names.value || 'value'] || []),
-               x_axis: Array.from(xs || []),
-               color: style.color || '#ff0000',
-               linewidth: style.linewidth === undefined ? 1.5 : style.linewidth,
-               linestyle: style.linestyle || 'solid',
-               alpha: style.alpha === undefined ? 1 : style.alpha,
-               marker: style.marker || 'none',
-               markersize: style.markersize === undefined ? 4 : style.markersize,
-               label: style.label || '', axis: style.axis || 'left' };
+      wire.data = Array.from(rows[names.value || 'value'] || []);
+      wire.x_axis = Array.from(xs || []);
+      if (wire.linewidth === undefined) wire.linewidth = 1.5;
+      if (wire.linestyle === undefined) wire.linestyle = 'solid';
+      if (wire.alpha === undefined) wire.alpha = 1;
+      if (wire.marker === undefined) wire.marker = 'none';
+      if (wire.markersize === undefined) wire.markersize = 4;
+      if (wire.label === undefined) wire.label = '';
+      if (wire.axis === undefined) wire.axis = 'left';
+      return wire;
     }
     const offsets = [];
     for (let row = 0; row < count; row++) offsets.push([xs[row], ys[row]]);
-    const wire = { id: `apl-overlay-${overlay.block}`, name: overlay.block,
-                   type: overlay.kind, color: style.color || '#ff0000',
-                   linewidth: style.linewidth === undefined ? 1.5 : style.linewidth };
-    if (style.fill_color) wire.fill_color = style.fill_color;
+    wire.type = overlay.kind;
+    if (wire.linewidth === undefined) wire.linewidth = 1.5;
     if (overlay.kind === 'circles') {
       wire.offsets = offsets;
       const radiusColumn = names.radius ? rows[names.radius] : null;
