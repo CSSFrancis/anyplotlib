@@ -11174,7 +11174,7 @@ export function mount(el, state, opts) {
     // Replace a 2-D panel's image with RAW pixel bytes, skipping base64.
     //   bytes   Uint8Array of width*height colormap codes, or width*height*4
     //           RGBA bytes when opts.rgb is true.
-    //   opts    {rgb, display_min, display_max} — each is patched into the
+    //   opts    {rgb, display_min, display_max}. Each is patched into the
     //           panel's state first when it differs, so the geometry and the
     //           colour window match the bytes on the very frame they arrive.
     // Throws on an unknown panel or a byte count that is not width*height.
@@ -11290,7 +11290,7 @@ export function mount(el, state, opts) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Navigated-embed runtime — a page that owns its data and dispatches on it.
+// Navigated-embed runtime: a page that owns its data and dispatches on it.
 //
 // A navigated page is a navigator panel whose widget drives one or more other
 // panels: move the crosshair, the signal panel shows that position's frame and
@@ -11684,8 +11684,12 @@ export async function mountNavigated(el, page, opts) {
     return readers.get(name);
   }
 
+  // Both kinds of refresh coalesce onto one animation frame, latest wins: a
+  // drag fires an event per pointer move, and each one is a pass over a block.
   let queuedIndex = null;
   let dispatchRequest = null;
+  let queuedReduce = null;
+  let reduceRequest = null;
 
   const handle = mount(el, page.state, Object.assign({}, options, {
     onEvent(event) {
@@ -11891,6 +11895,17 @@ export async function mountNavigated(el, page, opts) {
                     { display_min: levels[0], display_max: levels[1] });
   }
 
+  function requestReduce(binding, widget) {
+    queuedReduce = [binding, widget];
+    if (reduceRequest !== null) return;
+    reduceRequest = requestAnimationFrame(() => {
+      reduceRequest = null;
+      const next = queuedReduce;
+      queuedReduce = null;
+      paintReduced(next[0], next[1]);
+    });
+  }
+
   function handleEvent(event) {
     if (!event || !event.widget_id) return;
     if (event.event_type !== 'pointer_move' && event.event_type !== 'pointer_up') return;
@@ -11901,7 +11916,7 @@ export async function mountNavigated(el, page, opts) {
       if (index) requestDispatch(index);
       return;
     }
-    if (binding.role === 'driven' && binding.reduce) paintReduced(binding, event);
+    if (binding.role === 'driven' && binding.reduce) requestReduce(binding, event);
   }
 
   if (chrome.touch !== false) installTouchShim(el);

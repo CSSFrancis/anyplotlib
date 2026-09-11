@@ -7,7 +7,7 @@
 - **`Figure`** (`anyplotlib/figure/_figure.py`) — the only `anywidget.AnyWidget` subclass. Owns all traitlets and is the Python↔JS bridge.
 - **Plot objects** (`plot1d/`, `plot2d/`, `plot3d/`) — `Plot1D`, `PlotBar`, `Plot2D`, `PlotMesh`, `Plot3D` are **plain Python classes**, not widgets. They hold state in `_state` dicts and push to the Figure. Shared behaviour lives in `_base_plot.py` (`_BasePlot`, `_PanelMixin`, `_MarkerMixin`).
 - **`Axes`** (`axes/_axes.py`) — grid-cell container; factory methods (`imshow`, `plot`, `bar`, `pcolormesh`, `plot_surface`, …) create plot objects and attach them.
-- **`figure_esm.js`** — pure-JS canvas renderer (~11,930 lines); all rendering logic lives here. **Read `anyplotlib/FIGURE_ESM.md` first** — it is the section map.
+- **`figure_esm.js`** — pure-JS canvas renderer (~11,940 lines); all rendering logic lives here. **Read `anyplotlib/FIGURE_ESM.md` first** — it is the section map.
 - **`markers.py`** — static visual overlays (circles, arrows, lines, etc.) with a two-level dict registry: `plot.markers[type][name]`.
 - **`widgets/`** — interactive draggable overlays (`RectangleWidget`, `CrosshairWidget`, etc.) that receive JS position updates.
 - **`callbacks.py`** — event system: `Event` dataclass, `CallbackRegistry` (priority ordering, wildcard, pause/hold), `_EventMixin` (`add_event_handler`).
@@ -115,7 +115,7 @@ grep -nE '^\s*(function|const|let) [A-Za-z_]' anyplotlib/figure_esm.js
 ```
 
 and reconcile against the two numbered tables (the section map near the top and
-the 2-D function table). Both were last verified at 11,926 lines.
+the 2-D function table). Both were last verified at 11,941 lines.
 
 Changelog entries: add a fragment file to `upcoming_changes/` (e.g.
 `123.new_feature.rst`) — towncrier assembles `CHANGELOG.rst` at release time.
@@ -129,7 +129,7 @@ Use `api_change` when existing behaviour changes, even if the change is a fix.
 | `anyplotlib/figure/_gridspec.py` | `GridSpec`, `SubplotSpec` |
 | `anyplotlib/figure/_subplots.py` | `subplots()` factory |
 | `anyplotlib/axes/_axes.py` | `Axes` — plot factory methods |
-| `anyplotlib/figure_esm.js` | All JS canvas rendering (~11,930 lines) |
+| `anyplotlib/figure_esm.js` | All JS canvas rendering (~11,940 lines) |
 | `anyplotlib/FIGURE_ESM.md` | Section map for `figure_esm.js` — read this before editing the JS |
 | `anyplotlib/markers.py` | Static marker collections; `to_wire()` translation |
 | `anyplotlib/widgets/` | Interactive overlay widgets |

@@ -1,5 +1,5 @@
 """
-Playwright tests for ``handle.setImage`` — the binary image setter.
+Playwright tests for ``handle.setImage``, the binary image setter.
 
 A navigated page scrubs frames as fast as the user drags, so the cost the
 caller pays to hand one over has to be independent of the frame size.  These
