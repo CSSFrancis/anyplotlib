@@ -22,8 +22,11 @@ MOUNT_PAGE = """<!DOCTYPE html>
 const STATE = __STATE__;
 const esmSource = __ESM__;
 const blobUrl = URL.createObjectURL(new Blob([esmSource], {type: "text/javascript"}));
+window._syncs = [];
 import(blobUrl).then(mod => {
-  window._handle = mod.mount(document.getElementById("host"), STATE, {});
+  window._handle = mod.mount(document.getElementById("host"), STATE, {
+    onSync: (key, value) => window._syncs.push({key, value}),
+  });
   window._aplReady = true;
 }).catch(err => { document.body.textContent = "mount error: " + err; });
 </script></body></html>
