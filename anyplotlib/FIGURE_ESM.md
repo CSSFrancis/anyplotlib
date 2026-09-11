@@ -1,6 +1,6 @@
 # FIGURE_ESM.md — Navigator for `figure_esm.js`
 
-`figure_esm.js` is **~12,100 lines** and one big closure. Everything lives inside
+`figure_esm.js` is **~12,210 lines** and one big closure. Everything lives inside
 `function render({ model, el })` so that all helpers share the same scope
 (`theme`, `PAD_*`, `panels` Map, etc.).  This document is a section map so you
 can jump straight to the relevant code without reading the whole file.
@@ -98,7 +98,7 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10377 / 10486 / 10665 |
 | Export registry `registerExportAction` | 10542 |
 | **Embedding API**: `createLocalModel` / `mount` | 11056 / 11112 |
-| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11367 / 11738 |
+| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11367 / 11754 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -836,9 +836,10 @@ bindings, let it dispatch", rather than a hand-written program per result kind.
 | `maskFromWidget` | 11541 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
 | `rasterDisks` | 11581 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
 | `robustLevels` / `toU8` | 11610 / 11651 | the percentile window and the 8-bit code map, one implementation |
-| `panelAxis` | 11713 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
+| `panelAxis` | 11729 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
 | `installTouchShim` / `reportEmbedHeight` | 11666 / 11685 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
-| `mountNavigated` | 11738 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
+| `encodeBase64` / `typedArrayBytes` | 11705 / 11713 | a 3-D cloud's geometry channel is base64, not the binary side table |
+| `mountNavigated` | 11754 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
 
 `mountNavigated(el, page, opts)` is **async** — the blob decode is a `fetch` of
 a `data:` URL — so a host `await`s it.  `page` is `{state, blocks, bindings,
@@ -880,10 +881,30 @@ emits), carried through whole rather than read key by key: an allow-list drops
 whatever it has not heard of, and a `fill_alpha` of 0 or 1 reads as "unset" to
 a `style.fill_alpha || default` test and silently becomes the renderer's 0.3.
 
+**A 3-D panel is driven through `patchPanel`, never `setImage`.** Its cloud
+(`vertices_b64`, `point_colors_b64`, `z_values_b64`) rides `panel_<id>_geom` as
+BASE64: the binary side table is registered for image pixel keys only, and a
+cloud changes on a view click rather than per navigator move, so the encode is
+not on a hot path. `vertices_count` and a bumped `_geom_rev` go on the light
+trait in the same breath, or the renderer draws the previous cloud's point
+count. `paintPoints3d` skips when the (block, colours) pair is already shown,
+so a navigator drag costs nothing.
+
+A `"highlight"` overlay writes the `{x, y, z, color, size}` shape
+`Plot3D.set_highlight` writes. With `face_camera` it also writes the camera:
+`elevation = asin(z/r)`, `azimuth = atan2(x, -y)` in degrees, plus
+`_view_from_python: true` so `_preserveView` lets the intended camera through.
+The flag is written EITHER WAY, because it persists on the trait: a `true` left
+by a previous facing push would let the next highlight discard the orbit the
+reader is holding.
+
 **A `views` binding is a committed result's alternative frames** (a strain
 map's εxx / εyy / εxy / ω): the page renders a segmented control, and picking one
 swaps which block `frameBlock` reads at whatever position the navigator is
-already on.  It is not a per-position scalar — `readout` covers those.
+already on.  It is not a per-position scalar — `readout` covers those.  An
+entry is identified by its POSITION in the list, not by its block: two views
+may read one block with different colours, which is what a direction toggle
+over a single point cloud looks like.
 
 **The frame's colour window is the panel's**, not a fresh percentile window per
 frame: recomputing costs two passes over the data on every dispatch AND makes

@@ -11698,6 +11698,22 @@ function reportEmbedHeight() {
 
 // ── dispatch ───────────────────────────────────────────────────────────────
 
+// A 3-D panel's cloud rides `panel_<id>_geom` as base64: the binary
+// side-table path is registered for image pixels only, and a cloud changes on
+// a view click rather than per navigator move, so the encode is not on a hot
+// path.
+function encodeBase64(bytes) {
+  const CHUNK = 0x8000;
+  let binary = '';
+  for (let at = 0; at < bytes.length; at += CHUNK)
+    binary += String.fromCharCode.apply(null, bytes.subarray(at, at + CHUNK));
+  return btoa(binary);
+}
+
+function typedArrayBytes(array) {
+  return new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
+}
+
 // Marker and extra-line groups the dispatch writes carry this prefix, so a
 // refresh can tell its own groups from the page's.
 const OVERLAY_ID_PREFIX = 'apl-overlay-';
@@ -11814,16 +11830,28 @@ export async function mountNavigated(el, page, opts) {
     return null;
   }
 
-  // Which block the panel's frame is read from. A `views` binding swaps it
-  // from the page's segmented control without moving the navigator.
-  const activeBlocks = new Map();
+  // Which of a `views` binding's entries the page's segmented control is on.
+  // Held by POSITION: two views may read the same block with different
+  // colours, which is what a direction toggle over one cloud looks like.
+  const activeViews = new Map();
+
+  function activeView(binding) {
+    if (!binding.views || !binding.views.length) return null;
+    return binding.views[activeViews.get(binding.panel_id) || 0] || binding.views[0];
+  }
 
   function frameBlock(binding) {
-    const chosen = activeBlocks.get(binding.panel_id);
-    if (chosen) return chosen;
+    const view = activeView(binding);
+    if (view) return view.block;
     if (binding.frame && binding.frame.block) return binding.frame.block;
-    if (binding.views && binding.views.length) return binding.views[0].block;
     throw new Error(`binding for panel ${binding.panel_id} names no frame block`);
+  }
+
+  // The per-point colours that go with the entry currently shown.
+  function frameColorsBlock(binding) {
+    const view = activeView(binding);
+    if (view && view.colors) return view.colors;
+    return binding.frame && binding.frame.colors;
   }
 
   function frameValues(binding, indices) {
@@ -11855,7 +11883,56 @@ export async function mountNavigated(el, page, opts) {
     return robustLevels(values, 2, 98);
   }
 
+  // A cloud is the whole dataset, not one position's frame, so it is pushed
+  // when the binding first shows it and again when a view click swaps it, not
+  // on every navigator move.
+  const shownClouds = new Map();
+
+  function paintPoints3d(binding) {
+    const name = frameBlock(binding);
+    const colorsName = frameColorsBlock(binding);
+    const shown = `${name}|${colorsName || ''}`;
+    if (shownClouds.get(binding.panel_id) === shown) return;
+    shownClouds.set(binding.panel_id, shown);
+
+    const points = blocks[name];
+    if (!points || points.kind !== 'dense' || points.shape.length !== 2
+        || points.shape[1] !== 3)
+      throw new Error(`points3d block ${name} must be dense (M, 3), got ` +
+                      `${points ? points.shape : 'nothing'}`);
+    const count = points.shape[0];
+    const depth = new Float32Array(count);
+    for (let point = 0; point < count; point++) depth[point] = points.array[point * 3 + 2];
+
+    const geomKey = `panel_${binding.panel_id}_geom`;
+    let geom = {};
+    try { geom = JSON.parse(handle.get(geomKey) || '{}'); } catch (_) {}
+    geom.vertices_b64 = encodeBase64(typedArrayBytes(points.array));
+    geom.z_values_b64 = encodeBase64(typedArrayBytes(depth));
+    if (colorsName) {
+      const colors = blocks[colorsName];
+      if (!colors || colors.kind !== 'dense' || colors.shape[0] !== count)
+        throw new Error(`colors block ${colorsName} must be dense with ` +
+                        `${count} rows, got ${colors ? colors.shape : 'nothing'}`);
+      geom.point_colors_b64 = encodeBase64(typedArrayBytes(colors.array));
+    }
+    handle.applyUpdate(geomKey, JSON.stringify(geom));
+    // vertices_count and a bumped revision live on the LIGHT trait; without
+    // them the renderer draws the old cloud's point count.
+    const state = panelState(binding.panel_id);
+    handle.patchPanel(binding.panel_id, {
+      vertices_count: count,
+      _geom_rev: (state._geom_rev || 0) + 1,
+    });
+  }
+
   function paintFrame(binding, indices) {
+    const panel = panelFor(binding.panel_id);
+    if ((binding.frame && binding.frame.kind === 'points3d')
+        || (panel && panel.kind === '3d')) {
+      paintPoints3d(binding);
+      return;
+    }
     const { values, width, height } = frameValues(binding, indices);
     const levels = frameLevels(binding, values);
     handle.setImage(binding.panel_id, toU8(values, levels[0], levels[1]), width, height,
@@ -11926,11 +12003,46 @@ export async function mountNavigated(el, page, opts) {
     return kept.concat(fresh);
   }
 
+  // One 3-D point marked on the panel, optionally turning the camera to face
+  // it. The rule is not "some angle pointing that way": atan2(y, x) - 90 names
+  // the same direction 180 degrees out and lands the point on the far edge.
+  function paintHighlight(binding, overlay, indices) {
+    const reader = readerFor(overlay.block);
+    const rows = reader.at(indices[0]);
+    let x, y, z;
+    if (reader.kind === 'ragged') {
+      const names = overlay.columns || {};
+      const xs = rows[names.x || 'x'], ys = rows[names.y || 'y'];
+      const zs = rows[names.z || 'z'];
+      if (!xs || !xs.length) return;
+      x = xs[0]; y = ys[0]; z = zs[0];
+    } else {
+      if (rows.length < 3) return;
+      x = rows[0]; y = rows[1]; z = rows[2];
+    }
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return;
+
+    const patch = { highlight: Object.assign(
+      { color: '#ff1744', size: 7 }, overlay.style || {}, { x, y, z }) };
+    const faceCamera = overlay.face_camera || binding.face_camera;
+    if (faceCamera) {
+      const radius = Math.hypot(x, y, z) || 1;
+      patch.azimuth = Math.atan2(x, -y) * 180 / Math.PI;
+      patch.elevation = Math.asin(Math.max(-1, Math.min(1, z / radius))) * 180 / Math.PI;
+    }
+    // Written either way: the flag persists on the trait, so leaving a
+    // previous face_camera push's `true` in place would let a later highlight
+    // discard the orbit the reader is holding.
+    patch._view_from_python = !!faceCamera;
+    handle.patchPanel(binding.panel_id, patch);
+  }
+
   function paintOverlays(binding, indices) {
     const markers = [];
     const lines = [];
     let anyMarkers = false;
     for (const overlay of binding.overlays) {
+      if (overlay.kind === 'highlight') { paintHighlight(binding, overlay, indices); continue; }
       const reader = readerFor(overlay.block);
       const rows = indices.length === 1 ? reader.at(indices[0]) : reader.gather(indices);
       if (overlay.kind === 'curves') { lines.push(overlayWire(overlay, rows)); continue; }
@@ -11968,18 +12080,19 @@ export async function mountNavigated(el, page, opts) {
   // a block, and picking one re-reads the panel's frame from it at the
   // position the navigator is already on.
   function installViews(binding) {
-    activeBlocks.set(binding.panel_id, frameBlock(binding));
+    activeViews.set(binding.panel_id, 0);
     const group = document.getElementById(`apl-views-${binding.panel_id}`);
     if (!group) return;
-    const buttons = [...group.querySelectorAll('button[data-block]')];
+    const buttons = [...group.querySelectorAll('button[data-view]')];
     const mark = () => {
+      const chosen = activeViews.get(binding.panel_id);
       for (const button of buttons)
         button.setAttribute('aria-pressed',
-          button.dataset.block === activeBlocks.get(binding.panel_id) ? 'true' : 'false');
+          Number(button.dataset.view) === chosen ? 'true' : 'false');
     };
     for (const button of buttons)
       button.addEventListener('click', () => {
-        activeBlocks.set(binding.panel_id, button.dataset.block);
+        activeViews.set(binding.panel_id, Number(button.dataset.view));
         mark();
         if (handle.index !== null) dispatch(handle.index);
       });
