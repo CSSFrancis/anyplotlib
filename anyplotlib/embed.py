@@ -57,14 +57,13 @@ from __future__ import annotations
 
 import base64
 import dataclasses
-import json
 import pathlib
 from html import escape
 
 import numpy as np
 
 from anyplotlib._repr_utils import (
-    PNG_HARVEST_LISTENER, build_standalone_html, _widget_state,
+    PNG_HARVEST_LISTENER, build_standalone_html, script_json, _widget_state,
 )
 
 __all__ = ["figure_state", "to_html", "save_html", "esm_path", "FigureBridge",
@@ -318,8 +317,8 @@ def _views_control(binding: dict) -> str:
         f'<button type="button" data-block="{escape(view["block"], quote=True)}"'
         f' aria-pressed="false">{escape(view["label"])}</button>'
         for view in binding["views"])
-    return (f'<div class="apl-views" id="apl-views-{binding["panel_id"]}">'
-            f'{buttons}</div>')
+    panel_id = escape(str(binding["panel_id"]), quote=True)
+    return f'<div class="apl-views" id="apl-views-{panel_id}">{buttons}</div>'
 
 
 _NAVIGATED_PAGE = """\
@@ -428,7 +427,8 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
                        "manifest": manifest}}
 
     strips = "".join(
-        f'<div class="apl-strip" id="apl-readout-{binding["panel_id"]}"></div>'
+        '<div class="apl-strip" '
+        f'id="apl-readout-{escape(str(binding["panel_id"]), quote=True)}"></div>'
         for binding in bindings if binding.get("readout"))
     strips += "".join(_views_control(binding)
                       for binding in bindings if binding.get("views"))
@@ -439,7 +439,7 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
         caption_html=(f'<div class="apl-caption">{escape(caption)}</div>'
                       if caption else ""),
         strips_html=strips,
-        page_json=json.dumps(page, default=str),
-        esm_json=json.dumps(esm_path().read_text(encoding="utf-8")),
+        page_json=script_json(page),
+        esm_json=script_json(esm_path().read_text(encoding="utf-8")),
         png_harvest=PNG_HARVEST_LISTENER,
     )

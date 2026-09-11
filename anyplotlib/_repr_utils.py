@@ -34,6 +34,23 @@ MAX_NOTEBOOK_WIDTH = 860
 # Trait serialisation
 # ---------------------------------------------------------------------------
 
+def script_json(obj) -> str:
+    """Return *obj* as a JSON literal that is safe inside a ``<script>`` block.
+
+    An HTML parser ends a script element at the first ``</`` in its text and
+    treats ``<!--`` as a comment opener, and it does not care that the sequence
+    is inside a JavaScript string.  So a figure title, an axis label read from
+    file metadata, or any other value carrying ``</script>`` would close the
+    block early and run whatever followed it as markup.  Both sequences are
+    escaped through the ``<``, which JSON spells ``\u003c``, so ``JSON.parse``
+    and a script literal read back exactly the character that went in.
+    """
+    return (json.dumps(obj, default=str)
+            .replace("</", "\\u003c/")
+            .replace("<!--", "\\u003c!--"))
+
+
+
 def _widget_state(widget) -> dict:
     """Return a {name: value} dict of every synced traitlet.
 
@@ -386,9 +403,9 @@ def build_standalone_html(widget, *, resizable: bool = True,
         width=w,
         height=h,
         extra_css=extra_css,
-        state_json=json.dumps(state, default=str),
-        esm_json=json.dumps(esm),
-        fig_id_json=json.dumps(fig_id),
+        state_json=script_json(state),
+        esm_json=script_json(esm),
+        fig_id_json=script_json(fig_id),
         png_harvest=PNG_HARVEST_LISTENER,
     )
 
