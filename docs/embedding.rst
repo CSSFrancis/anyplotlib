@@ -215,13 +215,36 @@ page), ``"driven"`` (it is refreshed on every dispatch) or ``"static"``.
                        emits; ``columns`` renames the block's columns when they
                        are not ``x``/``y`` (and ``u``/``v``, ``x1``…``y2``).
 ``reduce``             ``{block, navigator_panel}`` — a detector widget on this
-                       panel re-maps the navigator.  For a ragged block, name
-                       the ``x``, ``y`` and ``value`` columns.
-``chips``              ``[{label, block}]`` — per-position scalars, written into
-                       ``#apl-chips-<panel_id>``.
+                       panel re-maps the navigator (see below).  For a ragged
+                       block, name the ``x``, ``y`` and ``value`` columns.
+``views``              ``[{label, block}]`` — a committed result's alternative
+                       frames (a strain map's εxx, εyy, εxy, ω).  The page
+                       renders a segmented control that swaps which block the
+                       panel's frame is read from, at whatever position the
+                       navigator is on.  With ``views``, ``frame.block`` may be
+                       omitted and the first entry is shown first.
 ``readout``            ``{block, names, units}`` — written into
                        ``#apl-readout-<panel_id>``.
 =====================  ========================================================
+
+``frame`` also takes ``width`` and ``height``, the pixel grid a ``"disks"``
+raster is splatted into; they default to the panel's own image size.  A
+navigator binding takes ``initial_index`` to open somewhere other than the
+origin.
+
+How a virtual image flows through it
+------------------------------------
+
+The signal panel carries a detector widget — a rectangle, a circle or an
+annulus — and its binding's ``reduce`` names the block to read and the
+navigator panel to write.  When the detector moves, the page turns the widget
+into a mask over the signal grid: every pixel whose integer coordinate lies
+inside the shape.  It then sums, for each navigation position, that position's
+frame under the mask (a dense block) or the intensity of every row whose
+rounded position falls inside it (a ragged block).  The result is one value per
+navigation position — exactly the navigator's own shape — and it goes to the
+navigator with ``setImage``.  Moving the detector therefore re-maps the whole
+scan, which is what a virtual image is.
 
 A binding that names a panel or a block the page does not carry raises
 ``ValueError`` at build time rather than rendering an empty figure.
@@ -244,12 +267,14 @@ skip ``navigated_html`` and mount it directly:
 ``mountNavigated`` returns the ordinary ``mount()`` handle, so everything in
 the table above still works on it.
 
-The readers are exported too, for chrome the page grows around the figure:
-``dense(block)`` and ``ragged(block)`` give ``at`` / ``gather`` / ``reduce``,
-``maskFromWidget(widget, w, h)`` turns a rectangle, circle or annulus widget
-into a selection mask, ``rasterDisks(rows, w, h, radius, combine)`` splats
-rows as disks, and ``robustLevels`` / ``toU8`` are the percentile window and
-the 8-bit code map the renderer blits.
+The readers are exported too, under the ``embed`` namespace, for chrome the
+page grows around the figure: ``embed.dense(block)`` and ``embed.ragged(block)``
+give ``at`` / ``gather`` / ``reduce``, ``embed.maskFromWidget(widget, w, h)``
+turns a rectangle, circle or annulus widget into a selection mask,
+``embed.rasterDisks(rows, w, h, radius, combine)`` splats rows as disks, and
+``embed.robustLevels`` / ``embed.toU8`` are the percentile window and the 8-bit
+code map the renderer blits.  ``mountNavigated`` is both a named export and a
+member of that namespace.
 
 Pushing frames: ``setImage``
 -----------------------------
@@ -263,8 +288,9 @@ here, because the bytes go straight to the renderer's draw path instead of
 through base64 and a JSON trait.
 
 ``opts.display_min`` / ``opts.display_max`` set the colour window the codes were
-mapped over; geometry follows the bytes, so a frame of a different size just
-works.  The repaint lands on the next animation frame, so several frames pushed
+mapped over; geometry follows the bytes in the same animation frame, so a frame
+of a different size never paints once at the new dimensions over the old
+pixels.  The repaint lands on the next animation frame, so several frames pushed
 in one task paint once — call ``handle.flushImages()`` if you need the pixels
 before then (``exportPNG`` and ``exportCanvas`` already do).
 
