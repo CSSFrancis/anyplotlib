@@ -412,3 +412,11 @@ Notes and caveats
   drop the frame (this is also the most robust MDI isolation).
 * One renderer file, no build step: ``figure_esm.js`` has no imports, so it
   works with any bundler or directly as a ``<script type="module">``.
+* An exported page inlines its state and data into a ``<script>`` block, and an
+  HTML parser ends that block at the first ``</`` in its text whether or not it
+  sits inside a JavaScript string.  Every JSON literal the page embeds therefore
+  goes through ``anyplotlib._repr_utils.script_json``, which escapes ``</`` and
+  ``<!--`` through the ``<``, so a title or an axis label read from file
+  metadata cannot close the block and run what follows.  Titles and captions are
+  HTML-escaped on their way into markup.  If you template your own page around
+  ``figure_state``, do the same.

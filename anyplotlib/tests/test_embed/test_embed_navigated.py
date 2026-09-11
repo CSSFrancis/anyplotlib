@@ -861,3 +861,46 @@ class TestGeometryLandsWithItsBytes:
             "the panel was resized before the bytes it describes were committed")
         assert sizes["afterFrame"] == [32, 16]
         assert sizes["bytes"] == 32 * 16
+
+
+class TestOverlayStylePassesThrough:
+    def test_fill_alpha_reaches_the_wire_and_paints_opaque(self, navigated_page):
+        """An allow-list here silently drops whatever it has not heard of."""
+        signal, spots = _dataset()
+        fig, axes = apl.subplots(1, 2, figsize=(640, 320))
+        navigator = axes[0].imshow(signal.sum(axis=(2, 3)).astype(np.float32), cmap="gray")
+        signal_plot = axes[1].imshow(np.zeros(SIGNAL_SHAPE, dtype=np.uint8), cmap="gray")
+        navigator.add_widget("crosshair", cx=0, cy=0)
+
+        style = {"radius": 9, "color": "#ff0000", "fill_color": "#00ff00",
+                 "fill_alpha": 1.0}
+        html = navigated_html(
+            fig, {"signal": signal, "spots": spots},
+            [{"panel_id": navigator._id, "role": "navigator"},
+             {"panel_id": signal_plot._id, "role": "driven",
+              "frame": {"block": "signal", "kind": "image", "levels": [0, 255]},
+              "overlays": [{"block": "spots", "kind": "circles", "style": style}]}])
+        page = navigated_page(html)
+
+        wire = page.evaluate(
+            "(id) => window._aplHandle.api.panels.get(id).state.markers[0]",
+            signal_plot._id)
+        assert wire["fill_alpha"] == 1.0, wire
+        assert wire["fill_color"] == "#00ff00", wire
+        assert "radius" not in wire, "the sizes input leaked into the wire dict"
+        assert wire["sizes"] == [9] * ROWS_PER_POSITION
+
+        # A fully opaque fill paints the fill colour, not a 30 % blend of it.
+        opaque = page.evaluate(
+            """(id) => {
+              const canvas = window._aplHandle.api.panels.get(id).markersCanvas;
+              const data = canvas.getContext('2d')
+                                 .getImageData(0, 0, canvas.width, canvas.height).data;
+              let n = 0;
+              for (let i = 0; i < data.length; i += 4)
+                if (data[i] < 40 && data[i + 1] > 215 && data[i + 2] < 40
+                    && data[i + 3] > 250) n++;
+              return n;
+            }""",
+            signal_plot._id)
+        assert opaque > 20, f"only {opaque} fully opaque green pixels"

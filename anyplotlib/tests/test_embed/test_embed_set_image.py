@@ -207,3 +207,100 @@ class TestSetImagePaints:
             plot._id)
         keys = page.evaluate("() => (window._syncs || []).map((s) => s.key)")
         assert keys == [], f"setImage echoed through onSync: {keys}"
+
+
+class TestSetImageTargets:
+    def test_a_non_image_panel_is_refused(self, mount_page):
+        """A 3-D panel has a geometry trait but nowhere to put pixel bytes."""
+        fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+        grid = np.linspace(-1.0, 1.0, 8)
+        x, y = np.meshgrid(grid, grid)
+        surface = ax.plot_surface(x, y, (x ** 2 + y ** 2).astype(np.float32))
+        page = mount_page(fig)
+        message = page.evaluate(
+            """(panelId) => {
+                try {
+                  window._handle.setImage(panelId, new Uint8Array(64), 8, 8);
+                  return null;
+                } catch (e) { return String(e.message); }
+            }""",
+            surface._id)
+        assert message is not None, "a 3-D panel accepted pixel bytes"
+        assert "only a 2-D image panel" in message
+
+    def test_a_new_frame_voids_the_detail_tile(self, mount_page):
+        """A detail tile crops the PREVIOUS frame, so it cannot outlive it."""
+        rng = np.random.default_rng(4)
+        base = rng.integers(0, 256, size=(1200, 1200)).astype(np.uint8)
+        fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+        plot = ax.imshow(base, cmap="gray", tile=True)
+        plot.set_detail(base[0:128, 0:128], x0=0, x1=128, y0=0, y1=128)
+        assert plot.to_state_dict()["detail_width"] > 0, "no detail tile to clear"
+
+        page = mount_page(fig)
+        before = page.evaluate(
+            "(id) => { const p = window._handle.api.panels.get(id);"
+            "  return [p.state.detail_width, !!p._geomCache.detail_b64,"
+            "          !!p.state.detail_b64_bytes]; }",
+            plot._id)
+        assert before[0] > 0 and (before[1] or before[2]), before
+
+        page.evaluate(
+            """async (panelId) => {
+                window._handle.setImage(panelId, new Uint8Array(64 * 64).fill(80),
+                                        64, 64, {display_min: 0, display_max: 255});
+                await new Promise((r) => requestAnimationFrame(r));
+                await new Promise((r) => requestAnimationFrame(r));
+            }""",
+            plot._id)
+        after = page.evaluate(
+            """(id) => {
+              const p = window._handle.api.panels.get(id);
+              return {width: p.state.detail_width, height: p.state.detail_height,
+                      region: p.state.detail_region,
+                      geom: p._geomCache.detail_b64,
+                      geomBytes: p._geomCache.detail_b64_bytes === undefined,
+                      stateBytes: p.state.detail_b64_bytes === undefined,
+                      tile: p.state.tile_enabled, base: p.state.base_width};
+            }""",
+            plot._id)
+        assert after["width"] == 0 and after["height"] == 0, after
+        assert after["region"] == [], after
+        assert after["geom"] == "" and after["geomBytes"], after
+        assert after["stateBytes"], after
+        assert after["tile"] is False and after["base"] == 0, after
+
+    def test_rgba_bytes_paint_their_own_channels(self, mount_page):
+        fig, ax = apl.subplots(1, 1, figsize=(320, 320))
+        plot = ax.imshow(np.zeros((16, 16), dtype=np.uint8), cmap="gray")
+        page = mount_page(fig)
+        page.evaluate(
+            """async (panelId) => {
+                const size = 32, pixels = size * size;
+                const frame = new Uint8Array(pixels * 4);
+                for (let i = 0; i < pixels; i++) {
+                  frame[i * 4] = 200; frame[i * 4 + 1] = 30;
+                  frame[i * 4 + 2] = 90; frame[i * 4 + 3] = 255;
+                }
+                window._handle.setImage(panelId, frame, size, size, {rgb: true});
+                await new Promise((r) => requestAnimationFrame(r));
+                await new Promise((r) => requestAnimationFrame(r));
+            }""",
+            plot._id)
+        assert page.evaluate(
+            "(id) => window._handle.api.panels.get(id).state.is_rgb", plot._id) is True
+        assert _sample(page, plot._id, 16, 16) == [200, 30, 90]
+
+    def test_rgba_length_is_four_bytes_a_pixel(self, mount_page):
+        fig, plot = _figure_with_panel()
+        page = mount_page(fig)
+        message = page.evaluate(
+            """(panelId) => {
+                try {
+                  window._handle.setImage(panelId, new Uint8Array(8 * 8 * 3), 8, 8,
+                                          {rgb: true});
+                  return null;
+                } catch (e) { return String(e.message); }
+            }""",
+            plot._id)
+        assert message is not None and "256 bytes for 8x8 RGBA" in message
