@@ -292,8 +292,11 @@ def _validate_bindings(state: dict, blocks: dict, bindings: list) -> None:
             raise ValueError(f"binding names unknown panel {panel_id!r}; "
                              f"the figure has {sorted(panel_ids)}")
         names = []
-        if binding.get("frame") and binding["frame"].get("block"):
-            names.append(binding["frame"]["block"])
+        frame = binding.get("frame") or {}
+        if frame.get("block"):
+            names.append(frame["block"])
+        if frame.get("colors"):
+            names.append(frame["colors"])
         for overlay in binding.get("overlays") or []:
             names.append(overlay["block"])
         if binding.get("reduce"):
@@ -303,6 +306,8 @@ def _validate_bindings(state: dict, blocks: dict, bindings: list) -> None:
                 raise ValueError(f"reduce names unknown navigator panel {navigator!r}")
         for view in binding.get("views") or []:
             names.append(view["block"])
+            if view.get("colors"):
+                names.append(view["colors"])
         if binding.get("readout"):
             names.append(binding["readout"]["block"])
         for name in names:
@@ -313,10 +318,12 @@ def _validate_bindings(state: dict, blocks: dict, bindings: list) -> None:
 
 def _views_control(binding: dict) -> str:
     """The segmented control that picks which block a panel's frame comes from."""
+    # The button names its POSITION, not its block: two views may read the
+    # same block with different colours (a direction toggle on one cloud).
     buttons = "".join(
-        f'<button type="button" data-block="{escape(view["block"], quote=True)}"'
+        f'<button type="button" data-view="{index}"'
         f' aria-pressed="false">{escape(view["label"])}</button>'
-        for view in binding["views"])
+        for index, view in enumerate(binding["views"]))
     panel_id = escape(str(binding["panel_id"]), quote=True)
     return f'<div class="apl-views" id="apl-views-{panel_id}">{buttons}</div>'
 
@@ -395,10 +402,10 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
 
         {panel_id, role: "navigator" | "driven" | "static",
          widgets: [...],
-         frame: {block, kind: "image" | "disks", radius?, combine?, levels?,
-                 width?, height?},
-         views: [{label, block}],
-         overlays: [{block, kind, style, columns?}],
+         frame: {block, kind: "image" | "disks" | "points3d", radius?,
+                 combine?, levels?, width?, height?, colors?},
+         views: [{label, block, colors?}],
+         overlays: [{block, kind, style, columns?, face_camera?}],
          reduce: {block, navigator_panel, x?, y?, value?},
          readout: {block, names, units}}
 
@@ -408,6 +415,11 @@ def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
     position the navigator is already on.  With ``views``, ``frame.block`` may
     be omitted and the first entry is the one shown first.  A navigator binding
     may carry ``initial_index`` to open somewhere other than the origin.
+
+    A 3-D panel takes ``kind: "points3d"`` (a dense ``(M, 3)`` float32 cloud
+    plus a ``colors`` block) and a ``"highlight"`` overlay marking one point per
+    navigation position; ``face_camera`` on that overlay turns the panel to face
+    the marked point.
 
     The renderer, the figure state, the packed data and the bindings are all
     inlined, so the page needs no network and no Python at view time.
