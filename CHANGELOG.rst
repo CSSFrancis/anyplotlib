@@ -10,6 +10,122 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.9.0 (2026-09-11)
+==================
+
+New Features
+------------
+
+- A self-contained HTML page can now navigate its own data.
+  ``anyplotlib.embed.navigated_html`` writes a figure, the dataset it navigates
+  and a list of bindings into one file: drag the navigator's crosshair and the
+  signal panel shows that position's frame, its overlays follow, and a detector
+  drawn on the signal panel re-maps the navigator.  Data travels as *blocks*:
+  dense arrays, or ``Ragged`` row-pointer blocks for a variable number of rows
+  per position, packed by ``pack_blocks`` into one byte string the page decodes
+  once.
+
+  The JS mount handle gained the pieces that make that fast: ``setImage`` pushes
+  raw pixel bytes straight to the renderer's draw path (a fraction of a
+  millisecond at 2048², against 129-136 ms through the panel state),
+  ``patchPanel`` merges a partial state, and ``panelIds`` lists the panels.  The
+  runtime and its readers (``mountNavigated``, ``dense``, ``ragged``,
+  ``maskFromWidget``, ``rasterDisks``, ``robustLevels``, ``toU8``) are exported
+  from ``figure_esm.js`` for hosts that already own their data. (`#69 <https://github.com/CSSFrancis/anyplotlib/pull/69>`_)
+- Figures can now be **saved and copied as PNG images**. Right-click any plot for a
+  menu offering *Copy image*, *Save PNG…*, *Save full view…* and *Save at native
+  resolution…* for the panel you clicked, the same for the whole figure, and a
+  sticky **Theme** choice (*Current* / *Light* / *Dark*) so a dark-themed notebook
+  can still produce a light figure for a paper. ``Ctrl+C`` (``Cmd+C`` on macOS)
+  copies the plot under the cursor to the clipboard, with a brief
+  *"Image copied to clipboard"* confirmation; with no plot hovered it copies the
+  whole figure. Inside JupyterLab, PyCharm and VS Code the badge is the reliable
+  route: those hosts install their own ``contextmenu`` and keyboard handlers and
+  may swallow a right-click or ``Cmd+C`` before the figure ever sees it. *Save PNG…* downloads without any permission prompt; a separate *Save as…*
+  entry opens a real system file dialog where the browser supports one
+  (Chromium), at the cost of Chrome's file-editing permission prompt. Hosts that
+  block script-started downloads get an in-figure preview instead.
+  The three sources are *current view* (zoom, pan and contrast
+  exactly as displayed), *full view* (the whole data extent at the panel's
+  on-screen resolution) and *native resolution* (one output pixel per data pixel,
+  with the axes, colorbar, title, markers and widgets all redrawn at that size).
+
+  The same thing is available from Python as :meth:`~anyplotlib.Figure.savefig`::
+
+      fig.savefig("figure.png")                                # as displayed
+      fig.savefig("paper.png", theme="light", scale=2)         # light, 2x
+      fig.savefig("data.png", source="native", panel=plot)     # 1:1 with the data
+
+  ``savefig`` renders through the real JavaScript renderer in a headless browser,
+  so the output is exactly what the figure looks like on screen — it needs
+  Playwright (``pip install "anyplotlib[docs]"`` then
+  ``playwright install chromium``). ``source="native"`` works even for a **tiled**
+  plot, whose full-resolution array normally never leaves Python: the backend is
+  re-sampled at full resolution for the export only, leaving the live figure
+  untouched. In the browser that case is offered but disabled, with a tooltip
+  pointing at ``savefig``, because the page only ever holds a downsampled
+  overview.
+
+  Downstream applications can add their own entries to the menu through the
+  embedding handle, so a host can save formats anyplotlib knows nothing about::
+
+      handle.registerExportAction({
+        id: 'save-tiff', label: 'Save as TIFF…', scope: 'panel',
+        handler: (ctx) => host.writeTiff(ctx.panelId, ctx.exportCanvas().canvas),
+      })
+
+  The handler receives the clicked panel, its state, the chosen theme, and bound
+  ``exportPNG`` / ``exportCanvas`` / ``downloadPNG`` / ``copyPNG`` / ``toast``
+  helpers. See :doc:`exporting` for the full reference.
+- The 2-D hover readout now also names the **value** of the pixel under the
+  cursor — ``v:<value>`` for a colourmapped image, ``rgb:r,g,b`` for a true-colour
+  one — alongside the existing physical and pixel coordinates. It is exact:
+  integer data whose range fits the 256 transferred codes is inverted locally,
+  and for anything wider the renderer asks Python for the true value once the
+  cursor dwells on a pixel (``imshow(..., probe_exact=True)`` by default, tunable
+  via :meth:`~anyplotlib.Plot2D.set_value_probe`), falling back to the quantised
+  estimate when no kernel can answer. Zoomed into a detail tile the value comes
+  from the tile's native pixels rather than the coarser overview.
+  The **v** key toggles the on-image pill, and
+  :meth:`~anyplotlib.Plot2D.set_readout_visible` turns it off from Python while
+  keeping the readout live: embedding hosts receive every update through
+  ``mount()``'s ``opts.onReadout`` callback and an ``apl:readout`` DOM event — so
+  an Electron app can render position and value in its own status bar instead,
+  where it covers no data. 2-D pointer events also carry ``img_x``/``img_y`` now,
+  the cursor's position in image pixels.
+
+
+Bug Fixes
+---------
+
+- Fixed a tiled :meth:`~anyplotlib.Axes.imshow` of a **signed** integer frame
+  displaying wrapped values: a ``uint32`` accumulator in the overview box-mean read
+  an ``int16`` ``-100`` as ``+1073741696``, raised
+  ``_UFuncOutputCastingError`` on a non-divisible grid, and overflowed on any dtype
+  wider than 16 bits; the accumulator is now sized to the data, which also makes the
+  overview up to 4x faster on large float frames. (`#65 <https://github.com/CSSFrancis/anyplotlib/pull/65>`_)
+- :meth:`~anyplotlib.Figure.save_html`, :func:`~anyplotlib.embed.to_html` and
+  :func:`~anyplotlib.embed.figure_state` now capture the view the reader is
+  actually looking at. Zoom, pan, orbit and the colorbar / scale-mode shortcuts
+  are applied in the browser and written back to the panel traits, but nothing on
+  the Python side read them back, so every snapshot silently reset the figure to
+  the view it was created with. Those keys are now reconciled into the plot state
+  before a snapshot is taken.
+- Fixed PNG export producing a mostly-blank image when the figure is wider than
+  the notebook cell. In that case the renderer shrinks the figure with a CSS
+  ``transform: scale()``, which makes element rectangles report *visual* pixels
+  while the export sized its canvas in *native* pixels — so the panels were
+  composited into the top-left corner and the remainder was filled with the
+  background colour. Export coordinates are now un-scaled by the live transform.
+- Modified key presses no longer trigger a plot's single-letter shortcuts. The
+  panel key handlers matched on the bare letter without checking modifiers, so
+  ``Ctrl+C`` toggled the colorbar instead of copying, and ``Cmd+S`` — JupyterLab's
+  *save notebook* — silently flipped a 2-D plot's colour scale to symlog. Keys
+  pressed with ``Ctrl``, ``Cmd`` or ``Alt`` are now left to the host. They are
+  still reported to Python ``key_down`` callbacks exactly as before, so nothing
+  that observes the full keystroke changes.
+
+
 0.8.0 (2026-08-25)
 ==================
 
