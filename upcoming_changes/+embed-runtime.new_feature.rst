@@ -7,7 +7,7 @@ dense arrays, or ``Ragged`` row-pointer blocks for a variable number of rows
 per position — packed by ``pack_blocks`` into one byte string the page decodes
 once.
 
-The JS mount handle gained the pieces that makes that fast: ``setImage`` pushes
+The JS mount handle gained the pieces that make that fast: ``setImage`` pushes
 raw pixel bytes straight to the renderer's draw path (a fraction of a
 millisecond at 2048², against 129-136 ms through the panel state),
 ``patchPanel`` merges a partial state, and ``panelIds`` lists the panels.  The
