@@ -64,8 +64,7 @@ async (args) => {
   await nextFrame();
   await nextFrame();
 
-  // The first push is the one that resizes the panel to the new frame, so it
-  // is reported apart from the steady-state scrub it is not representative of.
+  // The first push carries the panel resize, so it is reported on its own.
   const first = durations[0];
   const rest = durations.slice(1).sort((a, b) => a - b);
   return {first, perPush,
@@ -113,7 +112,7 @@ class TestSetImageCost:
             print(f"\nsetImage {size}x{size} over {FRAME_COUNT} frames: "
                   f"median {timings['median']:.3f} ms, worst {timings['worst']:.3f} ms, "
                   f"{timings['perPush']:.4f} ms per push back to back, "
-                  f"first (resizes the panel) {timings['first']:.3f} ms")
+                  f"first (carries the resize) {timings['first']:.3f} ms")
         assert timings["median"] < PUSH_BUDGET_MS, (
             f"setImage median {timings['median']:.3f} ms at {size}² exceeds "
             f"the {PUSH_BUDGET_MS} ms budget")

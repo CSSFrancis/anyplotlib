@@ -227,3 +227,43 @@ class TestNavigatedHtml:
                               {"cube": np.zeros((4, 4, 8, 8), dtype=np.uint8)},
                               self._bindings(navigator, signal))
         assert f"panel_{signal._id}_json" in html
+
+
+class TestEmbedSurface:
+    def test_the_readers_live_under_one_namespace(self):
+        """Generic names stay out of the top level beside mount / render."""
+        source = esm_path().read_text(encoding="utf-8")
+        assert "export const embed = {" in source
+        assert "export async function mountNavigated" in source
+        for name in ("dense", "ragged", "toU8", "decodeBlocks",
+                     "maskFromWidget", "rasterDisks", "robustLevels"):
+            assert f"export function {name}(" not in source, (
+                f"{name} is still a top-level export")
+            assert f"export async function {name}(" not in source
+
+    def test_views_blocks_are_validated(self):
+        fig, axes = apl.subplots(1, 2, figsize=(400, 200))
+        navigator = axes[0].imshow(np.zeros((4, 4), dtype=np.uint8))
+        panel = axes[1].imshow(np.zeros((8, 8), dtype=np.uint8))
+        cube = np.zeros((4, 4, 8, 8), dtype=np.uint8)
+        bindings = [
+            {"panel_id": navigator._id, "role": "navigator"},
+            {"panel_id": panel._id, "role": "driven",
+             "views": [{"label": "a", "block": "cube"},
+                       {"label": "b", "block": "gone"}]},
+        ]
+        with pytest.raises(ValueError, match="unknown block 'gone'"):
+            navigated_html(fig, {"cube": cube}, bindings)
+
+    def test_a_views_binding_needs_no_frame_block(self):
+        fig, axes = apl.subplots(1, 2, figsize=(400, 200))
+        navigator = axes[0].imshow(np.zeros((4, 4), dtype=np.uint8))
+        panel = axes[1].imshow(np.zeros((8, 8), dtype=np.uint8))
+        cube = np.zeros((4, 4, 8, 8), dtype=np.uint8)
+        html = navigated_html(
+            fig, {"cube": cube},
+            [{"panel_id": navigator._id, "role": "navigator"},
+             {"panel_id": panel._id, "role": "driven",
+              "views": [{"label": "a", "block": "cube"}],
+              "frame": {"kind": "image"}}])
+        assert f'id="apl-views-{panel._id}"' in html
