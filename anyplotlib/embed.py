@@ -55,11 +55,16 @@ See ``docs/embedding.rst`` for a complete Electron walkthrough.
 
 from __future__ import annotations
 
+import dataclasses
 import pathlib
+from html import escape
 
-from anyplotlib._repr_utils import build_standalone_html, _widget_state
+from anyplotlib._repr_utils import (
+    PNG_HARVEST_LISTENER, build_standalone_html, _widget_state,
+)
 
-__all__ = ["figure_state", "to_html", "save_html", "esm_path", "FigureBridge"]
+__all__ = ["figure_state", "to_html", "save_html", "esm_path", "FigureBridge",
+           "Ragged", "pack_blocks", "navigated_html"]
 
 
 def figure_state(fig) -> dict:
@@ -192,3 +197,225 @@ class FigureBridge:
             self._fig.unobserve(self._on_trait_change, names=traitlets.All)
         except ValueError:
             pass
+
+
+# ---------------------------------------------------------------------------
+# Navigated pages
+# ---------------------------------------------------------------------------
+
+#: Typed-array element sizes the JS runtime can view.  Anything else has to be
+#: cast before packing, because a view it cannot name is a silent wrong answer.
+_BLOCK_DTYPES = {
+    "uint8": 1, "int8": 1, "uint16": 2, "int16": 2,
+    "uint32": 4, "int32": 4, "float32": 4, "float64": 8,
+}
+
+#: Every block view starts here so a typed array is never misaligned.
+_BLOCK_ALIGNMENT = 8
+
+
+@dataclasses.dataclass
+class Ragged:
+    """A block with a variable number of rows per navigation position.
+
+    ``offsets`` is the row-pointer array: position ``i`` owns rows
+    ``offsets[i]`` up to ``offsets[i + 1]``, so it has ``n_positions + 1``
+    entries.  ``columns`` maps a name to one value per row.  ``nav_shape``
+    gives the navigation grid when it has more than one axis, so a
+    two-dimensional index resolves to the right row span.
+    """
+
+    offsets: "np.ndarray"
+    columns: dict
+    nav_shape: tuple = ()
+
+
+def _block_dtype_name(array) -> str:
+    name = str(array.dtype)
+    if name not in _BLOCK_DTYPES:
+        raise ValueError(
+            f"block dtype {name!r} cannot be viewed by the page; cast it to one "
+            f"of {', '.join(sorted(_BLOCK_DTYPES))} first")
+    return name
+
+
+def pack_blocks(blocks: dict) -> "tuple[bytes, dict]":
+    """Pack arrays into one little-endian byte string plus a manifest.
+
+    *blocks* maps a name to a numpy array (a dense block whose leading axes are
+    the navigation axes) or to a :class:`Ragged`.  The return is
+    ``(payload, manifest)``: the page base64-decodes *payload* once into a
+    single ``ArrayBuffer`` and takes a typed-array view per manifest entry, so
+    no block is encoded or copied on its own.
+    """
+    import numpy as np
+
+    payload = bytearray()
+    manifest: dict = {}
+
+    def append(array) -> dict:
+        contiguous = np.ascontiguousarray(array)
+        dtype_name = _block_dtype_name(contiguous)
+        # A typed array can only view an offset that is a multiple of its
+        # element size; 8 covers every dtype the runtime knows.
+        padding = (-len(payload)) % _BLOCK_ALIGNMENT
+        payload.extend(b"\0" * padding)
+        spec = {"dtype": dtype_name, "offset": len(payload),
+                "nbytes": int(contiguous.nbytes)}
+        payload.extend(contiguous.astype(contiguous.dtype.newbyteorder("<"),
+                                         copy=False).tobytes())
+        return spec
+
+    for name, block in blocks.items():
+        if isinstance(block, Ragged):
+            offsets = np.ascontiguousarray(block.offsets, dtype=np.int32)
+            nav_shape = tuple(block.nav_shape) or (int(offsets.size) - 1,)
+            entry = {"kind": "ragged", "nav_shape": [int(n) for n in nav_shape],
+                     "offsets": append(offsets),
+                     "columns": {column: append(values)
+                                 for column, values in block.columns.items()}}
+        else:
+            array = np.ascontiguousarray(block)
+            entry = dict(append(array), kind="dense",
+                         shape=[int(n) for n in array.shape])
+        manifest[name] = entry
+
+    return bytes(payload), manifest
+
+
+def _validate_bindings(state: dict, blocks: dict, bindings: list) -> None:
+    """Raise when a binding names a panel or a block the page does not have."""
+    panel_ids = {key[len("panel_"):-len("_json")] for key in state
+                 if key.startswith("panel_") and key.endswith("_json")}
+    for binding in bindings:
+        panel_id = binding.get("panel_id")
+        if panel_id not in panel_ids:
+            raise ValueError(f"binding names unknown panel {panel_id!r}; "
+                             f"the figure has {sorted(panel_ids)}")
+        names = []
+        if binding.get("frame"):
+            names.append(binding["frame"]["block"])
+        for overlay in binding.get("overlays") or []:
+            names.append(overlay["block"])
+        if binding.get("reduce"):
+            names.append(binding["reduce"]["block"])
+            navigator = binding["reduce"]["navigator_panel"]
+            if navigator not in panel_ids:
+                raise ValueError(f"reduce names unknown navigator panel {navigator!r}")
+        for chip in binding.get("chips") or []:
+            names.append(chip["block"])
+        if binding.get("readout"):
+            names.append(binding["readout"]["block"])
+        for name in names:
+            if name not in blocks:
+                raise ValueError(f"binding names unknown block {name!r}; "
+                                 f"the page carries {sorted(blocks)}")
+
+
+_NAVIGATED_PAGE = """\
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{title}</title>
+<style>
+  html, body {{ margin: 0; padding: 0; background: transparent; }}
+  #apl-page {{ width: 100%; }}
+  /* The renderer shrinks .apl-outer with transform:scale() whenever the
+     figure is wider than its box; min-width:max-content is what lets it
+     measure the native width to scale from. */
+  .apl-outer {{ min-width: max-content; transform-origin: top left; }}
+  .apl-title {{ font: 600 15px system-ui, sans-serif; margin: 8px 4px 4px; }}
+  .apl-caption {{ font: 13px system-ui, sans-serif; margin: 4px 4px 8px;
+                 color: #555; }}
+  .apl-strip {{ font: 12px ui-monospace, monospace; margin: 2px 4px;
+               color: #444; min-height: 1.2em; }}
+  @media (prefers-color-scheme: dark) {{
+    .apl-caption {{ color: #aaa; }}
+    .apl-strip {{ color: #bbb; }}
+  }}
+</style>
+</head>
+<body>
+<div id="apl-page">
+{title_html}<div id="apl-host"></div>{strips_html}{caption_html}
+</div>
+<script type="module">
+const PAGE = {page_json};
+const esmSource = {esm_json};
+const blobUrl = URL.createObjectURL(new Blob([esmSource], {{type: "text/javascript"}}));
+import(blobUrl).then(async (mod) => {{
+  const handle = await mod.mountNavigated(
+    document.getElementById("apl-host"), PAGE, {{}});
+  window._aplHandle = handle;
+  // The readers (maskFromWidget, rasterDisks, robustLevels, …) are useful to
+  // anything this page grows around the figure, so keep the module reachable.
+  window._aplModule = mod;
+  globalThis.__aplExportPNG = (o) => handle.exportPNG(o);
+  window._aplReady = true;
+}}).catch((err) => {{
+  document.getElementById("apl-host").textContent = "mount error: " + err;
+}});
+
+{png_harvest}
+</script>
+</body>
+</html>
+"""
+
+
+def navigated_html(fig_or_state, blocks: dict, bindings: list, *,
+                   chrome: dict | None = None, title: str = "",
+                   caption: str = "") -> str:
+    """Return a self-contained page whose navigator drives its other panels.
+
+    *fig_or_state* is a live ``Figure`` or the dict :func:`figure_state`
+    returns.  *blocks* is the data the page navigates, in the form
+    :func:`pack_blocks` takes.  *bindings* says what each panel does::
+
+        {panel_id, role: "navigator" | "driven" | "static",
+         widgets: [...],
+         frame: {block, kind: "image" | "disks", radius?, combine?, levels?},
+         overlays: [{block, kind, style, columns?}],
+         reduce: {block, navigator_panel, x?, y?, value?},
+         chips: [{label, block}],
+         readout: {block, names, units}}
+
+    The renderer, the figure state, the packed data and the bindings are all
+    inlined, so the page needs no network and no Python at view time.
+
+    Raises
+    ------
+    ValueError
+        When a binding names a panel or a block the page does not carry.
+    """
+    import base64
+    import json as _json
+
+    state = (fig_or_state if isinstance(fig_or_state, dict)
+             else figure_state(fig_or_state))
+    payload, manifest = pack_blocks(blocks)
+    _validate_bindings(state, manifest, bindings)
+
+    page = {"state": state, "bindings": bindings, "chrome": chrome or {},
+            "blocks": {"data": base64.b64encode(payload).decode("ascii"),
+                       "manifest": manifest}}
+
+    strips = "".join(
+        f'<div class="apl-strip" id="apl-readout-{binding["panel_id"]}"></div>'
+        for binding in bindings if binding.get("readout"))
+    strips += "".join(
+        f'<div class="apl-strip" id="apl-chips-{binding["panel_id"]}"></div>'
+        for binding in bindings if binding.get("chips"))
+
+    return _NAVIGATED_PAGE.format(
+        title=escape(title or "anyplotlib figure"),
+        title_html=(f'<div class="apl-title">{escape(title)}</div>\n' if title else ""),
+        caption_html=(f'<div class="apl-caption">{escape(caption)}</div>'
+                      if caption else ""),
+        strips_html=strips,
+        page_json=_json.dumps(page, default=str),
+        esm_json=_json.dumps(esm_path().read_text(encoding="utf-8")),
+        png_harvest=PNG_HARVEST_LISTENER,
+    )
