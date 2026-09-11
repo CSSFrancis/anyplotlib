@@ -416,6 +416,15 @@ function render({ model, el, onResize, onReadout }) {
       for (const k in prev) {
         if (k.endsWith('_bytes') && next[k] === undefined) next[k] = prev[k];
       }
+      // A live binary frame (setImage, or a PLOTBIN push) is drawn from
+      // `image_b64_bytes`, and the token in `image_b64` is the cache key for
+      // exactly those bytes. A geom push carrying base64 would replace the key
+      // while the bytes stay, freezing the display on whatever was last drawn.
+      // A push with its own token is newer and wins.
+      if (typeof prev.image_b64 === 'string' && prev.image_b64.startsWith('\u0000bin:')
+          && next.image_b64_bytes
+          && !(typeof next.image_b64 === 'string' && next.image_b64.startsWith('\u0000bin:')))
+        next.image_b64 = prev.image_b64;
       p2._geomCache = next;
       p2._geomRev = rev;
     } catch (_) {}
@@ -11120,7 +11129,84 @@ export function mount(el, state, opts) {
   // embedding host can relayout the figure to its new box.
   const api = render({ model, el,
                        onResize: o.onResize, onReadout: o.onReadout }) || {};
-  return {
+
+  // Raw-pixel pushes (setImage) coalesce onto one animation frame per panel:
+  // several frames handed over inside one task repaint once, showing the last.
+  // Without this a scrub pays the full LUT blit per frame on the caller's
+  // thread, which is the cost the binary path exists to avoid.
+  const pendingImages = new Map();      // panel id → the frame to paint next
+  let imageFrameRequest = null;
+
+  function commitImages() {
+    imageFrameRequest = null;
+    const frames = [...pendingImages];
+    pendingImages.clear();
+    for (const [panelId, frame] of frames) {
+      const panel = api.panels && api.panels.get(panelId);
+      if (!panel) continue;
+      // Geometry is patched HERE rather than at push time so it lands in the
+      // same task as the bytes it describes: a frame of a new size would
+      // otherwise paint once at the new dimensions over the previous bytes.
+      const patch = imagePatch(panel.state || {}, frame);
+      if (Object.keys(patch).length) handle.patchPanel(panelId, patch);
+      const slot = `panel_${panelId}_geom::image_b64`;
+      const table = globalThis.__apl_pixbytes || (globalThis.__apl_pixbytes = {});
+      table[slot] = frame.bytes;
+      // The blit cache keys on the geom's image_b64 string, so a frame pushed
+      // under an unchanged key would never reach the canvas. The counter is
+      // per DOCUMENT, not per handle: the side table is global and panel ids
+      // repeat across figures of the same layout.
+      const sequence = (globalThis.__apl_pixseq = (globalThis.__apl_pixseq || 0) + 1);
+      if (!panel._geomCache) panel._geomCache = {};
+      panel._geomCache.image_b64 = `\u0000bin:${sequence}`;
+      panel._geomCache.detail_b64 = '';
+      delete panel._geomCache.detail_b64_bytes;
+      delete panel._detailBlit;
+      delete globalThis.__apl_pixbytes[`panel_${panelId}_geom::detail_b64`];
+      model.applyRemote(slot, `${frame.bytes.length}:${sequence}`);
+    }
+  }
+
+  // The state fields a pushed frame implies, limited to the ones that differ.
+  function imagePatch(current, frame) {
+    const patch = {};
+    if (current.image_width !== frame.width) patch.image_width = frame.width;
+    if (current.image_height !== frame.height) patch.image_height = frame.height;
+    if (!!current.is_rgb !== frame.rgb) patch.is_rgb = frame.rgb;
+    // These bytes are the whole frame, so any overview/tile geometry the panel
+    // was built with no longer describes them.
+    if (current.base_width) patch.base_width = 0;
+    if (current.base_height) patch.base_height = 0;
+    if (current.tile_enabled) patch.tile_enabled = false;
+    // A detail tile is a crop of the PREVIOUS frame at a zoom the viewer may
+    // still be at, and _blit2d composites it over the base. Clearing only the
+    // light field leaves the bytes and the region in the geom cache, which
+    // _applyGeom splices straight back in.
+    if (current.detail_b64 || current.detail_width || current.detail_height)
+      Object.assign(patch, { detail_b64: '', detail_region: [],
+                             detail_width: 0, detail_height: 0,
+                             detail_min: null, detail_max: null,
+                             detail_is_int: false });
+    // display_* is the colour window; raw_* is the band the codes span. The
+    // caller hands over codes already mapped to its window, so they agree.
+    if (frame.displayMin !== undefined && current.display_min !== frame.displayMin) {
+      patch.display_min = frame.displayMin;
+      patch.raw_min = frame.displayMin;
+    }
+    if (frame.displayMax !== undefined && current.display_max !== frame.displayMax) {
+      patch.display_max = frame.displayMax;
+      patch.raw_max = frame.displayMax;
+    }
+    return patch;
+  }
+
+  function flushImages() {
+    if (imageFrameRequest !== null) cancelAnimationFrame(imageFrameRequest);
+    if (pendingImages.size) commitImages();
+    imageFrameRequest = null;
+  }
+
+  const handle = {
     model,
     api,               // internal render() API (panels, calloutCanvas, _drawCallouts, …)
     get(key) { return model.get(key); },
@@ -11130,6 +11216,56 @@ export function mount(el, state, opts) {
       const v = typeof panelState === 'string' ? panelState : JSON.stringify(panelState);
       this.set('panel_' + panelId + '_json', v);
     },
+    // Merge *partial* into one panel's state and re-render it.  Values are
+    // stored verbatim, so this is how markers, extra_lines, display_min /
+    // display_max and overlay_widgets are driven from JS.
+    patchPanel(panelId, partial) {
+      const key = `panel_${panelId}_json`;
+      if (model.get(key) === undefined)
+        throw new Error(`patchPanel: unknown panel id ${panelId}`);
+      let current = {};
+      try { current = JSON.parse(model.get(key) || '{}'); } catch (_) {}
+      model.applyRemote(key, JSON.stringify(Object.assign(current, partial)));
+    },
+    // The panel ids in layout order, so a host need not parse layout_json.
+    panelIds() {
+      try {
+        const layout = JSON.parse(model.get('layout_json') || '{}');
+        return (layout.panel_specs || []).map((spec) => spec.id);
+      } catch (_) { return []; }
+    },
+    // Replace a 2-D panel's image with RAW pixel bytes, skipping base64.
+    //   bytes   Uint8Array of width*height colormap codes, or width*height*4
+    //           RGBA bytes when opts.rgb is true.
+    //   opts    {rgb, display_min, display_max}. Each is patched into the
+    //           panel's state first when it differs, so the geometry and the
+    //           colour window match the bytes on the very frame they arrive.
+    // Throws on an unknown panel or a byte count that is not width*height.
+    // The repaint lands on the next animation frame; exportPNG flushes first.
+    setImage(panelId, bytes, width, height, opts) {
+      const panel = api.panels && api.panels.get(panelId);
+      if (!panel) throw new Error(`setImage: unknown panel id ${panelId}`);
+      if (panel.kind !== '2d')
+        throw new Error(`setImage: panel ${panelId} is a ${panel.kind} panel; ` +
+                        `only a 2-D image panel draws pixel bytes`);
+      if (model.get(`panel_${panelId}_geom`) === undefined)
+        throw new Error(`setImage: panel ${panelId} has no image channel`);
+      const settings = opts || {};
+      const rgb = !!settings.rgb;
+      const expected = width * height * (rgb ? 4 : 1);
+      if (!bytes || bytes.length !== expected)
+        throw new Error(`setImage: expected ${expected} bytes for ${width}x${height}` +
+                        `${rgb ? ' RGBA' : ''}, got ${bytes ? bytes.length : 0}`);
+
+      pendingImages.set(panelId, {
+        bytes, width, height, rgb,
+        displayMin: settings.display_min, displayMax: settings.display_max,
+      });
+      if (imageFrameRequest === null)
+        imageFrameRequest = requestAnimationFrame(commitImages);
+    },
+    // Paint every pending setImage frame now instead of on the next frame.
+    flushImages,
     // Inbound update from a Python bridge — renders without echoing to onSync.
     applyUpdate(key, value) { model.applyRemote(key, value); },
     resize(width, height) {
@@ -11148,7 +11284,7 @@ export function mount(el, state, opts) {
       if (typeof api.exportPNG !== 'function') {
         return Promise.reject(new Error('exportPNG unavailable (render() returned no API)'));
       }
-      try { return api.exportPNG(opts); }
+      try { flushImages(); return api.exportPNG(opts); }
       catch (e) { return Promise.reject(e); }
     },
     // Same, but synchronous and returning the raw {canvas, width, height} so a
@@ -11157,6 +11293,7 @@ export function mount(el, state, opts) {
     exportCanvas(opts) {
       if (typeof api.exportCanvas !== 'function')
         throw new Error('exportCanvas unavailable (render() returned no API)');
+      flushImages();
       return api.exportCanvas(opts);
     },
     // Add an entry to the right-click export menu. Returns an unregister fn.
@@ -11184,6 +11321,7 @@ export function mount(el, state, opts) {
       model.off(); el.replaceChildren();
     },
   };
+  return handle;
 }
 
 
@@ -11191,3 +11329,883 @@ export function mount(el, state, opts) {
 
 
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Navigated-embed runtime: a page that owns its data and dispatches on it.
+//
+// A navigated page is a navigator panel whose widget drives one or more other
+// panels: move the crosshair, the signal panel shows that position's frame and
+// its overlays follow.  The page carries the whole dataset as one binary blob
+// plus a list of bindings that say which block feeds which panel, so the
+// dispatch is a table lookup and a `setImage`, not a program per result kind.
+//
+//   import { mountNavigated } from './figure_esm.js';
+//   const handle = await mountNavigated(host, page);   // page from Python
+//   handle.dispatch([3, 5]);                           // navigate from code
+//
+// `page` is what `anyplotlib.embed.navigated_html` inlines:
+//   {state, blocks: {data, manifest}, bindings: [...], chrome: {...}}
+// ═══════════════════════════════════════════════════════════════════════════
+
+const BLOCK_ARRAY_TYPES = {
+  uint8: Uint8Array, int8: Int8Array,
+  uint16: Uint16Array, int16: Int16Array,
+  uint32: Uint32Array, int32: Int32Array,
+  float32: Float32Array, float64: Float64Array,
+};
+
+function blockArrayView(buffer, spec) {
+  const ArrayType = BLOCK_ARRAY_TYPES[spec.dtype];
+  if (!ArrayType) throw new Error(`unsupported block dtype ${spec.dtype}`);
+  return new ArrayType(buffer, spec.offset, spec.nbytes / ArrayType.BYTES_PER_ELEMENT);
+}
+
+// Decode one packed blob into typed-array views over a single ArrayBuffer.
+// `packed` is {data: base64 string, manifest: {name: entry}} as produced by
+// `anyplotlib.embed.pack_blocks`; every view aliases the same buffer, so
+// nothing is copied per block.
+async function decodeBlocks(packed) {
+  const manifest = (packed && packed.manifest) || {};
+  const payload = (packed && packed.data) || '';
+  const buffer = payload
+    ? await (await fetch(`data:application/octet-stream;base64,${payload}`)).arrayBuffer()
+    : new ArrayBuffer(0);
+  const blocks = {};
+  for (const name of Object.keys(manifest)) {
+    const entry = manifest[name];
+    if (entry.kind === 'ragged') {
+      const columns = {};
+      for (const column of Object.keys(entry.columns))
+        columns[column] = blockArrayView(buffer, entry.columns[column]);
+      blocks[name] = { kind: 'ragged', columns,
+                       offsets: blockArrayView(buffer, entry.offsets),
+                       navShape: entry.nav_shape || null };
+    } else {
+      blocks[name] = { kind: 'dense', shape: entry.shape,
+                       array: blockArrayView(buffer, entry) };
+    }
+  }
+  return blocks;
+}
+
+// Reader over a dense block whose LEADING dimensions are the navigation axes.
+// `at` returns a view (never a copy); `gather` and `reduce` return new arrays.
+function dense(block) {
+  const shape = block.shape;
+  const array = block.array;
+
+  function frameLength(navigationDimensions) {
+    let length = 1;
+    for (let axis = navigationDimensions; axis < shape.length; axis++) length *= shape[axis];
+    return length;
+  }
+
+  function flatPosition(index) {
+    const parts = Array.isArray(index) ? index : [index];
+    let flat = 0;
+    for (let axis = 0; axis < parts.length; axis++) {
+      const extent = shape[axis];
+      const clamped = Math.max(0, Math.min(extent - 1, Math.round(parts[axis])));
+      flat = flat * extent + clamped;
+    }
+    return flat;
+  }
+
+  return {
+    kind: 'dense',
+    shape,
+    at(index) {
+      const parts = Array.isArray(index) ? index : [index];
+      const length = frameLength(parts.length);
+      const start = flatPosition(parts) * length;
+      return array.subarray(start, start + length);
+    },
+    gather(indices) {
+      if (!indices.length) return new Float32Array(0);
+      const total = new Float32Array(this.at(indices[0]).length);
+      for (const index of indices) {
+        const frame = this.at(index);
+        for (let i = 0; i < total.length; i++) total[i] += frame[i];
+      }
+      const scale = 1 / indices.length;
+      for (let i = 0; i < total.length; i++) total[i] *= scale;
+      return total;
+    },
+    // One value per navigation position: sum(frame * mask) over the signal
+    // grid.  `mask` is a Uint8Array covering the trailing two dimensions.
+    reduce(mask) {
+      const signalLength = shape[shape.length - 2] * shape[shape.length - 1];
+      if (mask.length !== signalLength)
+        throw new Error(`reduce: mask of ${mask.length} does not cover the ` +
+                        `${shape[shape.length - 2]}x${shape[shape.length - 1]} signal grid`);
+      const selected = [];
+      for (let i = 0; i < signalLength; i++) if (mask[i]) selected.push(i);
+      const positions = Math.floor(array.length / signalLength);
+      const out = new Float32Array(positions);
+      for (let position = 0; position < positions; position++) {
+        const base = position * signalLength;
+        let total = 0;
+        for (let i = 0; i < selected.length; i++) total += array[base + selected[i]];
+        out[position] = total;
+      }
+      return out;
+    },
+  };
+}
+
+// Reader over a ragged block: a row-pointer array plus one value array per
+// column, so each navigation position owns a variable number of rows.
+function ragged(block) {
+  const offsets = block.offsets;
+  const columns = block.columns;
+  const columnNames = Object.keys(columns);
+  const navShape = block.navShape || [offsets.length - 1];
+
+  function flatPosition(index) {
+    const parts = Array.isArray(index) ? index : [index];
+    if (parts.length !== navShape.length)
+      throw new Error(`ragged index of length ${parts.length} into a ` +
+                      `${navShape.length}-D navigation grid; pack the block ` +
+                      `with nav_shape if it has more than one axis`);
+    let flat = 0;
+    for (let axis = 0; axis < navShape.length; axis++) {
+      const extent = navShape[axis];
+      const clamped = Math.max(0, Math.min(extent - 1, Math.round(parts[axis])));
+      flat = flat * extent + clamped;
+    }
+    return flat;
+  }
+
+  return {
+    kind: 'ragged',
+    navShape,
+    columnNames,
+    at(index) {
+      const position = flatPosition(index);
+      const start = offsets[position], stop = offsets[position + 1];
+      const rows = {};
+      for (const name of columnNames) rows[name] = columns[name].subarray(start, stop);
+      return rows;
+    },
+    gather(indices) {
+      const spans = [];
+      let total = 0;
+      for (const index of indices) {
+        const position = flatPosition(index);
+        const start = offsets[position], stop = offsets[position + 1];
+        spans.push([start, stop]);
+        total += stop - start;
+      }
+      const rows = {};
+      for (const name of columnNames) {
+        const values = columns[name];
+        const out = new values.constructor(total);
+        let written = 0;
+        for (const [start, stop] of spans) {
+          out.set(values.subarray(start, stop), written);
+          written += stop - start;
+        }
+        rows[name] = out;
+      }
+      return rows;
+    },
+    // The sparse virtual image: one value per navigation position, summing
+    // `valueColumn` over the rows whose rounded (x, y) falls inside the mask.
+    reduce(mask, xColumn, yColumn, valueColumn) {
+      const xs = columns[xColumn || 'x'];
+      const ys = columns[yColumn || 'y'];
+      const values = valueColumn ? columns[valueColumn] : null;
+      const width = mask.width, height = mask.height;
+      const positions = offsets.length - 1;
+      const out = new Float32Array(positions);
+      for (let position = 0; position < positions; position++) {
+        let total = 0;
+        for (let row = offsets[position]; row < offsets[position + 1]; row++) {
+          const column = Math.round(xs[row]), line = Math.round(ys[row]);
+          if (column < 0 || line < 0 || column >= width || line >= height) continue;
+          if (mask[line * width + column]) total += values ? values[row] : 1;
+        }
+        out[position] = total;
+      }
+      return out;
+    },
+  };
+}
+
+// Selection mask for a rectangle, circle or annulus widget dict as it appears
+// in `overlay_widgets`, in image pixels.  A pixel belongs to the mask when its
+// integer coordinate lies inside the shape: `x <= column < x + w` for a
+// rectangle, `distance <= r` for a circle, `r_inner <= distance <= r_outer`
+// for an annulus.  The returned array carries `width` and `height` so a
+// consumer can index it without being told the grid again.
+function maskFromWidget(widget, width, height) {
+  const mask = new Uint8Array(width * height);
+  mask.width = width;
+  mask.height = height;
+  const type = widget && widget.type;
+  if (type === 'rectangle') {
+    const left = Math.max(0, Math.ceil(widget.x));
+    const top = Math.max(0, Math.ceil(widget.y));
+    const right = Math.min(width - 1, Math.ceil(widget.x + widget.w) - 1);
+    const bottom = Math.min(height - 1, Math.ceil(widget.y + widget.h) - 1);
+    for (let line = top; line <= bottom; line++)
+      for (let column = left; column <= right; column++) mask[line * width + column] = 1;
+    return mask;
+  }
+  if (type === 'circle' || type === 'annular') {
+    const centreX = widget.cx, centreY = widget.cy;
+    const outer = type === 'circle' ? widget.r : widget.r_outer;
+    const inner = type === 'circle' ? 0 : widget.r_inner;
+    const outerSquared = outer * outer, innerSquared = inner * inner;
+    const top = Math.max(0, Math.floor(centreY - outer));
+    const bottom = Math.min(height - 1, Math.ceil(centreY + outer));
+    const left = Math.max(0, Math.floor(centreX - outer));
+    const right = Math.min(width - 1, Math.ceil(centreX + outer));
+    for (let line = top; line <= bottom; line++) {
+      const dy = line - centreY;
+      for (let column = left; column <= right; column++) {
+        const dx = column - centreX;
+        const distanceSquared = dx * dx + dy * dy;
+        if (distanceSquared <= outerSquared && distanceSquared >= innerSquared)
+          mask[line * width + column] = 1;
+      }
+    }
+    return mask;
+  }
+  throw new Error(`maskFromWidget: unsupported widget type ${type}`);
+}
+
+// Splat `{x, y, intensity}` rows as filled disks into a Float32 image.  This
+// is how a vectors panel gets a base image: `combine` is "max" for one
+// position's rows and "sum" when several positions were gathered.
+function rasterDisks(rows, width, height, radius, combine) {
+  const out = new Float32Array(width * height);
+  const xs = rows.x, ys = rows.y;
+  const intensity = rows.intensity || null;
+  const accumulate = combine === 'sum';
+  const reach = Math.ceil(radius);
+  const radiusSquared = radius * radius;
+  for (let row = 0; row < xs.length; row++) {
+    const centreX = Math.round(xs[row]), centreY = Math.round(ys[row]);
+    const value = intensity ? intensity[row] : 1;
+    for (let dy = -reach; dy <= reach; dy++) {
+      const line = centreY + dy;
+      if (line < 0 || line >= height) continue;
+      for (let dx = -reach; dx <= reach; dx++) {
+        if (dx * dx + dy * dy > radiusSquared) continue;
+        const column = centreX + dx;
+        if (column < 0 || column >= width) continue;
+        const at = line * width + column;
+        out[at] = accumulate ? out[at] + value : Math.max(out[at], value);
+      }
+    }
+  }
+  return out;
+}
+
+// Percentile display window over the finite values, as [low, high].  `lo` and
+// `hi` are percentages; 0 and 100 return the exact extremes, anything between
+// is read off a 1024-bin histogram so the cost stays one pass over the data
+// rather than a sort.
+function robustLevels(values, lo, hi) {
+  const lowPercent = lo === undefined ? 2 : lo;
+  const highPercent = hi === undefined ? 98 : hi;
+  const BINS = 1024;
+  let minimum = Infinity, maximum = -Infinity, finite = 0;
+  for (let i = 0; i < values.length; i++) {
+    const value = values[i];
+    if (!Number.isFinite(value)) continue;
+    if (value < minimum) minimum = value;
+    if (value > maximum) maximum = value;
+    finite++;
+  }
+  if (!finite) return [0, 1];
+  if (maximum <= minimum) return [minimum, minimum + 1];
+  const span = maximum - minimum;
+  const histogram = new Int32Array(BINS);
+  const scale = BINS / span;
+  for (let i = 0; i < values.length; i++) {
+    const value = values[i];
+    if (!Number.isFinite(value)) continue;
+    const bin = Math.min(BINS - 1, Math.floor((value - minimum) * scale));
+    histogram[bin]++;
+  }
+  function percentile(percent) {
+    if (percent <= 0) return minimum;
+    if (percent >= 100) return maximum;
+    const target = (percent / 100) * finite;
+    let seen = 0;
+    for (let bin = 0; bin < BINS; bin++) {
+      seen += histogram[bin];
+      if (seen >= target) return minimum + ((bin + 0.5) * span) / BINS;
+    }
+    return maximum;
+  }
+  const low = percentile(lowPercent), high = percentile(highPercent);
+  return high > low ? [low, high] : [minimum, maximum];
+}
+
+// Map values onto the 8-bit colormap codes the renderer blits.  Matches the
+// Python quantiser: clip into [0, 255], then truncate.  An infinity saturates
+// at whichever end it lies past; a NaN fails every comparison and becomes 0.
+function toU8(values, vmin, vmax) {
+  const out = new Uint8Array(values.length);
+  const scale = 255 / ((vmax - vmin) || 1);
+  for (let i = 0; i < values.length; i++) {
+    const code = (values[i] - vmin) * scale;
+    out[i] = code > 255 ? 255 : (code > 0 ? code : 0);
+  }
+  return out;
+}
+
+// ── page chrome ────────────────────────────────────────────────────────────
+
+// Forward touches to the renderer's mouse handlers.  The draw path listens for
+// mousedown/mousemove/mouseup only, so without this a phone can see the page
+// but cannot drag a widget.
+function installTouchShim(el) {
+  function forward(touchEvent, mouseType) {
+    const touch = touchEvent.changedTouches[0];
+    if (!touch) return;
+    const target = document.elementFromPoint(touch.clientX, touch.clientY) || el;
+    target.dispatchEvent(new MouseEvent(mouseType, {
+      bubbles: true, cancelable: true, view: window,
+      clientX: touch.clientX, clientY: touch.clientY, buttons: 1,
+    }));
+    touchEvent.preventDefault();
+  }
+  el.addEventListener('touchstart', (e) => forward(e, 'mousedown'), { passive: false });
+  el.addEventListener('touchmove', (e) => forward(e, 'mousemove'), { passive: false });
+  el.addEventListener('touchend', (e) => forward(e, 'mouseup'), { passive: false });
+  el.addEventListener('touchcancel', (e) => forward(e, 'mouseup'), { passive: false });
+}
+
+// Tell a host iframe how tall the page is, so it can size itself to the
+// content instead of guessing or scrolling.
+function reportEmbedHeight() {
+  function send() {
+    try {
+      const height = Math.ceil(document.documentElement.scrollHeight);
+      if (window.parent && window.parent !== window)
+        window.parent.postMessage({ aplEmbedHeight: height }, '*');
+    } catch (_) {}
+  }
+  send();
+  if (typeof ResizeObserver !== 'undefined')
+    new ResizeObserver(send).observe(document.documentElement);
+  window.addEventListener('resize', send);
+}
+
+// ── dispatch ───────────────────────────────────────────────────────────────
+
+// A 3-D panel's cloud rides `panel_<id>_geom` as base64: the binary
+// side-table path is registered for image pixels only, and a cloud changes on
+// a view click rather than per navigator move, so the encode is not on a hot
+// path.
+function encodeBase64(bytes) {
+  const CHUNK = 0x8000;
+  let binary = '';
+  for (let at = 0; at < bytes.length; at += CHUNK)
+    binary += String.fromCharCode.apply(null, bytes.subarray(at, at + CHUNK));
+  return btoa(binary);
+}
+
+function typedArrayBytes(array) {
+  return new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
+}
+
+// Marker and extra-line groups the dispatch writes carry this prefix, so a
+// refresh can tell its own groups from the page's.
+const OVERLAY_ID_PREFIX = 'apl-overlay-';
+
+function indexList(index) {
+  if (index === null || index === undefined) return [];
+  if (Array.isArray(index)) return Array.isArray(index[0]) ? index : [index];
+  return [[index]];
+}
+
+// A 1-D panel's x axis travels as base64 (`x_axis_b64`), and `draw1d` caches
+// the decoded copy on the panel, so read that and fall back to decoding.
+function panelAxis(panel) {
+  if (panel && panel._1dXArr && panel._1dXArr.length) return panel._1dXArr;
+  const state = (panel && panel.state) || {};
+  if (state.x_axis_b64) {
+    const binary = atob(state.x_axis_b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Float64Array(bytes.buffer);
+  }
+  return state.x_axis || [];
+}
+
+function nearestAxisIndex(axis, value) {
+  if (!axis || !axis.length) return 0;
+  let best = 0, bestDistance = Infinity;
+  for (let i = 0; i < axis.length; i++) {
+    const distance = Math.abs(axis[i] - value);
+    if (distance < bestDistance) { bestDistance = distance; best = i; }
+  }
+  return best;
+}
+
+// Mount a navigated page and wire its navigator widgets to its bindings.
+// Resolves to the `mount()` handle extended with `dispatch(index)`, the
+// current `index`, and the decoded `blocks`.
+export async function mountNavigated(el, page, opts) {
+  const options = opts || {};
+  const bindings = page.bindings || [];
+  const chrome = page.chrome || {};
+  const blocks = await decodeBlocks(page.blocks || {});
+
+  const readers = new Map();
+  function readerFor(name) {
+    if (!readers.has(name)) {
+      const block = blocks[name];
+      if (!block) throw new Error(`unknown block ${name}`);
+      readers.set(name, block.kind === 'ragged' ? ragged(block) : dense(block));
+    }
+    return readers.get(name);
+  }
+
+  // Both kinds of refresh coalesce onto one animation frame, latest wins: a
+  // drag fires an event per pointer move, and each one is a pass over a block.
+  let queuedIndex = null;
+  let dispatchRequest = null;
+  let queuedReduce = null;
+  let reduceRequest = null;
+
+  const handle = mount(el, page.state, Object.assign({}, options, {
+    onEvent(event) {
+      handleEvent(event);
+      if (options.onEvent) options.onEvent(event);
+    },
+  }));
+
+  function panelFor(panelId) {
+    return (handle.api.panels && handle.api.panels.get(panelId)) || null;
+  }
+
+  function panelState(panelId) {
+    const panel = panelFor(panelId);
+    return (panel && panel.state) || {};
+  }
+
+  function bindingFor(panelId) {
+    return bindings.find((binding) => binding.panel_id === panelId) || null;
+  }
+
+  // A navigator widget's position, as a navigation index or a set of them.
+  // The navigator panel IS the navigation grid, so a 2-D widget's image pixels
+  // are already the index and a 1-D widget's data coordinate resolves through
+  // the panel's own x axis.
+  function indexFromWidget(binding, widget) {
+    const state = panelState(binding.panel_id);
+    const columns = state.image_width || 1, lines = state.image_height || 1;
+    if (widget.type === 'crosshair')
+      return [Math.round(widget.cy), Math.round(widget.cx)];
+    if (widget.type === 'rectangle') {
+      const maxColumns = widget.max_w == null ? widget.w : Math.min(widget.w, widget.max_w);
+      const maxLines = widget.max_h == null ? widget.h : Math.min(widget.h, widget.max_h);
+      const firstColumn = Math.max(0, Math.round(widget.x));
+      const firstLine = Math.max(0, Math.round(widget.y));
+      const lastColumn = Math.min(columns - 1, Math.round(widget.x + maxColumns) - 1);
+      const lastLine = Math.min(lines - 1, Math.round(widget.y + maxLines) - 1);
+      const indices = [];
+      for (let line = firstLine; line <= lastLine; line++)
+        for (let column = firstColumn; column <= lastColumn; column++) indices.push([line, column]);
+      return indices.length ? indices : [[firstLine, firstColumn]];
+    }
+    const axis = panelAxis(panelFor(binding.panel_id));
+    if (widget.type === 'vline' || widget.type === 'point')
+      return [nearestAxisIndex(axis, widget.x)];
+    // The span selector is the 1-D analogue of the rectangle: it selects a
+    // run of positions, and its own max_extent has already capped the drag.
+    if (widget.type === 'range') {
+      const first = nearestAxisIndex(axis, Math.min(widget.x0, widget.x1));
+      const last = nearestAxisIndex(axis, Math.max(widget.x0, widget.x1));
+      const indices = [];
+      for (let position = first; position <= last; position++) indices.push([position]);
+      return indices;
+    }
+    return null;
+  }
+
+  // Which of a `views` binding's entries the page's segmented control is on.
+  // Held by POSITION: two views may read the same block with different
+  // colours, which is what a direction toggle over one cloud looks like.
+  const activeViews = new Map();
+
+  function activeView(binding) {
+    if (!binding.views || !binding.views.length) return null;
+    return binding.views[activeViews.get(binding.panel_id) || 0] || binding.views[0];
+  }
+
+  function frameBlock(binding) {
+    const view = activeView(binding);
+    if (view) return view.block;
+    if (binding.frame && binding.frame.block) return binding.frame.block;
+    throw new Error(`binding for panel ${binding.panel_id} names no frame block`);
+  }
+
+  // The per-point colours that go with the entry currently shown.
+  function frameColorsBlock(binding) {
+    const view = activeView(binding);
+    if (view && view.colors) return view.colors;
+    return binding.frame && binding.frame.colors;
+  }
+
+  function frameValues(binding, indices) {
+    const reader = readerFor(frameBlock(binding));
+    const single = indices.length === 1;
+    if (binding.frame.kind === 'disks') {
+      const rows = single ? reader.at(indices[0]) : reader.gather(indices);
+      const state = panelState(binding.panel_id);
+      const width = binding.frame.width || state.image_width;
+      const height = binding.frame.height || state.image_height;
+      const combine = binding.frame.combine || (single ? 'max' : 'sum');
+      return { values: rasterDisks(rows, width, height, binding.frame.radius || 3, combine),
+               width, height };
+    }
+    const values = single ? reader.at(indices[0]) : reader.gather(indices);
+    const shape = blocks[frameBlock(binding)].shape;
+    return { values, width: shape[shape.length - 1], height: shape[shape.length - 2] };
+  }
+
+  // The panel's own colour window when it has one: a window recomputed per
+  // frame both costs two passes over the data and makes the contrast jump
+  // between neighbouring positions, which reads as the data changing.
+  function frameLevels(binding, values) {
+    if (binding.frame && binding.frame.levels) return binding.frame.levels;
+    const state = panelState(binding.panel_id);
+    if (Number.isFinite(state.display_min) && Number.isFinite(state.display_max)
+        && state.display_max > state.display_min)
+      return [state.display_min, state.display_max];
+    return robustLevels(values, 2, 98);
+  }
+
+  // A cloud is the whole dataset, not one position's frame, so it is pushed
+  // when the binding first shows it and again when a view click swaps it, not
+  // on every navigator move.
+  const shownClouds = new Map();
+
+  function paintPoints3d(binding) {
+    const name = frameBlock(binding);
+    const colorsName = frameColorsBlock(binding);
+    const shown = `${name}|${colorsName || ''}`;
+    if (shownClouds.get(binding.panel_id) === shown) return;
+    shownClouds.set(binding.panel_id, shown);
+
+    const points = blocks[name];
+    if (!points || points.kind !== 'dense' || points.shape.length !== 2
+        || points.shape[1] !== 3)
+      throw new Error(`points3d block ${name} must be dense (M, 3), got ` +
+                      `${points ? points.shape : 'nothing'}`);
+    const count = points.shape[0];
+    const depth = new Float32Array(count);
+    for (let point = 0; point < count; point++) depth[point] = points.array[point * 3 + 2];
+
+    const geomKey = `panel_${binding.panel_id}_geom`;
+    let geom = {};
+    try { geom = JSON.parse(handle.get(geomKey) || '{}'); } catch (_) {}
+    geom.vertices_b64 = encodeBase64(typedArrayBytes(points.array));
+    geom.z_values_b64 = encodeBase64(typedArrayBytes(depth));
+    if (colorsName) {
+      const colors = blocks[colorsName];
+      if (!colors || colors.kind !== 'dense' || colors.shape[0] !== count)
+        throw new Error(`colors block ${colorsName} must be dense with ` +
+                        `${count} rows, got ${colors ? colors.shape : 'nothing'}`);
+      geom.point_colors_b64 = encodeBase64(typedArrayBytes(colors.array));
+    }
+    handle.applyUpdate(geomKey, JSON.stringify(geom));
+    // vertices_count and a bumped revision live on the LIGHT trait; without
+    // them the renderer draws the old cloud's point count.
+    const state = panelState(binding.panel_id);
+    handle.patchPanel(binding.panel_id, {
+      vertices_count: count,
+      _geom_rev: (state._geom_rev || 0) + 1,
+    });
+  }
+
+  function paintFrame(binding, indices) {
+    const panel = panelFor(binding.panel_id);
+    if ((binding.frame && binding.frame.kind === 'points3d')
+        || (panel && panel.kind === '3d')) {
+      paintPoints3d(binding);
+      return;
+    }
+    const { values, width, height } = frameValues(binding, indices);
+    const levels = frameLevels(binding, values);
+    handle.setImage(binding.panel_id, toU8(values, levels[0], levels[1]), width, height,
+                    { display_min: levels[0], display_max: levels[1] });
+  }
+
+  // One overlay entry → a marker group for a 2-D panel, or an extra line for a
+  // 1-D one.  Columns default to x/y (and u/v, x1/y1/x2/y2, value) so a plain
+  // block needs no column map.
+  function overlayWire(overlay, rows) {
+    const style = overlay.style || {};
+    const names = overlay.columns || {};
+    const xs = rows[names.x || 'x'], ys = rows[names.y || 'y'];
+    const count = xs ? xs.length : 0;
+    // The style IS the wire dict (the keys MarkerGroup.to_wire emits), carried
+    // through whole: an allow-list here silently drops whatever it has not
+    // heard of, and `fill_alpha: 0` reads as "unset" to the renderer's default.
+    const wire = Object.assign({}, style);
+    delete wire.radius;          // an input for `sizes`, not a wire field
+    wire.id = `apl-overlay-${overlay.block}`;
+    wire.name = overlay.block;
+    if (wire.color === undefined) wire.color = '#ff0000';
+    if (overlay.kind === 'curves') {
+      wire.data = Array.from(rows[names.value || 'value'] || []);
+      wire.x_axis = Array.from(xs || []);
+      if (wire.linewidth === undefined) wire.linewidth = 1.5;
+      if (wire.linestyle === undefined) wire.linestyle = 'solid';
+      if (wire.alpha === undefined) wire.alpha = 1;
+      if (wire.marker === undefined) wire.marker = 'none';
+      if (wire.markersize === undefined) wire.markersize = 4;
+      if (wire.label === undefined) wire.label = '';
+      if (wire.axis === undefined) wire.axis = 'left';
+      return wire;
+    }
+    const offsets = [];
+    for (let row = 0; row < count; row++) offsets.push([xs[row], ys[row]]);
+    wire.type = overlay.kind;
+    if (wire.linewidth === undefined) wire.linewidth = 1.5;
+    if (overlay.kind === 'circles') {
+      wire.offsets = offsets;
+      const radiusColumn = names.radius ? rows[names.radius] : null;
+      const radius = style.radius === undefined ? 5 : style.radius;
+      wire.sizes = offsets.map((_, row) => (radiusColumn ? radiusColumn[row] : radius));
+    } else if (overlay.kind === 'arrows') {
+      wire.offsets = offsets;
+      const us = rows[names.u || 'u'], vs = rows[names.v || 'v'];
+      wire.U = offsets.map((_, row) => (us ? us[row] : 0));
+      wire.V = offsets.map((_, row) => (vs ? vs[row] : 0));
+    } else if (overlay.kind === 'lines') {
+      const x1 = rows[names.x1 || 'x1'], y1 = rows[names.y1 || 'y1'];
+      const x2 = rows[names.x2 || 'x2'], y2 = rows[names.y2 || 'y2'];
+      const segments = [];
+      for (let row = 0; row < (x1 ? x1.length : 0); row++)
+        segments.push([[x1[row], y1[row]], [x2[row], y2[row]]]);
+      wire.segments = segments;
+    } else {
+      throw new Error(`unsupported overlay kind ${overlay.kind}`);
+    }
+    return wire;
+  }
+
+  // Keep every group the figure was built with, replacing only the ones this
+  // runtime owns: a dispatch that assigned the list wholesale would wipe the
+  // page's own annotations on the first crosshair move.
+  function mergeOverlayGroups(existing, fresh) {
+    const kept = (existing || []).filter(
+      (group) => !String(group && group.id).startsWith(OVERLAY_ID_PREFIX));
+    return kept.concat(fresh);
+  }
+
+  // One 3-D point marked on the panel, optionally turning the camera to face
+  // it. The rule is not "some angle pointing that way": atan2(y, x) - 90 names
+  // the same direction 180 degrees out and lands the point on the far edge.
+  function paintHighlight(binding, overlay, indices) {
+    const reader = readerFor(overlay.block);
+    const rows = reader.at(indices[0]);
+    let x, y, z;
+    if (reader.kind === 'ragged') {
+      const names = overlay.columns || {};
+      const xs = rows[names.x || 'x'], ys = rows[names.y || 'y'];
+      const zs = rows[names.z || 'z'];
+      if (!xs || !xs.length) return;
+      x = xs[0]; y = ys[0]; z = zs[0];
+    } else {
+      if (rows.length < 3) return;
+      x = rows[0]; y = rows[1]; z = rows[2];
+    }
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return;
+
+    const patch = { highlight: Object.assign(
+      { color: '#ff1744', size: 7 }, overlay.style || {}, { x, y, z }) };
+    const faceCamera = overlay.face_camera || binding.face_camera;
+    if (faceCamera) {
+      const radius = Math.hypot(x, y, z) || 1;
+      patch.azimuth = Math.atan2(x, -y) * 180 / Math.PI;
+      patch.elevation = Math.asin(Math.max(-1, Math.min(1, z / radius))) * 180 / Math.PI;
+    }
+    // Written either way: the flag persists on the trait, so leaving a
+    // previous face_camera push's `true` in place would let a later highlight
+    // discard the orbit the reader is holding.
+    patch._view_from_python = !!faceCamera;
+    handle.patchPanel(binding.panel_id, patch);
+  }
+
+  function paintOverlays(binding, indices) {
+    const markers = [];
+    const lines = [];
+    let anyMarkers = false;
+    for (const overlay of binding.overlays) {
+      if (overlay.kind === 'highlight') { paintHighlight(binding, overlay, indices); continue; }
+      const reader = readerFor(overlay.block);
+      const rows = indices.length === 1 ? reader.at(indices[0]) : reader.gather(indices);
+      if (overlay.kind === 'curves') { lines.push(overlayWire(overlay, rows)); continue; }
+      anyMarkers = true;
+      markers.push(overlayWire(overlay, rows));
+    }
+    const state = panelState(binding.panel_id);
+    const patch = {};
+    if (anyMarkers) patch.markers = mergeOverlayGroups(state.markers, markers);
+    if (lines.length) patch.extra_lines = mergeOverlayGroups(state.extra_lines, lines);
+    if (Object.keys(patch).length) handle.patchPanel(binding.panel_id, patch);
+  }
+
+  function formatReadout(binding, indices) {
+    const spec = binding.readout;
+    const reader = readerFor(spec.block);
+    const rows = reader.kind === 'dense'
+      ? { value: reader.at(indices[0]) } : reader.at(indices[0]);
+    const names = spec.names || Object.keys(rows);
+    const units = spec.units || {};
+    return names.map((name) => {
+      const values = rows[name];
+      const value = values && values.length ? values[0] : NaN;
+      const unit = units[name] ? ` ${units[name]}` : '';
+      return `${name} ${Number.isFinite(value) ? value.toPrecision(4) : '-'}${unit}`;
+    }).join('   ');
+  }
+
+  function writeText(id, text) {
+    const node = document.getElementById(id);
+    if (node) node.textContent = text;
+  }
+
+  // Wire the page's segmented control for a `views` binding: each button names
+  // a block, and picking one re-reads the panel's frame from it at the
+  // position the navigator is already on.
+  function installViews(binding) {
+    activeViews.set(binding.panel_id, 0);
+    const group = document.getElementById(`apl-views-${binding.panel_id}`);
+    if (!group) return;
+    const buttons = [...group.querySelectorAll('button[data-view]')];
+    const mark = () => {
+      const chosen = activeViews.get(binding.panel_id);
+      for (const button of buttons)
+        button.setAttribute('aria-pressed',
+          Number(button.dataset.view) === chosen ? 'true' : 'false');
+    };
+    for (const button of buttons)
+      button.addEventListener('click', () => {
+        activeViews.set(binding.panel_id, Number(button.dataset.view));
+        mark();
+        if (handle.index !== null) dispatch(handle.index);
+      });
+    mark();
+  }
+
+  // Refresh every driven binding for one navigation index (or index set).
+  function dispatch(index) {
+    const indices = indexList(index);
+    if (!indices.length) return;
+    handle.index = index;
+    for (const binding of bindings) {
+      if (binding.role !== 'driven') continue;
+      if (binding.frame || binding.views) paintFrame(binding, indices);
+      if (binding.overlays && binding.overlays.length) paintOverlays(binding, indices);
+      if (binding.readout)
+        writeText(`apl-readout-${binding.panel_id}`, formatReadout(binding, indices));
+    }
+  }
+
+  function requestDispatch(index) {
+    queuedIndex = index;
+    if (dispatchRequest !== null) return;
+    dispatchRequest = requestAnimationFrame(() => {
+      dispatchRequest = null;
+      const next = queuedIndex;
+      queuedIndex = null;
+      dispatch(next);
+    });
+  }
+
+  // A detector widget on a driven panel reduces the whole block back onto the
+  // navigator: the navigator image becomes sum(frame * mask) per position.
+  // Only these three define a region of the signal grid to sum over; any other
+  // widget on the same panel is left to do whatever else it is there for.
+  const DETECTOR_TYPES = ['rectangle', 'circle', 'annular'];
+
+  function paintReduced(binding, widget) {
+    const spec = binding.reduce;
+    const state = panelState(binding.panel_id);
+    const mask = maskFromWidget(widget, state.image_width, state.image_height);
+    const reader = readerFor(spec.block);
+    const values = reader.kind === 'ragged'
+      ? reader.reduce(mask, spec.x, spec.y, spec.value) : reader.reduce(mask);
+    const navigatorState = panelState(spec.navigator_panel);
+    const levels = robustLevels(values, 0, 100);
+    handle.setImage(spec.navigator_panel, toU8(values, levels[0], levels[1]),
+                    navigatorState.image_width, navigatorState.image_height,
+                    { display_min: levels[0], display_max: levels[1] });
+  }
+
+  function requestReduce(binding, widget) {
+    queuedReduce = [binding, widget];
+    if (reduceRequest !== null) return;
+    reduceRequest = requestAnimationFrame(() => {
+      reduceRequest = null;
+      const next = queuedReduce;
+      queuedReduce = null;
+      paintReduced(next[0], next[1]);
+    });
+  }
+
+  function handleEvent(event) {
+    if (!event || !event.widget_id) return;
+    if (event.event_type !== 'pointer_move' && event.event_type !== 'pointer_up') return;
+    const binding = bindingFor(event.panel_id);
+    if (!binding) return;
+    if (binding.role === 'navigator') {
+      const index = indexFromWidget(binding, event);
+      if (index) requestDispatch(index);
+      return;
+    }
+    if (binding.role === 'driven' && binding.reduce
+        && DETECTOR_TYPES.includes(event.type)) requestReduce(binding, event);
+  }
+
+  if (chrome.touch !== false) installTouchShim(el);
+  if (chrome.height_report !== false) reportEmbedHeight();
+
+  // A binding may carry its panel's widgets, so a page can declare the
+  // navigator's crosshair or detector next to what it drives.
+  for (const binding of bindings)
+    if (binding.widgets) handle.patchPanel(binding.panel_id,
+                                           { overlay_widgets: binding.widgets });
+
+  for (const binding of bindings) {
+    if (binding.views && binding.views.length) installViews(binding);
+    if (!binding.reduce) continue;
+    // A reduce binding with no detector on its panel can never fire, and the
+    // page author has no other way to find that out.
+    const widgets = panelState(binding.panel_id).overlay_widgets || [];
+    if (!widgets.some((widget) => DETECTOR_TYPES.includes(widget.type)))
+      throw new Error(`panel ${binding.panel_id} reduces onto ` +
+                      `${binding.reduce.navigator_panel} but carries no ` +
+                      `${DETECTOR_TYPES.join('/')} widget to reduce under`);
+  }
+
+  handle.dispatch = dispatch;
+  handle.blocks = blocks;
+  handle.index = null;
+
+  const navigatorBinding = bindings.find((binding) => binding.role === 'navigator');
+  const navigatorState = navigatorBinding ? panelState(navigatorBinding.panel_id) : {};
+  const initial = (navigatorBinding && navigatorBinding.initial_index)
+    || (navigatorState.image_height ? [0, 0] : [0]);
+  dispatch(initial);
+  return handle;
+}
+
+// The readers are one namespace rather than seven top-level exports: they are
+// generic names (`dense`, `ragged`, `toU8`) that would otherwise sit beside
+// `mount` and `render` in every importer's completion list.
+export const embed = {
+  mountNavigated, decodeBlocks, dense, ragged,
+  maskFromWidget, rasterDisks, robustLevels, toU8,
+};

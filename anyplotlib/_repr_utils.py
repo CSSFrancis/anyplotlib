@@ -34,6 +34,23 @@ MAX_NOTEBOOK_WIDTH = 860
 # Trait serialisation
 # ---------------------------------------------------------------------------
 
+def script_json(obj) -> str:
+    """Return *obj* as a JSON literal that is safe inside a ``<script>`` block.
+
+    An HTML parser ends a script element at the first ``</`` in its text and
+    treats ``<!--`` as a comment opener, and it does not care that the sequence
+    is inside a JavaScript string.  So a figure title, an axis label read from
+    file metadata, or any other value carrying ``</script>`` would close the
+    block early and run whatever followed it as markup.  Both sequences are
+    escaped through the ``<``, which JSON spells ``\u003c``, so ``JSON.parse``
+    and a script literal read back exactly the character that went in.
+    """
+    return (json.dumps(obj, default=str)
+            .replace("</", "\\u003c/")
+            .replace("<!--", "\\u003c!--"))
+
+
+
 def _widget_state(widget) -> dict:
     """Return a {name: value} dict of every synced traitlet.
 
@@ -249,6 +266,7 @@ import(blobUrl).then(mod => {{
     // host page script cannot reach exportPNG (only the postMessage protocol
     // below can). anyplotlib.savefig() drives the export through this handle.
     window._aplRenderApi = _aplRenderApi;
+    globalThis.__aplExportPNG = (o) => _aplRenderApi.exportPNG(o);
   }} else {{
     el.textContent = "ESM has no render() export";
   }}
@@ -304,45 +322,55 @@ window.addEventListener('message', (e) => {{
   }}
 }});
 
-// ── PNG export protocol ──────────────────────────────────────────────────────
-// Rides the same postMessage channel as the state updates above.  A parent page
-// (or the SpyDE report harvester) requests a composite PNG of the whole figure:
-//   → {{ type: 'anyplotlib_export_png', requestId, opts }}
-// and receives back, on event.source (targetOrigin '*'):
-//   ← {{ type: 'anyplotlib_export_png_result', requestId, dataUrl, width, height }}
-//   ← {{ type: 'anyplotlib_export_png_result', requestId, error }}   (on failure)
-// `opts` is forwarded verbatim to exportPNG:
-//   {{ scale?, includeWidgets?, panelId?, source?, theme? }}
-//   source: 'view' | 'full' | 'native'   theme: 'current' | 'light' | 'dark'
-window.addEventListener('message', (e) => {{
-  if (!e.data || e.data.type !== 'anyplotlib_export_png') return;
-  const requestId = e.data.requestId;
-  const source = e.source;
-  const reply = (msg) => {{
-    try {{
-      if (source && typeof source.postMessage === 'function') {{
-        source.postMessage(Object.assign(
-          {{ type: 'anyplotlib_export_png_result', requestId }}, msg), '*');
-      }}
-    }} catch (_) {{}}
-  }};
-  try {{
-    if (!_aplRenderApi || typeof _aplRenderApi.exportPNG !== 'function') {{
-      reply({{ error: 'figure not ready (exportPNG unavailable)' }});
-      return;
-    }}
-    Promise.resolve(_aplRenderApi.exportPNG(e.data.opts || {{}}))
-      .then((res) => reply({{
-        dataUrl: res.dataUrl, width: res.width, height: res.height }}))
-      .catch((err) => reply({{ error: String(err && err.message || err) }}));
-  }} catch (err) {{
-    reply({{ error: String(err && err.message || err) }});
-  }}
-}});
+{png_harvest}
 </script>
 </body>
 </html>
 """
+
+
+# A host page (or the SpyDE report harvester) asks an embedded figure for a
+# composite PNG over postMessage.  Both the standalone page and the navigated
+# embed install this listener; each assigns ``globalThis.__aplExportPNG`` once
+# its figure is mounted, which is also what makes "not ready yet" answerable.
+PNG_HARVEST_LISTENER = '''\
+// ── PNG export protocol ──────────────────────────────────────────────────────
+// A parent page (or the SpyDE report harvester) asks this frame over
+// postMessage for a composite PNG of the whole figure:
+//   → { type: 'anyplotlib_export_png', requestId, opts }
+// and receives back, on event.source (targetOrigin '*'):
+//   ← { type: 'anyplotlib_export_png_result', requestId, dataUrl, width, height }
+//   ← { type: 'anyplotlib_export_png_result', requestId, error }   (on failure)
+// `opts` is forwarded verbatim to exportPNG:
+//   { scale?, includeWidgets?, panelId?, source?, theme? }
+//   source: 'view' | 'full' | 'native'   theme: 'current' | 'light' | 'dark'
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'anyplotlib_export_png') return;
+  const requestId = e.data.requestId;
+  const source = e.source;
+  const reply = (msg) => {
+    try {
+      if (source && typeof source.postMessage === 'function') {
+        source.postMessage(Object.assign(
+          { type: 'anyplotlib_export_png_result', requestId }, msg), '*');
+      }
+    } catch (_) {}
+  };
+  try {
+    const exportPNG = globalThis.__aplExportPNG;
+    if (typeof exportPNG !== 'function') {
+      reply({ error: 'figure not ready (exportPNG unavailable)' });
+      return;
+    }
+    Promise.resolve(exportPNG(e.data.opts || {}))
+      .then((res) => reply({
+        dataUrl: res.dataUrl, width: res.width, height: res.height }))
+      .catch((err) => reply({ error: String(err && err.message || err) }));
+  } catch (err) {
+    reply({ error: String(err && err.message || err) });
+  }
+});
+'''
 
 
 def build_standalone_html(widget, *, resizable: bool = True,
@@ -375,9 +403,10 @@ def build_standalone_html(widget, *, resizable: bool = True,
         width=w,
         height=h,
         extra_css=extra_css,
-        state_json=json.dumps(state, default=str),
-        esm_json=json.dumps(esm),
-        fig_id_json=json.dumps(fig_id),
+        state_json=script_json(state),
+        esm_json=script_json(esm),
+        fig_id_json=script_json(fig_id),
+        png_harvest=PNG_HARVEST_LISTENER,
     )
 
 
