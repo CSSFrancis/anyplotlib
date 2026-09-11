@@ -65,14 +65,14 @@ def _acc_dtype(dtype: np.dtype, n: int) -> np.dtype:
     Integers get the narrowest same-SIGNEDNESS integer that cannot wrap over ``n``
     terms. A blanket ``uint32`` is wrong twice over: it reads a negative ``int16``
     as ~4.3e9, and it silently overflows on anything wider than 16 bits. Floats
-    accumulate at their own width but never below float32 — the result is quantised
+    accumulate at their own width but never below float32: the result is quantised
     to 8-bit tile bytes, so a float64 accumulator over a float32 frame buys
     precision the output cannot express and pays a cast of the whole region for it.
 
     The float32 sum does bound what a float32 frame may hold: ``n`` terms overflow
     to inf past ``float32.max / n`` (~5e36 for the default 64-pixel block). A frame
     that large cannot survive the 8-bit quantisation downstream either, and float64
-    input — where that dynamic range actually turns up — keeps its own width."""
+    input, where that dynamic range actually turns up, keeps its own width."""
     if dtype.kind in "bui":
         hi = 1 if dtype.kind == "b" else int(np.iinfo(dtype).max)
         lo = -int(np.iinfo(dtype).min) if dtype.kind == "i" else 0
@@ -88,7 +88,7 @@ def _box_reduce(region: np.ndarray, out_h: int, out_w: int, op: str) -> np.ndarr
     """Reduce ``region`` (2-D) to ``(out_h, out_w)`` by a block ``op`` ("mean"|"max").
 
     Fast path (region divisible by the stride): TWO vectorised reshape-reduces in an
-    accumulator sized by :func:`_acc_dtype` (no full float cast of the source — the
+    accumulator sized by :func:`_acc_dtype` (no full float cast of the source; the
     cast of a 16 MP uint16 frame alone is ~34 ms). Collapsing whole ROWS first and
     then the contiguous column blocks walks memory in order on both passes; the one
     ``sum(axis=(1, 3))`` it replaces reduced a strided axis and a contiguous one
@@ -108,8 +108,10 @@ def _box_reduce(region: np.ndarray, out_h: int, out_w: int, op: str) -> np.ndarr
                                    out_h, out_w)
         acc = _acc_dtype(region.dtype, sy * sx)
         rows = region.reshape(gh, sy, w).sum(axis=1, dtype=acc)
+        # Divide in the accumulator's width, then narrow: a float64 block sum can
+        # exceed float32's range while its mean does not.
         out = (rows.reshape(gh, gw, sx).sum(axis=2, dtype=acc)
-               .astype(np.float32) / (sy * sx))
+               / (sy * sx)).astype(np.float32)
         return _nearest_resize(out, out_h, out_w)
 
     # Ragged → strided accumulate with a per-cell count (handles the partial block).
@@ -136,7 +138,7 @@ def _box_reduce(region: np.ndarray, out_h: int, out_w: int, op: str) -> np.ndarr
                 sh, sw = sub.shape
                 acc[:sh, :sw] += sub
                 cnt[:sh, :sw] += 1
-        out = acc.astype(np.float32) / cnt
+        out = (acc / cnt).astype(np.float32)
     return _nearest_resize(out, out_h, out_w)
 
 

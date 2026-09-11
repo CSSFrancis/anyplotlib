@@ -110,12 +110,13 @@ class TestSampleDtypes:
 
     def test_float64_input_is_not_narrowed_before_the_sum(self):
         # The mean is returned as float32 either way, so the extra mantissa is not
-        # observable — the RANGE is. 16 terms of 1e37 overflow a float32
-        # accumulator to inf; the mean itself is an ordinary float32.
-        a = np.full((64, 64), 1e37, np.float64)
+        # observable, the RANGE is. 16 terms of 3e37 overflow a float32
+        # accumulator to inf (float32 tops out at 3.4e38; 16 x 1e37 would still
+        # fit); the mean itself is an ordinary float32.
+        a = np.full((64, 64), 3e37, np.float64)
         out = NumpyTileBackend(a).sample(0, 64, 0, 64, 16, 16, "mean")
         assert np.isfinite(out).all()
-        np.testing.assert_allclose(out, 1e37, rtol=1e-6)
+        np.testing.assert_allclose(out, 3e37, rtol=1e-6)
 
     @pytest.mark.parametrize("dt", [np.uint16, np.int16, np.float32])
     def test_ragged_grid_averages_over_valid_pixels_only(self, dt):
