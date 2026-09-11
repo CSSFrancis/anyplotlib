@@ -59,6 +59,8 @@ import dataclasses
 import pathlib
 from html import escape
 
+import numpy as np
+
 from anyplotlib._repr_utils import (
     PNG_HARVEST_LISTENER, build_standalone_html, _widget_state,
 )
@@ -225,7 +227,7 @@ class Ragged:
     two-dimensional index resolves to the right row span.
     """
 
-    offsets: "np.ndarray"
+    offsets: np.ndarray
     columns: dict
     nav_shape: tuple = ()
 
@@ -239,7 +241,7 @@ def _block_dtype_name(array) -> str:
     return name
 
 
-def pack_blocks(blocks: dict) -> "tuple[bytes, dict]":
+def pack_blocks(blocks: dict) -> tuple[bytes, dict]:
     """Pack arrays into one little-endian byte string plus a manifest.
 
     *blocks* maps a name to a numpy array (a dense block whose leading axes are
@@ -248,8 +250,6 @@ def pack_blocks(blocks: dict) -> "tuple[bytes, dict]":
     single ``ArrayBuffer`` and takes a typed-array view per manifest entry, so
     no block is encoded or copied on its own.
     """
-    import numpy as np
-
     payload = bytearray()
     manifest: dict = {}
 

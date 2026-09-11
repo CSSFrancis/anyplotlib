@@ -11326,8 +11326,9 @@ function blockArrayView(buffer, spec) {
 export async function decodeBlocks(packed) {
   const manifest = (packed && packed.manifest) || {};
   const payload = (packed && packed.data) || '';
-  const response = await fetch(`data:application/octet-stream;base64,${payload}`);
-  const buffer = await response.arrayBuffer();
+  const buffer = payload
+    ? await (await fetch(`data:application/octet-stream;base64,${payload}`)).arrayBuffer()
+    : new ArrayBuffer(0);
   const blocks = {};
   for (const name of Object.keys(manifest)) {
     const entry = manifest[name];

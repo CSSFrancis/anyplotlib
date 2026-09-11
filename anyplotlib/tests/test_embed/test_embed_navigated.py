@@ -9,7 +9,6 @@ reduce the whole block back onto the navigator.
 """
 from __future__ import annotations
 
-import json
 import pathlib
 import tempfile
 
@@ -423,3 +422,12 @@ class TestPageChrome:
                 {type: 'anyplotlib_export_png', requestId: 'r1', opts: {}}, '*');
             })""")
         assert result["error"] is None and result["hasUrl"], result
+
+
+class TestDatalessPage:
+    def test_a_page_with_no_blocks_still_mounts(self, navigated_page):
+        fig, ax = apl.subplots(1, 1, figsize=(320, 240))
+        plot = ax.imshow(np.zeros((16, 16), dtype=np.uint8), cmap="gray")
+        html = navigated_html(fig, {}, [{"panel_id": plot._id, "role": "static"}])
+        page = navigated_page(html)
+        assert page.evaluate("() => window._aplHandle.panelIds()") == [plot._id]
