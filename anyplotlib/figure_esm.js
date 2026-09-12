@@ -295,14 +295,24 @@ function render({ model, el, onResize, onReadout }) {
   }
 
   // ── 2D gutter geometry helpers ───────────────────────────────────────────
-  // Total width reserved for the colorbar (strip + rotated-label gutter).
-  // 0 when the colorbar is hidden.  The image area shrinks by this amount so
-  // the strip and its label always fit inside the panel.
+  // Width of the gutter the display_min / display_max values are written in,
+  // right of the strip.  Fixed rather than measured so the layout is known
+  // before anything is drawn (and mirrored in Python's plot_box): fmtVal
+  // yields at most ~6 characters ("-0.012", "1.2e+4"), about 0.6 em each at
+  // the tick size, plus a 3 px gap off the strip.
+  function _cbTickW(st) {
+    return Math.round(3.6 * ((st && st.tick_size) || 10)) + 3;
+  }
+
+  // Total width reserved for the colorbar (strip + value gutter + rotated-
+  // label gutter).  0 when the colorbar is hidden.  The image area shrinks by
+  // this amount so the strip, its numbers and its label always fit inside the
+  // panel.
   function _cbWidth(st) {
     if (!st || !st.show_colorbar || st.is_rgb) return 0;
     const labelW = st.colorbar_label
       ? Math.round((st.colorbar_label_size || 10) + 8) : 0;
-    return 16 + labelW;
+    return 16 + _cbTickW(st) + labelW;
   }
 
   // Gap between the right edge of the image and the colorbar strip. Without a
@@ -3303,10 +3313,33 @@ function render({ model, el, onResize, onReadout }) {
     ctx.beginPath();ctx.moveTo(0,_vToY(dMax));ctx.lineTo(cbStripW,_vToY(dMax));ctx.stroke();
     ctx.beginPath();ctx.moveTo(0,_vToY(dMin));ctx.lineTo(cbStripW,_vToY(dMin));ctx.stroke();
 
-    // Colorbar label (rotated −90°, centred in the label gutter)
+    // The values at those marks, so the strip says how much and not only
+    // which way.  Same format as the axis ticks; kept inside the strip's
+    // height, and held apart when a tiny display range would stack them.
+    const tickW=_cbTickW(st);
+    if(dMin!=null&&dMax!=null){
+      const tickPx=st.tick_size||10;
+      const half=tickPx*0.5+1;
+      const clampY=y=>Math.min(Math.max(y,half),imgH-half);
+      let yHi=clampY(_vToY(dMax)), yLo=clampY(_vToY(dMin));
+      if(yLo-yHi<tickPx+2){
+        const mid=(yLo+yHi)/2;
+        yHi=Math.max(half,mid-(tickPx+2)/2);
+        yLo=Math.min(imgH-half,mid+(tickPx+2)/2);
+      }
+      ctx.fillStyle=theme.tickText;
+      ctx.font=tickPx+'px sans-serif';
+      ctx.textAlign='left';
+      ctx.textBaseline='middle';
+      ctx.fillText(fmtVal(dMax),cbStripW+3,yHi);
+      ctx.fillText(fmtVal(dMin),cbStripW+3,yLo);
+    }
+
+    // Colorbar label (rotated −90°, centred in the label gutter right of the
+    // values)
     if(cbLabel){
       ctx.save();
-      ctx.translate(cbStripW + (cbW - cbStripW) / 2 + 1, imgH/2);
+      ctx.translate(cbStripW + tickW + (cbW - cbStripW - tickW) / 2 + 1, imgH/2);
       ctx.rotate(-Math.PI/2);
       ctx.textBaseline='middle';
       ctx.fillStyle=theme.unitText;

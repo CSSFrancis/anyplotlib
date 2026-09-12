@@ -1,0 +1,1 @@
+The 2-D colorbar now writes its display minimum and maximum beside the strip, in the same format as the axis ticks, so a labelled scale says how much and not only which way; the image gives up a fixed value gutter (mirrored in :meth:`plot_box`) so the numbers never clip.

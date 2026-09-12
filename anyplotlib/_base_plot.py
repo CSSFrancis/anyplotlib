@@ -376,14 +376,16 @@ class _PanelMixin:
         width = max((pw - left - right) if has_axes else pw, 1.0)
         height = max(ph - pad_t - (bottom if has_axes else 0.0), 1.0)
 
-        # The colorbar strip and its gap come out of the image width.
+        # The colorbar strip, its value gutter, its label and its gap come out
+        # of the image width.  Mirrors `_cbWidth` / `_cbTickW` in the JS.
         if self._state.get("show_colorbar") and not self._state.get("is_rgb"):
             label = self._state.get("colorbar_label")
             label_w = round((self._state.get("colorbar_label_size") or 10) + 8) \
                 if label else 0
+            tick_w = round(3.6 * (self._state.get("tick_size") or 10)) + 3
             pad = self._state.get("colorbar_pad")
             gap = 6.0 if pad is None else max(0.0, float(pad))
-            width = max(width - (16 + label_w) - gap, 1.0)
+            width = max(width - (16 + tick_w + label_w) - gap, 1.0)
 
         if is_image:
             # Images are drawn "contain" — see _imgFitRect.
