@@ -6,9 +6,97 @@ Shared base classes and mixins for all plot panel types.
 
 from __future__ import annotations
 
+import decimal
+import math
+
 from contextlib import contextmanager
 
 from anyplotlib.callbacks import _EventMixin
+
+
+#: Below this many px of image the colorbar's value gutter is dropped
+#: (mirrors ``CB_MIN_IMAGE_W`` in the JS).
+COLORBAR_MIN_IMAGE_WIDTH = 40
+
+
+def _js_round(x: float) -> int:
+    """JavaScript's ``Math.round`` — half away from zero for positive values —
+    where Python's ``round`` would tie to even and put the two sides of the
+    layout mirror a pixel apart."""
+    return int(math.floor(float(x) + 0.5))
+
+
+def _js_exponential(value: float, digits: int) -> str:
+    """JavaScript's ``Number.toExponential(digits)``: a signed mantissa with
+    *digits* decimals, rounded half away from zero on the exact binary value
+    (``12500`` → ``1.3e+4``, where ``f"{:e}"`` would tie to even), and an
+    exponent without leading zeros (``1.2e+4``, ``-1.5e-10``)."""
+    number = decimal.Decimal(value)
+    if number == 0:
+        return f"{0:.{digits}f}e+0"
+    sign = "-" if number < 0 else ""
+    number = abs(number)
+    exponent = number.adjusted()
+    quantum = decimal.Decimal(1).scaleb(-digits)
+    mantissa = number.scaleb(-exponent).quantize(quantum, rounding=decimal.ROUND_HALF_UP)
+    if mantissa >= 10:
+        mantissa = (mantissa / 10).quantize(quantum, rounding=decimal.ROUND_HALF_UP)
+        exponent += 1
+    return f"{sign}{mantissa}e{exponent:+d}"
+
+
+def _js_fixed(value: float, digits: int) -> str:
+    """JavaScript's ``Number.toFixed(digits)``, which rounds half away from
+    zero on the exact binary value."""
+    quantum = decimal.Decimal(1).scaleb(-digits)
+    rounded = decimal.Decimal(value).quantize(quantum, rounding=decimal.ROUND_HALF_UP)
+    return f"{rounded:f}"
+
+
+def _strip_zeros(text: str) -> str:
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
+def colorbar_texts(low: float, high: float) -> tuple[str, str]:
+    """The two values the renderer writes beside the colorbar (``fmtRange``),
+    mirrored so Python can budget the same width.
+
+    One format for both ends, so ``0.02`` never sits beside ``-5.0e-3``:
+    exponent notation when the larger magnitude is outside ``[1e-2, 1e4)``,
+    else fixed with enough decimals to show the ends exactly — three
+    significant digits of the span, so ±1.25 reads ``1.25`` and not ``1.3``;
+    at most four decimals.  Non-finite ends give ``""`` (the renderer draws
+    nothing)."""
+    low, high = float(low), float(high)
+    if not (math.isfinite(low) and math.isfinite(high)):
+        return "", ""
+    big = max(abs(low), abs(high))
+    if big == 0:
+        return "0", "0"
+    if big >= 1e4 or big < 1e-2:
+        return _js_exponential(low, 1), _js_exponential(high, 1)
+    span = abs(high - low) or big
+    decimals = min(4, max(0, math.ceil(-math.log10(span)) + 2))
+    return (_strip_zeros(_js_fixed(low, decimals)),
+            _strip_zeros(_js_fixed(high, decimals)))
+
+
+def _colorbar_value_chars(state: dict) -> int:
+    """Characters budgeted for the colorbar's min/max values: 7 in ordinary
+    use, so the layout is stable under a contrast drag, more only for the rare
+    longer strings.  Mirrors ``_cbValueChars`` in the JS."""
+    chars = 7
+    lo, hi = state.get("display_min"), state.get("display_max")
+    if lo is not None and hi is not None:
+        chars = max(chars, *(len(t) for t in colorbar_texts(lo, hi)))
+    return chars
+
+
+def _colorbar_value_width(state: dict) -> int:
+    """The value gutter in px — mirrors ``_cbTickW`` in the JS before its
+    narrow-cell rule."""
+    tick = state.get("tick_size") or 10
+    return _js_round(_colorbar_value_chars(state) * 0.6 * tick) + 3
 
 
 class _BasePlot(_EventMixin):
@@ -377,14 +465,18 @@ class _PanelMixin:
         height = max(ph - pad_t - (bottom if has_axes else 0.0), 1.0)
 
         # The colorbar strip, its value gutter, its label and its gap come out
-        # of the image width.  Mirrors `_cbWidth` / `_cbTickW` in the JS.
+        # of the image width.  Mirrors `_cbWidth` / `_cbTickW` in the JS,
+        # including the rule that drops the values in a cell too narrow for
+        # them (`width` here is the JS `availW`).
         if self._state.get("show_colorbar") and not self._state.get("is_rgb"):
             label = self._state.get("colorbar_label")
-            label_w = round((self._state.get("colorbar_label_size") or 10) + 8) \
+            label_w = _js_round((self._state.get("colorbar_label_size") or 10) + 8) \
                 if label else 0
-            tick_w = round(3.6 * (self._state.get("tick_size") or 10)) + 3
+            tick_w = _colorbar_value_width(self._state)
             pad = self._state.get("colorbar_pad")
             gap = 6.0 if pad is None else max(0.0, float(pad))
+            if width - gap - 16 - label_w - tick_w < COLORBAR_MIN_IMAGE_WIDTH:
+                tick_w = 0
             width = max(width - (16 + tick_w + label_w) - gap, 1.0)
 
         if is_image:
