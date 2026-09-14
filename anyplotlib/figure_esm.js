@@ -120,6 +120,23 @@ function render({ model, el, onResize, onReadout }) {
     r=Math.min(255,Math.round(r+(255-r)*amt));g=Math.min(255,Math.round(g+(255-g)*amt));b=Math.min(255,Math.round(b+(255-b)*amt));
     return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
   }
+  // Font and outline for a `texts` marker group — shared by the 1-D and 2-D
+  // marker draws. Sets the fill font; when the group has an outline_color it
+  // also arms the stroke and returns true, and _drawMarkerText lays the stroke
+  // UNDER the fill: a halo that keeps a label legible on light and dark ground.
+  function _markerTextStyle(ctx, ms) {
+    ctx.font=`${ms.fontweight||'normal'} ${ms.fontsize||12}px sans-serif`;
+    ctx.textAlign='left'; ctx.textBaseline='top';
+    const ow=ms.outline_color ? (ms.outline_width!=null ? ms.outline_width : 3) : 0;
+    if(!(ow>0)) return false;
+    // Round joins: a thick stroke on a mitred glyph corner spikes.
+    ctx.strokeStyle=ms.outline_color; ctx.lineWidth=ow; ctx.lineJoin='round';
+    return true;
+  }
+  function _drawMarkerText(ctx, s, x, y, outlined) {
+    if(outlined) ctx.strokeText(s, x, y);
+    ctx.fillText(s, x, y);
+  }
 
   // ── b64 array decode helpers ─────────────────────────────────────────────
   // Convert a base-64 string (little-endian raw bytes) to a JS TypedArray.
@@ -3897,12 +3914,11 @@ function render({ model, el, onResize, onReadout }) {
           mkCtx.stroke();
         }
       } else if(type==='texts'){
-        const fs=ms.fontsize||12;
-        mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
+        const outlined=_markerTextStyle(mkCtx,ms);
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           if(_ecArr) mkCtx.fillStyle=_ecAt(i);
-          mkCtx.fillText(String(ms.texts[i]||''),cx,cy);
+          _drawMarkerText(mkCtx,String(ms.texts[i]||''),cx,cy,outlined);
         }
       }
       mkCtx.restore();
@@ -4607,12 +4623,16 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // tile carries true native pixels for the visible region. Image LAYERS
   // (_drawLayers2d) are never probed — the base image is the primary data.
   //
+  // (ix, iy) is a centre-convention image coordinate (see _canvasToImg2d).
   // Returns {value, step} for a scalar image, {rgba:[r,g,b,a]} for a true-colour
   // one, or null when the bytes / the band are unavailable.
-  function _pixelValue2d(p, st, ix, iy) {
+  function _pixelValue2d(p, st, cix, ciy) {
     const iw = st.image_width, ih = st.image_height;
     if (!(iw > 0) || !(ih > 0)) return null;
-    if (!(ix >= 0 && iy >= 0 && ix < iw && iy < ih)) return null;
+    if (!(_inImgAxis2d(cix, iw) && _inImgAxis2d(ciy, ih))) return null;
+    // Edge space from here on: texels and the detail region are both addressed
+    // by pixel edges, where pixel i spans [i, i + 1).
+    const ix = cix + 0.5, iy = ciy + 0.5;
     // Logical px → base-texture texel (the same kx/ky scale _blit2d draws with,
     // so the readout names the texel the cursor is actually over).
     const bw = st.base_width || iw, bh = st.base_height || ih;
@@ -4693,15 +4713,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // Returns null when the cursor is off-image.
   function _readoutInfo2d(p, st, ix, iy) {
     const iw = st.image_width, ih = st.image_height;
-    if (!(ix >= 0 && iy >= 0 && ix < iw && iy < ih)) return null;
+    if (!(_inImgAxis2d(ix, iw) && _inImgAxis2d(iy, ih))) return null;
     const xArr = st.x_axis || [], yArr = st.y_axis || [];
     const showPhys = xArr.length >= 2 || yArr.length >= 2;
-    // For both imshow (centre arrays) and pcolormesh (edge arrays), ix/iw maps the
-    // pixel fraction into the axis array via binary search.
-    const physX = showPhys && xArr.length >= 2 ? _axisFracToVal(xArr, ix / iw) : ix;
-    const physY = showPhys && yArr.length >= 2 ? _axisFracToVal(yArr, iy / ih) : iy;
+    // The same position → axis mapping the pointer events carry as xdata/ydata.
+    const physX = _imgToAxisVal2d(st, xArr, ix, iw);
+    const physY = _imgToAxisVal2d(st, yArr, iy, ih);
     const units = st.units || 'px';
-    const px = Math.floor(ix), py = Math.floor(iy);
+    const px = _imgPix2d(ix), py = _imgPix2d(iy);
     const pv = _pixelValue2d(p, st, ix, iy);
     const probe = _probeValueFor(st, px, py);
 
@@ -4773,8 +4792,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (!st) return;
     const ms = st.probe_ms || 0;
     if (ms <= 0 || st.is_rgb) return;          // RGB channels are already exact
-    if (!(ix >= 0 && iy >= 0 && ix < st.image_width && iy < st.image_height)) return;
-    const px = Math.floor(ix), py = Math.floor(iy);
+    if (!(_inImgAxis2d(ix, st.image_width) && _inImgAxis2d(iy, st.image_height))) return;
+    const px = _imgPix2d(ix), py = _imgPix2d(iy);
     if (st.probe_x === px && st.probe_y === py) return;   // already answered
     const key = `${px},${py}`;
     if (p._probeSent === key) return;                     // already asked, no answer yet
@@ -7594,11 +7613,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           mkCtx.closePath();mkCtx.fill();
         }
       } else if(type==='texts'){
-        const fs=ms.fontsize||12;
-        mkCtx.font=`${fs}px sans-serif`;mkCtx.textAlign='left';mkCtx.textBaseline='top';
+        const outlined=_markerTextStyle(mkCtx,ms);
         for(let i=0;i<ms.offsets.length;i++){
           const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
-          mkCtx.fillText(String((ms.texts&&ms.texts[i])||''),px,py);
+          _drawMarkerText(mkCtx,String((ms.texts&&ms.texts[i])||''),px,py,outlined);
         }
       }
       mkCtx.restore();
@@ -7942,6 +7960,12 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
   }
 
+  // The exact inverse of _imgToCanvas2d, in the same CENTRE convention: image
+  // coordinate i is the centre of pixel i, so pixel i spans [i - 0.5, i + 0.5)
+  // and _imgPix2d (floor(v + 0.5)) names the pixel under the cursor. Pointer
+  // events, the readout and the brush all read positions through this, so a
+  // click lands on the same coordinate a marker or widget drawn there holds
+  // (GH #72: without the -0.5 every event read half a pixel right and down).
   function _canvasToImg2d(px, py, st, pw, ph) {
     const { x, y, w, h } = _imgFitRect(st.image_width, st.image_height, pw, ph);
     const zoom = st.zoom, cx = st.center_x, cy = st.center_y;
@@ -7950,12 +7974,31 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // Zoom-out path: inverse of the centred-shrink in _blit2d.
       const dstW = w * zoom, dstH = h * zoom;
       const dstX = x + (w - dstW) / 2, dstY = y + (h - dstH) / 2;
-      return [(px - dstX) / dstW * iw, (py - dstY) / dstH * ih];
+      return [(px - dstX) / dstW * iw - 0.5, (py - dstY) / dstH * ih - 0.5];
     }
     const visW = iw / zoom, visH = ih / zoom;
     const srcX = Math.max(0, Math.min(iw - visW, cx * iw - visW / 2));
     const srcY = Math.max(0, Math.min(ih - visH, cy * ih - visH / 2));
-    return [srcX + (px - x) / w * visW, srcY + (py - y) / h * visH];
+    return [srcX + (px - x) / w * visW - 0.5, srcY + (py - y) / h * visH - 0.5];
+  }
+
+  // The pixel index a centre-convention coordinate falls in, and whether that
+  // pixel is inside an n-pixel axis.
+  function _imgPix2d(v) { return Math.floor(v + 0.5); }
+  function _inImgAxis2d(v, n) { return v >= -0.5 && v < n - 0.5; }
+
+  // A centre-convention image coordinate → axis value, for pointer events and the
+  // readout. imshow's x_axis/y_axis hold one value per pixel CENTRE, so pixel i
+  // reads exactly arr[i] (continued linearly past either end, over the outer half
+  // of the edge pixels). pcolormesh's hold the n + 1 cell EDGES, so the pixel's
+  // edge-space fraction (i + 0.5) / n indexes them, as the tick gutters do.
+  function _imgToAxisVal2d(st, arr, i, n) {
+    if (!arr || arr.length < 2) return i;
+    if (st.is_mesh) return _axisFracToVal(arr, (i + 0.5) / n);
+    const m = arr.length - 1;
+    const pos = n > 1 ? i * m / (n - 1) : 0;
+    const lo = Math.max(0, Math.min(m - 1, Math.floor(pos)));
+    return arr[lo] + (pos - lo) * (arr[lo + 1] - arr[lo]);
   }
 
   function _attachEvents2d(p) {
@@ -7981,8 +8024,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const iw=st.image_width, ih=st.image_height;
         const fr=_imgFitRect(iw,ih,imgW,imgH);
         const newVisW=iw/newZ, newVisH=ih/newZ;
-        const newSrcX=anchorX-(mx-fr.x)/fr.w*newVisW;
-        const newSrcY=anchorY-(my-fr.y)/fr.h*newVisH;
+        // +0.5: the anchor is a pixel-centre coordinate, srcX a pixel edge.
+        const newSrcX=anchorX+0.5-(mx-fr.x)/fr.w*newVisW;
+        const newSrcY=anchorY+0.5-(my-fr.y)/fr.h*newVisH;
         st.center_x=Math.max(0,Math.min(1,(newSrcX+newVisW/2)/iw));
         st.center_y=Math.max(0,Math.min(1,(newSrcY+newVisH/2)/ih));
       } else {
@@ -8111,10 +8155,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         if(_dist2<=25&&_dt<=350){
           // Genuine click — skip pan-settle, emit pointer_down with image coords.
           const [imgX,imgY]=_canvasToImg2d(_cc.mx,_cc.my,st,imgW,imgH);
-          const xArr=st.x_axis||[], yArr=st.y_axis||[];
-          const _iw=st.image_width||1, _ih=st.image_height||1;
-          const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/_iw):imgX;
-          const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/_ih):imgY;
+          const physX=_imgToAxisVal2d(st,st.x_axis,imgX,st.image_width||1);
+          const physY=_imgToAxisVal2d(st,st.y_axis,imgY,st.image_height||1);
           _emitEvent(p.id,'pointer_down',null,{
             img_x:imgX, img_y:imgY,
             xdata:physX, ydata:physY,
@@ -8184,12 +8226,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const imgW2 = p.imgW || Math.max(1, p.pw - PAD_L - PAD_R);
         const imgH2 = p.imgH || Math.max(1, p.ph - PAD_T - PAD_B);
         const [sImgX, sImgY] = _canvasToImg2d(p.mouseX, p.mouseY, st2, imgW2, imgH2);
-        const sXArr = st2.x_axis || [], sYArr = st2.y_axis || [];
-        const _siw = st2.image_width || 1, _sih = st2.image_height || 1;
         return {
           img_x:  sImgX, img_y:  sImgY,
-          xdata:  sXArr.length >= 2 ? _axisFracToVal(sXArr, sImgX / _siw) : sImgX,
-          ydata:  sYArr.length >= 2 ? _axisFracToVal(sYArr, sImgY / _sih) : sImgY,
+          xdata:  _imgToAxisVal2d(st2, st2.x_axis, sImgX, st2.image_width || 1),
+          ydata:  _imgToAxisVal2d(st2, st2.y_axis, sImgY, st2.image_height || 1),
         };
       });
     });
@@ -8207,10 +8247,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const {mx,my}=_clientPos(e,overlayCanvas,imgW,imgH);
       const [imgX,imgY]=_canvasToImg2d(mx,my,st,imgW,imgH);
-      const xArr=st.x_axis||[], yArr=st.y_axis||[];
-      const _iw=st.image_width||1, _ih=st.image_height||1;
-      const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/_iw):imgX;
-      const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/_ih):imgY;
+      const physX=_imgToAxisVal2d(st,st.x_axis,imgX,st.image_width||1);
+      const physY=_imgToAxisVal2d(st,st.y_axis,imgY,st.image_height||1);
       _emitEvent(p.id,'double_click',null,{..._pointerFields(e),button:e.button,x:mx,y:my,img_x:imgX,img_y:imgY,xdata:physX,ydata:physY});
     });
 
@@ -8291,10 +8329,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const st=p.state; if(!st) return;
       const imgW=p.imgW||Math.max(1,p.pw-PAD_L-PAD_R), imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
       const [imgX,imgY]=_canvasToImg2d(p.mouseX,p.mouseY,st,imgW,imgH);
-      const xArr=st.x_axis||[], yArr=st.y_axis||[];
-      const iw=st.image_width||1, ih=st.image_height||1;
-      const physX=xArr.length>=2?_axisFracToVal(xArr,imgX/iw):imgX;
-      const physY=yArr.length>=2?_axisFracToVal(yArr,imgY/ih):imgY;
+      const physX=_imgToAxisVal2d(st,st.x_axis,imgX,st.image_width||1);
+      const physY=_imgToAxisVal2d(st,st.y_axis,imgY,st.image_height||1);
       _emitEvent(p.id,'key_down',null,{
         time_stamp:performance.now()/1000,
         modifiers:_modifiers(e),
@@ -8885,7 +8921,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // stroke exactly where painting would drop every point.
   function _inImage2d(mx, my, st, imgW, imgH) {
     const [ix, iy] = _canvasToImg2d(mx, my, st, imgW, imgH);
-    return ix >= 0 && ix < st.image_width && iy >= 0 && iy < st.image_height;
+    return _inImgAxis2d(ix, st.image_width) && _inImgAxis2d(iy, st.image_height);
   }
 
   // Extend (or start) the brush's stroke at image point (ix,iy). Shared by
@@ -8897,7 +8933,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   // per-drag "next in-bounds point starts a stroke" flag — the hit-test seeds
   // it true, which is what makes mousedown open a fresh stroke.
   function _brushPaintAt(L, st, ix, iy, d) {
-    if (!(ix >= 0 && ix < st.image_width && iy >= 0 && iy < st.image_height)) {
+    if (!(_inImgAxis2d(ix, st.image_width) && _inImgAxis2d(iy, st.image_height))) {
       d._gap = true; return;
     }
     if (d.mode === 'erase') { _brushErase(L, ix, iy); return; }

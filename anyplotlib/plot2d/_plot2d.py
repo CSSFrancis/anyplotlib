@@ -2536,13 +2536,65 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 clip_display=clip_display)
 
     def add_texts(self, offsets, texts, name=None, *,
-                  color="#ff0000", fontsize=12,
+                  color="#ff0000", fontsize=12, fontweight="normal",
+                  outline_color=None, outline_width=3.0,
                   hover_edgecolors=None,
                   labels=None, label=None,
                   transform: str = "data",
                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
+        """Add text annotations at image-pixel positions.
+
+        Parameters
+        ----------
+        offsets : array-like, shape (N, 2)
+            Anchor (top-left) positions, in the coordinate system named by
+            ``transform`` — image pixels for ``"data"``.
+        texts : list of str
+            One string per position.
+        name : str, optional
+            Registry key.  Auto-generated if omitted.
+        color : str or list of str, optional
+            Text colour, or one per text.  Default ``"#ff0000"``.
+        fontsize : int, optional
+            Font size in pixels.  Default ``12``.
+        fontweight : {"normal", "bold"} or float, optional
+            Font weight — a keyword or a CSS numeric weight in ``[1, 1000]``
+            (400 is normal, 700 bold).  Default ``"normal"``.
+        outline_color : str, optional
+            Colour of a halo stroked under the text, which keeps a label
+            legible over both light and dark regions of the image.  ``None``
+            (default) draws no outline.
+        outline_width : float, optional
+            Stroke width of the outline in pixels; about half of it shows
+            outside the glyphs.  Default ``3.0``.  Ignored without
+            ``outline_color``.
+        hover_edgecolors : str, optional
+            Colour override applied on mouse-hover.
+        labels : list of str, optional
+            Per-annotation tooltip labels.
+        label : str, optional
+            Collection-level tooltip label.
+        transform : {"data", "axes", "display"}, optional
+            Coordinate system for ``offsets``.  Default ``"data"``.
+        clip_display : bool, optional
+            Clip ``"display"``-transform texts to the image.  Default ``True``.
+
+        Returns
+        -------
+        MarkerGroup
+
+        Examples
+        --------
+        A bold white label with a dark halo, readable over any image:
+
+        >>> plot.add_texts([[40, 12]], ["2 Å"], fontsize=16, fontweight="bold",
+        ...                color="#ffffff", outline_color="#000000")  # doctest: +SKIP
+        """
         return self._add_marker("texts", name, offsets=offsets, texts=texts,
                                 color=color, fontsize=fontsize,
+                                fontweight=fontweight,
+                                outline_color=outline_color,
+                                outline_width=outline_width,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
                                 transform=transform,

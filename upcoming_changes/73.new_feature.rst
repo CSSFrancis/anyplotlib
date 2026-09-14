@@ -1,0 +1,1 @@
+Text markers (:meth:`~anyplotlib.Plot2D.add_texts`, :meth:`~anyplotlib.Plot1D.add_texts` and ``add_text``) gained ``fontweight`` for bold labels and ``outline_color`` / ``outline_width`` for a halo stroked under the text, which keeps a label legible over both light and dark parts of an image.

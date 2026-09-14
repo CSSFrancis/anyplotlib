@@ -73,6 +73,33 @@ def _offsets_2d(offsets) -> list:
 _VALID_TRANSFORMS = frozenset({"data", "axes", "display"})
 
 
+def _check_text_style(kwargs: dict) -> None:
+    """Validate the ``texts`` styling kwargs present in *kwargs*.
+
+    Checked when a group is created and on every :meth:`MarkerGroup.set`, so a
+    bad value is refused before it lands in the group's data rather than on
+    the next push.
+    """
+    if "fontweight" in kwargs:
+        fw = kwargs["fontweight"]
+        # CSS font-weight: a keyword, or a number in [1, 1000].
+        ok = (fw in ("normal", "bold") if isinstance(fw, str)
+              else isinstance(fw, (int, float)) and not isinstance(fw, bool)
+              and 1 <= fw <= 1000)
+        if not ok:
+            raise ValueError(
+                "fontweight must be 'normal', 'bold' or a number in "
+                f"[1, 1000], got {fw!r}")
+    oc = kwargs.get("outline_color")
+    if oc is not None and not isinstance(oc, str):
+        raise ValueError(f"outline_color must be a CSS colour string or None, got {oc!r}")
+    if "outline_width" in kwargs:
+        ow = kwargs["outline_width"]
+        if (isinstance(ow, bool) or not isinstance(ow, (int, float))
+                or not ow >= 0):
+            raise ValueError(f"outline_width must be a number >= 0, got {ow!r}")
+
+
 def _apply_fill_color(wire: dict, d: dict) -> None:
     """Apply facecolors/alpha fill fields to a wire dict if facecolors is set."""
     fc = d.get("facecolors")
@@ -124,6 +151,7 @@ class MarkerGroup:
             )
         if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
             raise ValueError("clip_display must be a bool")
+        _check_text_style(kwargs)
         self._data: dict = dict(kwargs)
         self._push_fn = push_fn
         self._parent: "MarkerTypeDict | None" = parent
@@ -145,6 +173,7 @@ class MarkerGroup:
             )
         if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
             raise ValueError("clip_display must be a bool")
+        _check_text_style(kwargs)
         self._data.update(kwargs)
         self._push_fn()
 
@@ -314,7 +343,12 @@ class MarkerGroup:
                 "texts":    texts,
                 "color":    d.get("color", d.get("edgecolors", "#ff0000")),
                 "fontsize": int(d.get("fontsize", 12)),
+                "fontweight": d.get("fontweight", "normal"),
             }
+            # Outline (a halo stroked under the fill): only on the wire when set.
+            if d.get("outline_color") is not None:
+                wire["outline_color"] = d["outline_color"]
+                wire["outline_width"] = float(d.get("outline_width", 3.0))
 
         # ── 1D-only types ───────────────────────────────────────────────────
         elif t == "points":
