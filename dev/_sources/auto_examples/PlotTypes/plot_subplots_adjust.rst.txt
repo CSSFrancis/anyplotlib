@@ -221,7 +221,7 @@ Combine both arguments to add space in both directions.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.095 seconds)
+   **Total running time of the script:** (0 minutes 3.149 seconds)
 
 
 .. _sphx_glr_download_auto_examples_PlotTypes_plot_subplots_adjust.py:
