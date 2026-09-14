@@ -2303,6 +2303,30 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     # ------------------------------------------------------------------
     # View control
     # ------------------------------------------------------------------
+    def _axis_extent_frac(self, arr, value: float, n: int) -> float:
+        """An axis value → its fraction of the image extent (0 = leading edge).
+
+        Mirrors the tick gutters in ``figure_esm.js``: an ``imshow`` axis holds
+        one value per pixel centre (``_axisValToImg2d``, continued linearly past
+        either end), so its first value lies half a pixel in from the edge; a
+        ``pcolormesh`` axis holds the cell edges and spans the image exactly.
+        """
+        arr = np.asarray(arr, dtype=float)
+        m = len(arr) - 1
+        if self._state.get("is_mesh"):
+            return (value - arr[0]) / ((arr[-1] - arr[0]) or 1.0)
+        idx = np.arange(m + 1, dtype=float)
+        if arr[-1] < arr[0]:                      # descending (origin='lower' y)
+            arr, idx = arr[::-1], idx[::-1]
+        if value < arr[0] or value > arr[-1]:
+            k = 0 if value < arr[0] else m - 1    # extrapolate the end segment
+            d = (arr[k + 1] - arr[k]) or 1.0
+            pos = idx[k] + (value - arr[k]) / d * (idx[k + 1] - idx[k])
+        else:
+            pos = float(np.interp(value, arr, idx))
+        centre = pos * (n - 1) / m if n > 1 else 0.0
+        return (centre + 0.5) / n
+
     def set_view(self,
                  x0: float | None = None, x1: float | None = None,
                  y0: float | None = None, y1: float | None = None) -> None:
@@ -2319,29 +2343,34 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
 
         Translates the requested rectangle into the ``zoom`` / ``center_x``
         / ``center_y`` state values used by the 2-D JS renderer.
+
+        On an ``imshow`` panel the axis values sit at pixel *centres*, so the
+        image extends half a pixel beyond the first and last value (as
+        matplotlib's ``imshow`` extent does): ``set_view(x0=-0.5, x1=n - 0.5)``
+        on a default ``arange(n)`` axis is the whole image, and the tick
+        labelled ``x0`` sits at the view's left edge.
         """
         xarr = np.asarray(self._state["x_axis"])
         yarr = np.asarray(self._state["y_axis"])
         if len(xarr) < 2 or len(yarr) < 2:
             return
 
-        xmin, xmax = float(xarr[0]), float(xarr[-1])
-        ymin, ymax = float(yarr[0]), float(yarr[-1])
-        x_span = xmax - xmin or 1.0
-        y_span = ymax - ymin or 1.0
-
         zoom_candidates = []
 
         if x0 is not None and x1 is not None:
-            fx0 = max(0.0, min(1.0, (float(x0) - xmin) / x_span))
-            fx1 = max(0.0, min(1.0, (float(x1) - xmin) / x_span))
+            n = int(self._state.get("image_width") or len(xarr))
+            fx0 = max(0.0, min(1.0, self._axis_extent_frac(xarr, float(x0), n)))
+            fx1 = max(0.0, min(1.0, self._axis_extent_frac(xarr, float(x1), n)))
+            fx0, fx1 = min(fx0, fx1), max(fx0, fx1)
             if fx1 > fx0:
                 self._state["center_x"] = (fx0 + fx1) / 2.0
                 zoom_candidates.append(1.0 / (fx1 - fx0))
 
         if y0 is not None and y1 is not None:
-            fy0 = max(0.0, min(1.0, (float(y0) - ymin) / y_span))
-            fy1 = max(0.0, min(1.0, (float(y1) - ymin) / y_span))
+            n = int(self._state.get("image_height") or len(yarr))
+            fy0 = max(0.0, min(1.0, self._axis_extent_frac(yarr, float(y0), n)))
+            fy1 = max(0.0, min(1.0, self._axis_extent_frac(yarr, float(y1), n)))
+            fy0, fy1 = min(fy0, fy1), max(fy0, fy1)
             if fy1 > fy0:
                 self._state["center_y"] = (fy0 + fy1) / 2.0
                 zoom_candidates.append(1.0 / (fy1 - fy0))

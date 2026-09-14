@@ -3472,7 +3472,6 @@ function render({ model, el, onResize, onReadout }) {
     const imgH = p.imgH||Math.max(1, ph - PAD_T - PAD_B);
     const xArr=st.x_axis||[], yArr=st.y_axis||[];
     const TICK=6;
-    const zoom=st.zoom, cx=st.center_x, cy=st.center_y;
     const units=st.units||'px';
     const hasPhysAxis = (st.is_mesh || st.has_axes) && xArr.length>=2 && yArr.length>=2;
     if(st.axis_visible===false){
@@ -3485,16 +3484,22 @@ function render({ model, el, onResize, onReadout }) {
     const hasX=hasPhysAxis&&st.axis_visible!==false&&st.x_ticks_visible!==false&&p.xCtx&&p.xAxisCanvas&&p.xAxisCanvas.style.display!=='none';
     const hasY=hasPhysAxis&&st.axis_visible!==false&&st.y_ticks_visible!==false&&p.yCtx&&p.yAxisCanvas&&p.yAxisCanvas.style.display!=='none';
 
-    function _visFrac(z,c){
-      if(z>=1.0){const h=0.5/z;const cc=Math.max(h,Math.min(1-h,c));return[cc-h,cc+h];}
-      return[0,1];
-    }
-    function _fracToPx(frac, z, center, span) {
-      if(z>=1.0){
-        const h=0.5/z, cc=Math.max(h,Math.min(1-h,center));
-        return (frac-(cc-h))/(2*h)*span;
-      }
-      return (span-span*z)/2+frac*span*z;
+    // Ticks go through the SAME transform markers, widgets and pointer events
+    // use — axis value → centre-convention image coordinate → _imgToCanvas2d —
+    // so a tick sits on the pixels it labels at any zoom and pan, and on the
+    // letterboxed fit rect rather than the whole gutter. (They used to take the
+    // value's fraction of the axis array as a fraction of the gutter: imshow's
+    // first and last pixel CENTRES landed on the gutter's ends, stretching every
+    // label outward, and a pillarboxed image's ticks ignored its offset.)
+    const iw=st.image_width||1, ih=st.image_height||1;
+    const _valToImg=(arr,v,n)=>st.is_mesh ? _axisValToFrac(arr,v)*n-0.5 : _axisValToImg2d(arr,v,n);
+    // [lo, hi] axis values over the visible stretch of the image along axis `ax`
+    // (0 = x, 1 = y): the gutter's two ends, clamped to the outer pixel edges.
+    function _visRange(arr, n, ax){
+      const a=_canvasToImg2d(0,0,st,imgW,imgH)[ax], b=_canvasToImg2d(imgW,imgH,st,imgW,imgH)[ax];
+      const va=_imgToAxisVal2d(st,arr,Math.max(-0.5,Math.min(a,b)),n);
+      const vb=_imgToAxisVal2d(st,arr,Math.min(n-0.5,Math.max(a,b)),n);
+      return [Math.min(va,vb), Math.max(va,vb)];
     }
 
     // ── X axis canvas: imgW × PAD_B, origin at top-left ─────────────────
@@ -3505,8 +3510,7 @@ function render({ model, el, onResize, onReadout }) {
       p.xCtx.fillStyle=theme.axisBg; p.xCtx.fillRect(0,0,aw,ah);
       p.xCtx.strokeStyle=theme.axisStroke; p.xCtx.lineWidth=1;
       p.xCtx.beginPath(); p.xCtx.moveTo(0,0); p.xCtx.lineTo(aw,0); p.xCtx.stroke();
-      const [xF0,xF1]=_visFrac(zoom,cx);
-      const xVMin=_axisFracToVal(xArr,xF0), xVMax=_axisFracToVal(xArr,xF1);
+      const [xVMin,xVMax]=_visRange(xArr,iw,0);
       const step=findNice((xVMax-xVMin)/Math.max(3,Math.floor(imgW/60)));
       p.xCtx.strokeStyle=theme.tickStroke;
       p.xCtx.fillStyle=theme.tickText; p.xCtx.font=(st.tick_size||10)+'px sans-serif';
@@ -3521,12 +3525,12 @@ function render({ model, el, onResize, onReadout }) {
       let lastPx=-Infinity;
       for(let ti=0;ti<xTicks.length;ti++){
         const v=xTicks[ti];
-        const frac=_axisValToFrac(xArr,v);
-        const px2=_fracToPx(frac,zoom,cx,imgW);
+        const px2=_imgToCanvas2d(_valToImg(xArr,v,iw),0,st,imgW,imgH)[0];
         if(px2<0||px2>imgW) continue;
         p.xCtx.beginPath(); p.xCtx.moveTo(px2,0); p.xCtx.lineTo(px2,TICK); p.xCtx.stroke();
-        // Skip label if too close to the previous one
-        if(px2-lastPx>=minLabelGap){
+        // Skip label if too close to the previous one (either direction: a
+        // descending axis walks the gutter right to left)
+        if(Math.abs(px2-lastPx)>=minLabelGap){
           const txt=fmtVal(v);
           // Nudge edge labels inward so they are never clipped by the canvas
           const hw=p.xCtx.measureText(txt).width/2;
@@ -3549,8 +3553,7 @@ function render({ model, el, onResize, onReadout }) {
       p.yCtx.fillStyle=theme.axisBg; p.yCtx.fillRect(0,0,aw,ah);
       p.yCtx.strokeStyle=theme.axisStroke; p.yCtx.lineWidth=1;
       p.yCtx.beginPath(); p.yCtx.moveTo(aw,0); p.yCtx.lineTo(aw,ah); p.yCtx.stroke();
-      const [yF0,yF1]=_visFrac(zoom,cy);
-      const yVMin=_axisFracToVal(yArr,yF0), yVMax=_axisFracToVal(yArr,yF1);
+      const [yVMin,yVMax]=_visRange(yArr,ih,1);
       const step=findNice((yVMax-yVMin)/Math.max(3,Math.floor(imgH/60)));
       p.yCtx.strokeStyle=theme.tickStroke;
       p.yCtx.fillStyle=theme.tickText; p.yCtx.font=(st.tick_size||10)+'px sans-serif';
@@ -3561,11 +3564,10 @@ function render({ model, el, onResize, onReadout }) {
       let lastPy=-Infinity;
       for(let ti=0;ti<yTicks.length;ti++){
         const v=yTicks[ti];
-        const frac=_axisValToFrac(yArr,v);
-        const py2=_fracToPx(frac,zoom,cy,imgH);
+        const py2=_imgToCanvas2d(0,_valToImg(yArr,v,ih),st,imgW,imgH)[1];
         if(py2<0||py2>imgH) continue;
         p.yCtx.beginPath(); p.yCtx.moveTo(aw,py2); p.yCtx.lineTo(aw-TICK,py2); p.yCtx.stroke();
-        if(py2-lastPy>=minLabelGapY){
+        if(Math.abs(py2-lastPy)>=minLabelGapY){
           // Nudge edge labels inward so digits are never cut by the canvas
           const vh=(st.tick_size||10)*0.5+1;
           p.yCtx.fillText(fmtVal(v), aw-TICK-2, Math.min(Math.max(py2,vh), ah-vh));
@@ -7999,6 +8001,25 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const pos = n > 1 ? i * m / (n - 1) : 0;
     const lo = Math.max(0, Math.min(m - 1, Math.floor(pos)));
     return arr[lo] + (pos - lo) * (arr[lo + 1] - arr[lo]);
+  }
+
+  // The inverse for imshow's centre arrays: an axis value → the centre-convention
+  // image coordinate it sits at, continued linearly past either end (the tick
+  // gutters place labels in the outer half of the edge pixels through this).
+  // `arr` is monotonic, ascending or descending (origin='lower' reverses y).
+  function _axisValToImg2d(arr, v, n) {
+    const m = arr.length - 1;
+    if (m < 1) return 0;
+    const asc = arr[m] >= arr[0];
+    // The last segment start at or before v — segment 0 below the range, m-1 above.
+    let lo = 0, hi = m - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (asc ? arr[mid] <= v : arr[mid] >= v) lo = mid; else hi = mid - 1;
+    }
+    const d = arr[lo + 1] - arr[lo];
+    const pos = lo + (d ? (v - arr[lo]) / d : 0);
+    return n > 1 ? pos * (n - 1) / m : 0;
   }
 
   function _attachEvents2d(p) {

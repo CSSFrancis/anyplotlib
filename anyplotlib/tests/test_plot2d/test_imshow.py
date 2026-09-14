@@ -481,19 +481,22 @@ class TestImshowMarkers:
 
 class TestImshowView:
 
+    # Axis values sit at pixel CENTRES, so on an arange axis the image spans
+    # [-0.5, n - 0.5] and the window [7.5, 23.5] is columns 8..23 — exactly the
+    # middle half of a 32 px image (see test_axis_ticks.py).
+
     def _make_with_x_axis(self, shape=(32, 32)):
         data = np.zeros(shape)
-        x_axis = np.linspace(0.0, float(shape[1]), shape[1])
+        x_axis = np.arange(shape[1], dtype=float)
         fig, ax = apl.subplots(1, 1)
         return ax.imshow(data, axes=[x_axis, None])
 
     def test_set_view_x_only(self):
         """set_view(x0, x1) must update center_x and zoom, not view_x0/view_x1."""
         plot = self._make_with_x_axis()
-        plot.set_view(x0=8.0, x1=24.0)
-        # center_x should be midpoint fraction: (8+24)/2 / 32 = 0.5
+        plot.set_view(x0=7.5, x1=23.5)
+        # edge-space window [8, 24] of 32 px: centred, half the width
         assert abs(plot._state["center_x"] - 0.5) < 1e-6
-        # zoom_x = 32 / (24-8) = 2.0
         assert abs(plot._state["zoom"] - 2.0) < 1e-6
         assert "view_x0" not in plot._state
         assert "view_x1" not in plot._state
@@ -501,23 +504,23 @@ class TestImshowView:
     def test_set_view_y_only(self):
         """set_view(y0=..., y1=...) must update center_y and zoom."""
         data = np.zeros((32, 32))
-        y_axis = np.linspace(0.0, 32.0, 32)
+        y_axis = np.arange(32, dtype=float)
         fig, ax = apl.subplots(1, 1)
         plot = ax.imshow(data, axes=[None, y_axis])
-        plot.set_view(y0=8.0, y1=24.0)
+        plot.set_view(y0=7.5, y1=23.5)
         assert abs(plot._state["center_y"] - 0.5) < 1e-6
         assert abs(plot._state["zoom"] - 2.0) < 1e-6
 
     def test_set_view_xy(self):
         """set_view(x0, x1, y0, y1) uses minimum zoom when both axes given."""
         data = np.zeros((32, 64))
-        x_axis = np.linspace(0.0, 64.0, 64)
-        y_axis = np.linspace(0.0, 32.0, 32)
+        x_axis = np.arange(64, dtype=float)
+        y_axis = np.arange(32, dtype=float)
         fig, ax = apl.subplots(1, 1)
         plot = ax.imshow(data, axes=[x_axis, y_axis])
-        plot.set_view(x0=0, x1=32, y0=0, y1=16)
+        plot.set_view(x0=-0.5, x1=31.5, y0=-0.5, y1=23.5)
         zoom_x = 64.0 / 32.0  # = 2.0
-        zoom_y = 32.0 / 16.0  # = 2.0
+        zoom_y = 32.0 / 24.0  # ≈ 1.33
         expected_zoom = min(zoom_x, zoom_y)
         assert abs(plot._state["zoom"] - expected_zoom) < 1e-6
 
