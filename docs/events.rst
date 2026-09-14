@@ -173,8 +173,11 @@ Present on ``pointer_down``, ``pointer_up``, ``pointer_move``,
      - ``float | None``
      - Plot2D / PlotMesh only: position in **image pixels** (column, row —
        row 0 at the top, ``origin`` already applied), so a handler can index the
-       source array directly without mapping axis units back. ``None`` on other
-       plot types.
+       source array directly without mapping axis units back. Integer *i* is the
+       *centre* of pixel *i* — the same convention marker ``offsets``, widget
+       positions and :meth:`~anyplotlib.Plot2D.display_to_data` use — so
+       ``round()`` gives the pixel under the cursor. ``None`` on other plot
+       types.
    * - ``ray``
      - ``dict | None``
      - Plot3D only: ``{"origin": [x,y,z], "direction": [dx,dy,dz]}``.
@@ -192,13 +195,14 @@ Present on ``pointer_down``, ``pointer_up``, ``pointer_move``,
    2-D panels (:class:`~anyplotlib.Plot2D`, :class:`~anyplotlib.PlotMesh`)
    already have a built-in readout — see :ref:`hover-readout` — so you rarely
    need a handler just to show a value.  When you do want one, ``img_x`` /
-   ``img_y`` index the source array directly:
+   ``img_y`` index the source array directly once rounded to the nearest
+   pixel centre:
 
    .. code-block:: python
 
        @plot.add_event_handler("pointer_settled", ms=200)
        def probe(event):
-           row, col = int(event.img_y), int(event.img_x)
+           row, col = round(event.img_y), round(event.img_x)
            label.value = f"{data[row, col]:.6g}"
 
 PlotBar additional fields on ``pointer_down``

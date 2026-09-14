@@ -1581,7 +1581,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 clip_display=clip_display)
 
     def add_texts(self, offsets, texts, name=None, *,
-                  color="#ff0000", fontsize=12,
+                  color="#ff0000", fontsize=12, fontweight="normal",
+                  outline_color=None, outline_width=3.0,
                   hover_edgecolors=None,
                   labels=None, label=None,
                   transform: str = "data",
@@ -1600,6 +1601,17 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Text colour.  Default ``"#ff0000"``.
         fontsize : int, optional
             Font size in pixels.  Default ``12``.
+        fontweight : {"normal", "bold"} or float, optional
+            Font weight — a keyword or a CSS numeric weight in ``[1, 1000]``
+            (400 is normal, 700 bold).  Default ``"normal"``.
+        outline_color : str, optional
+            Colour of a halo stroked under the text, which keeps a label
+            legible over both light and dark backgrounds.  ``None`` (default)
+            draws no outline.
+        outline_width : float, optional
+            Stroke width of the outline in pixels; about half of it shows
+            outside the glyphs.  Default ``3.0``.  Ignored without
+            ``outline_color``.
         hover_edgecolors : str, optional
             Colour override applied on mouse-hover.
         labels : list of str, optional
@@ -1613,6 +1625,9 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         """
         return self._add_marker("texts", name, offsets=offsets, texts=texts,
                                 color=color, fontsize=fontsize,
+                                fontweight=fontweight,
+                                outline_color=outline_color,
+                                outline_width=outline_width,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
                                 transform=transform,

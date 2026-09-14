@@ -408,8 +408,9 @@ other than the ``mount()`` call site::
 
 ======================  ======================================================
 ``panel_id``            Which panel the cursor is over.
-``img_x``, ``img_y``    Fractional position in image pixels.
-``col``, ``row``        Integer pixel index (``img_x``/``img_y`` floored).
+``img_x``, ``img_y``    Fractional position in image pixels; integer *i* is the
+                        centre of pixel *i*.
+``col``, ``row``        Integer pixel index (``img_x``/``img_y`` rounded).
 ``xdata``, ``ydata``    Physical position in ``units``.
 ``units``               Axis units string (``"px"`` when unset).
 ``value``               Pixel value, or ``null`` for a true-colour image.

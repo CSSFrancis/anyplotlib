@@ -719,7 +719,8 @@ class _MarkerMixin:
         transform : str, optional
             Coordinate system for ``(x, y)``.  Default ``"data"``.
         **kwargs : dict
-            Forwarded to :meth:`add_texts` (e.g. ``clip_display``).
+            Forwarded to :meth:`add_texts` (e.g. ``clip_display``,
+            ``fontweight``, ``outline_color``).
 
         Returns
         -------
