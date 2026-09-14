@@ -81,6 +81,21 @@ function render({ model, el, onResize, onReadout }) {
     return v.toExponential(1);
   }
   function stripZeros(s){ return s.indexOf('.')<0 ? s : s.replace(/\.?0+$/,''); }
+  // One format for BOTH ends of a range, so "0.02" never sits beside
+  // "-5.0e-3": exponent notation when the larger magnitude is outside
+  // [1e-2, 1e4), else fixed with enough decimals to show the ends exactly
+  // (three significant digits of the span, so +/-1.25 reads 1.25 and not 1.3;
+  // at most four decimals).  Non-finite ends format as '' and are not drawn.
+  // Mirrored by Python's colorbar_texts.
+  function fmtRange(lo, hi) {
+    if(!Number.isFinite(lo)||!Number.isFinite(hi)) return ['',''];
+    const big=Math.max(Math.abs(lo),Math.abs(hi));
+    if(big===0) return ['0','0'];
+    if(big>=1e4||big<1e-2) return [lo.toExponential(1), hi.toExponential(1)];
+    const span=Math.abs(hi-lo)||big;
+    const decimals=Math.min(4,Math.max(0,Math.ceil(-Math.log10(span))+2));
+    return [stripZeros(lo.toFixed(decimals)), stripZeros(hi.toFixed(decimals))];
+  }
   function _axisValToFrac(arr,val) {
     if(arr.length<2) return 0;
     const n=arr.length, asc=arr[n-1]>=arr[0];
@@ -295,14 +310,51 @@ function render({ model, el, onResize, onReadout }) {
   }
 
   // ── 2D gutter geometry helpers ───────────────────────────────────────────
-  // Total width reserved for the colorbar (strip + rotated-label gutter).
-  // 0 when the colorbar is hidden.  The image area shrinks by this amount so
-  // the strip and its label always fit inside the panel.
-  function _cbWidth(st) {
-    if (!st || !st.show_colorbar || st.is_rgb) return 0;
-    const labelW = st.colorbar_label
+  // The colorbar's rotated-label gutter: the label's font size plus a margin.
+  function _cbLabelW(st) {
+    return st && st.colorbar_label
       ? Math.round((st.colorbar_label_size || 10) + 8) : 0;
-    return 16 + labelW;
+  }
+
+  // Characters budgeted for the display_min / display_max values beside the
+  // strip.  fmtRange is at most 7 characters in ordinary use ("-0.1234",
+  // "-1.2e+5"); the budget is fixed at that so the image does not wobble as the
+  // contrast handles are dragged, and grows only for the rare longer strings
+  // (a three-digit exponent, "-1.2e+308"), which would otherwise be clipped.
+  // Mirrored by Python's _colorbar_value_chars.
+  function _cbValueChars(st) {
+    let chars = 7;
+    if (st && st.display_min != null && st.display_max != null) {
+      const [lo, hi] = fmtRange(st.display_min, st.display_max);
+      chars = Math.max(chars, lo.length, hi.length);
+    }
+    return chars;
+  }
+
+  // Below this many px of image, the value gutter is dropped (strip and label
+  // stay) so a narrow grid cell does not push the colorbar over its neighbour.
+  const CB_MIN_IMAGE_W = 40;
+
+  // Width of the gutter the display_min / display_max values are written in,
+  // right of the strip: the character budget at ~0.6 em of the tick size,
+  // plus a 3 px gap off the strip.  With `availW` (the width the image and
+  // colorbar share, after the axis gutters) it is 0 when the values would not
+  // leave CB_MIN_IMAGE_W for the image.  Mirrored in Python's plot_box.
+  function _cbTickW(st, availW) {
+    const tick = (st && st.tick_size) || 10;
+    const w = Math.round(_cbValueChars(st) * 0.6 * tick) + 3;
+    if (availW != null && availW - _cbGap(st) - 16 - _cbLabelW(st) - w < CB_MIN_IMAGE_W)
+      return 0;
+    return w;
+  }
+
+  // Total width reserved for the colorbar (strip + value gutter + rotated-
+  // label gutter).  0 when the colorbar is hidden.  The image area shrinks by
+  // this amount so the strip, its numbers and its label always fit inside the
+  // panel.
+  function _cbWidth(st, availW) {
+    if (!st || !st.show_colorbar || st.is_rgb) return 0;
+    return 16 + _cbTickW(st, availW) + _cbLabelW(st);
   }
 
   // Gap between the right edge of the image and the colorbar strip. Without a
@@ -2322,14 +2374,15 @@ function render({ model, el, onResize, onReadout }) {
                        && st.y_axis && st.y_axis.length >= 2;
       // Always reserve the top strip for the title (mirrors 1D behaviour).
       // Left/right/bottom gutters are only used when physical axes are present.
-      // The colorbar (strip + label gutter) takes space from the image width
-      // so it is never clipped at the panel's right edge.
-      const cbW  = _cbWidth(st);
+      // The colorbar (strip + values + label gutter) takes space from the
+      // image width so it is never clipped at the panel's right edge; in a
+      // cell too narrow for all three the values go first (_cbTickW).
+      const availW = hasPhysAxis ? pw - PAD_L - PAD_R : pw;
+      const cbW  = _cbWidth(st, availW);
       const padT = _padT(st);
       const imgX = hasPhysAxis ? PAD_L : 0;
       const imgY = padT;
-      const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
-                               - (cbW ? cbW + _cbGap(st) : 0));
+      const imgW = Math.max(1, availW - (cbW ? cbW + _cbGap(st) : 0));
       let   imgH = Math.max(1, ph - padT - (hasPhysAxis ? PAD_B : 0));
       // Enforce aspect ratio (st.aspect = number or "equal" → 1.0).
       if (st && st.aspect != null) {
@@ -2340,6 +2393,7 @@ function render({ model, el, onResize, onReadout }) {
       // _cbW/_padT let draw2d detect when a state push requires a re-layout.
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
       p._cbW = cbW;  p._padT = padT;
+      p._cbTickW = _cbTickW(st, availW);   // what drawColorbar2d may write
 
       // Title canvas: sits in the title strip above the image area
       if (p.titleCanvas && p.titleCtx) {
@@ -2428,13 +2482,18 @@ function render({ model, el, onResize, onReadout }) {
         }
       }
 
-      // Colorbar: strip + label gutter in the space reserved by _cbWidth
+      // Colorbar: strip + label gutter in the space reserved by _cbWidth.
+      // The strip spans the IMAGE — its letterboxed fit rect — not the whole
+      // image area, so a wide image's numbers sit beside its pixels rather
+      // than floating far above and below them.
       if (p.cbCanvas && p.cbCtx) {
         if (cbW) {
+          const fit = _cbFitRect(st, imgW, imgH);
+          p._cbH = fit.h;
           p.cbCanvas.style.display = 'block';
           p.cbCanvas.style.left = (imgX + imgW + _cbGap(st)) + 'px';
-          p.cbCanvas.style.top  = imgY + 'px';
-          _sz(p.cbCanvas, p.cbCtx, cbW, imgH);
+          p.cbCanvas.style.top  = (imgY + fit.y) + 'px';
+          _sz(p.cbCanvas, p.cbCtx, cbW, fit.h);
         } else {
           p.cbCanvas.style.display = 'none';
         }
@@ -2462,6 +2521,16 @@ function render({ model, el, onResize, onReadout }) {
     const s = Math.min(cw / iw, ch / ih);
     const fw = iw * s, fh = ih * s;
     return { x: (cw - fw) / 2, y: (ch - fh) / 2, w: fw, h: fh, s };
+  }
+
+  // The vertical extent the colorbar strip spans: the image's letterboxed
+  // fit rect inside the image area, in whole px (the whole area when the
+  // image size is not known yet).
+  function _cbFitRect(st, imgW, imgH) {
+    const iw = st && st.image_width, ih = st && st.image_height;
+    if (!(iw > 0 && ih > 0)) return { y: 0, h: Math.max(1, imgH) };
+    const fit = _imgFitRect(iw, ih, imgW, imgH);
+    return { y: Math.round(fit.y), h: Math.max(1, Math.round(fit.h)) };
   }
 
   // On-screen rect occupied by image pixels at the current zoom.
@@ -2514,10 +2583,19 @@ function render({ model, el, onResize, onReadout }) {
     return st.tile_enabled ? [st.display_min, st.display_max] : [lo,hi];
   }
 
-  function _buildLut32(st) {
+  // The fraction of the colormap a value maps to through the display window
+  // and scale mode — the ONE rule the image LUT and the colorbar strip share,
+  // so the strip's colours are the image's (saturated beyond the window).
+  function _displayFrac(st, val) {
     const dMin=st.display_min, dMax=st.display_max;
-    const [hMin,hMax]=_rawBand(st);
     const mode=st.scale_mode||'linear';
+    if(mode==='log'){const dMC=Math.max(dMin,1e-10),dXC=Math.max(dMax,dMC+1e-10);return (Math.log10(Math.max(val,1e-10))-Math.log10(dMC))/(Math.log10(dXC)-Math.log10(dMC));}
+    if(mode==='symlog'){const lt=Math.max((dMax-dMin)*0.01,1e-10);const sl=v=>v>=0?(v<=lt?v/lt:1+Math.log10(v/lt)):-(Math.abs(v)<=lt?Math.abs(v)/lt:1+Math.log10(Math.abs(v)/lt));return (sl(val)-sl(dMin))/((sl(dMax)-sl(dMin))||1);}
+    return (val-dMin)/((dMax-dMin)||1);
+  }
+
+  function _buildLut32(st) {
+    const [hMin,hMax]=_rawBand(st);
     const range=hMax-hMin||1;
     const cmapData=st.colormap_data||[];
     let cmapFlat=null;
@@ -2528,11 +2606,7 @@ function render({ model, el, onResize, onReadout }) {
     const lut=new Uint32Array(256);
     const buf=new ArrayBuffer(4); const dv=new DataView(buf); const u32=new Uint32Array(buf);
     for(let raw=0;raw<256;raw++){
-      const val=hMin+(raw/255)*range;
-      let t;
-      if(mode==='log'){const dMC=Math.max(dMin,1e-10),dXC=Math.max(dMax,dMC+1e-10);t=(Math.log10(Math.max(val,1e-10))-Math.log10(dMC))/(Math.log10(dXC)-Math.log10(dMC));}
-      else if(mode==='symlog'){const lt=Math.max((dMax-dMin)*0.01,1e-10);const sl=v=>v>=0?(v<=lt?v/lt:1+Math.log10(v/lt)):-(Math.abs(v)<=lt?Math.abs(v)/lt:1+Math.log10(Math.abs(v)/lt));t=(sl(val)-sl(dMin))/((sl(dMax)-sl(dMin))||1);}
-      else{t=(val-dMin)/((dMax-dMin)||1);}
+      const t=_displayFrac(st,hMin+(raw/255)*range);
       const idx=Math.max(0,Math.min(255,Math.round(t*255)));
       if(cmapFlat){dv.setUint8(0,cmapFlat[idx*4]);dv.setUint8(1,cmapFlat[idx*4+1]);dv.setUint8(2,cmapFlat[idx*4+2]);dv.setUint8(3,255);}
       else{dv.setUint8(0,idx);dv.setUint8(1,idx);dv.setUint8(2,idx);dv.setUint8(3,255);}
@@ -3270,16 +3344,30 @@ function render({ model, el, onResize, onReadout }) {
 
     const cbStripW=16;
     const cbLabel=st.colorbar_label||'';
-    const cbW=_cbWidth(st)||cbStripW;
-    const imgH=p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
+    // The value gutter the layout reserved for this panel (0 in a cell too
+    // narrow for it); the strip and label always fit.
+    const tickW=(p._cbTickW!=null)?p._cbTickW:_cbTickW(st);
+    const labelW=_cbLabelW(st);
+    const cbW=cbStripW+tickW+labelW;
+    // The strip is as tall as the image's letterboxed rect (_resizePanelDOM),
+    // not the whole image area, so its numbers sit beside the pixels.
+    const imgH=p._cbH||p.imgH||Math.max(1,p.ph-PAD_T-PAD_B);
     const ctx=p.cbCtx;
     ctx.clearRect(0,0,cbW,imgH);
 
-    // Gradient strip
+    // display_min / display_max, and the raw band the strip's rows span.
+    const dMin=st.display_min, dMax=st.display_max;
+    const [hMin,hMax]=_rawBand(st);
+    const vRange=(hMax-hMin)||1;
+
+    // Gradient strip: each row's raw value coloured the way the image colours
+    // it — through the display window, saturated beyond it — so the numbers
+    // written at the marks are the values of the colours beside them.
     if(st.colormap_data&&st.colormap_data.length===256){
       for(let py=0;py<imgH;py++){
         const frac=1-py/(imgH-1||1);
-        const ci=Math.max(0,Math.min(255,Math.round(frac*255)));
+        const t=_displayFrac(st,hMin+frac*vRange);
+        const ci=Math.max(0,Math.min(255,Math.round(t*255)));
         const [r2,g2,b2]=st.colormap_data[ci];
         ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
         ctx.fillRect(0,py,cbStripW,1);
@@ -3295,18 +3383,62 @@ function render({ model, el, onResize, onReadout }) {
     ctx.strokeRect(0,0,cbStripW,imgH);
 
     // display_min / display_max tick marks
-    const dMin=st.display_min, dMax=st.display_max;
-    const [hMin,hMax]=_rawBand(st);
-    const vRange=(hMax-hMin)||1;
     function _vToY(v){return imgH-1-((v-hMin)/vRange)*(imgH-1);}
     ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(0,_vToY(dMax));ctx.lineTo(cbStripW,_vToY(dMax));ctx.stroke();
     ctx.beginPath();ctx.moveTo(0,_vToY(dMin));ctx.lineTo(cbStripW,_vToY(dMin));ctx.stroke();
 
-    // Colorbar label (rotated −90°, centred in the label gutter)
+    // The values at those marks, so the strip says how much and not only
+    // which way.  Same format as the axis ticks; kept inside the strip's
+    // height by the glyphs' measured extent, held apart when a tiny display
+    // range would stack them, and reduced to the maximum alone — or nothing —
+    // on a strip too short to hold both.
+    // Where the rotated label is centred: after the values when there are
+    // any (the reserved gutter is a budget, the text is usually shorter, and
+    // a label floating 30 px from "1" reads as unrelated), else after the
+    // strip.
+    let labelCentre=cbStripW+tickW+labelW/2+1;
+    const [loText,hiText]=fmtRange(dMin,dMax);
+    if(tickW>0&&loText&&hiText){
+      const tickPx=st.tick_size||10;
+      ctx.fillStyle=theme.tickText;
+      ctx.font=tickPx+'px sans-serif';
+      ctx.textAlign='left';
+      ctx.textBaseline='middle';
+      // Extent above/below the middle baseline plus a 2 px margin, so an
+      // antialiased edge never reaches the canvas edge; the fallback is half
+      // the size.
+      const extent=t=>{const m=ctx.measureText(t);
+        return {asc:(m.actualBoundingBoxAscent||tickPx*0.5)+2,
+                desc:(m.actualBoundingBoxDescent||tickPx*0.5)+2,
+                w:m.width};};
+      const hi=extent(hiText), lo=extent(loText);
+      const top=hi.asc, bottom=imgH-lo.desc;
+      if(bottom>=top){
+        const clampY=y=>Math.min(Math.max(y,top),bottom);
+        let yHi=clampY(_vToY(dMax)), yLo=clampY(_vToY(dMin));
+        const need=hi.desc+lo.asc;             // no overlap between the two
+        if(yLo-yHi<need){
+          const mid=(yLo+yHi)/2;
+          yHi=mid-need/2; yLo=mid+need/2;
+          if(yHi<top){yHi=top; yLo=top+need;}
+          if(yLo>bottom){yLo=bottom; yHi=bottom-need;}
+        }
+        // Both fit, or the maximum alone at its own clamped place — never a
+        // maximum pushed off the top to make room for a minimum that then
+        // is not drawn either.
+        const both=yHi>=top&&yLo<=bottom;
+        ctx.fillText(hiText,cbStripW+3,both?yHi:clampY(_vToY(dMax)));
+        if(both) ctx.fillText(loText,cbStripW+3,yLo);
+        const textW=Math.max(hi.w,lo.w);
+        labelCentre=Math.min(labelCentre,cbStripW+3+textW+4+labelW/2);
+      }
+    }
+
+    // Colorbar label (rotated −90°, centred right of the values)
     if(cbLabel){
       ctx.save();
-      ctx.translate(cbStripW + (cbW - cbStripW) / 2 + 1, imgH/2);
+      ctx.translate(labelCentre, imgH/2);
       ctx.rotate(-Math.PI/2);
       ctx.textBaseline='middle';
       ctx.fillStyle=theme.unitText;
@@ -9181,13 +9313,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       const hasPhysAxis = st && (st.is_mesh || st.has_axes)
                        && st.x_axis && st.x_axis.length >= 2
                        && st.y_axis && st.y_axis.length >= 2;
-      const cbW  = _cbWidth(st);
+      const availW = hasPhysAxis ? pw - PAD_L - PAD_R : pw;
+      const cbW  = _cbWidth(st, availW);
       const padT = _padT(st);
       const imgX = hasPhysAxis ? PAD_L : 0;
       const imgY = hasPhysAxis ? padT : 0;
-      const imgW = Math.max(1, (hasPhysAxis ? pw - PAD_L - PAD_R : pw)
-                               - (cbW ? cbW + _cbGap(st) : 0));
+      const imgW = Math.max(1, availW - (cbW ? cbW + _cbGap(st) : 0));
       const imgH = hasPhysAxis ? Math.max(1, ph - padT - PAD_B) : ph;
+      p._cbW = cbW; p._cbTickW = _cbTickW(st, availW);
       // Update stored dims so event handlers stay consistent during CSS resize
       p.imgX = imgX; p.imgY = imgY; p.imgW = imgW; p.imgH = imgH;
 
@@ -9214,8 +9347,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         _szCSS(p.xAxisCanvas, imgW, PAD_B);
       }
       if (p.cbCanvas && p.cbCanvas.style.display !== 'none') {
-        p.cbCanvas.style.left = (imgX + imgW + _cbGap(st)) + 'px'; p.cbCanvas.style.top = imgY + 'px';
-        _szCSS(p.cbCanvas, cbW || 16, imgH);
+        const fit = _cbFitRect(st, imgW, imgH);
+        p._cbH = fit.h;
+        p.cbCanvas.style.left = (imgX + imgW + _cbGap(st)) + 'px'; p.cbCanvas.style.top = (imgY + fit.y) + 'px';
+        _szCSS(p.cbCanvas, cbW || 16, fit.h);
       }
     } else if (p.kind === '3d') {
       _szCSS(p.plotCanvas,    pw, ph);
@@ -10027,7 +10162,11 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const hasPhysAxis = (st.is_mesh || st.has_axes)
                      && st.x_axis && st.x_axis.length >= 2
                      && st.y_axis && st.y_axis.length >= 2;
-    const cbW = _cbWidth(st);
+    // The same narrow-cell rule the on-screen layout applies, phrased for a
+    // panel whose image is exactly iw wide: reserve the values only when the
+    // native image is wide enough to keep them.
+    const full = 16 + _cbTickW(st) + _cbLabelW(st);
+    const cbW = _cbWidth(st, iw + full + _cbGap(st));
     return {
       iw, ih,
       pw: iw + (cbW ? cbW + _cbGap(st) : 0) + (hasPhysAxis ? PAD_L + PAD_R : 0),

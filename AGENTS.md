@@ -115,7 +115,7 @@ grep -nE '^\s*(function|const|let) [A-Za-z_]' anyplotlib/figure_esm.js
 ```
 
 and reconcile against the two numbered tables (the section map near the top and
-the 2-D function table). Both were last verified at 12,211 lines.
+the 2-D function table). Both were last verified at 12,349 lines.
 
 Changelog entries: add a fragment file to `upcoming_changes/` (e.g.
 `123.new_feature.rst`) — towncrier assembles `CHANGELOG.rst` at release time.
