@@ -63,18 +63,18 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | `drawScaleBar2d` / `drawColorbar2d` | 3076 / 3356 |
 | **Floating keys**: `_keyEnsure` / `_keyRect` / `drawKeys` | 3175 / 3198 / 3211 |
 | `_drawAxes2d` (ticks, labels, title) | 3468 |
-| `drawOverlay2d` / `drawMarkers2d` | 3621 / 3785 |
+| `drawOverlay2d` / `drawMarkers2d` | 3623 / 3787 |
 | **Image layers**: `_layerBytes` / `_layerBitmap` / `_drawLayers2d` | 2701 / 2725 / 2786 |
 | Binary-bytes splice: `_spliceBinaryBytes` / `_registerBinaryPixelListeners` | 849 / 880 |
-| **Hover readout**: `_pixelValue2d` / `_readoutInfo2d` | 4629 / 4714 |
-| `_notifyReadout` / `_updateStatus2d` / `_armValueProbe` | 4753 / 4768 / 4789 |
-| **3D drawing**: `draw3d` | 5765 |
-| Event emission `_emitEvent` | 6602 |
-| 3D event handlers `_attachEvents3d` | 6659 |
-| **1D drawing**: `draw1d` | 6883 |
-| `_drawLine` (1D series + markers) | 7036 |
-| `drawOverlay1d` / `drawMarkers1d` | 7329 / 7413 |
-| Marker hit-test `_markerHitTest2d` | 7680 |
+| **Hover readout**: `_pixelValue2d` / `_readoutInfo2d` | 4631 / 4716 |
+| `_notifyReadout` / `_updateStatus2d` / `_armValueProbe` | 4755 / 4770 / 4791 |
+| **3D drawing**: `draw3d` | 5767 |
+| Event emission `_emitEvent` | 6604 |
+| 3D event handlers `_attachEvents3d` | 6661 |
+| **1D drawing**: `draw1d` | 6885 |
+| `_drawLine` (1D series + markers) | 7038 |
+| `drawOverlay1d` / `drawMarkers1d` | 7331 / 7415 |
+| Marker hit-test `_markerHitTest2d` | 7682 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
@@ -83,22 +83,22 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 > redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
 > the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
 > clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 7937 |
-| 2D events `_attachEvents2d` | 8004 |
-| 1D events `_attachEvents1d` | 8390 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8665 / 8944 |
-| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8857 / 8871 / 8900 / 8935 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 9069 / 9142 |
-| Shared-axis propagation `_getShareGroups` | 9213 |
-| Figure resize `_applyFigResizeDOM` | 9277 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 9471 / 9534 / 9910 |
-| Generic redraw `_redrawPanel` | 10100 |
-| **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10263 / 10459 / 10518 |
-| Native-resolution render `_withNativeSize` | 10239 |
-| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10552 / 10661 / 10840 |
-| Export registry `registerExportAction` | 10717 |
-| **Embedding API**: `createLocalModel` / `mount` | 11231 / 11287 |
-| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11542 / 11929 |
+| Panel event dispatch `_attachPanelEvents` | 7939 |
+| 2D events `_attachEvents2d` | 8025 |
+| 1D events `_attachEvents1d` | 8411 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8686 / 8965 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8878 / 8892 / 8921 / 8956 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 9090 / 9163 |
+| Shared-axis propagation `_getShareGroups` | 9234 |
+| Figure resize `_applyFigResizeDOM` | 9298 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 9492 / 9555 / 9931 |
+| Generic redraw `_redrawPanel` | 10121 |
+| **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10284 / 10480 / 10539 |
+| Native-resolution render `_withNativeSize` | 10260 |
+| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10573 / 10682 / 10861 |
+| Export registry `registerExportAction` | 10738 |
+| **Embedding API**: `createLocalModel` / `mount` | 11252 / 11308 |
+| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11563 / 11950 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -287,8 +287,8 @@ st.colorbar_label_size            (label font sizes; optional)
 | `drawScaleBar2d(p)` | 3076 | Physical scale bar |
 | `_rawBand(st)` / `_displayFrac(st, val)` / `_buildLut32(st)` | 2596 / 2606 / 2614 | The quantisation band the u8 bytes were encoded over, the ONE rule mapping a value through the display window and scale mode to a colormap fraction (shared by the LUT and the colorbar strip, so the strip's colours are the image's), then the 256-entry LUT built from both. `_rawBand` mirrors Python `_tile_quant_clim`: a DEGENERATE band (`raw_max <= raw_min`) is UNSET and falls back to `display_min/max`. Both render paths and the colorbar go through it — honouring a `(0, 0)` band paints solid black |
 | `drawColorbar2d(p)` | 3356 | Gradient strip coloured through the display window (`_displayFrac` — saturated beyond it, like the image) + min/max marks (band-relative, via `_rawBand`) + the two values written beside them (`fmtRange`; kept inside the strip by the glyphs' measured extent, held apart on a tiny range, the maximum alone at its own place on a strip too short for both; omitted when the layout dropped the gutter, `p._cbTickW == 0`) + rotated label centred right after the values' measured width (never past the reserved gutter) |
-| `_drawAxes2d(p)` | 3468 | Ticks (edge labels nudged inward both axes), axis labels + title via `_drawTex` |
-| `drawOverlay2d(p)` / `drawMarkers2d(p)` | 3621 / 3785 | Widgets / marker groups |
+| `_drawAxes2d(p)` | 3468 | Ticks placed through `_imgToCanvas2d` (pixel-centre axes, letterbox-aware; edge labels nudged inward both axes), axis labels + title via `_drawTex` |
+| `drawOverlay2d(p)` / `drawMarkers2d(p)` | 3623 / 3787 | Widgets / marker groups |
 
 Zoom model: at `zoom=1` the whole image fills the fit-rect; at `zoom=Z>1` a
 `1/Z` region fills it.  `_imgToCanvas2d` / `_canvasToImg2d` must stay exact
@@ -300,6 +300,14 @@ pixel under a coordinate and bound it.  Pointer events and the readout map a
 coordinate to `xdata`/`ydata` through `_imgToAxisVal2d` (imshow axes are
 per-pixel centres, pcolormesh axes cell edges).  Code that addresses texels or
 the detail region by pixel EDGE (`_pixelValue2d`) adds the `0.5` back itself.
+
+The tick gutters (`_drawAxes2d`) use the same chain in reverse: tick value →
+`_axisValToImg2d` (imshow; pcolormesh goes through `_axisValToFrac` × n − ½) →
+`_imgToCanvas2d`, so ticks honour the letterboxed fit rect, zoom < 1, pan
+clamping and descending (`origin='lower'`) axes for free.  The visible value
+range is the gutter's two ends through `_canvasToImg2d`, clamped to the outer
+pixel edges.  Python's `Plot2D._axis_extent_frac` (behind `set_view` /
+`set_xlim`) mirrors `_axisValToImg2d` — keep the two in step.
 
 `texts` markers (1-D and 2-D) set their font and optional outline through
 `_markerTextStyle(ctx, ms)` (`fontweight`, `outline_color`, `outline_width`)
@@ -652,13 +660,13 @@ exportCanvas(same opts) → {canvas, width, height}   // synchronous, throws
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `_cssScale` | 10135 | inverse of `_applyScale`'s `transform:scale()` |
-| `_panelBox` | 10146 | the element whose rect bounds one panel |
-| `_neutralizeView` / `_restoreView` | 10155 / 10180 | transient whole-extent view |
-| `_nativeGeom` / `_nativeGuard` | 10195 / 10214 | native size + why-not message |
-| `_withNativeSize` | 10239 | resize → redraw → run → restore |
-| `_compositeCanvas` | 10263 | the compositor (`_drawEl` / `_drawPanel` …) |
-| `exportCanvas` / `exportPNG` | 10459 / 10518 | orchestrator / data-URL wrapper |
+| `_cssScale` | 10156 | inverse of `_applyScale`'s `transform:scale()` |
+| `_panelBox` | 10167 | the element whose rect bounds one panel |
+| `_neutralizeView` / `_restoreView` | 10176 / 10201 | transient whole-extent view |
+| `_nativeGeom` / `_nativeGuard` | 10216 / 10235 | native size + why-not message |
+| `_withNativeSize` | 10260 | resize → redraw → run → restore |
+| `_compositeCanvas` | 10284 | the compositor (`_drawEl` / `_drawPanel` …) |
+| `exportCanvas` / `exportPNG` | 10480 / 10539 | orchestrator / data-URL wrapper |
 
 **The whole pipeline is ONE synchronous task** — theme swap, view reset, native
 resize, composite, restore — so the browser never paints an intermediate state
@@ -754,13 +762,13 @@ leaders that cross into the panel included. Pinned by
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `_toast` | 10552 | transient bottom-centre message |
-| `_copyCanvas` | 10587 | clipboard write + feature detection |
-| `_showPngPreview` | 10611 | framed-document download fallback |
-| `_downloadCanvas` | 10661 | `<a download>` or the preview |
-| `registerExportAction` | 10717 | downstream extension point |
-| `_menuRows` / `_openMenu` | 10771 / 10840 | menu model / DOM |
-| `_panelAtPoint` | 10952 | hit test (insets first — they sit on top) |
+| `_toast` | 10573 | transient bottom-centre message |
+| `_copyCanvas` | 10608 | clipboard write + feature detection |
+| `_showPngPreview` | 10632 | framed-document download fallback |
+| `_downloadCanvas` | 10682 | `<a download>` or the preview |
+| `registerExportAction` | 10738 | downstream extension point |
+| `_menuRows` / `_openMenu` | 10792 / 10861 | menu model / DOM |
+| `_panelAtPoint` | 10973 | hit test (insets first — they sit on top) |
 
 - **An `exportBtn` badge (⤓, beside the help badge) opens the same menu on an
   ordinary left click.** It is a `role="button"` with `tabIndex=0` and
@@ -844,16 +852,16 @@ bindings, let it dispatch", rather than a hand-written program per result kind.
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `decodeBlocks` | 11542 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
-| `dense` | 11568 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
-| `ragged` | 11633 | the same three, over a row-pointer block (`offsets` + one array per column) |
-| `maskFromWidget` | 11716 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
-| `rasterDisks` | 11756 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
-| `robustLevels` / `toU8` | 11785 / 11826 | the percentile window and the 8-bit code map, one implementation |
-| `panelAxis` | 11904 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
-| `installTouchShim` / `reportEmbedHeight` | 11841 / 11860 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
-| `encodeBase64` / `typedArrayBytes` | 11880 / 11888 | a 3-D cloud's geometry channel is base64, not the binary side table |
-| `mountNavigated` | 11929 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
+| `decodeBlocks` | 11563 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
+| `dense` | 11589 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
+| `ragged` | 11654 | the same three, over a row-pointer block (`offsets` + one array per column) |
+| `maskFromWidget` | 11737 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
+| `rasterDisks` | 11777 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
+| `robustLevels` / `toU8` | 11806 / 11847 | the percentile window and the 8-bit code map, one implementation |
+| `panelAxis` | 11925 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
+| `installTouchShim` / `reportEmbedHeight` | 11862 / 11881 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
+| `encodeBase64` / `typedArrayBytes` | 11901 / 11909 | a 3-D cloud's geometry channel is base64, not the binary side table |
+| `mountNavigated` | 11950 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
 
 `mountNavigated(el, page, opts)` is **async** — the blob decode is a `fetch` of
 a `data:` URL — so a host `await`s it.  `page` is `{state, blocks, bindings,
