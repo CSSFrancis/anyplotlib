@@ -10,6 +10,23 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.10.0 (2026-09-14)
+===================
+
+API and Behaviour Changes
+-------------------------
+
+- 2-D pointer events (``pointer_down``, ``double_click``, ``pointer_settled``, ``key_down``) and the hover readout now report ``img_x``/``img_y`` in the pixel-centre convention that markers, widgets and :meth:`~anyplotlib.Plot2D.display_to_data` already used — they read half a pixel right and down before — so ``round(event.img_x)`` names the clicked pixel (``int()`` no longer does), brush strokes land under the cursor, and an ``imshow`` event's ``xdata``/``ydata`` is exactly the axis value of the pixel centre it hits (``pcolormesh`` values are unchanged). (`#73 <https://github.com/CSSFrancis/anyplotlib/pull/73>`_)
+- 2-D tick labels now sit on the pixels they name: ``imshow`` axis values are placed at pixel centres (the image extends half a pixel past the first and last value, as matplotlib's ``imshow`` extent does) through the same transform markers and pointer events use, so ticks also follow a letterboxed image instead of spanning the whole gutter, and an ``origin='lower'`` image gets y ticks at all; :meth:`~anyplotlib.Plot2D.set_view` / ``set_xlim`` / ``set_ylim`` read the axis the same way — ``set_xlim(-0.5, n - 0.5)`` is the whole image, ``set_xlim(0, n - 1)`` now crops the outer half pixels — and accept a descending ``origin='lower'`` y axis. (`#74 <https://github.com/CSSFrancis/anyplotlib/pull/74>`_)
+
+
+New Features
+------------
+
+- The 2-D colorbar now writes its display minimum and maximum beside the strip — both ends in one format, and the strip itself coloured through the display window (saturated beyond it, the way the image is) and spanning the image rather than the whole panel — so a labelled scale says how much and not only which way; the image gives up a value gutter budgeted for the numbers (fixed for ordinary values so a contrast drag never moves the image, wider for the rare long ones, dropped in a cell too narrow to keep 40 px of image, and mirrored in :meth:`plot_box`) so they never clip. (`#71 <https://github.com/CSSFrancis/anyplotlib/pull/71>`_)
+- Text markers (:meth:`~anyplotlib.Plot2D.add_texts`, :meth:`~anyplotlib.Plot1D.add_texts` and ``add_text``) gained ``fontweight`` for bold labels and ``outline_color`` / ``outline_width`` for a halo stroked under the text, which keeps a label legible over both light and dark parts of an image. (`#73 <https://github.com/CSSFrancis/anyplotlib/pull/73>`_)
+
+
 0.9.0 (2026-09-11)
 ==================
 
