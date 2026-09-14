@@ -536,14 +536,14 @@ JavaScript bridge via the <code class="docutils literal notranslate"><span class
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>nrows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Grid dimensions. Default 1 row, 1 column.</p></li>
-<li><p><strong>ncols</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Grid dimensions. Default 1 row, 1 column.</p></li>
+<li><p><strong>nrows</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Grid dimensions. Default 1 row, 1 column.</p></li>
+<li><p><strong>ncols</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Grid dimensions. Default 1 row, 1 column.</p></li>
 <li><p><strong>figsize</strong> (<em>(</em><em>width</em><em>, </em><em>height</em><em>)</em><em>, </em><em>optional</em>) – Figure size in CSS pixels. Default <code class="docutils literal notranslate"><span class="pre">(640,</span> <span class="pre">480)</span></code>.</p></li>
-<li><p><strong>width_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative column widths. Length must equal <em>ncols</em>.</p></li>
-<li><p><strong>height_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative row heights. Length must equal <em>nrows</em>.</p></li>
-<li><p><strong>sharex</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Link pan/zoom across all panels on the respective axis.
+<li><p><strong>width_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative column widths. Length must equal <em>ncols</em>.</p></li>
+<li><p><strong>height_ratios</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Relative row heights. Length must equal <em>nrows</em>.</p></li>
+<li><p><strong>sharex</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Link pan/zoom across all panels on the respective axis.
 Default False (independent pan/zoom per panel).</p></li>
-<li><p><strong>sharey</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Link pan/zoom across all panels on the respective axis.
+<li><p><strong>sharey</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Link pan/zoom across all panels on the respective axis.
 Default False (independent pan/zoom per panel).</p></li>
 </ul>
 </dd>
@@ -620,7 +620,7 @@ Default False (independent pan/zoom per panel).</p></li>
 <dd><p>Set (or clear) the figure-level help text shown in the <strong>?</strong> badge.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Help string displayed when the user clicks the <strong>?</strong> badge.
+<dd class="field-odd"><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Help string displayed when the user clicks the <strong>?</strong> badge.
 Pass an empty string (or <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> ) to remove the badge entirely.
 Newlines (<code class="docutils literal notranslate"><span class="pre">\n</span></code>) are respected in the card.</p>
 </dd>
@@ -644,10 +644,10 @@ an argument leaves the current value unchanged.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hspace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average row height to use as vertical gap between
+<li><p><strong>hspace</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average row height to use as vertical gap between
 panels.  <code class="docutils literal notranslate"><span class="pre">0.1</span></code> adds a gap of 10 % of the mean row height.
 <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) leaves the current hspace unchanged.</p></li>
-<li><p><strong>wspace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average column width to use as horizontal gap.
+<li><p><strong>wspace</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Fraction of the average column width to use as horizontal gap.
 <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) leaves the current wspace unchanged.</p></li>
 </ul>
 </dd>
@@ -663,8 +663,8 @@ panels.  <code class="docutils literal notranslate"><span class="pre">0.1</span>
 <dd><p>Add a subplot cell and return its <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes"><code class="xref py py-class docutils literal notranslate"><span class="pre">Axes</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>spec</strong> (<a class="reference internal" href="anyplotlib.SubplotSpec.html#anyplotlib.SubplotSpec" title="anyplotlib.SubplotSpec"><em>SubplotSpec</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><em>(</em><em>row</em><em>, </em><em>col</em><em>)</em>) – Which grid cell(s) to occupy.  A <a class="reference internal" href="anyplotlib.SubplotSpec.html#anyplotlib.SubplotSpec" title="anyplotlib.SubplotSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubplotSpec</span></code></a> is used
-directly (e.g. from <code class="docutils literal notranslate"><span class="pre">GridSpec[r,</span> <span class="pre">c]</span></code>).  An <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> is
+<dd class="field-odd"><p><strong>spec</strong> (<a class="reference internal" href="anyplotlib.SubplotSpec.html#anyplotlib.SubplotSpec" title="anyplotlib.SubplotSpec"><em>SubplotSpec</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><em>(</em><em>row</em><em>, </em><em>col</em><em>)</em>) – Which grid cell(s) to occupy.  A <a class="reference internal" href="anyplotlib.SubplotSpec.html#anyplotlib.SubplotSpec" title="anyplotlib.SubplotSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubplotSpec</span></code></a> is used
+directly (e.g. from <code class="docutils literal notranslate"><span class="pre">GridSpec[r,</span> <span class="pre">c]</span></code>).  An <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> is
 converted via <code class="docutils literal notranslate"><span class="pre">divmod(spec,</span> <span class="pre">ncols)</span></code>, matching
 <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure.add_subplot</span></code> numbering.  A <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code>
 tuple selects a single cell.</p>
@@ -677,7 +677,7 @@ tuple selects a single cell.</p>
 <dd class="field-odd"><p><a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes">Axes</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <em>spec</em> is not a SubplotSpec, int, or tuple.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <em>spec</em> is not a SubplotSpec, int, or tuple.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
@@ -723,16 +723,16 @@ returned <code class="xref py py-class docutils literal notranslate"><span class
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>w_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
-<li><p><strong>h_frac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
-<li><p><strong>corner</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Positioning corner: <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;top-left&quot;</span></code>,
+<li><p><strong>w_frac</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
+<li><p><strong>h_frac</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width and height as fractions of the figure size (0–1).</p></li>
+<li><p><strong>corner</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Positioning corner: <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;top-left&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;bottom-right&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;bottom-left&quot;</span></code>.  Mutually exclusive with
 <em>anchor</em>.</p></li>
 <li><p><strong>anchor</strong> (<em>(</em><em>x_frac</em><em>, </em><em>y_frac</em><em>)</em><em>, </em><em>optional</em>) – Position of the inset’s TOP-LEFT corner as fractions of the figure
 size (0–1), from the figure’s top-left.  When given, the inset
 floats at that anchor and <em>corner</em> is ignored.  Use this for
 free placement (e.g. a callout panel next to the region it marks).</p></li>
-<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Text displayed in the inset title bar.</p></li>
+<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Text displayed in the inset title bar.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -747,7 +747,7 @@ free placement (e.g. a callout panel next to the region it marks).</p></li>
 <dd><p>Set the figure-level annotation layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>markers</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – <p>Each dict is <code class="docutils literal notranslate"><span class="pre">{&quot;id&quot;?,</span> <span class="pre">&quot;kind&quot;,</span> <span class="pre">...}</span></code> with positions/sizes in
+<dd class="field-odd"><p><strong>markers</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – <p>Each dict is <code class="docutils literal notranslate"><span class="pre">{&quot;id&quot;?,</span> <span class="pre">&quot;kind&quot;,</span> <span class="pre">...}</span></code> with positions/sizes in
 FIGURE FRACTIONS (0..1, origin top-left).  <code class="docutils literal notranslate"><span class="pre">kind</span></code> is one of:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;text&quot;</span></code>   — <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">text</span></code>; optional <code class="docutils literal notranslate"><span class="pre">color</span></code>, <code class="docutils literal notranslate"><span class="pre">fontsize</span></code></p></li>
@@ -762,7 +762,7 @@ FIGURE FRACTIONS (0..1, origin top-left).  <code class="docutils literal notrans
 </p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If a marker has an unrecognised <code class="docutils literal notranslate"><span class="pre">kind</span></code>.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If a marker has an unrecognised <code class="docutils literal notranslate"><span class="pre">kind</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -772,7 +772,7 @@ FIGURE FRACTIONS (0..1, origin top-left).  <code class="docutils literal notrans
 
 <dl class="py property">
 <dt class="sig sig-object py" id="anyplotlib.Figure.figure_markers">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">figure_markers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span><a class="headerlink" href="#anyplotlib.Figure.figure_markers" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">figure_markers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span><a class="headerlink" href="#anyplotlib.Figure.figure_markers" title="Link to this definition">#</a></dt>
 <dd><p>The current figure-level annotation list (list of dicts, fractions).</p>
 <p>Returns a shallow copy so external mutation doesn’t desync the trait;
 call <a class="reference internal" href="#anyplotlib.Figure.set_figure_markers" title="anyplotlib.Figure.set_figure_markers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_figure_markers()</span></code></a> to change it.</p>
@@ -788,7 +788,7 @@ call <a class="reference internal" href="#anyplotlib.Figure.set_figure_markers" 
 top-to-bottom iteration order.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes">Axes</a></p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)">list</a> of <a class="reference internal" href="anyplotlib.Axes.html#anyplotlib.Axes" title="anyplotlib.Axes">Axes</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -804,10 +804,10 @@ an Electron <code class="docutils literal notranslate"><span class="pre">Browser
 Python sync via <code class="docutils literal notranslate"><span class="pre">FigureBridge</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>resizable</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
+<dd class="field-odd"><p><strong>resizable</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -818,7 +818,7 @@ Python sync via <code class="docutils literal notranslate"><span class="pre">Fig
 <dd><p>Write <a class="reference internal" href="#anyplotlib.Figure.to_html" title="anyplotlib.Figure.to_html"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_html()</span></code></a> output to <em>path</em>; returns the <code class="docutils literal notranslate"><span class="pre">Path</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>resizable</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
+<dd class="field-odd"><p><strong>resizable</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -835,7 +835,7 @@ Requires Playwright (<code class="docutils literal notranslate"><span class="pre
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Destination file.  Written as PNG regardless of the suffix.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Destination file.  Written as PNG regardless of the suffix.</p></li>
 <li><p><strong>source</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;view&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>, optional) – <code class="docutils literal notranslate"><span class="pre">&quot;view&quot;</span></code> (default) captures the figure as displayed.  <code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code>
 resets the zoom so the whole data extent is shown, at the panel’s
 on-screen resolution.  <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code> renders ONE image panel at one
@@ -843,14 +843,14 @@ output pixel per data pixel, with its axes, colorbar, title,
 markers and widgets redrawn at that size — for a tiled plot the
 full array is re-encoded from the backend for the export only.</p></li>
 <li><p><strong>theme</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;current&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;light&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;dark&quot;</span></code>, optional) – Palette to render with, independent of the ambient theme.</p></li>
-<li><p><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Extra resolution multiplier for <code class="docutils literal notranslate"><span class="pre">&quot;view&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code>.  Ignored by
+<li><p><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Extra resolution multiplier for <code class="docutils literal notranslate"><span class="pre">&quot;view&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code>.  Ignored by
 <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>, which is already 1:1 with the data.</p></li>
-<li><p><strong>include_widgets</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Draw interactive overlay widgets (without their drag handles).
+<li><p><strong>include_widgets</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Draw interactive overlay widgets (without their drag handles).
 Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
-<li><p><strong>panel</strong> (<em>Plot</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Export just this panel (a plot object or its panel id) instead of
+<li><p><strong>panel</strong> (<em>Plot</em><em> or </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Export just this panel (a plot object or its panel id) instead of
 the whole figure.  Required for <code class="docutils literal notranslate"><span class="pre">source=&quot;native&quot;</span></code> unless the
 figure has exactly one 2-D panel.</p></li>
-<li><p><strong>timeout_ms</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – How long to wait for the page to render.  Default 30 s.</p></li>
+<li><p><strong>timeout_ms</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – How long to wait for the page to render.  Default 30 s.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

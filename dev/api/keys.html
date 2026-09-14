@@ -548,7 +548,7 @@ canvas shared by every key on the panel.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="anyplotlib.keys.KeyOverlay">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.keys.</span></span><span class="sig-name descname"><span class="pre">KeyOverlay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_url</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/keys.html#KeyOverlay"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.keys.KeyOverlay" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A floating image key pinned to a panel corner.</p>
 <p>Created by <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_key()</span></code>; not constructed directly.</p>
 <p>Every property is settable through <a class="reference internal" href="#anyplotlib.keys.KeyOverlay.set" title="anyplotlib.keys.KeyOverlay.set"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set()</span></code></a>, which pushes to the
@@ -560,18 +560,18 @@ renderer in one update:</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>image_url</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+<dd class="field-odd"><p><strong>image_url</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
 </dd>
 </dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="anyplotlib.keys.KeyOverlay.id">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.keys.KeyOverlay.id" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.keys.KeyOverlay.id" title="Link to this definition">#</a></dt>
 <dd><p>Short unique identifier.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="anyplotlib.keys.KeyOverlay.name">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.keys.KeyOverlay.name" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.keys.KeyOverlay.name" title="Link to this definition">#</a></dt>
 <dd><p>Caller-supplied name, or the id when none was given.</p>
 <p>Use it with <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_key()</span></code>.</p>
 </dd></dl>
@@ -584,7 +584,7 @@ renderer in one update:</p>
 (use <a class="reference internal" href="#anyplotlib.keys.KeyOverlay.set_image" title="anyplotlib.keys.KeyOverlay.set_image"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_image()</span></code></a> — it travels on a different channel).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – On an unknown property name, or a value the constructor would
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – On an unknown property name, or a value the constructor would
     also have rejected.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -599,7 +599,7 @@ renderer in one update:</p>
 <dd><p>Replace the picture, keeping placement and styling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>image</strong> (<em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><em>bytes</em></a><em>, or </em><em>path</em>) – Same input <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_key()</span></code> accepts.</p>
+<dd class="field-odd"><p><strong>image</strong> (<em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#bytes" title="(in Python v3.14)"><em>bytes</em></a><em>, or </em><em>path</em>) – Same input <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_key()</span></code> accepts.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
@@ -624,14 +624,14 @@ renderer in one update:</p>
 <dd><p>The light view-channel payload (no image bytes).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="anyplotlib.keys.KeyOverlay.image_url">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">image_url</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.keys.KeyOverlay.image_url" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">image_url</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#anyplotlib.keys.KeyOverlay.image_url" title="Link to this definition">#</a></dt>
 <dd><p>The <code class="docutils literal notranslate"><span class="pre">data:</span></code> URL the renderer decodes.</p>
 </dd></dl>
 
@@ -661,37 +661,37 @@ figure rather than as a floating panel.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><em>bytes</em></a><em>, or </em><em>path</em>) – An <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3|4)</span></code> colour array (uint8, or float 0–1), the raw
+<li><p><strong>image</strong> (<em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#bytes" title="(in Python v3.14)"><em>bytes</em></a><em>, or </em><em>path</em>) – An <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3|4)</span></code> colour array (uint8, or float 0–1), the raw
 bytes of a PNG/JPEG/GIF/WebP, or a path to such a file.  An RGBA
 array is the usual choice: alpha 0 outside the shape lets a
 triangle or a disc sit on the image without a rectangular card
 around it.</p></li>
-<li><p><strong>corner</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;top-left&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;bottom-right&quot;</span></code> or
+<li><p><strong>corner</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;top-right&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;top-left&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;bottom-right&quot;</span></code> or
 <code class="docutils literal notranslate"><span class="pre">&quot;bottom-left&quot;</span></code>.  Ignored when <em>anchor</em> is given.</p></li>
 <li><p><strong>anchor</strong> (<em>(</em><em>x_frac</em><em>, </em><em>y_frac</em><em>)</em><em>, </em><em>optional</em>) – Free placement: the key’s centre as a fraction of the plot area,
 from its top-left.  Overrides <em>corner</em>.</p></li>
-<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Width as a fraction of the plot area’s <strong>shorter</strong> side, so a key
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Width as a fraction of the plot area’s <strong>shorter</strong> side, so a key
 keeps its proportions when the panel is resized.  Default 0.22.
 Height follows the image’s aspect ratio.</p></li>
-<li><p><strong>margin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Gap in CSS px between the key and the plot-area edge, for corner
+<li><p><strong>margin</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Gap in CSS px between the key and the plot-area edge, for corner
 placement.  Default 10.</p></li>
-<li><p><strong>bgcolor</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour painted behind the image — e.g. <code class="docutils literal notranslate"><span class="pre">&quot;rgba(0,0,0,0.45)&quot;</span></code>
+<li><p><strong>bgcolor</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour painted behind the image — e.g. <code class="docutils literal notranslate"><span class="pre">&quot;rgba(0,0,0,0.45)&quot;</span></code>
 for a legible card over busy data.  Default <code class="docutils literal notranslate"><span class="pre">None</span></code> (fully
 transparent); <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> means the same thing.</p></li>
-<li><p><strong>border</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour for a hairline around the card.  Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
-<li><p><strong>border_width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Border stroke width in px.  Default 1.</p></li>
-<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Corner radius of the card in px.  Default 4.</p></li>
-<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity of the whole key, 0–1.  Default 1.</p></li>
-<li><p><strong>hover_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Show the key only while the pointer is over the panel.  Default
+<li><p><strong>border</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour for a hairline around the card.  Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>border_width</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Border stroke width in px.  Default 1.</p></li>
+<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Corner radius of the card in px.  Default 4.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Opacity of the whole key, 0–1.  Default 1.</p></li>
+<li><p><strong>hover_only</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Show the key only while the pointer is over the panel.  Default
 <code class="docutils literal notranslate"><span class="pre">False</span></code>.  Useful for a reading aid you do not want sitting over
 the data all the time.  PNG export renders the panel as though the
 pointer were over it, so a hover-only key <strong>is</strong> included in an
 exported figure — what you save is what you see while reading.</p></li>
-<li><p><strong>visible</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Draw the key at all.  Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
-<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Caption drawn under the image, mini-TeX enabled like axis labels.</p></li>
-<li><p><strong>label_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Caption size in px.  Default 10.</p></li>
-<li><p><strong>label_color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Caption colour.  Default <code class="docutils literal notranslate"><span class="pre">None</span></code> (the theme’s tick-label colour).</p></li>
-<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>, </em><em>optional</em>) – <p>Text drawn <em>inside</em> the key, for annotating the picture itself —
+<li><p><strong>visible</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Draw the key at all.  Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Caption drawn under the image, mini-TeX enabled like axis labels.</p></li>
+<li><p><strong>label_size</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Caption size in px.  Default 10.</p></li>
+<li><p><strong>label_color</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Caption colour.  Default <code class="docutils literal notranslate"><span class="pre">None</span></code> (the theme’s tick-label colour).</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>, </em><em>optional</em>) – <p>Text drawn <em>inside</em> the key, for annotating the picture itself —
 an IPF triangle’s corner indices, a wheel’s compass points.  Each
 entry is <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">text)</span></code> or a dict with those keys plus optional
 <code class="docutils literal notranslate"><span class="pre">size</span></code> / <code class="docutils literal notranslate"><span class="pre">color</span></code> / <code class="docutils literal notranslate"><span class="pre">align</span></code>.  <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code> are fractions of
@@ -705,7 +705,7 @@ resized.  Mini-TeX works here as in any label:</p>
 </pre></div>
 </div>
 </p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Handle for <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_key()</span></code>.  Defaults to the generated id.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Handle for <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_key()</span></code>.  Defaults to the generated id.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -728,7 +728,7 @@ resized.  Mini-TeX works here as in any label:</p>
 <dd><p>Return the key with this <em>name</em> (or id).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><strong>KeyError</strong></a> – If no key matches.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.14)"><strong>KeyError</strong></a> – If no key matches.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -750,7 +750,7 @@ resized.  Mini-TeX works here as in any label:</p>
 <dd><p>Every key on this panel, in creation order.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
 </dd>
 </dl>
 </dd></dl>
