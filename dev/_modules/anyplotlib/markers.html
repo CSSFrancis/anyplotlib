@@ -522,6 +522,33 @@
 <span class="n">_VALID_TRANSFORMS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="s2">&quot;display&quot;</span><span class="p">})</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_text_style</span><span class="p">(</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate the ``texts`` styling kwargs present in *kwargs*.</span>
+
+<span class="sd">    Checked when a group is created and on every :meth:`MarkerGroup.set`, so a</span>
+<span class="sd">    bad value is refused before it lands in the group&#39;s data rather than on</span>
+<span class="sd">    the next push.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;fontweight&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">fw</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;fontweight&quot;</span><span class="p">]</span>
+        <span class="c1"># CSS font-weight: a keyword, or a number in [1, 1000].</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="p">(</span><span class="n">fw</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span> <span class="s2">&quot;bold&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fw</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+              <span class="k">else</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fw</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fw</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+              <span class="ow">and</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">fw</span> <span class="o">&lt;=</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;fontweight must be &#39;normal&#39;, &#39;bold&#39; or a number in &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;[1, 1000], got </span><span class="si">{</span><span class="n">fw</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">oc</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;outline_color&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">oc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">oc</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;outline_color must be a CSS colour string or None, got </span><span class="si">{</span><span class="n">oc</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;outline_width&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">ow</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;outline_width&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">ow</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ow</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
+                <span class="ow">or</span> <span class="ow">not</span> <span class="n">ow</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;outline_width must be a number &gt;= 0, got </span><span class="si">{</span><span class="n">ow</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_apply_fill_color</span><span class="p">(</span><span class="n">wire</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply facecolors/alpha fill fields to a wire dict if facecolors is set.&quot;&quot;&quot;</span>
     <span class="n">fc</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;facecolors&quot;</span><span class="p">)</span>
@@ -575,6 +602,7 @@
             <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;clip_display&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;clip_display&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;clip_display must be a bool&quot;</span><span class="p">)</span>
+        <span class="n">_check_text_style</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">push_fn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="p">:</span> <span class="s2">&quot;MarkerTypeDict | None&quot;</span> <span class="o">=</span> <span class="n">parent</span>
@@ -598,6 +626,7 @@
             <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;clip_display&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;clip_display&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;clip_display must be a bool&quot;</span><span class="p">)</span>
+        <span class="n">_check_text_style</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span></div>
 
@@ -773,7 +802,12 @@
                 <span class="s2">&quot;texts&quot;</span><span class="p">:</span>    <span class="n">texts</span><span class="p">,</span>
                 <span class="s2">&quot;color&quot;</span><span class="p">:</span>    <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
                 <span class="s2">&quot;fontsize&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fontsize&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)),</span>
+                <span class="s2">&quot;fontweight&quot;</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fontweight&quot;</span><span class="p">,</span> <span class="s2">&quot;normal&quot;</span><span class="p">),</span>
             <span class="p">}</span>
+            <span class="c1"># Outline (a halo stroked under the fill): only on the wire when set.</span>
+            <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;outline_color&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;outline_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;outline_color&quot;</span><span class="p">]</span>
+                <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;outline_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;outline_width&quot;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">))</span>
 
         <span class="c1"># ── 1D-only types ───────────────────────────────────────────────────</span>
         <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;points&quot;</span><span class="p">:</span>

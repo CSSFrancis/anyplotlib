@@ -664,8 +664,11 @@ detect dragging into the panel).</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>Plot2D / PlotMesh only: position in <strong>image pixels</strong> (column, row —
 row 0 at the top, <code class="docutils literal notranslate"><span class="pre">origin</span></code> already applied), so a handler can index the
-source array directly without mapping axis units back. <code class="docutils literal notranslate"><span class="pre">None</span></code> on other
-plot types.</p></td>
+source array directly without mapping axis units back. Integer <em>i</em> is the
+<em>centre</em> of pixel <em>i</em> — the same convention marker <code class="docutils literal notranslate"><span class="pre">offsets</span></code>, widget
+positions and <code class="xref py py-meth docutils literal notranslate"><span class="pre">display_to_data()</span></code> use — so
+<code class="docutils literal notranslate"><span class="pre">round()</span></code> gives the pixel under the cursor. <code class="docutils literal notranslate"><span class="pre">None</span></code> on other plot
+types.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ray</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
@@ -689,10 +692,11 @@ named line; <code class="docutils literal notranslate"><span class="pre">None</s
 <p>2-D panels (<a class="reference internal" href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D" title="anyplotlib.Plot2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot2D</span></code></a>, <a class="reference internal" href="api/generated/anyplotlib.PlotMesh.html#anyplotlib.PlotMesh" title="anyplotlib.PlotMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotMesh</span></code></a>)
 already have a built-in readout — see <a class="reference internal" href="#hover-readout"><span class="std std-ref">Hover readout (2-D)</span></a> — so you rarely
 need a handler just to show a value.  When you do want one, <code class="docutils literal notranslate"><span class="pre">img_x</span></code> /
-<code class="docutils literal notranslate"><span class="pre">img_y</span></code> index the source array directly:</p>
+<code class="docutils literal notranslate"><span class="pre">img_y</span></code> index the source array directly once rounded to the nearest
+pixel centre:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_settled&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">probe</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
-    <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">img_y</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">img_x</span><span class="p">)</span>
+    <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">img_y</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">img_x</span><span class="p">)</span>
     <span class="n">label</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">col</span><span class="p">]</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">&quot;</span>
 </pre></div>
 </div>

@@ -494,7 +494,7 @@
 <span class="sd">        button         — 0=left 1=middle 2=right; None on move/enter/leave/settled</span>
 <span class="sd">        buttons        — bitmask of currently held buttons</span>
 <span class="sd">        xdata, ydata   — data-space coordinates (None for Plot3D)</span>
-<span class="sd">        img_x, img_y   — Plot2D/PlotMesh: position in IMAGE PIXELS (column, row; row 0 at the top, origin already applied), so a handler can index the source array directly. None on other plot types.</span>
+<span class="sd">        img_x, img_y   — Plot2D/PlotMesh: position in IMAGE PIXELS (column, row; row 0 at the top, origin already applied), so a handler can index the source array directly. Integer i is the CENTRE of pixel i (as for markers and widgets), so round() names the pixel. None on other plot types.</span>
 <span class="sd">        ray            — Plot3D only: {&quot;origin&quot;: [...], &quot;direction&quot;: [...]}</span>
 <span class="sd">        line_id        — Plot1D only: set when pointer is over a line</span>
 <span class="sd">        dwell_ms       — pointer_settled only: actual dwell time</span>

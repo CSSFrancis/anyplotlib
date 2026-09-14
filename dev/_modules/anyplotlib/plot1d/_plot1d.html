@@ -2181,7 +2181,8 @@
 <div class="viewcode-block" id="Plot1D.add_texts">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.add_texts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offsets</span><span class="p">,</span> <span class="n">texts</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
-                  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+                  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span>
+                  <span class="n">outline_color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">outline_width</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
@@ -2200,6 +2201,17 @@
 <span class="sd">            Text colour.  Default ``&quot;#ff0000&quot;``.</span>
 <span class="sd">        fontsize : int, optional</span>
 <span class="sd">            Font size in pixels.  Default ``12``.</span>
+<span class="sd">        fontweight : {&quot;normal&quot;, &quot;bold&quot;} or float, optional</span>
+<span class="sd">            Font weight — a keyword or a CSS numeric weight in ``[1, 1000]``</span>
+<span class="sd">            (400 is normal, 700 bold).  Default ``&quot;normal&quot;``.</span>
+<span class="sd">        outline_color : str, optional</span>
+<span class="sd">            Colour of a halo stroked under the text, which keeps a label</span>
+<span class="sd">            legible over both light and dark backgrounds.  ``None`` (default)</span>
+<span class="sd">            draws no outline.</span>
+<span class="sd">        outline_width : float, optional</span>
+<span class="sd">            Stroke width of the outline in pixels; about half of it shows</span>
+<span class="sd">            outside the glyphs.  Default ``3.0``.  Ignored without</span>
+<span class="sd">            ``outline_color``.</span>
 <span class="sd">        hover_edgecolors : str, optional</span>
 <span class="sd">            Colour override applied on mouse-hover.</span>
 <span class="sd">        labels : list of str, optional</span>
@@ -2213,6 +2225,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;texts&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span>
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">,</span>
+                                <span class="n">fontweight</span><span class="o">=</span><span class="n">fontweight</span><span class="p">,</span>
+                                <span class="n">outline_color</span><span class="o">=</span><span class="n">outline_color</span><span class="p">,</span>
+                                <span class="n">outline_width</span><span class="o">=</span><span class="n">outline_width</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>

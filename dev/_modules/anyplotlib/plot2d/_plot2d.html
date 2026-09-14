@@ -2877,6 +2877,30 @@
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="c1"># View control</span>
     <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_axis_extent_frac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;An axis value → its fraction of the image extent (0 = leading edge).</span>
+
+<span class="sd">        Mirrors the tick gutters in ``figure_esm.js``: an ``imshow`` axis holds</span>
+<span class="sd">        one value per pixel centre (``_axisValToImg2d``, continued linearly past</span>
+<span class="sd">        either end), so its first value lies half a pixel in from the edge; a</span>
+<span class="sd">        ``pcolormesh`` axis holds the cell edges and spans the image exactly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;is_mesh&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">((</span><span class="n">arr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">or</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>                      <span class="c1"># descending (origin=&#39;lower&#39; y)</span>
+            <span class="n">arr</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">idx</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">arr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span>    <span class="c1"># extrapolate the end segment</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="ow">or</span> <span class="mf">1.0</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">/</span> <span class="n">d</span> <span class="o">*</span> <span class="p">(</span><span class="n">idx</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">idx</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">idx</span><span class="p">))</span>
+        <span class="n">centre</span> <span class="o">=</span> <span class="n">pos</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">m</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">centre</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+
 <div class="viewcode-block" id="Plot2D.set_view">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_view">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -2895,29 +2919,34 @@
 
 <span class="sd">        Translates the requested rectangle into the ``zoom`` / ``center_x``</span>
 <span class="sd">        / ``center_y`` state values used by the 2-D JS renderer.</span>
+
+<span class="sd">        On an ``imshow`` panel the axis values sit at pixel *centres*, so the</span>
+<span class="sd">        image extends half a pixel beyond the first and last value (as</span>
+<span class="sd">        matplotlib&#39;s ``imshow`` extent does): ``set_view(x0=-0.5, x1=n - 0.5)``</span>
+<span class="sd">        on a default ``arange(n)`` axis is the whole image, and the tick</span>
+<span class="sd">        labelled ``x0`` sits at the view&#39;s left edge.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">xarr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">])</span>
         <span class="n">yarr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;y_axis&quot;</span><span class="p">])</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xarr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">yarr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">xarr</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">xarr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">yarr</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">yarr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">x_span</span> <span class="o">=</span> <span class="n">xmax</span> <span class="o">-</span> <span class="n">xmin</span> <span class="ow">or</span> <span class="mf">1.0</span>
-        <span class="n">y_span</span> <span class="o">=</span> <span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span> <span class="ow">or</span> <span class="mf">1.0</span>
-
         <span class="n">zoom_candidates</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">if</span> <span class="n">x0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">fx0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span> <span class="o">-</span> <span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_span</span><span class="p">))</span>
-            <span class="n">fx1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span> <span class="o">-</span> <span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_span</span><span class="p">))</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_width&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">xarr</span><span class="p">))</span>
+            <span class="n">fx0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axis_extent_frac</span><span class="p">(</span><span class="n">xarr</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="n">n</span><span class="p">)))</span>
+            <span class="n">fx1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axis_extent_frac</span><span class="p">(</span><span class="n">xarr</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="n">n</span><span class="p">)))</span>
+            <span class="n">fx0</span><span class="p">,</span> <span class="n">fx1</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">fx0</span><span class="p">,</span> <span class="n">fx1</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">fx0</span><span class="p">,</span> <span class="n">fx1</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">fx1</span> <span class="o">&gt;</span> <span class="n">fx0</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;center_x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fx0</span> <span class="o">+</span> <span class="n">fx1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
                 <span class="n">zoom_candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fx1</span> <span class="o">-</span> <span class="n">fx0</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">y0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">fy0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">y0</span><span class="p">)</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="n">y_span</span><span class="p">))</span>
-            <span class="n">fy1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">y1</span><span class="p">)</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="n">y_span</span><span class="p">))</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image_height&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">yarr</span><span class="p">))</span>
+            <span class="n">fy0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axis_extent_frac</span><span class="p">(</span><span class="n">yarr</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">y0</span><span class="p">),</span> <span class="n">n</span><span class="p">)))</span>
+            <span class="n">fy1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axis_extent_frac</span><span class="p">(</span><span class="n">yarr</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">y1</span><span class="p">),</span> <span class="n">n</span><span class="p">)))</span>
+            <span class="n">fy0</span><span class="p">,</span> <span class="n">fy1</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">fy0</span><span class="p">,</span> <span class="n">fy1</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">fy0</span><span class="p">,</span> <span class="n">fy1</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">fy1</span> <span class="o">&gt;</span> <span class="n">fy0</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;center_y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fy0</span> <span class="o">+</span> <span class="n">fy1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
                 <span class="n">zoom_candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fy1</span> <span class="o">-</span> <span class="n">fy0</span><span class="p">))</span>
@@ -3148,13 +3177,65 @@
 <div class="viewcode-block" id="Plot2D.add_texts">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_texts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offsets</span><span class="p">,</span> <span class="n">texts</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
-                  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+                  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span>
+                  <span class="n">outline_color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">outline_width</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add text annotations at image-pixel positions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        offsets : array-like, shape (N, 2)</span>
+<span class="sd">            Anchor (top-left) positions, in the coordinate system named by</span>
+<span class="sd">            ``transform`` — image pixels for ``&quot;data&quot;``.</span>
+<span class="sd">        texts : list of str</span>
+<span class="sd">            One string per position.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Registry key.  Auto-generated if omitted.</span>
+<span class="sd">        color : str or list of str, optional</span>
+<span class="sd">            Text colour, or one per text.  Default ``&quot;#ff0000&quot;``.</span>
+<span class="sd">        fontsize : int, optional</span>
+<span class="sd">            Font size in pixels.  Default ``12``.</span>
+<span class="sd">        fontweight : {&quot;normal&quot;, &quot;bold&quot;} or float, optional</span>
+<span class="sd">            Font weight — a keyword or a CSS numeric weight in ``[1, 1000]``</span>
+<span class="sd">            (400 is normal, 700 bold).  Default ``&quot;normal&quot;``.</span>
+<span class="sd">        outline_color : str, optional</span>
+<span class="sd">            Colour of a halo stroked under the text, which keeps a label</span>
+<span class="sd">            legible over both light and dark regions of the image.  ``None``</span>
+<span class="sd">            (default) draws no outline.</span>
+<span class="sd">        outline_width : float, optional</span>
+<span class="sd">            Stroke width of the outline in pixels; about half of it shows</span>
+<span class="sd">            outside the glyphs.  Default ``3.0``.  Ignored without</span>
+<span class="sd">            ``outline_color``.</span>
+<span class="sd">        hover_edgecolors : str, optional</span>
+<span class="sd">            Colour override applied on mouse-hover.</span>
+<span class="sd">        labels : list of str, optional</span>
+<span class="sd">            Per-annotation tooltip labels.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            Collection-level tooltip label.</span>
+<span class="sd">        transform : {&quot;data&quot;, &quot;axes&quot;, &quot;display&quot;}, optional</span>
+<span class="sd">            Coordinate system for ``offsets``.  Default ``&quot;data&quot;``.</span>
+<span class="sd">        clip_display : bool, optional</span>
+<span class="sd">            Clip ``&quot;display&quot;``-transform texts to the image.  Default ``True``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MarkerGroup</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        A bold white label with a dark halo, readable over any image:</span>
+
+<span class="sd">        &gt;&gt;&gt; plot.add_texts([[40, 12]], [&quot;2 Å&quot;], fontsize=16, fontweight=&quot;bold&quot;,</span>
+<span class="sd">        ...                color=&quot;#ffffff&quot;, outline_color=&quot;#000000&quot;)  # doctest: +SKIP</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;texts&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span>
                                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">,</span>
+                                <span class="n">fontweight</span><span class="o">=</span><span class="n">fontweight</span><span class="p">,</span>
+                                <span class="n">outline_color</span><span class="o">=</span><span class="n">outline_color</span><span class="p">,</span>
+                                <span class="n">outline_width</span><span class="o">=</span><span class="n">outline_width</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
                                 <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
