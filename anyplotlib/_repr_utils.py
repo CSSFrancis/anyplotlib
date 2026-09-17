@@ -330,9 +330,10 @@ window.addEventListener('message', (e) => {{
 
 
 # A host page (or the SpyDE report harvester) asks an embedded figure for a
-# composite PNG over postMessage.  Both the standalone page and the navigated
-# embed install this listener; each assigns ``globalThis.__aplExportPNG`` once
-# its figure is mounted, which is also what makes "not ready yet" answerable.
+# composite PNG over postMessage, and can announce that it saves exported PNGs
+# itself.  Both the standalone page and the navigated embed install these
+# listeners; each assigns ``globalThis.__aplExportPNG`` once its figure is
+# mounted, which is also what makes "not ready yet" answerable.
 PNG_HARVEST_LISTENER = '''\
 // ── PNG export protocol ──────────────────────────────────────────────────────
 // A parent page (or the SpyDE report harvester) asks this frame over
@@ -369,6 +370,20 @@ window.addEventListener('message', (e) => {
   } catch (err) {
     reply({ error: String(err && err.message || err) });
   }
+});
+
+// A host that saves exported PNGs itself (a desktop app with its own Save
+// dialog) announces it once:
+//   → { type: 'anyplotlib_host', savesPng: true }
+// after which the export menu's "Save PNG…" only posts the image to it
+//   ← { type: 'anyplotlib_export_png_result', requestId: null,
+//       dataUrl, width, height, filename }
+// instead of also showing the in-figure "Save image as…" preview. Only the
+// parent frame may say so.
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'anyplotlib_host') return;
+  if (e.source !== window.parent || window.parent === window) return;
+  globalThis.__aplHostSavesPng = e.data.savesPng === true;
 });
 '''
 
