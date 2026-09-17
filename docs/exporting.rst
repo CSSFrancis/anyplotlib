@@ -165,8 +165,26 @@ image is written once and the handle discarded.
 If a host blocks script-started downloads — VS Code notebooks, pages inside a
 sandboxed ``<iframe>`` — which it does silently, with no way to detect in
 advance, the image appears in an **in-figure preview** captioned *"Right-click
-the image → Save image as…"*.  That needs no permission and always works.
-Embedding hosts also receive the PNG over ``postMessage``.
+the image → Save image as…"*.  That needs no permission and works in a browser.
+Embedding hosts also receive the PNG over ``postMessage``:
+
+.. code-block:: javascript
+
+   // ← from the figure's frame, when the user picks "Save PNG…"
+   { type: 'anyplotlib_export_png_result', requestId: null,
+     dataUrl, width, height, filename }
+
+A host that saves that image itself — a desktop app with its own Save dialog,
+whose webview may have no "Save image as…" menu at all — announces it once the
+frame has loaded:
+
+.. code-block:: javascript
+
+   frame.contentWindow.postMessage({ type: 'anyplotlib_host', savesPng: true }, '*');
+
+The figure then only posts the image: no preview, and no *Save as… (choose
+folder)* entry, since the host's dialog already chooses the folder.  Only the
+frame's parent can make this announcement.
 
 .. _export-registry:
 

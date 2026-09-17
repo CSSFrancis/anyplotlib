@@ -97,10 +97,10 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | Generic redraw `_redrawPanel` | 10139 |
 | **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10302 / 10498 / 10557 |
 | Native-resolution render `_withNativeSize` | 10278 |
-| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10591 / 10700 / 10879 |
-| Export registry `registerExportAction` | 10756 |
-| **Embedding API**: `createLocalModel` / `mount` | 11270 / 11326 |
-| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11581 / 11968 |
+| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10591 / 10713 / 10892 |
+| Export registry `registerExportAction` | 10769 |
+| **Embedding API**: `createLocalModel` / `mount` | 11283 / 11339 |
+| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11594 / 11981 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -767,10 +767,11 @@ leaders that cross into the panel included. Pinned by
 | `_toast` | 10591 | transient bottom-centre message |
 | `_copyCanvas` | 10626 | clipboard write + feature detection |
 | `_showPngPreview` | 10650 | framed-document download fallback |
-| `_downloadCanvas` | 10700 | `<a download>` or the preview |
-| `registerExportAction` | 10756 | downstream extension point |
-| `_menuRows` / `_openMenu` | 10810 / 10879 | menu model / DOM |
-| `_panelAtPoint` | 10991 | hit test (insets first — they sit on top) |
+| `_hostSavesPng` / `_canPickFile` | 10702 / 10708 | the parent saves PNGs itself / a system Save dialog exists |
+| `_downloadCanvas` | 10713 | `<a download>`, the preview, or the host |
+| `registerExportAction` | 10769 | downstream extension point |
+| `_menuRows` / `_openMenu` | 10823 / 10892 | menu model / DOM |
+| `_panelAtPoint` | 11004 | hit test (insets first — they sit on top) |
 
 - **An `exportBtn` badge (⤓, beside the help badge) opens the same menu on an
   ordinary left click.** It is a `role="button"` with `tabIndex=0` and
@@ -812,9 +813,15 @@ leaders that cross into the panel included. Pinned by
   `save_html` page opened directly is top-level) from the unreliable one (VS
   Code webviews, `_repr_html_` iframes, nbconvert output). When framed, the
   result is posted to the parent under the existing
-  `anyplotlib_export_png_result` message AND shown as an in-figure preview whose
-  caption points at the browser's own "Save image as…", which needs no
-  permission and is never blocked.
+  `anyplotlib_export_png_result` message (`requestId: null`, plus `filename`)
+  AND shown as an in-figure preview whose caption points at the browser's own
+  "Save image as…", which needs no permission and is never blocked.
+- **Host saves** (`_hostSavesPng`): a parent that posts
+  `{type:'anyplotlib_host', savesPng:true}` sets `globalThis.__aplHostSavesPng`
+  (the page template's listener, parent frame only). Framed saves then post the
+  image WITHOUT the preview, and `_canPickFile()` is false, so the *Save as…*
+  row disappears — the host's own Save dialog chooses the folder, and an app
+  webview may have no "Save image as…" menu for the preview to point at.
 - **Clipboard**: gated on `isSecureContext && navigator.clipboard &&
   ClipboardItem && clipboard.write`. The Blob is built SYNCHRONOUSLY from the
   data URL (not via the async `toBlob` callback) so the write stays inside the
@@ -831,6 +838,7 @@ Test hooks: `__apl_menuItems`, `__apl_toastText`, `__apl_menuTheme`,
 Tests: `tests/test_embed/test_export_png.py` (the pre-existing contract),
 `test_export_sources.py` (panelId / source / theme / CSS scale),
 `test_export_menu.py` (menu, clipboard, download, registry),
+`test_host_saves_png.py` (the host announcement and the framed save),
 `test_savefig.py` (the Python entry point + view reconciliation).
 
 The standalone HTML template (`_repr_utils.build_standalone_html`) captures
@@ -840,11 +848,14 @@ render()'s api into `_aplRenderApi`, **also assigns it to `window._aplRenderApi`
 `{type:'anyplotlib_export_png', requestId, opts}` → `exportPNG(opts)` → replies
 `{type:'anyplotlib_export_png_result', requestId, dataUrl, width, height}` (or
 `{…, error}`) to `event.source` (targetOrigin `'*'`). `opts` is forwarded
-verbatim, so the new fields work over that channel too.
+verbatim, so the new fields work over that channel too. A second listener takes
+`{type:'anyplotlib_host', savesPng}` from `window.parent` only and records it
+in `globalThis.__aplHostSavesPng` (read by `_hostSavesPng`). Both live in
+`PNG_HARVEST_LISTENER`, which the navigated embed installs too.
 
 ---
 
-## Navigated-embed runtime (line 11333 to the end of the file)
+## Navigated-embed runtime (line 11346 to the end of the file)
 
 Everything below `mount()` is module scope, outside `render()`'s closure: pure
 functions over decoded data plus one entry point that wires them to a mounted
@@ -854,16 +865,16 @@ bindings, let it dispatch", rather than a hand-written program per result kind.
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `decodeBlocks` | 11581 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
-| `dense` | 11607 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
-| `ragged` | 11672 | the same three, over a row-pointer block (`offsets` + one array per column) |
-| `maskFromWidget` | 11755 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
-| `rasterDisks` | 11795 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
-| `robustLevels` / `toU8` | 11824 / 11865 | the percentile window and the 8-bit code map, one implementation |
-| `panelAxis` | 11943 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
-| `installTouchShim` / `reportEmbedHeight` | 11880 / 11899 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
-| `encodeBase64` / `typedArrayBytes` | 11919 / 11927 | a 3-D cloud's geometry channel is base64, not the binary side table |
-| `mountNavigated` | 11968 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
+| `decodeBlocks` | 11594 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
+| `dense` | 11620 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
+| `ragged` | 11685 | the same three, over a row-pointer block (`offsets` + one array per column) |
+| `maskFromWidget` | 11768 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
+| `rasterDisks` | 11808 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
+| `robustLevels` / `toU8` | 11837 / 11878 | the percentile window and the 8-bit code map, one implementation |
+| `panelAxis` | 11956 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
+| `installTouchShim` / `reportEmbedHeight` | 11893 / 11912 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
+| `encodeBase64` / `typedArrayBytes` | 11932 / 11940 | a 3-D cloud's geometry channel is base64, not the binary side table |
+| `mountNavigated` | 11981 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
 
 `mountNavigated(el, page, opts)` is **async** — the blob decode is a `fetch` of
 a `data:` URL — so a host `await`s it.  `page` is `{state, blocks, bindings,
