@@ -1,0 +1,6 @@
+﻿anyplotlib.CrosshairWidget
+==========================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: CrosshairWidget

@@ -1,0 +1,6 @@
+﻿anyplotlib.ArrowWidget
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: ArrowWidget

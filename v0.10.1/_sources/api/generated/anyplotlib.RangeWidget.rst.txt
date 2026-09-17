@@ -1,0 +1,6 @@
+﻿anyplotlib.RangeWidget
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: RangeWidget

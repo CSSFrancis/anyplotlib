@@ -1,0 +1,6 @@
+﻿anyplotlib.VLineWidget
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: VLineWidget

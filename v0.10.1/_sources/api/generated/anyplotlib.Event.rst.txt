@@ -1,0 +1,6 @@
+﻿anyplotlib.Event
+================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: Event
