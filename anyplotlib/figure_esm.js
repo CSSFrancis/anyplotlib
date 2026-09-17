@@ -10689,11 +10689,24 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   //   usePicker → showSaveFilePicker, a real system dialog (Chromium, secure
   //               context, user gesture) — costs a Chrome permission prompt
   //   otherwise → <a download>, straight to the downloads folder, no prompt
-  //   framed    → an in-figure preview, since a sandboxed frame makes a.click()
-  //               a SILENT no-op with nothing to feature detect
+  //   framed    → the image is posted to the parent, plus an in-figure preview,
+  //               since a sandboxed frame makes a.click() a SILENT no-op with
+  //               nothing to feature detect
+  //   framed, host saves → posted to the parent only: the host has its own
+  //               Save dialog (a desktop app), so the preview's "right-click →
+  //               Save image as…" would be wrong — an app webview may have no
+  //               such menu at all
+
+  // Set by the page template when the parent announces
+  // {type:'anyplotlib_host', savesPng:true} (see PNG_HARVEST_LISTENER).
+  function _hostSavesPng() {
+    return window.self !== window.top && globalThis.__aplHostSavesPng === true;
+  }
+
   // Is a system Save dialog available at all? Chromium only, secure context.
+  // A host that saves already asks where to put the file.
   function _canPickFile() {
-    return !!(window.isSecureContext
+    return !_hostSavesPng() && !!(window.isSecureContext
               && typeof window.showSaveFilePicker === 'function');
   }
 
@@ -10736,7 +10749,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           type: 'anyplotlib_export_png_result', requestId: null,
           dataUrl, width: canvas.width, height: canvas.height, filename }, '*');
       } catch (_) {}
-      _showPngPreview(dataUrl, filename);
+      if (!_hostSavesPng()) _showPngPreview(dataUrl, filename);
       return;
     }
     const url = URL.createObjectURL(blob);
