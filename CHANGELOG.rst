@@ -10,6 +10,21 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.10.1 (2026-09-17)
+===================
+
+New Features
+------------
+
+- A page embedding a figure in an iframe can post ``{type: 'anyplotlib_host', savesPng: true}`` to say it saves exported PNGs itself; the figure's "Save PNG…" then only sends the image to the host, without the in-figure "Save image as…" preview or the "Save as… (choose folder)" entry. (`#78 <https://github.com/CSSFrancis/anyplotlib/pull/78>`_)
+
+
+Bug Fixes
+---------
+
+- Zooming or panning a coordinate axis no longer blanks an :meth:`~anyplotlib.plotxy.PlotXY.add_raster` image, and every marker drawn after it, until the next update from Python. (`#76 <https://github.com/CSSFrancis/anyplotlib/pull/76>`_)
+
+
 0.10.0 (2026-09-14)
 ===================
 
