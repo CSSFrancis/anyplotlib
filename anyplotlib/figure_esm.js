@@ -7413,12 +7413,14 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
   }
 
   // The decoded image of raster marker set `id`, re-decoded only when its bytes
-  // change, or null if they cannot be decoded. Kept in a per-panel map rather
-  // than on the marker set itself, which is serialised state.
+  // or its shape change (the same bytes can be 1×4 or 2×2), or null if they
+  // cannot be decoded. Kept in a per-panel map rather than on the marker set
+  // itself, which is serialised state.
   function _rasterBitmap(p, id, b64, width, height){
     if(!p._rasterCache) p._rasterCache=new Map();
     const cached=p._rasterCache.get(id);
-    if(cached && cached.key===b64) return cached.bitmap;
+    if(cached && cached.b64===b64 && cached.width===width && cached.height===height)
+      return cached.bitmap;
     let bitmap=null;
     try{
       const bin=atob(b64);
@@ -7427,7 +7429,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       bitmap=new OffscreenCanvas(width,height);
       bitmap.getContext('2d').putImageData(new ImageData(bytes, width, height),0,0);
     }catch(_){ bitmap=null; }
-    p._rasterCache.set(id, {key:b64, bitmap});
+    p._rasterCache.set(id, {b64, width, height, bitmap});
     return bitmap;
   }
 

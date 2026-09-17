@@ -73,32 +73,34 @@ Rule 5 – Text never clips.  Optional gutters earn real layout space:
 | 3D event handlers `_attachEvents3d` | 6661 |
 | **1D drawing**: `draw1d` | 6885 |
 | `_drawLine` (1D series + markers) | 7038 |
-| `drawOverlay1d` / `drawMarkers1d` | 7331 / 7415 |
-| Marker hit-test `_markerHitTest2d` | 7682 |
+| `drawOverlay1d` / `_rasterBitmap` / `drawMarkers1d` | 7331 / 7419 / 7436 |
+| Marker hit-test `_markerHitTest2d` | 7700 |
 
 > **`raster` marker (1D/PlotXY)** — `drawMarkers1d` has a `type==='raster'`
 > branch that blits a single RGBA image across data-coord `extent` (the fast
 > path for dense `PlotXY.pcolormesh` heatmaps). The image bytes ride the geom
 > channel as `st.raster_geom[id]` (Python `Plot1D._GEOM_KEYS`), so view-only
-> redraws never re-transmit them; the decoded `OffscreenCanvas` is cached on
-> the marker set (`ms._rasterBmp`/`_rasterKey`). The shared `clip_path` block
-> clips it to a curved sector.
-| Panel event dispatch `_attachPanelEvents` | 7939 |
-| 2D events `_attachEvents2d` | 8025 |
-| 1D events `_attachEvents1d` | 8411 |
-| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8686 / 8965 |
-| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8878 / 8892 / 8921 / 8956 |
-| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 9090 / 9163 |
-| Shared-axis propagation `_getShareGroups` | 9234 |
-| Figure resize `_applyFigResizeDOM` | 9298 |
-| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 9492 / 9555 / 9931 |
-| Generic redraw `_redrawPanel` | 10121 |
-| **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10284 / 10480 / 10539 |
-| Native-resolution render `_withNativeSize` | 10260 |
-| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10573 / 10682 / 10861 |
-| Export registry `registerExportAction` | 10738 |
-| **Embedding API**: `createLocalModel` / `mount` | 11252 / 11308 |
-| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11563 / 11950 |
+> redraws never re-transmit them. The decoded `OffscreenCanvas` is cached per
+> panel by `_rasterBitmap` (keyed by the marker set's id, re-decoded when the
+> bytes or the shape change) — never on the marker set, which is state the
+> wheel and pan handlers serialise back. The shared `clip_path` block clips it
+> to a curved sector.
+| Panel event dispatch `_attachPanelEvents` | 7957 |
+| 2D events `_attachEvents2d` | 8043 |
+| 1D events `_attachEvents1d` | 8429 |
+| 2D widget drag `_ovHitTest2d` / `_doDrag2d` | 8704 / 8983 |
+| **Brush strokes**: `_brushLiveBegin` / `_brushCommit` / `_brushErase` / `_brushPaintAt` | 8896 / 8910 / 8939 / 8974 |
+| 1D widget drag `_canvasXToFrac1d` … / snapping `_snapVal` | 9108 / 9181 |
+| Shared-axis propagation `_getShareGroups` | 9252 |
+| Figure resize `_applyFigResizeDOM` | 9316 |
+| **Bar chart**: `_barGeom` / `drawBar` / `_attachEventsBar` | 9510 / 9573 / 9949 |
+| Generic redraw `_redrawPanel` | 10139 |
+| **PNG export**: `_compositeCanvas` / `exportCanvas` / `exportPNG` | 10302 / 10498 / 10557 |
+| Native-resolution render `_withNativeSize` | 10278 |
+| **Export UI**: `_toast` / `_downloadCanvas` / `_openMenu` | 10591 / 10700 / 10879 |
+| Export registry `registerExportAction` | 10756 |
+| **Embedding API**: `createLocalModel` / `mount` | 11270 / 11326 |
+| **Navigated embed**: `decodeBlocks` / `mountNavigated` | 11581 / 11968 |
 
 > **`brush` widget (2-D)** — the one widget whose drag is *modal*, and the one
 > that must NOT write the model per tick. `_ovHitTest2d` takes an extra `mods`
@@ -660,13 +662,13 @@ exportCanvas(same opts) → {canvas, width, height}   // synchronous, throws
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `_cssScale` | 10156 | inverse of `_applyScale`'s `transform:scale()` |
-| `_panelBox` | 10167 | the element whose rect bounds one panel |
-| `_neutralizeView` / `_restoreView` | 10176 / 10201 | transient whole-extent view |
-| `_nativeGeom` / `_nativeGuard` | 10216 / 10235 | native size + why-not message |
-| `_withNativeSize` | 10260 | resize → redraw → run → restore |
-| `_compositeCanvas` | 10284 | the compositor (`_drawEl` / `_drawPanel` …) |
-| `exportCanvas` / `exportPNG` | 10480 / 10539 | orchestrator / data-URL wrapper |
+| `_cssScale` | 10174 | inverse of `_applyScale`'s `transform:scale()` |
+| `_panelBox` | 10185 | the element whose rect bounds one panel |
+| `_neutralizeView` / `_restoreView` | 10194 / 10219 | transient whole-extent view |
+| `_nativeGeom` / `_nativeGuard` | 10234 / 10253 | native size + why-not message |
+| `_withNativeSize` | 10278 | resize → redraw → run → restore |
+| `_compositeCanvas` | 10302 | the compositor (`_drawEl` / `_drawPanel` …) |
+| `exportCanvas` / `exportPNG` | 10498 / 10557 | orchestrator / data-URL wrapper |
 
 **The whole pipeline is ONE synchronous task** — theme swap, view reset, native
 resize, composite, restore — so the browser never paints an intermediate state
@@ -762,13 +764,13 @@ leaders that cross into the panel included. Pinned by
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `_toast` | 10573 | transient bottom-centre message |
-| `_copyCanvas` | 10608 | clipboard write + feature detection |
-| `_showPngPreview` | 10632 | framed-document download fallback |
-| `_downloadCanvas` | 10682 | `<a download>` or the preview |
-| `registerExportAction` | 10738 | downstream extension point |
-| `_menuRows` / `_openMenu` | 10792 / 10861 | menu model / DOM |
-| `_panelAtPoint` | 10973 | hit test (insets first — they sit on top) |
+| `_toast` | 10591 | transient bottom-centre message |
+| `_copyCanvas` | 10626 | clipboard write + feature detection |
+| `_showPngPreview` | 10650 | framed-document download fallback |
+| `_downloadCanvas` | 10700 | `<a download>` or the preview |
+| `registerExportAction` | 10756 | downstream extension point |
+| `_menuRows` / `_openMenu` | 10810 / 10879 | menu model / DOM |
+| `_panelAtPoint` | 10991 | hit test (insets first — they sit on top) |
 
 - **An `exportBtn` badge (⤓, beside the help badge) opens the same menu on an
   ordinary left click.** It is a `role="button"` with `tabIndex=0` and
@@ -852,16 +854,16 @@ bindings, let it dispatch", rather than a hand-written program per result kind.
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `decodeBlocks` | 11563 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
-| `dense` | 11589 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
-| `ragged` | 11654 | the same three, over a row-pointer block (`offsets` + one array per column) |
-| `maskFromWidget` | 11737 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
-| `rasterDisks` | 11777 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
-| `robustLevels` / `toU8` | 11806 / 11847 | the percentile window and the 8-bit code map, one implementation |
-| `panelAxis` | 11925 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
-| `installTouchShim` / `reportEmbedHeight` | 11862 / 11881 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
-| `encodeBase64` / `typedArrayBytes` | 11901 / 11909 | a 3-D cloud's geometry channel is base64, not the binary side table |
-| `mountNavigated` | 11950 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
+| `decodeBlocks` | 11581 | one base64 `fetch` → one ArrayBuffer → a typed-array view per manifest entry |
+| `dense` | 11607 | `at` / `gather` / `reduce` over a block whose leading axes are the nav axes |
+| `ragged` | 11672 | the same three, over a row-pointer block (`offsets` + one array per column) |
+| `maskFromWidget` | 11755 | rectangle / circle / annulus widget dict → `Uint8Array` (carries `width`/`height`) |
+| `rasterDisks` | 11795 | splat `{x, y, intensity}` rows as filled disks — the base image of a vectors panel |
+| `robustLevels` / `toU8` | 11824 / 11865 | the percentile window and the 8-bit code map, one implementation |
+| `panelAxis` | 11943 | a 1-D panel's decoded x axis (`_1dXArr`, else `x_axis_b64`) |
+| `installTouchShim` / `reportEmbedHeight` | 11880 / 11899 | page chrome: touch → mouse, `postMessage({aplEmbedHeight})` |
+| `encodeBase64` / `typedArrayBytes` | 11919 / 11927 | a 3-D cloud's geometry channel is base64, not the binary side table |
+| `mountNavigated` | 11968 | mount + bind + dispatch; resolves to the mount handle plus `dispatch`/`index`/`blocks` |
 
 `mountNavigated(el, page, opts)` is **async** — the blob decode is a `fetch` of
 a `data:` URL — so a host `await`s it.  `page` is `{state, blocks, bindings,
