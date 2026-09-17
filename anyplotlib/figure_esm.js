@@ -7412,6 +7412,25 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
 
+  // The decoded image of raster marker set `id`, re-decoded only when its bytes
+  // change, or null if they cannot be decoded. Kept in a per-panel map rather
+  // than on the marker set itself, which is serialised state.
+  function _rasterBitmap(p, id, b64, width, height){
+    if(!p._rasterCache) p._rasterCache=new Map();
+    const cached=p._rasterCache.get(id);
+    if(cached && cached.key===b64) return cached.bitmap;
+    let bitmap=null;
+    try{
+      const bin=atob(b64);
+      const bytes=new Uint8ClampedArray(bin.length);
+      for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      bitmap=new OffscreenCanvas(width,height);
+      bitmap.getContext('2d').putImageData(new ImageData(bytes, width, height),0,0);
+    }catch(_){ bitmap=null; }
+    p._rasterCache.set(id, {key:b64, bitmap});
+    return bitmap;
+  }
+
   function drawMarkers1d(p, hoverState) {
     const st=p.state; if(!st) return;
     const {pw,ph,mkCtx} = p;
@@ -7424,6 +7443,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     if (st.y_range && st.y_range.length === 2) { dMin = st.y_range[0]; dMax = st.y_range[1]; }
     mkCtx.clearRect(0,0,pw,ph);
     const sets=st.markers||[];
+    if(p._rasterCache){
+      const live=new Set(sets.map(set=>set.id));
+      for(const id of [...p._rasterCache.keys()]) if(!live.has(id)) p._rasterCache.delete(id);
+    }
     if(!sets.length) return;
     const hsi = hoverState ? hoverState.si : -1;
 
@@ -7567,33 +7590,26 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       } else if(type==='raster'){
         // A single RGBA image stretched across data-coord `extent`. Heavy bytes
         // ride the geom channel (st.raster_geom[id]); fall back to inline. The
-        // decoded OffscreenCanvas is cached on the set so view-only redraws blit
-        // without re-decoding. The clip block above already scoped any sector.
+        // clip block above already scoped any sector.
         const rg = (st.raster_geom && st.raster_geom[ms.id]) || ms;
         const b64 = rg.image_b64 || '';
         const iw = rg.image_width|0, ih = rg.image_height|0;
         if(b64 && iw>0 && ih>0){
-          if(ms._rasterKey!==b64 || !ms._rasterBmp){
-            try{
-              const bin=atob(b64);
-              const bytes=new Uint8ClampedArray(bin.length);
-              for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-              const imgData=new ImageData(bytes, iw, ih);
-              const oc=new OffscreenCanvas(iw,ih);
-              oc.getContext('2d').putImageData(imgData,0,0);
-              ms._rasterBmp=oc; ms._rasterKey=b64;
-            }catch(_){ ms._rasterBmp=null; }
-          }
+          // The decoded image is cached on the PANEL, not on `ms`: `ms` is part
+          // of the state a view write-back serialises, and a decoded canvas
+          // serialises to `{}`, which would then pass for a cached image and
+          // make drawImage throw — blanking the panel on every zoom.
+          const decoded=_rasterBitmap(p, ms.id, b64, iw, ih);
           const ext=ms.extent||[0,1,0,1];
           const [ax2,ay2]= tfm==='data' ? _offToCanvas([ext[0],ext[2]]) : _tc2d(ext[0],ext[2]);
           const [bx2,by2]= tfm==='data' ? _offToCanvas([ext[1],ext[3]]) : _tc2d(ext[1],ext[3]);
-          if(ms._rasterBmp){
+          if(decoded){
             mkCtx.save();
             // Nearest-neighbour by default (crisp cells); smoothing bilinearly
             // interpolates for a smooth heat field (ms.smooth === true).
             mkCtx.imageSmoothingEnabled = ms.smooth === true;
             if(ms.smooth === true) mkCtx.imageSmoothingQuality = 'high';
-            mkCtx.drawImage(ms._rasterBmp, 0,0,iw,ih,
+            mkCtx.drawImage(decoded, 0,0,iw,ih,
               Math.min(ax2,bx2), Math.min(ay2,by2),
               Math.abs(bx2-ax2), Math.abs(by2-ay2));
             mkCtx.restore();
