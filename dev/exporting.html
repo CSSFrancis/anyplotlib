@@ -611,8 +611,22 @@ image is written once and the handle discarded.</p>
 <p>If a host blocks script-started downloads — VS Code notebooks, pages inside a
 sandboxed <code class="docutils literal notranslate"><span class="pre">&lt;iframe&gt;</span></code> — which it does silently, with no way to detect in
 advance, the image appears in an <strong>in-figure preview</strong> captioned <em>“Right-click
-the image → Save image as…”</em>.  That needs no permission and always works.
-Embedding hosts also receive the PNG over <code class="docutils literal notranslate"><span class="pre">postMessage</span></code>.</p>
+the image → Save image as…”</em>.  That needs no permission and works in a browser.
+Embedding hosts also receive the PNG over <code class="docutils literal notranslate"><span class="pre">postMessage</span></code>:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="c1">// ← from the figure&#39;s frame, when the user picks &quot;Save PNG…&quot;</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;anyplotlib_export_png_result&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">requestId</span><span class="o">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">dataUrl</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="p">,</span><span class="w"> </span><span class="nx">filename</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p>A host that saves that image itself — a desktop app with its own Save dialog,
+whose webview may have no “Save image as…” menu at all — announces it once the
+frame has loaded:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">frame</span><span class="p">.</span><span class="nx">contentWindow</span><span class="p">.</span><span class="nx">postMessage</span><span class="p">({</span><span class="w"> </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;anyplotlib_host&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">savesPng</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The figure then only posts the image: no preview, and no <em>Save as… (choose
+folder)</em> entry, since the host’s dialog already chooses the folder.  Only the
+frame’s parent can make this announcement.</p>
 </section>
 <section id="adding-your-own-save-formats">
 <span id="export-registry"></span><h2>Adding your own save formats<a class="headerlink" href="#adding-your-own-save-formats" title="Link to this heading">#</a></h2>
