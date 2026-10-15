@@ -582,6 +582,27 @@
     <span class="p">}</span>
 
 
+<span class="n">_IDENTITY_ROTATION</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rotation_to_wire</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a proper rotation matrix and flatten it row-major.</span>
+
+<span class="sd">    A matrix that is not orthonormal would shear or scale the geometry, and</span>
+<span class="sd">    one with determinant −1 would mirror it (turning a right-handed crystal</span>
+<span class="sd">    into its enantiomorph), so both are rejected rather than silently drawn.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">m</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rotation must be a finite 3×3 matrix, got shape </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">m</span> <span class="o">@</span> <span class="n">m</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;rotation must be orthonormal (R @ R.T == I)&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;rotation must have determinant +1; &quot;</span>
+                         <span class="s2">&quot;a determinant of -1 is a reflection&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_uv_to_b64</span><span class="p">(</span><span class="n">uv</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">flip_v</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate texture coordinates and encode them as float32 ``(N, 2)`` b64.</span>
 
@@ -757,10 +778,16 @@
             <span class="s2">&quot;azimuth&quot;</span><span class="p">:</span>       <span class="nb">float</span><span class="p">(</span><span class="n">azimuth</span><span class="p">),</span>
             <span class="s2">&quot;elevation&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">),</span>
             <span class="s2">&quot;zoom&quot;</span><span class="p">:</span>          <span class="nb">float</span><span class="p">(</span><span class="n">zoom</span><span class="p">),</span>
+            <span class="c1"># Model rotation (row-major 3×3) applied to the data before the</span>
+            <span class="c1"># camera — see set_rotation.  &quot;rotate&quot; drags edit it; &quot;orbit&quot;</span>
+            <span class="c1"># drags move the camera.</span>
+            <span class="s2">&quot;rotation&quot;</span><span class="p">:</span>      <span class="nb">list</span><span class="p">(</span><span class="n">_IDENTITY_ROTATION</span><span class="p">),</span>
+            <span class="s2">&quot;drag_mode&quot;</span><span class="p">:</span>     <span class="s2">&quot;orbit&quot;</span><span class="p">,</span>
             <span class="s2">&quot;_default_azimuth&quot;</span><span class="p">:</span>   <span class="nb">float</span><span class="p">(</span><span class="n">azimuth</span><span class="p">),</span>
             <span class="s2">&quot;_default_elevation&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">),</span>
             <span class="s2">&quot;_default_zoom&quot;</span><span class="p">:</span>      <span class="nb">float</span><span class="p">(</span><span class="n">zoom</span><span class="p">),</span>
             <span class="s2">&quot;_view_from_python&quot;</span><span class="p">:</span>  <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;_rotation_from_python&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
             <span class="s2">&quot;pointer_settled_ms&quot;</span><span class="p">:</span>    <span class="mi">0</span><span class="p">,</span>
             <span class="s2">&quot;pointer_settled_delta&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
         <span class="p">}</span>
@@ -911,6 +938,85 @@
         <span class="k">if</span> <span class="n">elevation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;elevation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">elevation</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fields</span><span class="p">(</span><span class="o">**</span><span class="n">fields</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_view_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.set_rotation">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_rotation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Orient the data with a rotation matrix, independent of the camera.</span>
+
+<span class="sd">        The camera&#39;s azimuth and elevation can only aim it — two degrees of</span>
+<span class="sd">        freedom.  An orientation has three: a crystal, a molecule, or a</span>
+<span class="sd">        sample on a stage turns about every axis.  *matrix* rotates the data</span>
+<span class="sd">        about the centre of its bounds, and the camera then looks at the</span>
+<span class="sd">        result, so ``set_rotation`` says how the object is turned and</span>
+<span class="sd">        :meth:`set_view` says where you stand to look at it.</span>
+
+<span class="sd">        Like :meth:`set_view`, this is a targeted push: rotating a large</span>
+<span class="sd">        surface or point cloud never re-sends its geometry or texture.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        matrix : (3, 3) array-like, optional</span>
+<span class="sd">            A proper rotation (orthonormal, determinant +1).  Column ``j`` is</span>
+<span class="sd">            where the data&#39;s ``j``-th axis points after rotating, so</span>
+<span class="sd">            ``matrix @ v`` maps a data-frame direction into the rotated frame.</span>
+<span class="sd">            ``None`` restores the identity.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If *matrix* is not 3×3, not orthonormal, or a reflection.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        rotation : The current matrix, including drags made in the viewer.</span>
+<span class="sd">        set_drag_mode : Let the viewer edit the rotation by dragging.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">wire</span> <span class="o">=</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">_IDENTITY_ROTATION</span><span class="p">)</span> <span class="k">if</span> <span class="n">matrix</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="n">_rotation_to_wire</span><span class="p">(</span><span class="n">matrix</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_fields</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="n">wire</span><span class="p">,</span> <span class="n">_rotation_from_python</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;_rotation_from_python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The current model rotation as a ``(3, 3)`` array.</span>
+
+<span class="sd">        Follows drags made in ``&quot;rotate&quot;`` mode (see :meth:`set_drag_mode`)</span>
+<span class="sd">        as well as :meth:`set_rotation`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;rotation&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_rotation_from_js</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wire</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal: record a rotation the viewer&#39;s drag produced.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;rotation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">wire</span><span class="p">]</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+<div class="viewcode-block" id="Plot3D.set_drag_mode">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.set_drag_mode">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_drag_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Choose what a left-button drag on the panel does.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mode : ``&quot;orbit&quot;`` | ``&quot;rotate&quot;``</span>
+<span class="sd">            ``&quot;orbit&quot;`` (the default) moves the camera around the data.</span>
+<span class="sd">            ``&quot;rotate&quot;`` turns the data under a fixed camera instead, editing</span>
+<span class="sd">            :attr:`rotation`: horizontal and vertical motion roll the surface</span>
+<span class="sd">            under the cursor like a trackball, and a drag with **Shift** held</span>
+<span class="sd">            spins it about the line of sight — the third degree of freedom an</span>
+<span class="sd">            orbit cannot reach.  Every drag frame fires ``pointer_move`` and</span>
+<span class="sd">            the release fires ``pointer_up``, both with ``event.rotation``</span>
+<span class="sd">            set, so keep the ``pointer_move`` handler fast and do expensive</span>
+<span class="sd">            work (re-simulating a pattern, say) on ``pointer_up``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;orbit&quot;</span><span class="p">,</span> <span class="s2">&quot;rotate&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;drag mode must be &#39;orbit&#39; or &#39;rotate&#39;, got </span><span class="si">{</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_fields</span><span class="p">(</span><span class="n">drag_mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot3D.set_zoom">
