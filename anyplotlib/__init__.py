@@ -10,7 +10,7 @@ from anyplotlib.axes import Axes, InsetAxes
 from anyplotlib.plot1d import Plot1D, PlotBar
 from anyplotlib.plot1d._plot1d import Line1D
 from anyplotlib.plot2d import Plot2D, PlotMesh
-from anyplotlib.plot3d import Plot3D
+from anyplotlib.plot3d import Patch3D, Plot3D
 from anyplotlib.plotxy import PlotXY
 from anyplotlib.callbacks import CallbackRegistry, Event
 from anyplotlib import embed
@@ -41,7 +41,7 @@ def get_color_cycle() -> list[str]:
 
 __all__ = [
     "Figure", "GridSpec", "SubplotSpec", "subplots",
-    "Axes", "InsetAxes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D", "PlotBar",
+    "Axes", "InsetAxes", "Plot1D", "Plot2D", "PlotMesh", "Plot3D", "Patch3D", "PlotBar",
     "Line1D",
     "CallbackRegistry", "Event",
     "MarkerRegistry", "MarkerGroup", "KeyOverlay",

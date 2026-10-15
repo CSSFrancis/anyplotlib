@@ -1,0 +1,1 @@
+Added :meth:`~anyplotlib.Plot3D.add_patch` to draw filled regions and paths on 3-D panels, with edges along great circles, the far side dimmed, and a choice of turning with the data or staying fixed while it rotates.
