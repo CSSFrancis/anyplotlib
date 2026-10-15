@@ -14,6 +14,11 @@ and a different patch, with a different set of bands, lands on the detector.
   :meth:`~anyplotlib.Plot3D.set_drag_mode` ``("rotate")`` makes a drag turn
   the *crystal* under a fixed camera, rather than walk the camera around it:
   drag to roll it, **Shift**-drag to spin it about the line of sight.
+  Two :meth:`~anyplotlib.Plot3D.add_patch` overlays show the two frames a
+  patch can live in: the pink outline is the detector's footprint, fixed in
+  the microscope (``frame="world"``) while the crystal turns under it; the
+  yellow trace is the (111) plane, fixed to the crystal (``frame="data"``)
+  and turning with it.
 * **Right** — what a detector facing you records: the same sphere projected
   from its centre onto a flat screen (a gnomonic projection), recomputed in
   Python from :attr:`~anyplotlib.Plot3D.rotation` on every drag frame.
@@ -169,6 +174,23 @@ sphere.set_texture(texture, shade=True, cull_backfaces=True)
 sphere.set_rotation(start)
 sphere.set_drag_mode("rotate")
 sphere.set_title("Kikuchi sphere · Ni, 20 kV")
+
+# The detector's footprint: its four corners, seen from the sphere's centre.
+# A flat detector's straight edges project onto great circles, which is what
+# add_patch draws between corners by default.
+corners = np.array([[sx * HALF_FIELD, -1.0, sz * HALF_FIELD]
+                    for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+corners /= np.linalg.norm(corners, axis=1, keepdims=True)
+sphere.add_patch(corners, frame="world", facecolor="#f38ba8", alpha=0.12,
+                 linewidth=2, label="detector")
+
+# The (111) plane's trace: a great circle through four points 90° apart.
+normal = np.ones(3) / np.sqrt(3)
+in_plane = np.cross(normal, [0.0, 0.0, 1.0])
+in_plane /= np.linalg.norm(in_plane)
+across = np.cross(normal, in_plane)
+sphere.add_patch([in_plane, across, -in_plane, -across], frame="data",
+                 edgecolor="#f9e2af", alpha=0, linewidth=1.5, label="(111)")
 
 detector = ax_detector.imshow(detector_pattern(start), cmap="gray",
                               vmin=0, vmax=1)

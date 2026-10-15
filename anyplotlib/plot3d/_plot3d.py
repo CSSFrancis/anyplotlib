@@ -154,6 +154,68 @@ def _rotation_to_wire(matrix) -> list:
     return [float(v) for v in m.ravel()]
 
 
+#: Largest angle one segment of a geodesic patch edge spans.  At 2° a great
+#: circle on a 400 px sphere deviates from its chord by under 0.1 px.
+_GEODESIC_STEP_DEG = 2.0
+
+
+def _geodesic_path(points: np.ndarray, centre: np.ndarray,
+                   closed: bool) -> np.ndarray:
+    """Join consecutive *points* by great-circle arcs about *centre*.
+
+    The radius is interpolated linearly along each arc, so points on one
+    sphere stay on it and points at different radii blend smoothly.
+    """
+    offsets = points - centre
+    radii = np.linalg.norm(offsets, axis=1)
+    if np.any(radii < 1e-12):
+        raise ValueError("a geodesic patch cannot have a point at the centre; "
+                         "pass geodesic=False for straight edges")
+    units = offsets / radii[:, None]
+    n = len(points)
+    pieces = []
+    for i in range(n if closed else n - 1):
+        j = (i + 1) % n
+        angle = float(np.arccos(np.clip(units[i] @ units[j], -1.0, 1.0)))
+        if angle > np.radians(179.9):
+            raise ValueError(
+                f"points {i} and {j} are on opposite sides of the centre, so "
+                "no single great circle joins them; add a point in between")
+        steps = max(1, int(np.ceil(np.degrees(angle) / _GEODESIC_STEP_DEG)))
+        t = np.arange(steps) / steps
+        if angle < 1e-9:
+            arc = np.repeat(units[i][None], steps, axis=0)
+        else:
+            arc = (np.sin((1 - t) * angle)[:, None] * units[i]
+                   + np.sin(t * angle)[:, None] * units[j]) / np.sin(angle)
+        pieces.append(arc * (radii[i] + (radii[j] - radii[i]) * t)[:, None])
+    if not closed:
+        pieces.append(offsets[-1:])
+    return np.vstack(pieces) + centre
+
+
+class Patch3D:
+    """A region or path drawn on a 3-D panel; returned by :meth:`Plot3D.add_patch`.
+
+    Change it in place with :meth:`set` and take it off with :meth:`remove`.
+    """
+
+    def __init__(self, plot: "Plot3D", name: str):
+        self._plot = plot
+        self.name = name
+
+    def set(self, **kwargs) -> None:
+        """Change any argument :meth:`Plot3D.add_patch` takes, by name."""
+        self._plot._update_patch(self.name, kwargs)
+
+    def remove(self) -> None:
+        """Take the patch off its panel."""
+        self._plot.remove_patch(self.name)
+
+    def __repr__(self) -> str:
+        return f"Patch3D(name={self.name!r})"
+
+
 def _uv_to_b64(uv, rows: int, cols: int, n: int, flip_v: bool) -> str:
     """Validate texture coordinates and encode them as float32 ``(N, 2)`` b64.
 
@@ -306,6 +368,8 @@ class Plot3D(_BasePlot):
             "highlight":     None,
             # Reference sphere: {"radius","color","alpha","wireframe"} or None
             "sphere":        None,
+            # Regions and paths (add_patch), drawn over the geometry.
+            "patches":       [],
             # WebGPU activation policy: 'auto' (GPU above a point threshold),
             # 'always', or 'off'.  Falls back to Canvas2D whenever the GPU is
             # unavailable; query the result via the gpu_active property.
@@ -342,6 +406,8 @@ class Plot3D(_BasePlot):
         }
         self.callbacks = CallbackRegistry()
         self._widgets: dict = {}
+        #: name → (Patch3D, the arguments it was made with)
+        self._patches: dict = {}
 
         if texture is not None:
             self.set_texture(texture)
@@ -812,6 +878,133 @@ class Plot3D(_BasePlot):
         """Remove the reference sphere set by :meth:`set_sphere`."""
         self._state["sphere"] = None
         self._push()
+
+    # ------------------------------------------------------------------
+    # Patches: regions and paths drawn over the geometry
+    # ------------------------------------------------------------------
+    def add_patch(self, points, *, frame: str = "data", closed: bool = True,
+                  geodesic: bool = True, facecolor: str = "#4fc3f7",
+                  edgecolor: str | None = None, alpha: float = 0.3,
+                  back_alpha: float = 0.3, linewidth: float = 1.5,
+                  label: str = "", name: str | None = None) -> Patch3D:
+        """Draw a region (or, with ``closed=False``, a path) on this panel.
+
+        Made for spheres: the region a detector sees on a master pattern, a
+        grain's spread of orientations on a pole sphere, the trace of a band.
+        By default each edge follows the great circle between its two corners
+        — the shortest way round the sphere, and exactly the shape a flat
+        detector's straight edge makes when projected onto it — so four
+        corners are enough for a detector's footprint.
+
+        The part of the patch behind the centre of the data is drawn dimmer
+        (``back_alpha``), and where a geodesic patch wraps behind the sphere
+        its outline follows the sphere's edge rather than cutting across it.
+
+        Parameters
+        ----------
+        points : (N, 3) array-like
+            Corners (or path points) in data coordinates.
+        frame : ``"data"`` | ``"world"``
+            ``"data"`` (default) turns the patch with the data when
+            :meth:`set_rotation` changes — a feature of the object.
+            ``"world"`` keeps it fixed while the data turns under it — a
+            detector, a beam, anything that belongs to the instrument.  Both
+            move with the camera.
+        closed : bool
+            Join the last point back to the first and fill the inside.
+            ``False`` draws an open path with no fill.
+        geodesic : bool
+            Join points by great-circle arcs about the centre of the data
+            bounds (default).  ``False`` joins them with straight lines.
+        facecolor, edgecolor : str
+            Fill and outline colours; ``edgecolor`` defaults to ``facecolor``.
+        alpha : float
+            Opacity of the fill, 0–1.  The outline is drawn opaque.
+        back_alpha : float
+            Opacity multiplier for the part behind the centre, 0–1.
+        linewidth : float
+            Outline width in pixels; 0 hides the outline.
+        label : str
+            Text drawn at the patch's centre while it faces the camera.
+        name : str, optional
+            Key in :attr:`patches`.  Re-using a name replaces that patch.
+
+        Returns
+        -------
+        Patch3D
+            Handle with :meth:`~Patch3D.set` and :meth:`~Patch3D.remove`.
+        """
+        if name is None:
+            name = f"patch{len(self._patches)}"
+            while name in self._patches:
+                name += "_"
+        args = dict(points=points, frame=frame, closed=closed,
+                    geodesic=geodesic, facecolor=facecolor, edgecolor=edgecolor,
+                    alpha=alpha, back_alpha=back_alpha, linewidth=linewidth,
+                    label=label)
+        wire = self._patch_wire(name, args)        # validate before storing
+        handle = Patch3D(self, name)
+        self._patches[name] = (handle, args, wire)
+        self._push_patches()
+        return handle
+
+    def remove_patch(self, patch) -> None:
+        """Take off a patch, given its handle or its name."""
+        name = patch.name if isinstance(patch, Patch3D) else patch
+        if name not in self._patches:
+            raise KeyError(name)
+        del self._patches[name]
+        self._push_patches()
+
+    @property
+    def patches(self) -> dict:
+        """The panel's patches by name, as :class:`Patch3D` handles."""
+        return {name: entry[0] for name, entry in self._patches.items()}
+
+    def _update_patch(self, name: str, changes: dict) -> None:
+        handle, args, _ = self._patches[name]
+        unknown = set(changes) - set(args)
+        if unknown:
+            raise TypeError(f"unknown patch argument(s): {sorted(unknown)}")
+        args = {**args, **changes}
+        self._patches[name] = (handle, args, self._patch_wire(name, args))
+        self._push_patches()
+
+    def _push_patches(self) -> None:
+        self._push_fields(patches=[wire for _, _, wire in self._patches.values()])
+
+    def _patch_wire(self, name: str, args: dict) -> dict:
+        points = np.asarray(args["points"], dtype=float)
+        if points.ndim != 2 or points.shape[1] != 3:
+            raise ValueError(f"patch points must be (N, 3), got {points.shape}")
+        closed = bool(args["closed"])
+        if len(points) < (3 if closed else 2):
+            raise ValueError("a closed patch needs at least 3 points, "
+                             "an open path at least 2")
+        if not np.all(np.isfinite(points)):
+            raise ValueError("patch points must be finite")
+        frame = str(args["frame"]).lower()
+        if frame not in ("data", "world"):
+            raise ValueError(f"frame must be 'data' or 'world', got {frame!r}")
+        if args["geodesic"]:
+            b = self._state["data_bounds"]
+            centre = np.array([(b["xmin"] + b["xmax"]) / 2,
+                               (b["ymin"] + b["ymax"]) / 2,
+                               (b["zmin"] + b["zmax"]) / 2])
+            points = _geodesic_path(points, centre, closed)
+        return {
+            "id": name,
+            "points": [round(float(v), 6) for v in points.ravel()],
+            "frame": frame,
+            "closed": closed,
+            "geodesic": bool(args["geodesic"]),
+            "facecolor": str(args["facecolor"]),
+            "edgecolor": str(args["edgecolor"] or args["facecolor"]),
+            "alpha": float(np.clip(args["alpha"], 0.0, 1.0)),
+            "back_alpha": float(np.clip(args["back_alpha"], 0.0, 1.0)),
+            "linewidth": float(args["linewidth"]),
+            "label": str(args["label"]),
+        }
 
     def __repr__(self) -> str:
         geom = self._state.get("geom_type", "?")

@@ -4012,6 +4012,164 @@ function render({ model, el, onResize, onReadout }) {
     return [cx + rv[0] * scale, cy - rv[2] * scale];
   }
 
+  // ── 3D patches (Plot3D.add_patch) ────────────────────────────────────────
+  // A patch arrives as a dense boundary (Python subdivides geodesic edges).
+  // In view space (x' right, y' into the screen, z' up) it is split at the
+  // plane y' = 0 through the data centre: the half behind is drawn at
+  // back_alpha.  Where a geodesic patch is cut by that plane the cut lies on
+  // the sphere's silhouette, so the fill follows the silhouette arc instead
+  // of a chord across the disc.
+
+  const _PATCH_ARC_STEP = Math.PI / 90;   // 2°, matching the Python edges
+
+  function _patchInside(v, back) { return back ? v[1] > 0 : v[1] <= 0; }
+
+  function _patchCut(a, b) {
+    const t = a[1] / (a[1] - b[1]);
+    return [a[0] + t * (b[0] - a[0]), 0, a[2] + t * (b[2] - a[2])];
+  }
+
+  // The fill polygon of one side (Sutherland–Hodgman against y' = 0).
+  function _patchClipPolygon(pts, back, geodesic) {
+    const out = [];
+    const n = pts.length;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i + 1) % n];
+      const ia = _patchInside(a, back), ib = _patchInside(b, back);
+      if (ib) {
+        if (!ia) out.push({ v: _patchCut(a, b), cut: true });
+        out.push({ v: b, cut: false });
+      } else if (ia) {
+        out.push({ v: _patchCut(a, b), cut: true });
+      }
+    }
+    if (!geodesic || out.length < 2) return out.map(o => o.v);
+    // An exit cut followed by an entry cut is a stretch of boundary that runs
+    // along the silhouette: replace the chord with the arc.
+    const filled = [];
+    for (let k = 0; k < out.length; k++) {
+      const p = out[k], q = out[(k + 1) % out.length];
+      filled.push(p.v);
+      if (!(p.cut && q.cut)) continue;
+      const r = (Math.hypot(p.v[0], p.v[2]) + Math.hypot(q.v[0], q.v[2])) / 2;
+      const t0 = Math.atan2(p.v[2], p.v[0]);
+      let dt = Math.atan2(q.v[2], q.v[0]) - t0;
+      if (dt > Math.PI) dt -= 2 * Math.PI;
+      if (dt <= -Math.PI) dt += 2 * Math.PI;
+      const steps = Math.ceil(Math.abs(dt) / _PATCH_ARC_STEP);
+      for (let s = 1; s < steps; s++) {
+        const t = t0 + dt * s / steps;
+        filled.push([r * Math.cos(t), 0, r * Math.sin(t)]);
+      }
+    }
+    return filled;
+  }
+
+  // The outline runs of one side: the patch's own edges only, never the cut.
+  function _patchClipRuns(pts, back) {
+    const runs = [];
+    let cur = null;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const ia = _patchInside(a, back), ib = _patchInside(b, back);
+      if (ia && ib) {
+        if (!cur) { cur = [a]; runs.push(cur); }
+        cur.push(b);
+      } else if (ia) {
+        if (!cur) { cur = [a]; runs.push(cur); }
+        cur.push(_patchCut(a, b)); cur = null;
+      } else if (ib) {
+        cur = [_patchCut(a, b), b]; runs.push(cur);
+      } else {
+        cur = null;
+      }
+    }
+    return runs;
+  }
+
+  function _drawPatches3d(ctx, patches, R, Rcam, norm, cx, cy, scale) {
+    for (const pa of patches) {
+      const flat = pa.points || [];
+      const rot = pa.frame === 'world' ? Rcam : R;
+      const pts = [];
+      for (let i = 0; i + 2 < flat.length; i += 3)
+        pts.push(_applyRot(rot, norm([flat[i], flat[i + 1], flat[i + 2]])));
+      if (pts.length < 2) continue;
+      const closed = pa.closed !== false;
+      const loop = closed ? pts.concat([pts[0]]) : pts;
+      const edge = pa.edgecolor || pa.facecolor || '#4fc3f7';
+      ctx.save();
+      for (const back of [true, false]) {
+        const dim = back ? (pa.back_alpha ?? 0.3) : 1;
+        if (dim <= 0) continue;
+        if (closed && (pa.alpha ?? 0.3) > 0) {
+          const poly = _patchClipPolygon(pts, back, !!pa.geodesic);
+          if (poly.length >= 3) {
+            ctx.globalAlpha = (pa.alpha ?? 0.3) * dim;
+            ctx.fillStyle = pa.facecolor || '#4fc3f7';
+            ctx.beginPath();
+            poly.forEach((v, k) => {
+              const [sx, sy] = _project3(v, cx, cy, scale);
+              if (k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+            });
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+        if ((pa.linewidth ?? 1.5) > 0) {
+          ctx.globalAlpha = dim;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = pa.linewidth ?? 1.5;
+          ctx.lineJoin = 'round';
+          ctx.setLineDash(back ? [4, 3] : []);
+          for (const run of _patchClipRuns(loop, back)) {
+            ctx.beginPath();
+            run.forEach((v, k) => {
+              const [sx, sy] = _project3(v, cx, cy, scale);
+              if (k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+            });
+            ctx.stroke();
+          }
+        }
+      }
+      if (pa.label) {
+        // Anchor on the patch's own surface: its centroid pushed out to the
+        // boundary's radius.  A ring round the centre (a great circle) has
+        // its centroid AT the centre, so it uses its front-most point.
+        const c = [0, 0, 0];
+        let radius = 0, front = pts[0];
+        for (const v of pts) {
+          c[0] += v[0]; c[1] += v[1]; c[2] += v[2];
+          radius += Math.hypot(v[0], v[1], v[2]);
+          if (v[1] < front[1]) front = v;
+        }
+        radius /= pts.length;
+        const cLen = Math.hypot(c[0], c[1], c[2]) / pts.length;
+        const anchor = cLen > 0.25 * radius
+          ? c.map(x => x / pts.length * radius / cLen) : front;
+        if (anchor[1] <= 0) {
+          const [lx, ly] = _project3(anchor, cx, cy, scale);
+          ctx.globalAlpha = 1;
+          ctx.setLineDash([]);
+          ctx.font = '600 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.lineWidth = 3;
+          // Halo in whichever of black or white contrasts with the label, so
+          // it reads on a dark texture and a light page alike.
+          const hex = /^#([0-9a-f]{6})$/i.exec(edge);
+          const n = hex ? parseInt(hex[1], 16) : 0x808080;
+          const luma = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+          ctx.strokeStyle = luma > 140 ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.85)";
+          ctx.strokeText(pa.label, lx, ly);
+          ctx.fillStyle = edge;
+          ctx.fillText(pa.label, lx, ly);
+        }
+      }
+      ctx.restore();
+    }
+  }
+
   function _colourFromLut(lut, t) {
     // t in [0,1] → CSS colour from 256-entry [[r,g,b],...] lut
     const i = Math.max(0, Math.min(255, Math.round(t * 255)));
@@ -5888,7 +6046,8 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     }
 
     // Camera · model: set_rotation turns the data, the camera then looks at it.
-    const R = _mul3(_rot3(az, el), _modelRot(st.rotation));
+    const Rcam = _rot3(az, el);
+    const R = _mul3(Rcam, _modelRot(st.rotation));
     const rotKey = (st.rotation || []).join(",");
     const cx = pw / 2, cy = ph / 2;
     const scale = zoom * Math.min(pw, ph) * 0.32;
@@ -6622,6 +6781,10 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         }
       }
     }
+
+    // ── Patches (add_patch): over the geometry, under the highlight ──────
+    if (st.patches && st.patches.length)
+      _drawPatches3d(ctx, st.patches, R, Rcam, norm, cx, cy, scale);
 
     // ── Highlight point (drawn last, always on top) ───────────────────────
     // st.highlight = {x, y, z, color, size} in data coordinates.  A filled
