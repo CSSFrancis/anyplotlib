@@ -10,6 +10,22 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.11.0 (2026-10-15)
+===================
+
+API and Behaviour Changes
+-------------------------
+
+- Changed 3-D panels created with ``elevation=0`` to render at 0 degrees; they were previously drawn as if the elevation were 30 degrees. (`#80 <https://github.com/CSSFrancis/anyplotlib/pull/80>`_)
+
+
+New Features
+------------
+
+- Added :meth:`~anyplotlib.Plot3D.set_rotation` and :meth:`~anyplotlib.Plot3D.set_drag_mode` to turn 3-D data to any orientation independently of the camera, by code or by dragging, with the result readable from :attr:`~anyplotlib.Plot3D.rotation` and ``event.rotation``. (`#80 <https://github.com/CSSFrancis/anyplotlib/pull/80>`_)
+- Added :meth:`~anyplotlib.Plot3D.add_patch` to draw filled regions and paths on 3-D panels, with edges along great circles, the far side dimmed, and a choice of turning with the data or staying fixed while it rotates. (`#81 <https://github.com/CSSFrancis/anyplotlib/pull/81>`_)
+
+
 0.10.1 (2026-09-17)
 ===================
 
