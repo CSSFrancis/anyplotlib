@@ -430,6 +430,12 @@ function render({ model, el, onResize, onReadout }) {
       newState.elevation = p2.state.elevation;
       newState.zoom      = p2.state.zoom;
     }
+    // The model rotation has its own flag: set_rotation must not snap the
+    // camera back to Python's last-known angles, and set_view must not undo
+    // a "rotate" drag.
+    if (p2.kind === '3d' && !newState._rotation_from_python) {
+      newState.rotation = p2.state.rotation;
+    }
   }
 
   // Geometry channel: heavy keys (vertices/image/colormap) travel in a
@@ -3948,6 +3954,51 @@ function render({ model, el, onResize, onReadout }) {
     ];
   }
 
+  // Model rotation (Plot3D.set_rotation): row-major 3×3 in st.rotation that
+  // turns the normalised data about its centre BEFORE the camera looks at
+  // it, so every draw path uses R = camera · model.  Identity when unset.
+  function _modelRot(flat) {
+    if (!flat || flat.length !== 9) return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    return [[flat[0], flat[1], flat[2]],
+            [flat[3], flat[4], flat[5]],
+            [flat[6], flat[7], flat[8]]];
+  }
+
+  function _mul3(A, B) {
+    const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
+        C[i][j] = A[i][0]*B[0][j] + A[i][1]*B[1][j] + A[i][2]*B[2][j];
+    return C;
+  }
+
+  function _transpose3(A) {
+    return [[A[0][0], A[1][0], A[2][0]],
+            [A[0][1], A[1][1], A[2][1]],
+            [A[0][2], A[1][2], A[2][2]]];
+  }
+
+  // Rotation by `angle` radians about unit axis `k` (Rodrigues).
+  function _axisAngle3(k, angle) {
+    const c = Math.cos(angle), s = Math.sin(angle), t = 1 - c;
+    const [x, y, z] = k;
+    return [[t*x*x + c,   t*x*y - s*z, t*x*z + s*y],
+            [t*x*y + s*z, t*y*y + c,   t*y*z - s*x],
+            [t*x*z - s*y, t*y*z + s*x, t*z*z + c  ]];
+  }
+
+  // Gram–Schmidt on the rows.  A drag composes hundreds of small rotations,
+  // and without this their round-off slowly shears and scales the model.
+  function _orthonormal3(M) {
+    const unit = (v) => { const n = Math.hypot(v[0], v[1], v[2]) || 1;
+                          return [v[0]/n, v[1]/n, v[2]/n]; };
+    const a = unit(M[0]);
+    const d = a[0]*M[1][0] + a[1]*M[1][1] + a[2]*M[1][2];
+    const b = unit([M[1][0] - d*a[0], M[1][1] - d*a[1], M[1][2] - d*a[2]]);
+    const c = [a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0]];
+    return [a, b, c];
+  }
+
   function _applyRot(R, v) {
     return [
       R[0][0]*v[0] + R[0][1]*v[1] + R[0][2]*v[2],
@@ -5817,7 +5868,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
     const geom     = st.geom_type   || 'surface';
     const bnds     = st.data_bounds || {};
     const az       = st.azimuth     || 0;
-    const el       = st.elevation   || 30;
+    const el       = st.elevation   ?? 30;   // ?? not ||: 0° is a real elevation
     const zoom     = st.zoom        || 1.0;
     const color    = st.color       || '#4fc3f7';
     const ptSize   = st.point_size  || 4;
@@ -5836,7 +5887,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       ];
     }
 
-    const R = _rot3(az, el);
+    // Camera · model: set_rotation turns the data, the camera then looks at it.
+    const R = _mul3(_rot3(az, el), _modelRot(st.rotation));
+    const rotKey = (st.rotation || []).join(",");
     const cx = pw / 2, cy = ph / 2;
     const scale = zoom * Math.min(pw, ph) * 0.32;
 
@@ -6320,7 +6373,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       // don't move the camera — e.g. plane-widget drags — skip projection
       // and depth-sort entirely and only re-blit.
       const nV = verts.length;
-      const projKey = `${p._voxGen || 0}|${az}|${el}|${zoom}|${pw}x${ph}|${vsz}`;
+      const projKey = `${p._voxGen || 0}|${az}|${el}|${rotKey}|${zoom}|${pw}x${ph}|${vsz}`;
       if (p._voxProjKey !== projKey || p._voxProjN !== nV) {
         p._voxProjKey = projKey;
         p._voxProjN = nV;
@@ -6360,7 +6413,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const sw = Math.max(2, Math.ceil(mxX - mnX) + 2);
         const sh = Math.max(2, Math.ceil(mxY - mnY) + 2);
         const ox = -mnX + 1, oy = -mnY + 1;
-        const sprKey = `${az}|${el}|${zoom}|${vsz}|${pw}x${ph}`;
+        const sprKey = `${az}|${el}|${rotKey}|${zoom}|${vsz}|${pw}x${ph}`;
         if (p._voxSprKey !== sprKey) {
           p._voxSprKey = sprKey;
           p._voxSprites = new Map();
@@ -6707,8 +6760,9 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
           return;
         }
       }
-      dragStart = { mx: _d3mx, my: _d3my,
-                    az: p.state.azimuth, el: p.state.elevation };
+      dragStart = { mx: _d3mx, my: _d3my, lastX: _d3mx, lastY: _d3my,
+                    az: p.state.azimuth, el: p.state.elevation,
+                    rotate: p.state.drag_mode === 'rotate' };
       overlayCanvas.style.cursor = 'grabbing';
       // Do NOT call e.preventDefault() — suppresses click → dblclick cascade.
     });
@@ -6735,6 +6789,32 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
       }
       if (!dragStart) return;
       const {mx:_d3mx2, my:_d3my2} = _clientPos(e, overlayCanvas, p.pw, p.ph);
+      if (dragStart.rotate) {
+        // Trackball: turn the MODEL under a fixed camera.  The step since the
+        // last frame becomes a rotation in view space (x' right, y' into the
+        // screen, z' up) — rightward motion about z', downward about x', so
+        // the surface under the cursor follows it; Shift spins about y', the
+        // line of sight.  Conjugating by the camera C carries that step into
+        // the data frame: C·M' = Q·C·M  ⇒  M' = Cᵀ·Q·C·M.
+        const sx = _d3mx2 - dragStart.lastX, sy = _d3my2 - dragStart.lastY;
+        dragStart.lastX = _d3mx2; dragStart.lastY = _d3my2;
+        const step = Math.hypot(sx, sy);
+        if (step > 0) {
+          const axis = e.shiftKey ? [0, 1, 0] : [sy / step, 0, sx / step];
+          const angle = (e.shiftKey ? sx : step) * Math.PI / 360;   // 0.5°/px
+          const C = _rot3(p.state.azimuth || 0, p.state.elevation ?? 30);
+          const M = _orthonormal3(_mul3(_transpose3(C),
+            _mul3(_axisAngle3(axis, angle), _mul3(C, _modelRot(p.state.rotation)))));
+          p.state.rotation = [].concat(M[0], M[1], M[2]);
+          draw3d(p);
+          _writeState();
+        }
+        _emitEvent(p.id, 'pointer_move', null,
+          { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
+            rotation: p.state.rotation, ..._pointerFields(e) });
+        e.preventDefault();
+        return;
+      }
       const dx = _d3mx2 - dragStart.mx;
       const dy = _d3my2 - dragStart.my;
       // DIRECT MANIPULATION: the surface under the cursor follows the cursor,
@@ -6768,11 +6848,13 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         return;
       }
       if (!dragStart) return;
+      const rotated = dragStart.rotate;
       dragStart = null;
       overlayCanvas.style.cursor = 'grab';
       _writeState();
       _emitEvent(p.id, 'pointer_up', null,
         { azimuth: p.state.azimuth, elevation: p.state.elevation, zoom: p.state.zoom,
+          ...(rotated ? { rotation: p.state.rotation } : {}),
           ..._pointerFields(e), button: e.button });
       _scheduleCommit();
     });

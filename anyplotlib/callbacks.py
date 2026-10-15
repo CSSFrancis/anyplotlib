@@ -109,6 +109,8 @@ class Event:
     # Plot3D._state.
     azimuth: float | None = None
     elevation: float | None = None
+    # Model rotation (Plot3D "rotate" drag) — row-major 3×3, flattened to 9.
+    rotation: list | None = None
     # Key
     key: str | None = None
     last_widget_id: str | None = None

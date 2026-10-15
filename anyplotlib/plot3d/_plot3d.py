@@ -133,6 +133,27 @@ def _geometry_state(geom_type: str, x, y, z, bounds=None) -> dict:
     }
 
 
+_IDENTITY_ROTATION = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+
+def _rotation_to_wire(matrix) -> list:
+    """Validate a proper rotation matrix and flatten it row-major.
+
+    A matrix that is not orthonormal would shear or scale the geometry, and
+    one with determinant −1 would mirror it (turning a right-handed crystal
+    into its enantiomorph), so both are rejected rather than silently drawn.
+    """
+    m = np.asarray(matrix, dtype=float)
+    if m.shape != (3, 3) or not np.all(np.isfinite(m)):
+        raise ValueError(f"rotation must be a finite 3×3 matrix, got shape {m.shape}")
+    if not np.allclose(m @ m.T, np.eye(3), atol=1e-6):
+        raise ValueError("rotation must be orthonormal (R @ R.T == I)")
+    if np.linalg.det(m) < 0:
+        raise ValueError("rotation must have determinant +1; "
+                         "a determinant of -1 is a reflection")
+    return [float(v) for v in m.ravel()]
+
+
 def _uv_to_b64(uv, rows: int, cols: int, n: int, flip_v: bool) -> str:
     """Validate texture coordinates and encode them as float32 ``(N, 2)`` b64.
 
@@ -306,10 +327,16 @@ class Plot3D(_BasePlot):
             "azimuth":       float(azimuth),
             "elevation":     float(elevation),
             "zoom":          float(zoom),
+            # Model rotation (row-major 3×3) applied to the data before the
+            # camera — see set_rotation.  "rotate" drags edit it; "orbit"
+            # drags move the camera.
+            "rotation":      list(_IDENTITY_ROTATION),
+            "drag_mode":     "orbit",
             "_default_azimuth":   float(azimuth),
             "_default_elevation": float(elevation),
             "_default_zoom":      float(zoom),
             "_view_from_python":  False,
+            "_rotation_from_python": False,
             "pointer_settled_ms":    0,
             "pointer_settled_delta": 4,
         }
@@ -440,6 +467,79 @@ class Plot3D(_BasePlot):
         if elevation is not None: fields["elevation"] = float(elevation)
         self._push_fields(**fields)
         self._state["_view_from_python"] = False
+
+    def set_rotation(self, matrix=None) -> None:
+        """Orient the data with a rotation matrix, independent of the camera.
+
+        The camera's azimuth and elevation can only aim it — two degrees of
+        freedom.  An orientation has three: a crystal, a molecule, or a
+        sample on a stage turns about every axis.  *matrix* rotates the data
+        about the centre of its bounds, and the camera then looks at the
+        result, so ``set_rotation`` says how the object is turned and
+        :meth:`set_view` says where you stand to look at it.
+
+        Like :meth:`set_view`, this is a targeted push: rotating a large
+        surface or point cloud never re-sends its geometry or texture.
+
+        Parameters
+        ----------
+        matrix : (3, 3) array-like, optional
+            A proper rotation (orthonormal, determinant +1).  Column ``j`` is
+            where the data's ``j``-th axis points after rotating, so
+            ``matrix @ v`` maps a data-frame direction into the rotated frame.
+            ``None`` restores the identity.
+
+        Raises
+        ------
+        ValueError
+            If *matrix* is not 3×3, not orthonormal, or a reflection.
+
+        See Also
+        --------
+        rotation : The current matrix, including drags made in the viewer.
+        set_drag_mode : Let the viewer edit the rotation by dragging.
+        """
+        wire = (list(_IDENTITY_ROTATION) if matrix is None
+                else _rotation_to_wire(matrix))
+        self._push_fields(rotation=wire, _rotation_from_python=True)
+        self._state["_rotation_from_python"] = False
+
+    @property
+    def rotation(self) -> np.ndarray:
+        """The current model rotation as a ``(3, 3)`` array.
+
+        Follows drags made in ``"rotate"`` mode (see :meth:`set_drag_mode`)
+        as well as :meth:`set_rotation`.
+        """
+        return np.asarray(self._state["rotation"], dtype=float).reshape(3, 3)
+
+    def _set_rotation_from_js(self, wire) -> None:
+        """Internal: record a rotation the viewer's drag produced."""
+        try:
+            self._state["rotation"] = [float(v) for v in wire]
+        except (TypeError, ValueError):
+            pass
+
+    def set_drag_mode(self, mode: str) -> None:
+        """Choose what a left-button drag on the panel does.
+
+        Parameters
+        ----------
+        mode : ``"orbit"`` | ``"rotate"``
+            ``"orbit"`` (the default) moves the camera around the data.
+            ``"rotate"`` turns the data under a fixed camera instead, editing
+            :attr:`rotation`: horizontal and vertical motion roll the surface
+            under the cursor like a trackball, and a drag with **Shift** held
+            spins it about the line of sight — the third degree of freedom an
+            orbit cannot reach.  Every drag frame fires ``pointer_move`` and
+            the release fires ``pointer_up``, both with ``event.rotation``
+            set, so keep the ``pointer_move`` handler fast and do expensive
+            work (re-simulating a pattern, say) on ``pointer_up``.
+        """
+        mode = str(mode).lower()
+        if mode not in ("orbit", "rotate"):
+            raise ValueError(f"drag mode must be 'orbit' or 'rotate', got {mode!r}")
+        self._push_fields(drag_mode=mode)
 
     def set_zoom(self, zoom: float) -> None:
         self._push_fields(zoom=float(zoom), _view_from_python=True)

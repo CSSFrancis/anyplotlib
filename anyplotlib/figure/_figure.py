@@ -662,6 +662,11 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                 plot._answer_value_probe(msg)
             return
 
+        # A "rotate" drag edits the model rotation in the viewer; record it so
+        # Plot3D.rotation answers with what the reader is looking at.
+        if msg.get("rotation") is not None and hasattr(plot, "_set_rotation_from_js"):
+            plot._set_rotation_from_js(msg["rotation"])
+
         source = None
         if widget_id and hasattr(plot, "_widgets"):
             widget = plot._widgets.get(widget_id)
@@ -701,6 +706,7 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                 display_height=msg.get("display_height"),
                 azimuth=msg.get("azimuth"),
                 elevation=msg.get("elevation"),
+                rotation=msg.get("rotation"),
                 key=msg.get("key"),
                 last_widget_id=msg.get("last_widget_id"),
                 target=msg.get("target"),
@@ -845,6 +851,7 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         "show_colorbar",                  # 2-D 'c'
         "view_x0", "view_x1",             # 1-D drag / 'r'
         "azimuth", "elevation",           # 3-D orbit
+        "rotation",                       # 3-D "rotate" drag
     })
 
     def _reconcile_js_view_state(self) -> None:
