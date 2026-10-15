@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:18.907** total execution time for 12 files **from auto_examples/Markers**:
+**00:14.863** total execution time for 12 files **from auto_examples/Markers**:
 
 .. container::
 
@@ -32,39 +32,39 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_ellipses.py` (``plot_ellipses.py``)
-     - 00:01.600
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_circles.py` (``plot_circles.py``)
+     - 00:01.290
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Markers_plot_transform_markers.py` (``plot_transform_markers.py``)
-     - 00:01.600
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_circles.py` (``plot_circles.py``)
-     - 00:01.590
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_squares.py` (``plot_squares.py``)
-     - 00:01.587
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_texts.py` (``plot_texts.py``)
-     - 00:01.584
+     - 00:01.273
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Markers_plot_line_segments.py` (``plot_line_segments.py``)
-     - 00:01.583
+     - 00:01.268
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Markers_plot_polygons.py` (``plot_polygons.py``)
-     - 00:01.579
+     - 00:01.267
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_arrows.py` (``plot_arrows.py``)
-     - 00:01.570
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_rectangles.py` (``plot_rectangles.py``)
-     - 00:01.570
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_vertical_lines.py` (``plot_vertical_lines.py``)
-     - 00:01.567
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_Markers_plot_horizontal_lines.py` (``plot_horizontal_lines.py``)
-     - 00:01.548
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_texts.py` (``plot_texts.py``)
+     - 00:01.267
      - 0.0
    * - :ref:`sphx_glr_auto_examples_Markers_plot_points.py` (``plot_points.py``)
-     - 00:01.528
+     - 00:01.231
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_ellipses.py` (``plot_ellipses.py``)
+     - 00:01.229
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_rectangles.py` (``plot_rectangles.py``)
+     - 00:01.229
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_squares.py` (``plot_squares.py``)
+     - 00:01.225
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_arrows.py` (``plot_arrows.py``)
+     - 00:01.214
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_vertical_lines.py` (``plot_vertical_lines.py``)
+     - 00:01.189
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_Markers_plot_horizontal_lines.py` (``plot_horizontal_lines.py``)
+     - 00:01.182
      - 0.0

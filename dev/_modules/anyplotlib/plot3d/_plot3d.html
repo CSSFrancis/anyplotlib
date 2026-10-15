@@ -603,6 +603,68 @@
     <span class="k">return</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]</span>
 
 
+<span class="c1">#: Largest angle one segment of a geodesic patch edge spans.  At 2° a great</span>
+<span class="c1">#: circle on a 400 px sphere deviates from its chord by under 0.1 px.</span>
+<span class="n">_GEODESIC_STEP_DEG</span> <span class="o">=</span> <span class="mf">2.0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_geodesic_path</span><span class="p">(</span><span class="n">points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">centre</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                   <span class="n">closed</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Join consecutive *points* by great-circle arcs about *centre*.</span>
+
+<span class="sd">    The radius is interpolated linearly along each arc, so points on one</span>
+<span class="sd">    sphere stay on it and points at different radii blend smoothly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="n">points</span> <span class="o">-</span> <span class="n">centre</span>
+    <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">offsets</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">radii</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;a geodesic patch cannot have a point at the centre; &quot;</span>
+                         <span class="s2">&quot;pass geodesic=False for straight edges&quot;</span><span class="p">)</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="n">offsets</span> <span class="o">/</span> <span class="n">radii</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+    <span class="n">pieces</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="k">if</span> <span class="n">closed</span> <span class="k">else</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">units</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">@</span> <span class="n">units</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">angle</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mf">179.9</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;points </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2"> are on opposite sides of the centre, so &quot;</span>
+                <span class="s2">&quot;no single great circle joins them; add a point in between&quot;</span><span class="p">)</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">/</span> <span class="n">_GEODESIC_STEP_DEG</span><span class="p">)))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span> <span class="o">/</span> <span class="n">steps</span>
+        <span class="k">if</span> <span class="n">angle</span> <span class="o">&lt;</span> <span class="mf">1e-9</span><span class="p">:</span>
+            <span class="n">arc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">units</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="kc">None</span><span class="p">],</span> <span class="n">steps</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">arc</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="n">angle</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                   <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">angle</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+        <span class="n">pieces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arc</span> <span class="o">*</span> <span class="p">(</span><span class="n">radii</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">radii</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">radii</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">closed</span><span class="p">:</span>
+        <span class="n">pieces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">offsets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">pieces</span><span class="p">)</span> <span class="o">+</span> <span class="n">centre</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Patch3D</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A region or path drawn on a 3-D panel; returned by :meth:`Plot3D.add_patch`.</span>
+
+<span class="sd">    Change it in place with :meth:`set` and take it off with :meth:`remove`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">:</span> <span class="s2">&quot;Plot3D&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="o">=</span> <span class="n">plot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Change any argument :meth:`Plot3D.add_patch` takes, by name.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">_update_patch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take the patch off its panel.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">remove_patch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Patch3D(name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">)&quot;</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_uv_to_b64</span><span class="p">(</span><span class="n">uv</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">flip_v</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate texture coordinates and encode them as float32 ``(N, 2)`` b64.</span>
 
@@ -757,6 +819,8 @@
             <span class="s2">&quot;highlight&quot;</span><span class="p">:</span>     <span class="kc">None</span><span class="p">,</span>
             <span class="c1"># Reference sphere: {&quot;radius&quot;,&quot;color&quot;,&quot;alpha&quot;,&quot;wireframe&quot;} or None</span>
             <span class="s2">&quot;sphere&quot;</span><span class="p">:</span>        <span class="kc">None</span><span class="p">,</span>
+            <span class="c1"># Regions and paths (add_patch), drawn over the geometry.</span>
+            <span class="s2">&quot;patches&quot;</span><span class="p">:</span>       <span class="p">[],</span>
             <span class="c1"># WebGPU activation policy: &#39;auto&#39; (GPU above a point threshold),</span>
             <span class="c1"># &#39;always&#39;, or &#39;off&#39;.  Falls back to Canvas2D whenever the GPU is</span>
             <span class="c1"># unavailable; query the result via the gpu_active property.</span>
@@ -793,6 +857,8 @@
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1">#: name → (Patch3D, the arguments it was made with)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="n">texture</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_texture</span><span class="p">(</span><span class="n">texture</span><span class="p">)</span>
@@ -1338,6 +1404,139 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;sphere&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
 
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Patches: regions and paths drawn over the geometry</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Plot3D.add_patch">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.add_patch">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_patch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">closed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                  <span class="n">geodesic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">facecolor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#4fc3f7&quot;</span><span class="p">,</span>
+                  <span class="n">edgecolor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+                  <span class="n">back_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+                  <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Patch3D</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Draw a region (or, with ``closed=False``, a path) on this panel.</span>
+
+<span class="sd">        Made for spheres: the region a detector sees on a master pattern, a</span>
+<span class="sd">        grain&#39;s spread of orientations on a pole sphere, the trace of a band.</span>
+<span class="sd">        By default each edge follows the great circle between its two corners</span>
+<span class="sd">        — the shortest way round the sphere, and exactly the shape a flat</span>
+<span class="sd">        detector&#39;s straight edge makes when projected onto it — so four</span>
+<span class="sd">        corners are enough for a detector&#39;s footprint.</span>
+
+<span class="sd">        The part of the patch behind the centre of the data is drawn dimmer</span>
+<span class="sd">        (``back_alpha``), and where a geodesic patch wraps behind the sphere</span>
+<span class="sd">        its outline follows the sphere&#39;s edge rather than cutting across it.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        points : (N, 3) array-like</span>
+<span class="sd">            Corners (or path points) in data coordinates.</span>
+<span class="sd">        frame : ``&quot;data&quot;`` | ``&quot;world&quot;``</span>
+<span class="sd">            ``&quot;data&quot;`` (default) turns the patch with the data when</span>
+<span class="sd">            :meth:`set_rotation` changes — a feature of the object.</span>
+<span class="sd">            ``&quot;world&quot;`` keeps it fixed while the data turns under it — a</span>
+<span class="sd">            detector, a beam, anything that belongs to the instrument.  Both</span>
+<span class="sd">            move with the camera.</span>
+<span class="sd">        closed : bool</span>
+<span class="sd">            Join the last point back to the first and fill the inside.</span>
+<span class="sd">            ``False`` draws an open path with no fill.</span>
+<span class="sd">        geodesic : bool</span>
+<span class="sd">            Join points by great-circle arcs about the centre of the data</span>
+<span class="sd">            bounds (default).  ``False`` joins them with straight lines.</span>
+<span class="sd">        facecolor, edgecolor : str</span>
+<span class="sd">            Fill and outline colours; ``edgecolor`` defaults to ``facecolor``.</span>
+<span class="sd">        alpha : float</span>
+<span class="sd">            Opacity of the fill, 0–1.  The outline is drawn opaque.</span>
+<span class="sd">        back_alpha : float</span>
+<span class="sd">            Opacity multiplier for the part behind the centre, 0–1.</span>
+<span class="sd">        linewidth : float</span>
+<span class="sd">            Outline width in pixels; 0 hides the outline.</span>
+<span class="sd">        label : str</span>
+<span class="sd">            Text drawn at the patch&#39;s centre while it faces the camera.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Key in :attr:`patches`.  Re-using a name replaces that patch.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Patch3D</span>
+<span class="sd">            Handle with :meth:`~Patch3D.set` and :meth:`~Patch3D.remove`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;patch</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">while</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">+=</span> <span class="s2">&quot;_&quot;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">points</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">,</span>
+                    <span class="n">geodesic</span><span class="o">=</span><span class="n">geodesic</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="n">facecolor</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">edgecolor</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">back_alpha</span><span class="o">=</span><span class="n">back_alpha</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">wire</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patch_wire</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>        <span class="c1"># validate before storing</span>
+        <span class="n">handle</span> <span class="o">=</span> <span class="n">Patch3D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">wire</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_patches</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">handle</span></div>
+
+
+<div class="viewcode-block" id="Plot3D.remove_patch">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot3D.html#anyplotlib.plot3d.Plot3D.remove_patch">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_patch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take off a patch, given its handle or its name.&quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">patch</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">Patch3D</span><span class="p">)</span> <span class="k">else</span> <span class="n">patch</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_patches</span><span class="p">()</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">patches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The panel&#39;s patches by name, as :class:`Patch3D` handles.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update_patch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">changes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">handle</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">changes</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown patch argument(s): </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">changes</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patch_wire</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_patches</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_push_patches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_fields</span><span class="p">(</span><span class="n">patches</span><span class="o">=</span><span class="p">[</span><span class="n">wire</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">wire</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patches</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_patch_wire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;points&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">points</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;patch points must be (N, 3), got </span><span class="si">{</span><span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">closed</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;closed&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">3</span> <span class="k">if</span> <span class="n">closed</span> <span class="k">else</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;a closed patch needs at least 3 points, &quot;</span>
+                             <span class="s2">&quot;an open path at least 2&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">points</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;patch points must be finite&quot;</span><span class="p">)</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;frame&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">frame</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;world&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;frame must be &#39;data&#39; or &#39;world&#39;, got </span><span class="si">{</span><span class="n">frame</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;geodesic&quot;</span><span class="p">]:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;data_bounds&quot;</span><span class="p">]</span>
+            <span class="n">centre</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;xmin&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span><span class="p">[</span><span class="s2">&quot;xmax&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                               <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;ymin&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span><span class="p">[</span><span class="s2">&quot;ymax&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                               <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;zmin&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span><span class="p">[</span><span class="s2">&quot;zmax&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">])</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="n">_geodesic_path</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">centre</span><span class="p">,</span> <span class="n">closed</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;points&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="mi">6</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">points</span><span class="o">.</span><span class="n">ravel</span><span class="p">()],</span>
+            <span class="s2">&quot;frame&quot;</span><span class="p">:</span> <span class="n">frame</span><span class="p">,</span>
+            <span class="s2">&quot;closed&quot;</span><span class="p">:</span> <span class="n">closed</span><span class="p">,</span>
+            <span class="s2">&quot;geodesic&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;geodesic&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;facecolor&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;facecolor&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;edgecolor&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;facecolor&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;alpha&quot;</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)),</span>
+            <span class="s2">&quot;back_alpha&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;back_alpha&quot;</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)),</span>
+            <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;linewidth&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]),</span>
+        <span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">geom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;geom_type&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span>

@@ -1064,6 +1064,67 @@ screen silhouette is a true circle.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Plot3D.add_patch">
+<span class="sig-name descname"><span class="pre">add_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geodesic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facecolor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#4fc3f7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edgecolor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">back_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D.add_patch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot3D.add_patch" title="Link to this definition">#</a></dt>
+<dd><p>Draw a region (or, with <code class="docutils literal notranslate"><span class="pre">closed=False</span></code>, a path) on this panel.</p>
+<p>Made for spheres: the region a detector sees on a master pattern, a
+grain’s spread of orientations on a pole sphere, the trace of a band.
+By default each edge follows the great circle between its two corners
+— the shortest way round the sphere, and exactly the shape a flat
+detector’s straight edge makes when projected onto it — so four
+corners are enough for a detector’s footprint.</p>
+<p>The part of the patch behind the centre of the data is drawn dimmer
+(<code class="docutils literal notranslate"><span class="pre">back_alpha</span></code>), and where a geodesic patch wraps behind the sphere
+its outline follows the sphere’s edge rather than cutting across it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (<em>(</em><em>N</em><em>, </em><em>3</em><em>) </em><em>array-like</em>) – Corners (or path points) in data coordinates.</p></li>
+<li><p><strong>frame</strong> (<code class="docutils literal notranslate"><span class="pre">&quot;data&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;world&quot;</span></code>) – <code class="docutils literal notranslate"><span class="pre">&quot;data&quot;</span></code> (default) turns the patch with the data when
+<a class="reference internal" href="#anyplotlib.Plot3D.set_rotation" title="anyplotlib.Plot3D.set_rotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_rotation()</span></code></a> changes — a feature of the object.
+<code class="docutils literal notranslate"><span class="pre">&quot;world&quot;</span></code> keeps it fixed while the data turns under it — a
+detector, a beam, anything that belongs to the instrument.  Both
+move with the camera.</p></li>
+<li><p><strong>closed</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a>) – Join the last point back to the first and fill the inside.
+<code class="docutils literal notranslate"><span class="pre">False</span></code> draws an open path with no fill.</p></li>
+<li><p><strong>geodesic</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a>) – Join points by great-circle arcs about the centre of the data
+bounds (default).  <code class="docutils literal notranslate"><span class="pre">False</span></code> joins them with straight lines.</p></li>
+<li><p><strong>facecolor</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Fill and outline colours; <code class="docutils literal notranslate"><span class="pre">edgecolor</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">facecolor</span></code>.</p></li>
+<li><p><strong>edgecolor</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Fill and outline colours; <code class="docutils literal notranslate"><span class="pre">edgecolor</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">facecolor</span></code>.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Opacity of the fill, 0–1.  The outline is drawn opaque.</p></li>
+<li><p><strong>back_alpha</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Opacity multiplier for the part behind the centre, 0–1.</p></li>
+<li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Outline width in pixels; 0 hides the outline.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Text drawn at the patch’s centre while it faces the camera.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><em>optional</em>) – Key in <a class="reference internal" href="#anyplotlib.Plot3D.patches" title="anyplotlib.Plot3D.patches"><code class="xref py py-attr docutils literal notranslate"><span class="pre">patches</span></code></a>.  Re-using a name replaces that patch.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Handle with <code class="xref py py-meth docutils literal notranslate"><span class="pre">set()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">remove()</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Patch3D</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Plot3D.remove_patch">
+<span class="sig-name descname"><span class="pre">remove_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">patch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/plot3d/_plot3d.html#Plot3D.remove_patch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Plot3D.remove_patch" title="Link to this definition">#</a></dt>
+<dd><p>Take off a patch, given its handle or its name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Plot3D.patches">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">patches</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a></span><a class="headerlink" href="#anyplotlib.Plot3D.patches" title="Link to this definition">#</a></dt>
+<dd><p>The panel’s patches by name, as <code class="xref py py-class docutils literal notranslate"><span class="pre">Patch3D</span></code> handles.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -1144,6 +1205,9 @@ screen silhouette is a true circle.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot3D.clear_highlight"><code class="docutils literal notranslate"><span class="pre">Plot3D.clear_highlight()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot3D.set_sphere"><code class="docutils literal notranslate"><span class="pre">Plot3D.set_sphere()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot3D.clear_sphere"><code class="docutils literal notranslate"><span class="pre">Plot3D.clear_sphere()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot3D.add_patch"><code class="docutils literal notranslate"><span class="pre">Plot3D.add_patch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot3D.remove_patch"><code class="docutils literal notranslate"><span class="pre">Plot3D.remove_patch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Plot3D.patches"><code class="docutils literal notranslate"><span class="pre">Plot3D.patches</span></code></a></li>
 </ul>
 </li>
 </ul>
