@@ -126,16 +126,32 @@ function render({ model, el, onResize, onReadout }) {
   // UNDER the fill: a halo that keeps a label legible on light and dark ground.
   function _markerTextStyle(ctx, ms) {
     ctx.font=`${ms.fontweight||'normal'} ${ms.fontsize||12}px sans-serif`;
-    ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.textAlign = ms.halign || 'left';
+    // matplotlib vertical-alignment words differ from canvas's for two
+    // anchors: center→middle, baseline→alphabetic.
+    const va = ms.valign || 'top';
+    ctx.textBaseline = va==='center' ? 'middle' : va==='baseline' ? 'alphabetic' : va;
     const ow=ms.outline_color ? (ms.outline_width!=null ? ms.outline_width : 3) : 0;
     if(!(ow>0)) return false;
     // Round joins: a thick stroke on a mitred glyph corner spikes.
     ctx.strokeStyle=ms.outline_color; ctx.lineWidth=ow; ctx.lineJoin='round';
     return true;
   }
-  function _drawMarkerText(ctx, s, x, y, outlined) {
-    if(outlined) ctx.strokeText(s, x, y);
-    ctx.fillText(s, x, y);
+  function _drawMarkerText(ctx, ms, s, x, y, outlined) {
+    // Anchor at the offset point first, then rotate about it (matplotlib
+    // semantics: a positive rotation reads counter-clockwise).  Canvas's
+    // y axis points down, so the sign flips.
+    const rot = ms.rotation || 0;
+    if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(-rot); x = 0; y = 0; }
+    if (s.indexOf('$') === -1) {
+      if(outlined) ctx.strokeText(s, x, y);
+      ctx.fillText(s, x, y);
+    } else {
+      // $...$ markup typesets through the axis-label TeX engine instead
+      // of showing raw dollars.
+      _drawTex(ctx, s, x, y, ms.fontsize||12, {align: ms.halign||'left', outlined});
+    }
+    if (rot) ctx.restore();
   }
 
   // ── b64 array decode helpers ─────────────────────────────────────────────
@@ -289,6 +305,7 @@ function render({ model, el, onResize, onReadout }) {
     if (t.indexOf('$') === -1) {          // fast path — no math segments
       ctx.font = (weight ? weight + ' ' : '') + px + 'px ' + family;
       ctx.textAlign = o.align || 'center';
+      if (o.outlined) ctx.strokeText(t, x, y);
       ctx.fillText(t, x, y);
       ctx.restore();
       return;
@@ -319,6 +336,14 @@ function render({ model, el, onResize, onReadout }) {
       ctx.textBaseline = 'alphabetic';
     }
     ctx.textAlign = 'left';
+    if (o.outlined) {
+      // Halo: stroke every run first so a later stroke never cuts across
+      // an earlier fill.
+      for (const r of lay.runs) {
+        ctx.font = r.font;
+        ctx.strokeText(r.t, x0 + r.x, yb + r.dy);
+      }
+    }
     for (const r of lay.runs) {
       ctx.font = r.font;
       ctx.fillText(r.t, x0 + r.x, yb + r.dy);
@@ -3926,7 +3951,7 @@ function render({ model, el, onResize, onReadout }) {
         for(let i=0;i<ms.offsets.length;i++){
           const [cx,cy]=_tc(ms.offsets[i][0],ms.offsets[i][1]);
           if(_ecArr) mkCtx.fillStyle=_ecAt(i);
-          _drawMarkerText(mkCtx,String(ms.texts[i]||''),cx,cy,outlined);
+          _drawMarkerText(mkCtx,ms,String(ms.texts[i]||''),cx,cy,outlined);
         }
       }
       mkCtx.restore();
@@ -7881,7 +7906,7 @@ fn fs(in : VsOut) -> @location(0) vec4<f32> {
         const outlined=_markerTextStyle(mkCtx,ms);
         for(let i=0;i<ms.offsets.length;i++){
           const [px,py]= tfm==='data' ? _offToCanvas(ms.offsets[i]) : _tc2d(ms.offsets[i][0],ms.offsets[i][1]!=null?ms.offsets[i][1]:0);
-          _drawMarkerText(mkCtx,String((ms.texts&&ms.texts[i])||''),px,py,outlined);
+          _drawMarkerText(mkCtx,ms,String((ms.texts&&ms.texts[i])||''),px,py,outlined);
         }
       }
       mkCtx.restore();
