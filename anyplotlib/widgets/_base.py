@@ -74,6 +74,12 @@ class Widget(_EventMixin):
         if key.startswith("_") or key == "callbacks":
             super().__setattr__(key, value)
             return
+        # Read-only properties (plot, kind, id, ...) must not be shadowed by a
+        # same-named entry in the wire state; let ``property`` raise.
+        attr = getattr(type(self), key, None)
+        if isinstance(attr, property) and attr.fset is None:
+            super().__setattr__(key, value)
+            return
         # During __init__ _data may not exist yet
         try:
             object.__getattribute__(self, "_data")
@@ -265,3 +271,25 @@ class Widget(_EventMixin):
     def id(self) -> str:
         """Return the widget's unique identifier."""
         return self._id
+
+    # ── identity ──────────────────────────────────────────────────────────
+
+    @property
+    def kind(self) -> str:
+        """The widget kind, e.g. ``"rectangle"``, ``"crosshair"``, ``"vline"``.
+
+        The same string :meth:`~anyplotlib.Plot2D.add_widget` dispatches on
+        (and ``widget.get("type")`` returns), so code holding only a widget
+        can branch on what it is without ``isinstance`` checks.
+        """
+        return self._type
+
+    @property
+    def plot(self):
+        """The plot this widget is attached to, or ``None``.
+
+        ``None`` for a widget constructed standalone, and again once the
+        widget has been removed (:meth:`remove`, ``plot.remove_widget`` or
+        ``plot.clear_widgets``).
+        """
+        return self._plot

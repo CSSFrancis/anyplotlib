@@ -461,7 +461,7 @@ class Plot3D(_BasePlot):
             wid = wid.id
         if wid not in self._widgets:
             raise KeyError(wid)
-        del self._widgets[wid]
+        self._widgets.pop(wid)._plot = None   # Widget.plot -> None once detached
         self._push()
 
     def list_widgets(self) -> list:
