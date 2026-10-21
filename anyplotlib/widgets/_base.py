@@ -324,7 +324,9 @@ class Widget(_EventMixin):
         The renderer always works in pixels, so a widget stores pixels and a
         ``"data"`` widget converts on every read and write.  Re-calibrating
         the panel (:meth:`~anyplotlib.Plot2D.set_extent`) therefore keeps the
-        widget on the same *pixels*; its data-coordinate values change.
+        widget on the same *pixels*; its data-coordinate values change.  This
+        differs from ``coords="data"`` marker groups, which store data values
+        and so keep their *data* position (and move on screen).
         """
         if self._coords is not None:
             return self._coords

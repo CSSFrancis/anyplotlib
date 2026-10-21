@@ -179,6 +179,13 @@ A data-coordinate rectangle spans ``[x, x + w] × [y, y + h]`` in data —
 ``(x, y)`` is its corner with the smallest data values and ``w``, ``h`` are
 positive — whichever way the axes run on screen.
 
+.. note::
+
+   A data-coordinate *widget* still stores pixels, so after
+   :meth:`~anyplotlib.Plot2D.set_extent` it stays on the same pixels and its
+   data values change, whereas a data-coordinate *marker group* keeps its data
+   position.
+
 Bar chart
 ~~~~~~~~~
 
