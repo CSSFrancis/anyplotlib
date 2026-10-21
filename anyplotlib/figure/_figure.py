@@ -143,6 +143,10 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         self._sharex = sharex
         self._sharey = sharey
         self._axes_map: dict  = {}
+        # Every grid Axes created by add_subplot, in creation order, plotted
+        # or not; ``_axes_map`` only gains an entry once a plot is attached,
+        # so ``get_axes`` needs this to list empty axes too.
+        self._created_axes: list = []
         self._plots_map: dict = {}
         self._insets_map: dict = {}
         self._hspace: float | None = None
@@ -283,7 +287,9 @@ class Figure(anywidget.AnyWidget, _EventMixin):
             spec = SubplotSpec(None, row, row + 1, col, col + 1)
         else:
             raise TypeError(f"add_subplot: unsupported spec type {type(spec)!r}")
-        return Axes(self, spec)
+        ax = Axes(self, spec)
+        self._created_axes.append(ax)
+        return ax
 
     # ── internal registration (called by Axes._attach) ────────────────────────
     def _register_panel(self, ax: Axes, plot) -> None:
@@ -927,7 +933,11 @@ class Figure(anywidget.AnyWidget, _EventMixin):
 
     # ── helpers ───────────────────────────────────────────────────────────────
     def get_axes(self) -> list:
-        """Return a list of all Axes, sorted by grid position.
+        """Return a list of all grid Axes, sorted by grid position.
+
+        Includes axes that have no plot attached yet (as matplotlib does), so
+        ``fig, ax = apl.subplots(1, 1); fig.get_axes()[0] is ax``.  Floating
+        insets from :meth:`add_inset` are not listed.
 
         Returns
         -------
@@ -935,7 +945,15 @@ class Figure(anywidget.AnyWidget, _EventMixin):
             Axes sorted by (row_start, col_start) to match typical left-to-right,
             top-to-bottom iteration order.
         """
-        return sorted(self._axes_map.values(),
+        axes = list(self._axes_map.values())
+        seen = {id(a) for a in axes}
+        # Add the still-empty axes.  An axes whose plot was superseded by
+        # another axes on the same cell (same panel id) is left out, as before.
+        for a in getattr(self, "_created_axes", ()):
+            if id(a) not in seen and a._plot is None:
+                axes.append(a)
+                seen.add(id(a))
+        return sorted(axes,
                       key=lambda a: (a._spec.row_start, a._spec.col_start))
 
     def _repr_html_(self) -> str:

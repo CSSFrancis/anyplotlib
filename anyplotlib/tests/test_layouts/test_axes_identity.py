@@ -94,3 +94,36 @@ def test_read_only():
         ax.primary_plot = None
     with pytest.raises(AttributeError):
         ax.plots = ()
+
+
+# ── Figure.get_axes lists every grid axes, plotted or not ───────────────────
+
+def test_get_axes_includes_empty_axes():
+    fig, ax = apl.subplots(1, 1)
+    assert fig.get_axes() == [ax]
+    assert fig.get_axes()[0] is ax
+
+
+def test_get_axes_mixed_plotted_and_empty_in_grid_order():
+    fig, axes = apl.subplots(2, 3)
+    axes[1, 2].imshow(np.zeros((4, 5)))
+    axes[0, 1].plot(np.zeros(6))
+    got = fig.get_axes()
+    assert got == list(axes.ravel())
+    assert len({id(a) for a in got}) == 6
+
+
+def test_get_axes_plotted_unchanged_and_no_duplicates():
+    fig, axes = apl.subplots(1, 2)
+    for a in axes:
+        a.plot(np.zeros(5))
+        a.plot(np.ones(5))          # replacing the plot must not duplicate
+    assert fig.get_axes() == list(axes)
+
+
+def test_get_axes_add_subplot_and_insets_excluded():
+    fig = apl.Figure(2, 1)
+    a0 = fig.add_subplot(0)
+    a1 = fig.add_subplot((1, 0))
+    fig.add_inset(0.3, 0.3).plot(np.zeros(4))
+    assert fig.get_axes() == [a0, a1]
