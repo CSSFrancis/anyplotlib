@@ -175,6 +175,9 @@ attribute reads, ``set()`` and drag callbacks all use them:
 
 :attr:`Plot2D.transform <anyplotlib.Plot2D.transform>` handles offsets,
 non-unit and non-uniform spacing, and descending axes (``origin="lower"``).
+A data-coordinate rectangle spans ``[x, x + w] × [y, y + h]`` in data —
+``(x, y)`` is its corner with the smallest data values and ``w``, ``h`` are
+positive — whichever way the axes run on screen.
 
 Bar chart
 ~~~~~~~~~

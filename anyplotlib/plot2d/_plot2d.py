@@ -24,7 +24,7 @@ from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
 from anyplotlib.plot2d._transform import ImageTransform
 from anyplotlib.callbacks import CallbackRegistry
-from anyplotlib.widgets._base import _check_coords, _convert_role
+from anyplotlib.widgets._base import _check_coords, _convert_role, _convert_span
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
@@ -2073,9 +2073,16 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             return fields
         t = self.transform
         geom = cls._GEOMETRY
-        return {k: (_convert_role(geom[k], v, t, True)
-                    if k in geom and v is not None else v)
-                for k, v in fields.items()}
+        out = {k: (_convert_role(geom[k], v, t, True)
+                   if k in geom and v is not None else v)
+               for k, v in fields.items()}
+        # Corner + size pairs convert together (see ``_convert_span``).
+        # Callers fill defaults first so both halves are present.
+        for start, length in getattr(cls, "_SPANS", ()):
+            if fields.get(start) is not None and fields.get(length) is not None:
+                out[start], out[length] = _convert_span(
+                    geom[start], fields[start], fields[length], t, True)
+        return out
 
     def _register_widget(self, widget: Widget, coords: str) -> Widget:
         """Attach *widget* to this panel in the given coordinate frame and push."""
@@ -2160,13 +2167,17 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                               coords: str = "pixel") -> RectangleWidget:
         """Add a draggable rectangle overlay.
 
+        With ``coords="data"`` the rectangle spans ``[x, x + w] × [y, y + h]``
+        in data: ``(x, y)`` is the corner with the smallest data x and y and
+        ``w``, ``h`` are positive data lengths, on flipped and descending axes
+        too.  Omitted geometry defaults to the same pixel rectangle as in
+        pixel coordinates.
+
         ``max_extent`` caps the rectangle's size in the widget's coordinates —
         a scalar caps both axes, a ``(max_w, max_h)`` pair caps them separately.
         The rectangle then physically stops growing at the cap while dragging
         (the dragged corner pins, the opposite corner stays put).
         """
-        a = self._widget_args(RectangleWidget, coords, x=x, y=y, w=w, h=h)
-        x, y, w, h = a["x"], a["y"], a["w"], a["h"]
         if coords == "data" and max_extent is not None:
             mw, mh = (max_extent if isinstance(max_extent, (tuple, list))
                       else (max_extent, max_extent))
@@ -2188,6 +2199,18 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             cap_w = cap_h = max_extent
         def_w = _cap(iw * 0.5, cap_w)
         def_h = _cap(ih * 0.5, cap_h)
+        if coords == "data" and None in (x, y, w, h):
+            # Defaults are defined in pixels; express them in data so a
+            # partly-given data rectangle is completed span by span.
+            t = self.transform
+            dx, dw = _convert_span("x", iw * 0.25, def_w, t, False)
+            dy, dh = _convert_span("y", ih * 0.25, def_h, t, False)
+            x = dx if x is None else x
+            w = dw if w is None else w
+            y = dy if y is None else y
+            h = dh if h is None else h
+        a = self._widget_args(RectangleWidget, coords, x=x, y=y, w=w, h=h)
+        x, y, w, h = a["x"], a["y"], a["w"], a["h"]
         widget = RectangleWidget(lambda: None,
                                  x=float(x) if x is not None else iw * 0.25,
                                  y=float(y) if y is not None else ih * 0.25,

@@ -231,3 +231,91 @@ class TestReadWrite:
         w = plot.add_widget("crosshair", cx=11.0, cy=-2.0, coords="data")
         w.remove()
         assert w.cx == pytest.approx(2.0)   # no panel, no calibration
+
+
+class TestRectangleFlippedAxes:
+    """In data coords a rectangle's ``(x, y)`` is the corner with the
+    smallest data x and y and ``(w, h)`` are positive data lengths: it spans
+    ``[x, x + w] × [y, y + h]`` in data, whichever way the axes run.
+
+    Data x 11..13 / y -2..-1 on the 12 × 25 image:
+    ascending           → cols 2..6,  rows 4..8
+    origin="lower"      → cols 2..6,  rows 3..7  (row = 11 - (y + 3) / 0.25)
+    descending x        → cols 18..22, rows 4..8 (col = (22 - x) / 0.5)
+    """
+
+    CASES = {
+        "ascending": ({}, (2.0, 4.0, 4.0, 4.0)),
+        "origin_lower": ({"origin": "lower"}, (2.0, 3.0, 4.0, 4.0)),
+        "descending_x": ({"axes": [X[::-1], Y]}, (18.0, 4.0, 4.0, 4.0)),
+    }
+
+    @staticmethod
+    def _make(kw):
+        fig, ax = apl.subplots(1, 1)
+        kw = dict(kw)
+        axes = kw.pop("axes", [X, Y])
+        return ax.imshow(np.zeros((H, W)), axes=axes, **kw)
+
+    @staticmethod
+    def _px(w):
+        wire = _wire(w)
+        return (wire["x"], wire["y"], wire["w"], wire["h"])
+
+    @pytest.mark.parametrize("case", list(CASES))
+    def test_stored_pixel_rect(self, case):
+        kw, expect = self.CASES[case]
+        w = self._make(kw).add_rectangle_widget(x=11.0, y=-2.0, w=2.0, h=1.0,
+                                                coords="data")
+        assert self._px(w) == pytest.approx(expect)
+
+    @pytest.mark.parametrize("case", list(CASES))
+    def test_round_trip_reads(self, case):
+        kw, _ = self.CASES[case]
+        w = self._make(kw).add_rectangle_widget(x=11.0, y=-2.0, w=2.0, h=1.0,
+                                                coords="data")
+        assert (w.x, w.y, w.w, w.h) == pytest.approx((11.0, -2.0, 2.0, 1.0))
+        assert w.get("x") == pytest.approx(11.0)
+        d = w.to_dict()
+        assert (d["x"], d["y"], d["w"], d["h"]) == pytest.approx(
+            (11.0, -2.0, 2.0, 1.0))
+
+    def test_partial_set_descending_x(self):
+        w = self._make({"axes": [X[::-1], Y]}).add_rectangle_widget(
+            x=11.0, y=-2.0, w=2.0, h=1.0, coords="data")
+        w.set(x=11.5, notify=False)          # span 11.5..13.5 → cols 17..21
+        assert self._px(w) == pytest.approx((17.0, 4.0, 4.0, 4.0))
+        w.w = 1.0                            # span 11.5..12.5 → cols 19..21
+        assert self._px(w) == pytest.approx((19.0, 4.0, 2.0, 4.0))
+        assert (w.x, w.w) == pytest.approx((11.5, 1.0))
+
+    def test_partial_set_origin_lower(self):
+        w = self._make({"origin": "lower"}).add_rectangle_widget(
+            x=11.0, y=-2.0, w=2.0, h=1.0, coords="data")
+        w.h = 0.5                            # y -2..-1.5 → rows 5..7
+        assert self._px(w) == pytest.approx((2.0, 5.0, 4.0, 2.0))
+        assert (w.y, w.h) == pytest.approx((-2.0, 0.5))
+
+    def test_drag_reports_data_corner(self):
+        """A JS drag sends the pixel rect; handlers see the data corner."""
+        w = self._make({"origin": "lower"}).add_rectangle_widget(
+            x=11.0, y=-2.0, w=2.0, h=1.0, coords="data")
+        seen = []
+        w.add_event_handler(
+            lambda e: seen.append((e.source.x, e.source.y, e.source.w,
+                                   e.source.h)), "pointer_move")
+        # pixel rows 1..5 → y from 11 - 5 = 6 → -1.5 up to 11 - 1 = 10 → -0.5
+        w._update_from_js({"x": 4.0, "y": 1.0, "w": 4.0, "h": 4.0,
+                           "event_type": "pointer_move"})
+        assert seen == [pytest.approx((12.0, -1.5, 2.0, 1.0))]
+
+    def test_defaults_on_descending_x(self):
+        """Omitted geometry still defaults to the same pixel rectangle."""
+        p = self._make({"axes": [X[::-1], Y]})
+        ref = p.add_rectangle_widget()
+        w = p.add_rectangle_widget(coords="data")
+        assert self._px(w) == pytest.approx(self._px(ref))
+        w2 = p.add_rectangle_widget(x=11.0, coords="data")
+        # given x = left data edge; default data width keeps W/2 pixels
+        assert self._px(w2)[2] == pytest.approx(W * 0.5)
+        assert w2.x == pytest.approx(11.0)

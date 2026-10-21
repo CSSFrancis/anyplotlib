@@ -80,6 +80,29 @@ def _convert_role(role: str, value, transform, to_pixels: bool):
     raise ValueError(f"unknown geometry role {role!r}")  # pragma: no cover
 
 
+def _convert_span(axis: str, start, length, transform, to_pixels: bool):
+    """Convert a ``(start, length)`` span along one axis between frames.
+
+    A corner + size pair (a rectangle's ``x, w`` or ``y, h``) cannot be
+    converted field by field: on a descending axis (or ``origin="lower"``
+    for y) the corner with the smallest data value is *not* the one with the
+    smallest pixel index.  Both ends are converted instead and the result is
+    normalised to ``(smallest end, non-negative length)`` in the target
+    frame, which also handles non-uniform axes exactly.
+
+    Contract: in either frame the span is ``[start, start + length]`` with
+    ``start`` the smaller end and ``length >= 0``.
+    """
+    t = transform
+    if to_pixels:
+        fn = t.x_to_pixel if axis == "x" else t.y_to_pixel
+    else:
+        fn = t.pixel_to_x if axis == "x" else t.pixel_to_y
+    start, length = float(start), float(length)
+    a, b = float(fn(start)), float(fn(start + length))
+    return min(a, b), abs(b - a)
+
+
 class Widget(_EventMixin):
     """Base class for all overlay widgets.
 
@@ -121,6 +144,12 @@ class Widget(_EventMixin):
     #: data and pixel coordinates.  See ``_convert_role`` for the roles.
     #: Subclasses override; non-geometric fields (colour, …) are left alone.
     _GEOMETRY: dict = {}
+
+    #: ``((start_key, length_key), ...)`` pairs in :attr:`_GEOMETRY` that
+    #: form a corner + size span and are converted together (see
+    #: ``_convert_span``).  The start key's role (``"x"``/``"y"``) names the
+    #: axis.
+    _SPANS: tuple = ()
 
     def __init__(self, wtype: str, push_fn: Callable, **kwargs):
         self._id: str = str(_uuid.uuid4())[:8]
@@ -321,10 +350,45 @@ class Widget(_EventMixin):
         if t is None:
             return fields
         out = dict(fields)
+        span_keys: set = set()
+        for start, length in self._SPANS:
+            if start not in out and length not in out:
+                continue
+            span_keys.update((start, length))
+            self._convert_span_fields(out, start, length, t, to_pixels)
         for key, role in self._GEOMETRY.items():
-            if key in out:
+            if key in out and key not in span_keys:
                 out[key] = _convert_role(role, out[key], t, to_pixels)
         return out
+
+    def _convert_span_fields(self, out: dict, start: str, length: str,
+                             t, to_pixels: bool) -> None:
+        """Convert one corner + size pair of *out* in place.
+
+        A missing half is taken from the widget's current geometry.  Going to
+        pixels both halves are written (changing only the data ``x`` of a
+        rectangle on a descending axis moves its pixel ``x`` *and* may change
+        its pixel ``w`` on a non-uniform one); going to data only the
+        requested keys are reported.
+        """
+        axis = self._GEOMETRY[start]
+        if to_pixels:
+            if start not in out or length not in out:
+                cur = _convert_span(axis, self._data[start], self._data[length],
+                                    t, False)
+                lo = out.get(start, cur[0])
+                ln = out.get(length, cur[1])
+            else:
+                lo, ln = out[start], out[length]
+            out[start], out[length] = _convert_span(axis, lo, ln, t, True)
+        else:
+            lo = out.get(start, self._data.get(start))
+            ln = out.get(length, self._data.get(length))
+            d_lo, d_ln = _convert_span(axis, lo, ln, t, False)
+            if start in out:
+                out[start] = d_lo
+            if length in out:
+                out[length] = d_ln
 
     def _geom_in(self, fields: dict, coords: str | None = None) -> dict:
         """User-frame *fields* → wire (pixel) frame."""

@@ -6,3 +6,6 @@ values seen in drag callbacks — in the panel's calibrated axis units instead
 of image pixels.  See :attr:`~anyplotlib.Widget.coords` and
 :meth:`~anyplotlib.Widget.set_coords`; 1-D and bar widget methods accept
 ``coords="data"`` too.
+A data-coordinate rectangle spans ``[x, x + w] × [y, y + h]`` in data, with
+``(x, y)`` its corner of smallest data x and y and positive ``w``, ``h``, so it
+covers the right pixels with ``origin="lower"`` or a descending axis.

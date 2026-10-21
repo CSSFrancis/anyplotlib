@@ -22,9 +22,13 @@ class RectangleWidget(Widget):
     push_fn : Callable
         Update callback.
     x, y : float
-        Top-left corner position in pixel/data coordinates.
+        Corner with the smallest coordinates: the top-left pixel corner in
+        pixel coordinates; in data coordinates (``coords="data"``) the corner
+        with the smallest data x and y, wherever that is on screen (top-right
+        on a descending x axis, bottom-left with ``origin="lower"``).
     w, h : float
-        Width and height in pixel/data coordinates.
+        Width and height, non-negative, in pixel/data coordinates.  The
+        rectangle spans ``[x, x + w] × [y, y + h]`` in its frame.
     color : str, optional
         CSS colour for the rectangle outline. Default ``"#00e5ff"``.
     linewidth : float, optional
@@ -42,6 +46,10 @@ class RectangleWidget(Widget):
         integrating ROI whose size is a number of frames to read.
     """
     _GEOMETRY = {"x": "x", "y": "y", "w": "dx", "h": "dy", "max_w": "dx", "max_h": "dy"}
+    # In data coords (x, y) is the corner with the smallest data x and y and
+    # (w, h) are positive data lengths; converted as spans so a descending
+    # axis or origin="lower" anchors the right pixel corner.
+    _SPANS = (("x", "w"), ("y", "h"))
 
     def __init__(self, push_fn, *, x, y, w, h, color="#00e5ff",
                  linewidth=2, show_handles=True, max_extent=None):
