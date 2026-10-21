@@ -243,6 +243,25 @@ class MarkerGroup:
         self._parent: "MarkerTypeDict | None" = parent
 
     @property
+    def marker_type(self) -> str:
+        """The marker type, e.g. ``"circles"`` or ``"lines"`` (read-only)."""
+        return self._type
+
+    @property
+    def name(self) -> str:
+        """The group's key in ``plot.markers[marker_type]`` (read-only)."""
+        return self._name
+
+    def get(self, key: str, default=None):
+        """Return a property as last given to the constructor or :meth:`set`
+        (matplotlib-style name, in the group's :attr:`coords` frame).
+
+        >>> group.get("edgecolors")            # doctest: +SKIP
+        '#ff0000'
+        """
+        return self._data.get(key, default)
+
+    @property
     def coords(self) -> str:
         """Frame of this group's positions and lengths: ``"pixel"`` or ``"data"``.
 
