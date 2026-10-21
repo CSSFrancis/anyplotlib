@@ -81,6 +81,17 @@ def _reduce_mask_any(mask, out_h: int, out_w: int):
     return out
 
 
+def _edge_centres(edge0: float, edge1: float, count: int) -> np.ndarray:
+    """Pixel-centre coordinates of *count* pixels spanning ``edge0 → edge1``.
+
+    The edges are the OUTER boundary of the image, so the centres sit half a
+    pixel in from either end (matplotlib's ``imshow(extent=...)``).
+    """
+    count = int(count)
+    size = (float(edge1) - float(edge0)) / count
+    return float(edge0) + size * (np.arange(count, dtype=float) + 0.5)
+
+
 class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     """2-D image plot panel.
 
@@ -1955,6 +1966,43 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if units is not None:
             self._state["units"] = units
         self._push()
+
+    def set_extent_edges(self, left: float, right: float, bottom: float,
+                         top: float, units: str | None = None) -> None:
+        """Calibrate the image from its outer edges (matplotlib's ``extent``).
+
+        The image is ``image_width`` × ``image_height`` pixels spanning
+        ``left → right`` horizontally and ``top → bottom`` from the top of the
+        panel down — the box matplotlib's ``imshow(extent=(left, right,
+        bottom, top))`` describes.  Each pixel's centre coordinate is derived
+        from that box and passed to :meth:`set_extent`.
+
+        Parameters
+        ----------
+        left, right : float
+            x coordinate of the left and right image edges.
+        bottom, top : float
+            y coordinate of the bottom and top image edges, *as displayed*.
+            Pass ``top < bottom`` for the usual "y grows downwards" image
+            convention, e.g. ``(0, 25, 12, 0)`` for a 12 × 25 image in pixel
+            units.
+        units : str, optional
+            Scale-bar / axis units label.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import anyplotlib as apl
+        >>> fig, ax = apl.subplots()
+        >>> plot = ax.imshow(np.zeros((12, 25)))
+        >>> plot.set_extent_edges(0.0, 5.0, 2.4, 0.0, units="nm")
+        >>> plot.x_axis[:2].round(3).tolist(), plot.y_axis[:2].round(3).tolist()
+        ([0.1, 0.3], [0.1, 0.3])
+        """
+        w = int(self._state["image_width"])
+        h = int(self._state["image_height"])
+        self.set_extent(_edge_centres(left, right, w),
+                        _edge_centres(top, bottom, h), units=units)
 
     def set_colorbar_label(self, label: str, fontsize: float | None = None) -> None:
         """Set the colorbar label (mini-TeX allowed; default size 10 px)."""

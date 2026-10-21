@@ -156,7 +156,8 @@ class Axes:
                integration_method: str = "mean",
                overview_method: str = "mean",
                tile_backend=None,
-               probe_exact: bool = True) -> "Plot2D":
+               probe_exact: bool = True,
+               extent=None) -> "Plot2D":
         """Attach a 2-D image to this axes cell.
 
         Parameters
@@ -188,11 +189,19 @@ class Axes:
             cursor dwells on a pixel (default ``True``).  Without it the value
             comes from the 8-bit codes the renderer holds, which quantises wide
             dtypes to ``range/255``.  See :meth:`~anyplotlib.Plot2D.set_value_probe`.
+        extent : (left, right, bottom, top), optional
+            Calibrate from the image's outer edges, as matplotlib's
+            ``imshow(extent=...)`` does, instead of per-pixel ``axes``.
+            ``top`` is the y coordinate of the top of the displayed image
+            whatever the ``origin``.  Mutually exclusive with ``axes``.  See
+            :meth:`~anyplotlib.Plot2D.set_extent_edges`.
 
         Returns
         -------
         Plot2D
         """
+        if extent is not None and axes is not None:
+            raise ValueError("pass either axes or extent, not both")
         x_axis = axes[0] if axes and len(axes) > 0 else None
         y_axis = axes[1] if axes and len(axes) > 1 else None
         plot = Plot2D(data, x_axis=x_axis, y_axis=y_axis, units=units,
@@ -200,6 +209,10 @@ class Axes:
                       tile=tile, integration_method=integration_method,
                       overview_method=overview_method,
                       tile_backend=tile_backend, probe_exact=probe_exact)
+        if extent is not None:
+            left, right, bottom, top = (float(v) for v in extent)
+            # Not attached yet, so this only updates state (no push).
+            plot.set_extent_edges(left, right, bottom, top)
         self._attach(plot)
         return plot
 
