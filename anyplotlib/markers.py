@@ -39,6 +39,17 @@ or a sequence of colours parallel to the markers — matplotlib's
 
 A sequence shorter than the group cycles, as matplotlib's colour cycle does.
 This works for every marker type on both 1-D and 2-D panels.
+
+Calibrated coordinates on 2-D panels
+------------------------------------
+On a :class:`~anyplotlib.Plot2D`, ``transform="data"`` positions are image
+pixels.  Pass ``coords="data"`` to give positions *and* lengths in the panel's
+calibrated axis units instead; the group keeps those values and converts them
+through :attr:`Plot2D.transform <anyplotlib.Plot2D.transform>` each time it is
+serialised, so it stays put when the panel is re-calibrated::
+
+    plot = ax.imshow(img, axes=[x_nm, y_nm], units="nm")
+    plot.add_circles([[11.0, -2.0]], radius=0.5, coords="data")
 """
 
 from __future__ import annotations
@@ -154,6 +165,45 @@ def _offsets_1d(offsets) -> list:
     raise ValueError("offsets must be 1-D or shape (N,1)/(N,2)")
 
 
+_VALID_COORDS = ("pixel", "data")
+
+#: ``{key: role}`` for marker geometry, used by ``coords="data"``.
+#: Lengths (``dx``/``dy``/``r``) are skipped for ``size_units="px"`` groups,
+#: whose sizes are screen pixels rather than data.
+_MARKER_POINT_KEYS = {"offsets": 1, "clip_path": 1, "segments": 2,
+                      "vertices_list": 2}
+_MARKER_LENGTH_KEYS = {"widths": "dx", "heights": "dy", "radius": "r",
+                       "U": "u", "V": "v"}
+
+
+def _check_coords(coords) -> str:
+    if coords not in _VALID_COORDS:
+        raise ValueError(f"coords must be one of {_VALID_COORDS}, got {coords!r}")
+    return coords
+
+
+def _points_to_pixels(value, depth: int, transform):
+    """Convert ``[x, y]`` pairs nested *depth* list levels deep."""
+    if depth == 1:
+        arr = np.asarray(value, dtype=float)
+        if arr.size == 0:
+            return arr.reshape(0, 2).tolist()
+        single = arr.ndim == 1
+        out = transform.data_to_pixel(arr.reshape(-1, 2))
+        return out[0].tolist() if single else out.tolist()
+    return [_points_to_pixels(item, depth - 1, transform) for item in value]
+
+
+def _length_to_pixels(role: str, value, transform):
+    if role == "u":
+        return (np.asarray(value, dtype=float) / transform.x_scale).tolist()
+    if role == "v":
+        return (np.asarray(value, dtype=float) / transform.y_scale).tolist()
+    arr = np.asarray(value, dtype=float)
+    fn = transform.y_length_to_pixels if role == "dy" else transform.x_length_to_pixels
+    return np.asarray(fn(arr)).tolist()
+
+
 # ---------------------------------------------------------------------------
 # MarkerGroup
 # ---------------------------------------------------------------------------
@@ -186,9 +236,49 @@ class MarkerGroup:
         if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
             raise ValueError("clip_display must be a bool")
         _check_text_style(kwargs)
-        self._data: dict = dict(kwargs)
+        kwargs = dict(kwargs)
+        self._coords: str = _check_coords(kwargs.pop("coords", "pixel"))
+        self._data: dict = kwargs
         self._push_fn = push_fn
         self._parent: "MarkerTypeDict | None" = parent
+
+    @property
+    def coords(self) -> str:
+        """Frame of this group's positions and lengths: ``"pixel"`` or ``"data"``.
+
+        Only meaningful for ``transform="data"`` groups on a 2-D image panel,
+        where ``"pixel"`` (the default) means image pixels and ``"data"`` the
+        calibrated axis values.  On 1-D panels both mean data coordinates.
+        Change it with ``group.set(coords=...)``; the stored values are then
+        reinterpreted, not converted.
+        """
+        return self._coords
+
+    def _transform(self):
+        parent = self._parent
+        fn = getattr(parent, "_transform_fn", None) if parent is not None else None
+        return fn() if fn is not None else None
+
+    def _wire_data(self) -> dict:
+        """``_data`` with ``coords="data"`` geometry converted to image pixels."""
+        d = self._data
+        if self._coords != "data" or d.get("transform", "data") != "data":
+            return d
+        t = self._transform()
+        if t is None:
+            return d
+        out = dict(d)
+        for key, depth in _MARKER_POINT_KEYS.items():
+            if out.get(key) is not None:
+                out[key] = _points_to_pixels(out[key], depth, t)
+        px_sizes = d.get("size_units") == "px"
+        for key, role in _MARKER_LENGTH_KEYS.items():
+            if out.get(key) is None:
+                continue
+            if px_sizes and role in ("dx", "dy", "r"):
+                continue
+            out[key] = _length_to_pixels(role, out[key], t)
+        return out
 
     # ------------------------------------------------------------------
     def set(self, **kwargs) -> None:
@@ -198,7 +288,8 @@ class MarkerGroup:
         ----------
         **kwargs : dict
             Properties to update (e.g., offsets, radius, facecolors).
-            Matplotlib-style names are translated to wire format.
+            Matplotlib-style names are translated to wire format.  Positions
+            and lengths are read in the group's :attr:`coords` frame.
         """
         if "transform" in kwargs and kwargs["transform"] not in _VALID_TRANSFORMS:
             raise ValueError(
@@ -208,6 +299,9 @@ class MarkerGroup:
         if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
             raise ValueError("clip_display must be a bool")
         _check_text_style(kwargs)
+        if "coords" in kwargs:
+            kwargs = dict(kwargs)
+            self._coords = _check_coords(kwargs.pop("coords"))
         self._data.update(kwargs)
         self._push_fn()
 
@@ -247,7 +341,7 @@ class MarkerGroup:
             Wire-format dict with type-specific structure, ready for JSON
             serialization and transmission to the JavaScript renderer.
         """
-        d = self._data
+        d = self._wire_data()
         t = self._type
 
         # Build the wire dict based on marker type
@@ -504,9 +598,12 @@ class MarkerTypeDict:
         Zero-arg callback to trigger re-render on mutations.
     """
 
-    def __init__(self, marker_type: str, push_fn):
+    def __init__(self, marker_type: str, push_fn, transform_fn=None):
         self._type = marker_type
         self._push_fn = push_fn
+        # Zero-arg callable returning the panel's ImageTransform (or None);
+        # used by groups created with coords="data".
+        self._transform_fn = transform_fn
         self._groups: dict[str, MarkerGroup] = {}
 
     # ------------------------------------------------------------------
@@ -664,7 +761,8 @@ class MarkerRegistry:
     # pcolormesh panels only support points (circles) and line segments
     _KNOWN_MESH = frozenset({"circles", "lines"})
 
-    def __init__(self, push_fn, allowed: frozenset | None = None):
+    def __init__(self, push_fn, allowed: frozenset | None = None,
+                 transform_fn=None):
         """
         Parameters
         ----------
@@ -673,9 +771,14 @@ class MarkerRegistry:
             Figure trait.
         allowed :
             Set of allowed type names.  ``None`` means all known types.
+        transform_fn :
+            Zero-arg callable returning the panel's
+            :class:`~anyplotlib.ImageTransform`, for groups created with
+            ``coords="data"``.  ``None`` (1-D panels) leaves them unconverted.
         """
         self._push_fn = push_fn
         self._allowed = allowed
+        self._transform_fn = transform_fn
         self._types: dict[str, MarkerTypeDict] = {}
 
     # ------------------------------------------------------------------
@@ -703,7 +806,8 @@ class MarkerRegistry:
                 f"Allowed types: {sorted(self._allowed)}"
             )
         if marker_type not in self._types:
-            self._types[marker_type] = MarkerTypeDict(marker_type, self._push_fn)
+            self._types[marker_type] = MarkerTypeDict(
+                marker_type, self._push_fn, self._transform_fn)
         return self._types[marker_type]
 
     def __contains__(self, marker_type: object) -> bool:
@@ -750,6 +854,8 @@ class MarkerRegistry:
             Group name. Auto-generated (``'circles_1'`` etc.) if ``None``.
         **kwargs : dict
             Matplotlib-style kwargs for the group (offsets, radius, colors, etc.).
+            ``coords="data"`` gives positions and lengths in calibrated axis
+            units on a 2-D image panel (see :attr:`MarkerGroup.coords`).
 
         Returns
         -------

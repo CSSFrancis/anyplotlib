@@ -65,7 +65,8 @@ class PlotMesh(Plot2D):
 
         # Restrict markers to circles + lines only
         self.markers = MarkerRegistry(self._push_markers,
-                                      allowed=MarkerRegistry._KNOWN_MESH)
+                                      allowed=MarkerRegistry._KNOWN_MESH,
+                                      transform_fn=lambda: self.transform)
 
     # ------------------------------------------------------------------
     # Data

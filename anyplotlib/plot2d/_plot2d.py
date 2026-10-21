@@ -391,7 +391,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         }
 
         self.markers = MarkerRegistry(self._push_markers,
-                                      allowed=MarkerRegistry._KNOWN_2D)
+                                      allowed=MarkerRegistry._KNOWN_2D,
+                                      transform_fn=lambda: self.transform)
         self.callbacks = CallbackRegistry()
         # Tile mode: anyplotlib itself reacts to view_changed (zoom/pan) → sample a
         # hi-res detail tile of the visible region from the backend. The consumer
@@ -2514,6 +2515,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
+                    coords: str = "pixel",
                     clip_display: bool = True,
                     size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add circle markers at (x, y) positions in data coordinates.
@@ -2521,6 +2523,11 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         ``size_units="px"`` pins *radius* to screen pixels so the circles keep
         their size through a zoom; the default ``"data"`` scales them with the
         data, as a shape drawn on the image does.
+
+        Positions (and data-sized lengths) are image pixels by default; pass
+        ``coords="data"`` to give them in the panel's calibrated axis units.
+        This applies to every ``add_*`` marker method on a 2-D panel — see
+        :attr:`MarkerGroup.coords <anyplotlib.markers.MarkerGroup.coords>`.
         """
         return self._add_marker("circles", name, offsets=offsets, radius=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -2528,7 +2535,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2538,6 +2545,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                    hover_edgecolors=None, hover_facecolors=None,
                    labels=None, label=None,
                    transform: str = "data",
+                   coords: str = "pixel",
                    clip_display: bool = True,
                    size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add point markers at (x, y) positions in data coordinates.
@@ -2552,7 +2560,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2589,12 +2597,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                    hover_edgecolors=None,
                    labels=None, label=None,
                    transform: str = "data",
+                   coords: str = "pixel",
                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def add_ellipses(self, offsets, widths, heights, name=None, *,
@@ -2603,6 +2612,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None,
                      transform: str = "data",
+                     coords: str = "pixel",
                      clip_display: bool = True,
                      size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("ellipses", name, offsets=offsets,
@@ -2612,7 +2622,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2621,12 +2631,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                   hover_edgecolors=None,
                   labels=None, label=None,
                   transform: str = "data",
+                  coords: str = "pixel",
                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         return self._add_marker("lines", name, segments=segments,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def add_rectangles(self, offsets, widths, heights, name=None, *,
@@ -2635,6 +2646,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                        hover_edgecolors=None, hover_facecolors=None,
                        labels=None, label=None,
                        transform: str = "data",
+                       coords: str = "pixel",
                        clip_display: bool = True,
                        size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("rectangles", name, offsets=offsets,
@@ -2644,7 +2656,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2654,6 +2666,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
+                    coords: str = "pixel",
                     clip_display: bool = True,
                     size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("squares", name, offsets=offsets,
@@ -2663,7 +2676,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2673,6 +2686,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None,
                      transform: str = "data",
+                     coords: str = "pixel",
                      clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         return self._add_marker("polygons", name, vertices_list=vertices_list,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -2680,7 +2694,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def add_texts(self, offsets, texts, name=None, *,
@@ -2689,6 +2703,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                   hover_edgecolors=None,
                   labels=None, label=None,
                   transform: str = "data",
+                  coords: str = "pixel",
                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add text annotations at image-pixel positions.
 
@@ -2726,6 +2741,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             Coordinate system for ``offsets``.  Default ``"data"``.
         clip_display : bool, optional
             Clip ``"display"``-transform texts to the image.  Default ``True``.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``transform="data"`` offsets: image pixels (default) or
+            the panel's calibrated axis units.
 
         Returns
         -------
@@ -2745,7 +2763,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 outline_width=outline_width,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def __repr__(self) -> str:
