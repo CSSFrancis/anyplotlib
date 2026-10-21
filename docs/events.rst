@@ -392,6 +392,11 @@ Figure lifecycle
     fig.close()          # runs the close handlers once
     fig.closed           # True
 
+``close()`` runs the figure's handlers and each panel's even if one raises
+(the first exception is re-raised afterwards), then hides the figure and
+closes its widget comm, so a closed figure can be garbage collected once
+nothing else references it.
+
 
 Moving widgets from Python without echo
 ---------------------------------------
