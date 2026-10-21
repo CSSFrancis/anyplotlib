@@ -1121,6 +1121,11 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         setting its CSS ``display`` to ``"none"``.  :attr:`closed` becomes
         ``True``.  Subsequent calls are no-ops.
 
+        Finally the underlying ipywidgets comm is closed (front-end views are
+        removed) and the widget is released, so a closed figure that is no
+        longer referenced can be garbage collected.  The Python objects stay
+        usable — plots can still be read, exported or saved.
+
         The figure-level handlers and each panel's handlers run independently:
         if one of them raises, the others still run, the figure is still
         marked closed and hidden, and the first exception is re-raised at the
@@ -1141,6 +1146,14 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                     first_exc = exc
         try:
             self.layout.display = "none"
+        except Exception:
+            pass
+        # Release the ipywidgets side: close the comm and drop the figure from
+        # ipywidgets' global instance registry.  Without this every figure
+        # ever created stays referenced by that registry (and its comm), so a
+        # closed figure and all its plot data can never be garbage collected.
+        try:
+            super().close()
         except Exception:
             pass
         if first_exc is not None:

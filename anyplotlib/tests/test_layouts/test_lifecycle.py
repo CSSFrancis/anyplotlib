@@ -92,6 +92,32 @@ class TestClose:
         assert fig.closed is True
         assert fig.layout.display == "none"
 
+    def test_closed_figure_is_collectable(self):
+        import gc
+        import weakref
+
+        def make():
+            fig, ax = apl.subplots(1, 1)
+            plot = ax.imshow(np.zeros((12, 25)))
+            plot.add_rectangle_widget(x=1, y=2, w=3, h=4)
+            plot.add_circles([[2.0, 3.0]], radius=1.0)
+            fig.close()
+            return weakref.ref(fig), weakref.ref(plot)
+
+        fig_ref, plot_ref = make()
+        gc.collect()
+        assert fig_ref() is None
+        assert plot_ref() is None
+
+    def test_closed_figure_objects_still_usable(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.imshow(np.zeros((12, 25)))
+        fig.close()
+        plot.set_data(np.ones((12, 25)))      # no comm, must not raise
+        plot.set_title("after close")
+        assert fig.get_axes() == [ax]
+        assert "after close" in fig.to_html()
+
     def test_raising_figure_handler_does_not_skip_panels(self):
         fig, axes = apl.subplots(1, 2)
         p0 = axes[0].imshow(np.zeros((12, 25)))
