@@ -400,7 +400,7 @@ class InsetAxes(Axes):
         plot._fig = self._fig
         self._plot = plot
         self._fig._register_inset(self, plot)
-        self._apply_pending_labels(plot)
+        self._apply_axes_labels(plot)
 
     def __repr__(self) -> str:
         kind = _plot_kind(self._plot) if self._plot else "empty"

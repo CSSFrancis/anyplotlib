@@ -213,12 +213,42 @@ class TestDeferredLabels:
         plot = ax.imshow(np.zeros((12, 25)))
         assert plot._state["x_label"] == "second"
 
-    def test_pending_applied_once(self):
+    def test_labels_survive_plot_replacement(self):
         fig, ax = apl.subplots(1, 1)
-        ax.set_title("once")
+        ax.set_xlabel("A")
         ax.imshow(np.zeros((12, 25)))
+        ax.set_title("T", fontsize=11)          # set while a plot is attached
+        replacement = ax.imshow(np.ones((12, 25)))
+        assert replacement._state["x_label"] == "A"
+        assert replacement._state["title"] == "T"
+        assert replacement._state["title_size"] == 11
+
+    def test_labels_survive_change_of_plot_type(self):
+        fig, ax = apl.subplots(1, 1)
+        ax.set_xlabel("energy (eV)")
+        ax.imshow(np.zeros((12, 25)))
+        line = ax.plot(np.arange(48.0))
+        assert line._state["units"] == "energy (eV)"     # Plot1D's x label
+
+    def test_plot_level_label_not_carried_over(self):
+        fig, ax = apl.subplots(1, 1)
+        first = ax.imshow(np.zeros((12, 25)))
+        first.set_xlabel("only on first")
         replacement = ax.imshow(np.zeros((12, 25)))
-        assert replacement._state["title"] == ""
+        assert replacement._state["x_label"] == ""
+
+    def test_grid_axes_before_attach(self):
+        fig, axes = apl.subplots(2, 3)
+        axes[1, 2].set_xlabel("x (nm)")
+        axes[1, 2].set_ylabel("y (nm)")
+        axes[1, 2].set_title("cell 1,2")
+        axes[0, 0].set_title("cell 0,0")
+        p12 = axes[1, 2].imshow(np.zeros((12, 25)))
+        p00 = axes[0, 0].plot(np.arange(48.0))
+        assert (p12._state["x_label"], p12._state["y_label"],
+                p12._state["title"]) == ("x (nm)", "y (nm)", "cell 1,2")
+        assert p00._state["title"] == "cell 0,0"
+        assert p00._state["units"] != "x (nm)"   # no cross-talk between cells
 
     def test_after_attach_delegates(self):
         fig, ax = apl.subplots(1, 1)
@@ -231,8 +261,15 @@ class TestDeferredLabels:
         fig, ax = apl.subplots(1, 1)
         inset = fig.add_inset(0.3, 0.3)
         inset.set_title("zoom")
+        inset.set_xlabel("x", fontsize=10)
+        inset.set_ylabel("y")
         plot = inset.imshow(np.zeros((12, 25)))
         assert plot._state["title"] == "zoom"
+        assert plot._state["x_label"] == "x"
+        assert plot._state["x_label_size"] == 10
+        assert plot._state["y_label"] == "y"
+        replacement = inset.plot(np.arange(48.0))
+        assert replacement._state["title"] == "zoom"
 
     def test_unsupported_after_attach_raises(self):
         from types import SimpleNamespace
@@ -247,5 +284,6 @@ class TestDeferredLabels:
         fig, ax = apl.subplots(1, 1)
         ax.set_ylabel("z")
         X, Y = np.meshgrid(np.arange(5.0), np.arange(4.0))
-        ax.plot_surface(X, Y, np.zeros((4, 5)))
-        assert ax._pending_labels == {}
+        ax.plot_surface(X, Y, np.zeros((4, 5)))      # no error
+        # Still kept on the axes for a later plot that can show it.
+        assert ax.imshow(np.zeros((12, 25)))._state["y_label"] == "z"

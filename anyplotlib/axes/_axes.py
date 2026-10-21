@@ -31,8 +31,11 @@ class Axes:
         self._fig  = fig
         self._spec = spec
         self._plot: "Plot1D | Plot2D | None" = None
-        # Labels set before a plot exists: {setter name: (label, fontsize)}.
-        self._pending_labels: dict = {}
+        # Labels set through Axes.set_xlabel / set_ylabel / set_title:
+        # {setter name: (label, fontsize)}.  Kept on the axes (not only on the
+        # plot) so they are applied to every plot attached later -- the first
+        # one, and any that replaces it via a second factory call.
+        self._labels: dict = {}
 
     # ------------------------------------------------------------------
     # Labels (work before a plot is attached)
@@ -40,10 +43,15 @@ class Axes:
     def set_xlabel(self, label: str, fontsize: float | None = None) -> None:
         """Set the x-axis label of this axes' plot.
 
-        Works before a plot is attached: the label is stored and applied when
-        :meth:`imshow`, :meth:`plot`, … attaches one, so layout code can label
-        an axes before deciding what to draw in it.  Once attached it is the
-        same as ``ax.primary_plot.set_xlabel(...)``.
+        Works before a plot is attached: the label is stored on the axes and
+        applied when :meth:`imshow`, :meth:`plot`, … attaches one, so layout
+        code can label an axes before deciding what to draw in it.  With a
+        plot attached it also sets ``ax.primary_plot.set_xlabel(...)``.
+
+        The axes keeps the label, so a plot that *replaces* the current one
+        (a second ``imshow``/``plot``/… call on this axes) gets it too.
+        Labels set directly on the plot object (``plot.set_xlabel``) belong
+        to that plot only and are not carried over.
 
         Parameters
         ----------
@@ -69,19 +77,17 @@ class Axes:
         self._set_label("set_title", label, fontsize)
 
     def _set_label(self, method: str, label: str, fontsize) -> None:
-        if self._plot is None:
-            self._pending_labels[method] = (label, fontsize)
-            return
-        fn = getattr(self._plot, method, None)
-        if fn is None:
-            raise AttributeError(
-                f"{type(self._plot).__name__} does not support {method}()")
-        fn(label, fontsize=fontsize)
+        if self._plot is not None:
+            fn = getattr(self._plot, method, None)
+            if fn is None:
+                raise AttributeError(
+                    f"{type(self._plot).__name__} does not support {method}()")
+            fn(label, fontsize=fontsize)
+        self._labels[method] = (label, fontsize)
 
-    def _apply_pending_labels(self, plot) -> None:
-        """Apply labels stored before *plot* was attached (once)."""
-        pending, self._pending_labels = self._pending_labels, {}
-        for method, (label, fontsize) in pending.items():
+    def _apply_axes_labels(self, plot) -> None:
+        """Apply the labels set through this axes to a newly attached *plot*."""
+        for method, (label, fontsize) in self._labels.items():
             fn = getattr(plot, method, None)
             if fn is not None:       # e.g. a 3-D plot has no title setter
                 fn(label, fontsize=fontsize)
@@ -662,7 +668,7 @@ class Axes:
         plot._fig = self._fig
         self._plot = plot
         self._fig._register_panel(self, plot)
-        self._apply_pending_labels(plot)
+        self._apply_axes_labels(plot)
 
     def __repr__(self) -> str:
         kind = type(self._plot).__name__ if self._plot else "empty"
