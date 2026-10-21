@@ -1121,23 +1121,30 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         setting its CSS ``display`` to ``"none"``.  :attr:`closed` becomes
         ``True``.  Subsequent calls are no-ops.
 
-        The figure is marked closed and hidden even if a handler raises; the
-        exception then propagates.
+        The figure-level handlers and each panel's handlers run independently:
+        if one of them raises, the others still run, the figure is still
+        marked closed and hidden, and the first exception is re-raised at the
+        end.
         """
         if self.closed:
             return
         self._closed = True
-        close_event = Event(event_type="close", source=self)
-        try:
-            self.callbacks.fire(close_event)
-            for plot in self._plots_map.values():
-                if hasattr(plot, "callbacks"):
-                    plot.callbacks.fire(Event(event_type="close", source=self))
-        finally:
+        registries = [self.callbacks]
+        registries += [plot.callbacks for plot in list(self._plots_map.values())
+                       if hasattr(plot, "callbacks")]
+        first_exc = None
+        for registry in registries:
             try:
-                self.layout.display = "none"
-            except Exception:
-                pass
+                registry.fire(Event(event_type="close", source=self))
+            except Exception as exc:   # keep closing; report the first error
+                if first_exc is None:
+                    first_exc = exc
+        try:
+            self.layout.display = "none"
+        except Exception:
+            pass
+        if first_exc is not None:
+            raise first_exc
 
     def __repr__(self) -> str:
         return (f"Figure({self._nrows}x{self._ncols}, "

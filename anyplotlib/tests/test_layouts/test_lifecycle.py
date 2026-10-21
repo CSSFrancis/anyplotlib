@@ -92,6 +92,47 @@ class TestClose:
         assert fig.closed is True
         assert fig.layout.display == "none"
 
+    def test_raising_figure_handler_does_not_skip_panels(self):
+        fig, axes = apl.subplots(1, 2)
+        p0 = axes[0].imshow(np.zeros((12, 25)))
+        p1 = axes[1].plot(np.zeros(48))
+        seen = []
+
+        def boom(event):
+            raise RuntimeError("figure boom")
+
+        fig.on_close(boom)
+        p0.add_event_handler(lambda e: seen.append("p0"), "close")
+        p1.add_event_handler(lambda e: seen.append("p1"), "close")
+        with pytest.raises(RuntimeError, match="figure boom"):
+            fig.close()
+        assert sorted(seen) == ["p0", "p1"]
+        assert fig.closed is True
+        assert fig.layout.display == "none"
+
+    def test_raising_panel_handler_does_not_skip_others(self):
+        fig, axes = apl.subplots(1, 2)
+        p0 = axes[0].imshow(np.zeros((12, 25)))
+        p1 = axes[1].plot(np.zeros(48))
+        seen = []
+
+        def boom(event):
+            raise ValueError("panel boom")
+
+        def boom2(event):
+            raise KeyError("second")
+
+        fig.on_close(lambda e: seen.append("fig"))
+        p0.add_event_handler(boom, "close")
+        p1.add_event_handler(lambda e: seen.append("p1"), "close")
+        p1.add_event_handler(boom2, "close")
+        # the first exception wins; a later failure does not replace it
+        with pytest.raises(ValueError, match="panel boom"):
+            fig.close()
+        assert seen == ["fig", "p1"]
+        assert fig.closed is True
+        assert fig.layout.display == "none"
+
 
 class TestDisplay:
     def test_initially_not_displayed(self):
