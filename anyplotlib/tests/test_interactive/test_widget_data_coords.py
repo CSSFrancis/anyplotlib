@@ -319,3 +319,25 @@ class TestRectangleFlippedAxes:
         # given x = left data edge; default data width keeps W/2 pixels
         assert self._px(w2)[2] == pytest.approx(W * 0.5)
         assert w2.x == pytest.approx(11.0)
+
+
+class TestRepr:
+    def test_data_widget_repr_in_data_units(self):
+        w = _plot().add_rectangle_widget(x=11.0, y=-2.0, w=2.0, h=1.0,
+                                         coords="data")
+        r = repr(w)
+        assert r.startswith("RectangleWidget(")
+        assert "x=11," in r and "y=-2," in r and "w=2," in r and "h=1," in r
+        assert "coords='data'" in r
+
+    def test_pixel_widget_repr_unchanged(self):
+        w = _plot().add_widget("crosshair", cx=2.0, cy=4.0)
+        r = repr(w)
+        assert "cx=2," in r and "cy=4," in r
+        assert "coords" not in r
+
+    def test_1d_widget_repr_has_no_frame_tag(self):
+        fig, ax = apl.subplots(1, 1)
+        plot = ax.plot(np.arange(48.0), axes=[np.linspace(0, 1, 48)])
+        r = repr(plot.add_vline_widget(0.25, coords="data"))
+        assert "x=0.25" in r and "coords" not in r

@@ -495,11 +495,16 @@ class Widget(_EventMixin):
     # ── repr ──────────────────────────────────────────────────────────
 
     def __repr__(self) -> str:
+        # Report geometry in the widget's own frame (what attribute reads
+        # return), not the pixels stored for the renderer.  Name the frame
+        # when it differs from the panel's native pixels.
         props = ", ".join(
             f"{k}={v:.4g}" if isinstance(v, float) else f"{k}={v!r}"
-            for k, v in self._data.items()
+            for k, v in self.to_dict().items()
             if k not in ("id", "type", "color")
         )
+        if self.coords == "data" and self._transform() is not None:
+            props += ", coords='data'"
         return f"{type(self).__name__}({props})"
 
     @property
