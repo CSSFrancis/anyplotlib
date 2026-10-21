@@ -380,7 +380,7 @@ class _PanelMixin:
     def _push(self) -> None:
         if self._fig is None:
             return
-        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        self._state["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
 
     # ── geometry / coordinate conversion ──────────────────────────────────

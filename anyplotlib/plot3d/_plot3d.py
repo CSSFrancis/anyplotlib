@@ -416,7 +416,7 @@ class Plot3D(_BasePlot):
     def _push(self) -> None:
         if self._fig is None:
             return
-        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        self._state["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
 
     def _push_fields(self, **fields) -> None:
@@ -493,7 +493,7 @@ class Plot3D(_BasePlot):
         # an in-progress plane drag in JS — the "snap-back" symptom.
         d = dict(self._state)
         if self._widgets:
-            d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+            d["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         return d
 
     # ------------------------------------------------------------------

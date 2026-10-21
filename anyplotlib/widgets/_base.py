@@ -9,6 +9,76 @@ import uuid as _uuid
 from typing import Any, Callable
 from anyplotlib.callbacks import CallbackRegistry, Event, _EventMixin
 
+#: Recognised coordinate frames for widget geometry.
+COORDS = ("pixel", "data")
+
+
+def _check_coords(coords: str) -> str:
+    if coords not in COORDS:
+        raise ValueError(f"coords must be one of {COORDS}, got {coords!r}")
+    return coords
+
+
+def _check_data_only(coords: str) -> str:
+    """Validate ``coords`` on a panel whose widgets are always in data units
+    (1-D lines, bars).  Accepting ``"data"`` lets code that also drives 2-D
+    panels pass ``coords="data"`` everywhere."""
+    if coords != "data":
+        raise ValueError(
+            f"widgets on this panel are positioned in data coordinates; "
+            f"coords must be 'data', got {coords!r}")
+    return coords
+
+
+def _convert_role(role: str, value, transform, to_pixels: bool):
+    """Convert one geometry value between data and pixel coordinates.
+
+    *role* says what the value is (see ``Widget._GEOMETRY``):
+
+    ``"x"`` / ``"y"``
+        A position along that axis.
+    ``"dx"`` / ``"dy"`` / ``"r"``
+        A non-negative length along x / y (``"r"`` is a radius, which on a
+        2-D panel follows the x calibration since circles are drawn round in
+        pixel space).
+    ``"u"`` / ``"v"``
+        A signed displacement along x / y (an arrow vector).
+    ``"points"``
+        A list of ``[x, y]`` pairs.
+    ``"strokes"``
+        A list of lists of ``[x, y]`` pairs.
+    ``"x_list"`` / ``"y_list"``
+        A list of positions along one axis (``snap_values``).
+    """
+    if value is None:
+        return None
+    t = transform
+    if role == "x":
+        return float(t.x_to_pixel(value) if to_pixels else t.pixel_to_x(value))
+    if role == "y":
+        return float(t.y_to_pixel(value) if to_pixels else t.pixel_to_y(value))
+    if role in ("dx", "r"):
+        return float(t.x_length_to_pixels(value) if to_pixels
+                     else t.pixels_to_x_length(value))
+    if role == "dy":
+        return float(t.y_length_to_pixels(value) if to_pixels
+                     else t.pixels_to_y_length(value))
+    if role == "u":
+        return float(value) / t.x_scale if to_pixels else float(value) * t.x_scale
+    if role == "v":
+        return float(value) / t.y_scale if to_pixels else float(value) * t.y_scale
+    if role == "points":
+        if len(value) == 0:
+            return []
+        fn = t.data_to_pixel if to_pixels else t.pixel_to_data
+        return fn([[float(a), float(b)] for a, b in value]).tolist()
+    if role == "strokes":
+        return [_convert_role("points", stroke, t, to_pixels) for stroke in value]
+    if role in ("x_list", "y_list"):
+        axis = role[0]
+        return [_convert_role(axis, v, t, to_pixels) for v in value]
+    raise ValueError(f"unknown geometry role {role!r}")  # pragma: no cover
+
 
 class Widget(_EventMixin):
     """Base class for all overlay widgets.
@@ -43,6 +113,15 @@ class Widget(_EventMixin):
     # plot; stays None for a widget constructed standalone (e.g. in a test).
     _plot = None
 
+    #: Coordinate frame for reads and writes; set by the plot's ``add_*``
+    #: method.  ``None`` means "the panel's native frame" (see :attr:`coords`).
+    _coords = None
+
+    #: ``{field: role}`` for every geometric field, used to convert between
+    #: data and pixel coordinates.  See ``_convert_role`` for the roles.
+    #: Subclasses override; non-geometric fields (colour, …) are left alone.
+    _GEOMETRY: dict = {}
+
     def __init__(self, wtype: str, push_fn: Callable, **kwargs):
         self._id: str = str(_uuid.uuid4())[:8]
         self._type: str = wtype
@@ -59,12 +138,13 @@ class Widget(_EventMixin):
         if key.startswith("_"):
             raise AttributeError(key)
         try:
-            return self._data[key]
+            value = self._data[key]
         except KeyError:
             raise AttributeError(
                 f"{type(self).__name__} has no attribute {key!r}. "
                 f"Available: {list(self._data)}"
             ) from None
+        return self._geom_out({key: value})[key]
 
     # ── attribute write — routes public assignments through set() ────
 
@@ -117,7 +197,9 @@ class Widget(_EventMixin):
             Whether to push update to renderer. Default True.
             Set to False internally to avoid echo loops.
         **kwargs : dict
-            Properties to update (e.g., x=100, y=50, radius=20).
+            Properties to update (e.g., x=100, y=50, radius=20).  Geometry is
+            read in the widget's :attr:`coords` frame, so a widget created
+            with ``coords="data"`` takes calibrated values here.
 
         Notes
         -----
@@ -130,13 +212,19 @@ class Widget(_EventMixin):
         """
         if notify is None:
             notify = _notify
+        self._set_pixels(_push, notify, **self._geom_in(kwargs))
+
+    def _set_pixels(self, _push: bool = True, notify: bool = True,
+                    **kwargs) -> None:
+        """:meth:`set` without coordinate conversion: *kwargs* are already
+        in the wire (image-pixel) frame."""
         self._data.update(kwargs)
         if _push:
             self._push_fn()
         if notify:
             self.callbacks.fire(Event("pointer_move", source=self))
 
-    def get(self, key: str, default=None):
+    def get(self, key: str, default=None, *, coords: str | None = None):
         """Get a widget property by name.
 
         Parameters
@@ -145,23 +233,106 @@ class Widget(_EventMixin):
             Property name.
         default : optional
             Default value if property not found.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame to report geometry in.  Defaults to the widget's
+            :attr:`coords`.  Ignored on panels without a pixel frame (1-D).
 
         Returns
         -------
         object
             The property value.
         """
-        return self._data.get(key, default)
+        if key not in self._data:
+            return default
+        return self._geom_out({key: self._data[key]}, coords)[key]
 
-    def to_dict(self) -> dict:
+    def to_dict(self, *, coords: str | None = None) -> dict:
         """Return a dict copy of the widget state.
+
+        Parameters
+        ----------
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame to report geometry in.  Defaults to the widget's
+            :attr:`coords`.
 
         Returns
         -------
         dict
             All widget properties including id and type.
         """
+        return self._geom_out(dict(self._data), coords)
+
+    def _wire_dict(self) -> dict:
+        """The widget state exactly as the renderer receives it (pixels)."""
         return dict(self._data)
+
+    # ── coordinate frames ─────────────────────────────────────────────────
+
+    def _transform(self):
+        """The owning panel's :class:`~anyplotlib.ImageTransform`, or ``None``
+        when the panel has no separate pixel frame (1-D, bar, 3-D, detached)."""
+        from anyplotlib.plot2d._transform import ImageTransform
+        t = getattr(self._plot, "transform", None)
+        return t if isinstance(t, ImageTransform) else None
+
+    @property
+    def coords(self) -> str:
+        """Coordinate frame of this widget's geometry: ``"pixel"`` or ``"data"``.
+
+        On a 2-D image panel, ``"pixel"`` (the default) means image pixels —
+        integer *i* is the centre of pixel *i*, row 0 at the top — and
+        ``"data"`` means the calibrated values of the panel's axes.  Attribute
+        reads (``widget.cx``), :meth:`get`, :meth:`to_dict` and :meth:`set`
+        all use this frame; drag callbacks therefore see calibrated values on
+        a ``"data"`` widget.  Choose it with ``coords=`` on the plot's
+        ``add_*_widget`` method, or change it with :meth:`set_coords`.
+
+        On 1-D and bar panels positions are always in data units, so this is
+        ``"data"``.
+
+        Notes
+        -----
+        The renderer always works in pixels, so a widget stores pixels and a
+        ``"data"`` widget converts on every read and write.  Re-calibrating
+        the panel (:meth:`~anyplotlib.Plot2D.set_extent`) therefore keeps the
+        widget on the same *pixels*; its data-coordinate values change.
+        """
+        if self._coords is not None:
+            return self._coords
+        return "pixel" if self._transform() is not None else "data"
+
+    def set_coords(self, coords: str) -> None:
+        """Switch the frame used for reading and writing geometry.
+
+        Does not move the widget.
+
+        Parameters
+        ----------
+        coords : ``"pixel"`` | ``"data"``
+        """
+        self._coords = _check_coords(coords)
+
+    def _geom_convert(self, fields: dict, to_pixels: bool,
+                      coords: str | None = None) -> dict:
+        frame = self.coords if coords is None else _check_coords(coords)
+        if frame != "data" or not self._GEOMETRY:
+            return fields
+        t = self._transform()
+        if t is None:
+            return fields
+        out = dict(fields)
+        for key, role in self._GEOMETRY.items():
+            if key in out:
+                out[key] = _convert_role(role, out[key], t, to_pixels)
+        return out
+
+    def _geom_in(self, fields: dict, coords: str | None = None) -> dict:
+        """User-frame *fields* → wire (pixel) frame."""
+        return self._geom_convert(fields, True, coords)
+
+    def _geom_out(self, fields: dict, coords: str | None = None) -> dict:
+        """Wire (pixel) *fields* → user frame."""
+        return self._geom_convert(fields, False, coords)
 
     # ── visibility ────────────────────────────────────────────────────────
 

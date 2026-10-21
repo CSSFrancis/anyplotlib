@@ -24,6 +24,7 @@ from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
 from anyplotlib.plot2d._transform import ImageTransform
 from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.widgets._base import _check_coords, _convert_role
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
@@ -987,7 +988,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         :meth:`resolve_pixel_tokens` on the returned dict (``Figure._push`` does
         this for the standalone trait when binary transport is off)."""
         d = dict(self._state)
-        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        d["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         d["markers"] = self.markers.to_wire_list()
         return d
 
@@ -2013,6 +2014,28 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
+    def _widget_args(self, cls, coords: str, **fields) -> dict:
+        """Convert the geometry in *fields* from *coords* to image pixels.
+
+        ``None`` values (meaning "use the default") pass through so the
+        defaults are still computed in pixel space.
+        """
+        if _check_coords(coords) != "data":
+            return fields
+        t = self.transform
+        geom = cls._GEOMETRY
+        return {k: (_convert_role(geom[k], v, t, True)
+                    if k in geom and v is not None else v)
+                for k, v in fields.items()}
+
+    def _register_widget(self, widget: Widget, coords: str) -> Widget:
+        """Attach *widget* to this panel in the given coordinate frame and push."""
+        widget._coords = coords
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
     def add_widget(self, kind: str, color: str = "#00e5ff", **kwargs) -> Widget:
         """Add an overlay widget by kind name.
 
@@ -2022,7 +2045,16 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         ``"brush"``, ``"vline"``, ``"hline"``.
 
         Every kind also accepts ``show_handles`` (default ``True``) to toggle
-        the grab-handle dots without changing hit-testing / draggability.
+        the grab-handle dots without changing hit-testing / draggability, and
+        ``coords`` (``"pixel"`` default, or ``"data"``) to give the geometry in
+        calibrated axis units — see :attr:`Widget.coords`::
+
+            x = 10.0 + 0.5 * np.arange(25)        # nm
+            y = -3.0 + 0.25 * np.arange(12)
+            plot = ax.imshow(img, axes=[x, y], units="nm")
+            roi = plot.add_widget("rectangle", x=11.0, y=-2.0, w=2.0, h=1.0,
+                                  coords="data")
+            roi.x            # 11.0 — reads come back in nm too
         ``vline`` / ``hline`` have no handles — the whole line is the grab
         target — so they ignore it, and neither does ``brush`` (a freehand
         stroke has no grab point).
@@ -2049,7 +2081,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                           r: float | None = None, color: str = "#00e5ff",
                           linewidth: float = 2,
                           show_handles: bool = True,
-                          lock_center: bool = False) -> CircleWidget:
+                          lock_center: bool = False,
+                          coords: str = "pixel") -> CircleWidget:
         """Add a draggable circle overlay.
 
         ``lock_center`` pins the centre and leaves only the radius draggable —
@@ -2058,6 +2091,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         centred on the DC term), so it cannot be nudged off and silently
         corrupt every radius measured from it.
         """
+        a = self._widget_args(CircleWidget, coords, cx=cx, cy=cy, r=r)
+        cx, cy, r = a["cx"], a["cy"], a["r"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CircleWidget(lambda: None,
                               cx=float(cx) if cx is not None else iw / 2,
@@ -2066,16 +2101,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                               color=color, linewidth=linewidth,
                               show_handles=show_handles,
                               lock_center=lock_center)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_rectangle_widget(self, x: float | None = None, y: float | None = None,
                               w: float | None = None, h: float | None = None,
                               color: str = "#00e5ff", linewidth: float = 2,
                               show_handles: bool = True,
-                              max_extent=None) -> RectangleWidget:
+                              max_extent=None,
+                              coords: str = "pixel") -> RectangleWidget:
         """Add a draggable rectangle overlay.
 
         ``max_extent`` caps the rectangle's size in the widget's coordinates —
@@ -2083,6 +2116,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         The rectangle then physically stops growing at the cap while dragging
         (the dragged corner pins, the opposite corner stays put).
         """
+        a = self._widget_args(RectangleWidget, coords, x=x, y=y, w=w, h=h)
+        x, y, w, h = a["x"], a["y"], a["w"], a["h"]
+        if coords == "data" and max_extent is not None:
+            mw, mh = (max_extent if isinstance(max_extent, (tuple, list))
+                      else (max_extent, max_extent))
+            t = self.transform
+            max_extent = (None if mw is None else t.x_length_to_pixels(mw),
+                          None if mh is None else t.y_length_to_pixels(mh))
         iw, ih = self._state["image_width"], self._state["image_height"]
         # The DEFAULT size honours max_extent. Without this a capped rectangle is
         # born at half the image and then snaps down to the cap on first use —
@@ -2106,16 +2147,18 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                  color=color, linewidth=linewidth,
                                  show_handles=show_handles,
                                  max_extent=max_extent)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_annular_widget(self, cx: float | None = None, cy: float | None = None,
                            r_outer: float | None = None, r_inner: float | None = None,
                            color: str = "#00e5ff", linewidth: float = 2,
-                           show_handles: bool = True) -> AnnularWidget:
+                           show_handles: bool = True,
+                           coords: str = "pixel") -> AnnularWidget:
         """Add a draggable annular (ring) overlay."""
+        a = self._widget_args(AnnularWidget, coords, cx=cx, cy=cy,
+                              r_outer=r_outer, r_inner=r_inner)
+        cx, cy = a["cx"], a["cy"]
+        r_outer, r_inner = a["r_outer"], a["r_inner"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = AnnularWidget(lambda: None,
                                cx=float(cx) if cx is not None else iw / 2,
@@ -2124,31 +2167,29 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                r_inner=float(r_inner) if r_inner is not None else iw * 0.1,
                                color=color, linewidth=linewidth,
                                show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_polygon_widget(self, vertices=None, color: str = "#00e5ff",
                            linewidth: float = 2,
-                           show_handles: bool = True) -> PolygonWidget:
+                           show_handles: bool = True,
+                           coords: str = "pixel") -> PolygonWidget:
         """Add a draggable polygon overlay."""
+        vertices = self._widget_args(PolygonWidget, coords,
+                                     vertices=vertices)["vertices"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         if vertices is None:
             vertices = [[iw * .25, ih * .25], [iw * .75, ih * .25],
                         [iw * .75, ih * .75], [iw * .25, ih * .75]]
         widget = PolygonWidget(lambda: None, vertices=vertices, color=color,
                                linewidth=linewidth, show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_brush_widget(self, radius: float | None = None,
                          color: str = "#00e5ff", colors=None,
                          class_id: int = 0, strokes=None, stroke_classes=None,
                          alpha: float = 0.6, active: bool = True,
-                         erase: bool = False) -> BrushWidget:
+                         erase: bool = False,
+                         coords: str = "pixel") -> BrushWidget:
         """Add a freehand paint-brush overlay for labelling regions.
 
         **Shift** + drag paints a stroke; a *bare* drag still pans the image and
@@ -2192,6 +2233,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         erase : bool, optional
             Armed drags remove stroke points within ``radius`` instead of
             painting.  Default ``False``.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``radius`` and ``strokes`` (and for later reads).
+            Default ``"pixel"``.
 
         Returns
         -------
@@ -2200,6 +2244,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             the painted geometry; :meth:`~anyplotlib.BrushWidget.clear_strokes`
             and :meth:`~anyplotlib.BrushWidget.strokes_for_class` manage it.
         """
+        a = self._widget_args(BrushWidget, coords, radius=radius,
+                              strokes=strokes)
+        radius, strokes = a["radius"], a["strokes"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         if radius is None:
             radius = max(2.0, min(iw, ih) * 0.02)
@@ -2208,50 +2255,50 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                              class_id=class_id, strokes=strokes,
                              stroke_classes=stroke_classes, alpha=alpha,
                              active=active, erase=erase)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_crosshair_widget(self, cx: float | None = None, cy: float | None = None,
                               color: str = "#00e5ff", linewidth: float = 2,
-                              show_handles: bool = True) -> CrosshairWidget:
+                              show_handles: bool = True,
+                              coords: str = "pixel") -> CrosshairWidget:
         """Add a draggable crosshair overlay."""
+        a = self._widget_args(CrosshairWidget, coords, cx=cx, cy=cy)
+        cx, cy = a["cx"], a["cy"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CrosshairWidget(lambda: None,
                                  cx=float(cx) if cx is not None else iw / 2,
                                  cy=float(cy) if cy is not None else ih / 2,
                                  color=color, linewidth=linewidth,
                                  show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_label_widget(self, x: float | None = None, y: float | None = None,
                           text: str = "Label", fontsize: int = 14,
                           color: str = "#00e5ff",
-                          show_handles: bool = True) -> LabelWidget:
+                          show_handles: bool = True,
+                          coords: str = "pixel") -> LabelWidget:
         """Add a draggable text label overlay."""
+        a = self._widget_args(LabelWidget, coords, x=x, y=y)
+        x, y = a["x"], a["y"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = LabelWidget(lambda: None,
                              x=float(x) if x is not None else iw * 0.1,
                              y=float(y) if y is not None else ih * 0.1,
                              text=str(text), fontsize=int(fontsize), color=color,
                              show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_arrow_widget(self, x: float | None = None, y: float | None = None,
                          u: float | None = None, v: float | None = None,
                          color: str = "#00e5ff", linewidth: float = 2,
-                         show_handles: bool = True) -> ArrowWidget:
+                         show_handles: bool = True,
+                         coords: str = "pixel") -> ArrowWidget:
         """Add a draggable arrow overlay (tail at ``(x, y)``, head at
         ``(x + u, y + v)``). Defaults place the tail at 25 %, 25 % of the image
         with a vector of 15 % of the image size, mirroring
         :meth:`add_label_widget`'s defaulting."""
+        a = self._widget_args(ArrowWidget, coords, x=x, y=y, u=u, v=v)
+        x, y, u, v = a["x"], a["y"], a["u"], a["v"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = ArrowWidget(lambda: None,
                              x=float(x) if x is not None else iw * 0.25,
@@ -2260,15 +2307,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                              v=float(v) if v is not None else ih * 0.15,
                              color=color, linewidth=linewidth,
                              show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_line_widget(self, x1: float | None = None, y1: float | None = None,
                         x2: float | None = None, y2: float | None = None,
                         color: str = "#00e5ff", linewidth: float = 2,
-                        show_handles: bool = True) -> LineWidget:
+                        show_handles: bool = True,
+                        coords: str = "pixel") -> LineWidget:
         """Add a draggable two-endpoint line segment overlay.
 
         A bare segment with a grab handle at each end — no arrowhead (see
@@ -2289,6 +2334,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             Stroke width in px.  Default 2.
         show_handles : bool, optional
             Draw the endpoint grab handles.  Default ``True``.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for the endpoints (and for later reads / ``set``).
+            Default ``"pixel"``; see :attr:`Widget.coords`.
 
         Returns
         -------
@@ -2296,6 +2344,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             Widget object.  ``widget.length`` gives the segment length in
             data coordinates.
         """
+        a = self._widget_args(LineWidget, coords, x1=x1, y1=y1, x2=x2, y2=y2)
+        x1, y1, x2, y2 = a["x1"], a["y1"], a["x2"], a["y2"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = LineWidget(lambda: None,
                             x1=float(x1) if x1 is not None else iw * 0.25,
@@ -2304,13 +2354,11 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                             y2=float(y2) if y2 is not None else ih * 0.75,
                             color=color, linewidth=linewidth,
                             show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_vline_widget(self, x: float | None = None, color: str = "#00e5ff",
-                         linewidth: float = 2) -> VLineWidget:
+                         linewidth: float = 2,
+                         coords: str = "pixel") -> VLineWidget:
         """Add a draggable full-height vertical line overlay.
 
         The line spans the whole panel and is grabbable anywhere along its
@@ -2325,22 +2373,24 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             CSS colour string.  Default ``"#00e5ff"``.
         linewidth : float, optional
             Stroke width in px.  Default 2.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``x`` (and for later reads / ``set``).  Default
+            ``"pixel"``; pass ``"data"`` to work in calibrated axis units.
 
         Returns
         -------
         VLineWidget
         """
+        x = self._widget_args(VLineWidget, coords, x=x)["x"]
         iw = self._state["image_width"]
         widget = VLineWidget(lambda: None,
                              x=float(x) if x is not None else iw / 2,
                              color=color, linewidth=linewidth)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_hline_widget(self, y: float | None = None, color: str = "#00e5ff",
-                         linewidth: float = 2) -> HLineWidget:
+                         linewidth: float = 2,
+                         coords: str = "pixel") -> HLineWidget:
         """Add a draggable full-width horizontal line overlay.
 
         The row counterpart of :meth:`add_vline_widget`; grabbable anywhere
@@ -2354,19 +2404,20 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             CSS colour string.  Default ``"#00e5ff"``.
         linewidth : float, optional
             Stroke width in px.  Default 2.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``y`` (and for later reads / ``set``).  Default
+            ``"pixel"``; pass ``"data"`` to work in calibrated axis units.
 
         Returns
         -------
         HLineWidget
         """
+        y = self._widget_args(HLineWidget, coords, y=y)["y"]
         ih = self._state["image_height"]
         widget = HLineWidget(lambda: None,
                              y=float(y) if y is not None else ih / 2,
                              color=color, linewidth=linewidth)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     # ------------------------------------------------------------------
     # View control

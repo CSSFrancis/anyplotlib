@@ -15,6 +15,7 @@ from typing import Callable
 from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
 from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.widgets._base import _check_data_only
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
@@ -394,7 +395,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                 np.asarray(ex2.pop("x_axis"), dtype=np.float64), np.float64)
             new_extra.append(ex2)
         d["extra_lines"]    = new_extra
-        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        d["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         markers = self.markers.to_wire_list()
         # Hoist any raster image bytes into the deduped geometry channel so a
         # view-only push never re-serialises the (potentially large) RGBA blob.
@@ -703,7 +704,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
     # ------------------------------------------------------------------
     def add_vline_widget(self, x: float, color: str = "#00e5ff",
                          linewidth: float = 2,
-                         snap_values=None) -> _VLineWidget:
+                         snap_values=None,
+                         coords: str = "data") -> _VLineWidget:
         """Add a draggable vertical-line overlay.
 
         Parameters
@@ -714,6 +716,10 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             CSS colour string.  Default ``"#00e5ff"``.
         linewidth : float, optional
             Line stroke width in px.  Default 2.
+        coords : ``"data"``, optional
+            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose
+            widgets default to image pixels; 1-D widgets are always in data
+            coordinates, so ``"data"`` is the only valid value.
 
         Returns
         -------
@@ -723,6 +729,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         """
         widget = _VLineWidget(lambda: None, x=float(x), color=color,
                               linewidth=linewidth, snap_values=snap_values)
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -730,7 +737,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
 
     def add_hline_widget(self, y: float, color: str = "#00e5ff",
                          linewidth: float = 2,
-                         snap_values=None) -> _HLineWidget:
+                         snap_values=None,
+                         coords: str = "data") -> _HLineWidget:
         """Add a draggable horizontal-line overlay.
 
         Parameters
@@ -741,6 +749,10 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             CSS colour string.  Default ``"#00e5ff"``.
         linewidth : float, optional
             Line stroke width in px.  Default 2.
+        coords : ``"data"``, optional
+            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose
+            widgets default to image pixels; 1-D widgets are always in data
+            coordinates, so ``"data"`` is the only valid value.
 
         Returns
         -------
@@ -750,6 +762,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         """
         widget = _HLineWidget(lambda: None, y=float(y), color=color,
                               linewidth=linewidth, snap_values=snap_values)
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -763,6 +776,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                          max_extent: float | None = None,
                          orientation: str = "horizontal",
                          snap_values=None,
+                         coords: str = "data",
                          _push: bool = True) -> _RangeWidget:
         """Add a draggable range overlay to this panel.
 
@@ -801,6 +815,10 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         _push : bool, optional
             Push state to JS immediately. Set to ``False`` when adding
             several widgets at once; call :meth:`_push` manually afterward.
+        coords : ``"data"``, optional
+            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose
+            widgets default to image pixels; 1-D widgets are always in data
+            coordinates, so ``"data"`` is the only valid value.
 
         Returns
         -------
@@ -813,6 +831,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                               linewidth=linewidth, max_extent=max_extent,
                               orientation=orientation,
                               snap_values=snap_values)
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
@@ -823,6 +842,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                          color: str = "#00e5ff",
                          show_crosshair: bool = True,
                          linewidth: float = 2,
+                         coords: str = "data",
                          _push: bool = True) -> _PointWidget:
         """Add a freely-draggable control point to this panel.
 
@@ -842,6 +862,10 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         _push : bool, optional
             Push state to JS immediately. Set to ``False`` when adding
             several widgets at once; call :meth:`_push` manually afterward.
+        coords : ``"data"``, optional
+            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose
+            widgets default to image pixels; 1-D widgets are always in data
+            coordinates, so ``"data"`` is the only valid value.
 
         Returns
         -------
@@ -849,6 +873,7 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
         """
         widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color,
                               show_crosshair=show_crosshair, linewidth=linewidth)
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
