@@ -22,6 +22,7 @@ _TILE_DEBUG = os.environ.get("APL_TILE_DEBUG") == "1"
 
 from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
+from anyplotlib.plot2d._transform import ImageTransform
 from anyplotlib.callbacks import CallbackRegistry
 from anyplotlib.widgets import (
     Widget,
@@ -1861,6 +1862,73 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     def get_xbound(self) -> tuple:
         xarr = np.asarray(self._state["x_axis"])
         return (float(xarr.min()), float(xarr.max()))
+
+    # ------------------------------------------------------------------
+    # Calibration / data <-> pixel coordinates
+    # ------------------------------------------------------------------
+    @property
+    def x_axis(self) -> np.ndarray:
+        """The calibrated x coordinates (read-only copy).
+
+        One value per pixel centre for an ``imshow`` panel, the ``N + 1`` cell
+        edges for a ``pcolormesh`` one.  Change it with :meth:`set_extent`.
+        """
+        return np.asarray(self._state["x_axis"], dtype=float)
+
+    @property
+    def y_axis(self) -> np.ndarray:
+        """The calibrated y coordinates, top row first (read-only copy).
+
+        Already ``origin``-applied: for ``origin="lower"`` this is the axis
+        passed in, reversed.  See :attr:`x_axis`.
+        """
+        return np.asarray(self._state["y_axis"], dtype=float)
+
+    @property
+    def transform(self) -> ImageTransform:
+        """Data ↔ image-pixel coordinate transform for this panel.
+
+        Widgets and ``transform="data"`` markers on a 2-D panel are placed in
+        image pixels (integer *i* = centre of pixel *i*); the transform maps
+        those to and from the calibrated axis values, handling offset,
+        non-unit scale, descending axes and non-uniform axes.  It reads the
+        current axes on every call, so it never goes stale.
+
+        Most code does not need it directly: pass ``coords="data"`` to the
+        ``add_*_widget`` and marker methods instead.
+
+        Returns
+        -------
+        ImageTransform
+        """
+        return ImageTransform(self)
+
+    def data_to_pixel(self, points):
+        """Convert calibrated ``(x, y)`` data points to image-pixel coordinates.
+
+        Shorthand for ``plot.transform.data_to_pixel(points)``.  Compose with
+        :meth:`data_to_display` (which takes image pixels on a 2-D panel) to
+        reach screen pixels.
+
+        Parameters
+        ----------
+        points : array-like
+            A single ``(x, y)`` pair or an ``(N, 2)`` sequence.
+
+        Returns
+        -------
+        numpy.ndarray
+            Same shape as *points*: ``(column, row)`` with integer *i* at the
+            centre of pixel *i*.
+        """
+        return self.transform.data_to_pixel(points)
+
+    def pixel_to_data(self, points):
+        """Convert image-pixel ``(column, row)`` points to calibrated data.
+
+        The inverse of :meth:`data_to_pixel`.
+        """
+        return self.transform.pixel_to_data(points)
 
     def set_extent(self, x_axis, y_axis, units: str | None = None) -> None:
         """Recalibrate the image axes to the given coordinate arrays.
