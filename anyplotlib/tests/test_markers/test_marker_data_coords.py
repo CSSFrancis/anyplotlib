@@ -162,3 +162,49 @@ class TestBehaviour:
         plot = ax.plot(np.arange(48.0))
         g = plot.markers.add("vlines", offsets=[3.0], coords="data")
         assert _wire(g)["offsets"] == [[3.0]]
+
+
+class TestEmptyGroups:
+    """Zero markers is valid in data coords, exactly as in pixel coords."""
+
+    CASES = [
+        ("circles", "offsets", {"radius": 1.0}, (0, 2)),
+        ("rectangles", "offsets", {"widths": 1.0, "heights": 0.5}, (0, 2)),
+        ("arrows", "offsets", {"U": 1.0, "V": 1.0}, (0, 2)),
+        ("lines", "segments", {}, (0, 2, 2)),
+        ("polygons", "vertices_list", {}, (0, 3, 2)),
+    ]
+    FULL = {"offsets": [[11.0, -2.0]],
+            "segments": [[[11.0, -2.0], [12.0, -1.0]]],
+            "vertices_list": [[[11.0, -2.0], [12.0, -1.0], [11.0, -1.0]]]}
+
+    @pytest.mark.parametrize("coords", ["pixel", "data"])
+    @pytest.mark.parametrize("mtype, key, kw, shape", CASES)
+    def test_create_empty(self, coords, mtype, key, kw, shape):
+        g = _plot().markers.add(mtype, coords=coords,
+                                **{key: np.zeros(shape)}, **kw)
+        assert _wire(g)[key] == []
+
+    @pytest.mark.parametrize("coords", ["pixel", "data"])
+    @pytest.mark.parametrize("mtype, key, kw, shape", CASES)
+    def test_update_to_empty_and_back(self, coords, mtype, key, kw, shape):
+        g = _plot().markers.add(mtype, coords=coords,
+                                **{key: self.FULL[key]}, **kw)
+        g.set(**{key: np.zeros(shape)})
+        assert _wire(g)[key] == []
+        g.set(**{key: self.FULL[key]})
+        assert len(_wire(g)[key]) == 1
+
+    def test_empty_list_offsets(self):
+        g = _plot().add_circles([[11.0, -2.0]], radius=1.0, coords="data")
+        g.set(offsets=[])
+        w = _wire(g)
+        assert w["offsets"] == [] and w["sizes"] == []
+
+    def test_review_repro_flipped_extent(self):
+        fig, ax = apl.subplots(1, 1)
+        p = ax.imshow(np.zeros((8, 8)), extent=(0., 16., 16., 0.))
+        g = p.markers.add("circles", offsets=[[4., 4.]], radius=1.,
+                          coords="data")
+        g.set(offsets=np.zeros((0, 2)))
+        assert g.to_wire("x")["offsets"] == []

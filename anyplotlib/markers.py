@@ -108,6 +108,12 @@ def _color(val):
 
 def _offsets_2d(offsets) -> list:
     arr = np.asarray(offsets, dtype=float)
+    if arr.size == 0:
+        # An empty group (zero markers) is valid and renders nothing.  Accept
+        # any empty input -- ``np.zeros((0, 2))`` but also ``[]``, which is what
+        # an empty (0, 2) array becomes after ``.tolist()`` (e.g. in the
+        # ``coords="data"`` -> pixel conversion).
+        return []
     if arr.ndim == 1 and arr.shape[0] == 2:
         arr = arr[np.newaxis, :]
     if arr.ndim != 2 or arr.shape[1] != 2:
