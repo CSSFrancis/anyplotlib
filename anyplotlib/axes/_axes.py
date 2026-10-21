@@ -33,6 +33,63 @@ class Axes:
         self._plot: "Plot1D | Plot2D | None" = None
 
     # ------------------------------------------------------------------
+    # Identity
+    # ------------------------------------------------------------------
+    @property
+    def figure(self) -> "Figure":
+        """The :class:`~anyplotlib.Figure` this axes belongs to (read-only).
+
+        Assigning the same figure again is allowed (a no-op) so code written
+        for matplotlib's settable ``ax.figure`` keeps working; assigning a
+        different one raises ``AttributeError``.
+        """
+        return self._fig
+
+    @figure.setter
+    def figure(self, fig) -> None:
+        if fig is not self._fig:
+            raise AttributeError(
+                "Axes.figure is read-only; an Axes cannot move to another figure")
+
+    @property
+    def primary_plot(self):
+        """The plot attached by the last factory call, or ``None`` if empty.
+
+        This is the object :meth:`imshow`, :meth:`plot`, :meth:`pcolormesh`,
+        … returned (``Plot2D``, ``Plot1D``, ``PlotMesh``, ``Plot3D``,
+        ``PlotBar``, ``PlotXY``).  Overlays drawn *on* it — extra lines from
+        :meth:`Plot1D.add_line <anyplotlib.Plot1D.add_line>`, markers,
+        widgets — belong to that plot and never replace it here.  Calling a
+        factory again replaces the plot.
+        """
+        return self._plot
+
+    @property
+    def plots(self) -> tuple:
+        """All plot panels attached to this axes, primary first.
+
+        An axes cell holds at most one plot panel today, so this is
+        ``(primary_plot,)`` or ``()``; iterate it rather than indexing ``[0]``
+        so code keeps working if overlay panels are added later.
+        """
+        return () if self._plot is None else (self._plot,)
+
+    @property
+    def image_plot(self):
+        """The primary plot if it is a 2-D image (``Plot2D`` / ``PlotMesh``),
+        else ``None``.
+
+        Handy for code that places image-space widgets or markers and must
+        not mistake a line or bar panel for an image.
+        """
+        return self._plot if isinstance(self._plot, Plot2D) else None
+
+    @property
+    def has_plot(self) -> bool:
+        """``True`` once a plot has been attached."""
+        return self._plot is not None
+
+    # ------------------------------------------------------------------
     def imshow(self, data,
                axes: list | None = None,
                units: str = "px",
