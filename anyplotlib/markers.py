@@ -52,13 +52,47 @@ __all__ = ["MarkerGroup", "MarkerTypeDict", "MarkerRegistry"]
 # ---------------------------------------------------------------------------
 
 def _broadcast(val, n: int) -> list:
-    """Broadcast scalar or sequence to a list of length *n*."""
+    """Broadcast scalar or sequence to a list of length *n*.
+
+    A length-1 sequence counts as a scalar, as it does in matplotlib (whose
+    collections cycle per-item properties), so ``radius=[5]`` sizes every
+    marker in the group rather than being rejected when ``n > 1``.
+    """
     arr = np.asarray(val, dtype=float)
     if arr.ndim == 0:
         return np.full(n, float(arr)).tolist()
     if arr.ndim == 1 and len(arr) == n:
         return arr.tolist()
-    raise ValueError(f"Expected scalar or length-{n} array, got shape {arr.shape}")
+    if arr.ndim == 1 and len(arr) == 1:
+        return np.full(n, float(arr[0])).tolist()
+    raise ValueError(
+        f"Expected scalar, length-1 or length-{n} array, got shape {arr.shape}")
+
+
+def _scalar(val):
+    """Unwrap a length-1 sequence to its element; return anything else as-is.
+
+    Used for group-wide (not per-marker) properties such as ``linewidths``,
+    ``alpha`` and ``fontsize``, so a matplotlib-style ``(1.5,)`` is accepted
+    where a bare ``1.5`` is expected.  Strings are never unwrapped.
+    """
+    if isinstance(val, str):
+        return val
+    if isinstance(val, np.ndarray):
+        return val.reshape(-1)[0].item() if val.size == 1 else val
+    if isinstance(val, (list, tuple)) and len(val) == 1:
+        return val[0]
+    return val
+
+
+def _color(val):
+    """A colour kwarg: unwrap a single-colour sequence (``["#f00"]``) to the
+    colour itself; longer sequences stay per-marker lists."""
+    if isinstance(val, np.ndarray):
+        val = val.tolist()
+    if isinstance(val, (list, tuple)) and len(val) == 1 and isinstance(val[0], str):
+        return val[0]
+    return val
 
 
 def _offsets_2d(offsets) -> list:
@@ -104,8 +138,8 @@ def _apply_fill_color(wire: dict, d: dict) -> None:
     """Apply facecolors/alpha fill fields to a wire dict if facecolors is set."""
     fc = d.get("facecolors")
     if fc is not None:
-        wire["fill_color"] = fc
-        wire["fill_alpha"] = float(d.get("alpha", 0.3))
+        wire["fill_color"] = _color(fc)
+        wire["fill_alpha"] = float(_scalar(d.get("alpha", 0.3)))
 
 
 def _offsets_1d(offsets) -> list:
@@ -226,8 +260,8 @@ class MarkerGroup:
                 "type":      "circles",
                 "offsets":   offsets,
                 "sizes":     _broadcast(d.get("radius", 5), n),
-                "color":     d.get("edgecolors", "#ff0000"),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", "#ff0000")),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -241,8 +275,8 @@ class MarkerGroup:
                 "offsets":   offsets,
                 "U":         _broadcast(d.get("U", 0), n),
                 "V":         _broadcast(d.get("V", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "ellipses":
@@ -256,8 +290,8 @@ class MarkerGroup:
                 "widths":    _broadcast(d.get("widths", 10), n),
                 "heights":   _broadcast(d.get("heights", 10), n),
                 "angles":    _broadcast(d.get("angles", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -275,8 +309,8 @@ class MarkerGroup:
                 "name":      self._name,
                 "type":      "lines",
                 "segments":  segs.tolist(),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "rectangles":
@@ -290,8 +324,8 @@ class MarkerGroup:
                 "widths":    _broadcast(d.get("widths", 10), n),
                 "heights":   _broadcast(d.get("heights", 10), n),
                 "angles":    _broadcast(d.get("angles", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -305,8 +339,8 @@ class MarkerGroup:
                 "offsets":   offsets,
                 "widths":    _broadcast(d.get("widths", 10), n),
                 "angles":    _broadcast(d.get("angles", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -322,8 +356,8 @@ class MarkerGroup:
                 "name":         self._name,
                 "type":         "polygons",
                 "vertices_list": vlist,
-                "color":        d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth":    float(d.get("linewidths", 1.5)),
+                "color":        _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth":    float(_scalar(d.get("linewidths", 1.5))),
             }
             cp = d.get("clip_path")
             if cp is not None:
@@ -341,14 +375,14 @@ class MarkerGroup:
                 "type":     "texts",
                 "offsets":  offsets,
                 "texts":    texts,
-                "color":    d.get("color", d.get("edgecolors", "#ff0000")),
-                "fontsize": int(d.get("fontsize", 12)),
+                "color":    _color(d.get("color", d.get("edgecolors", "#ff0000"))),
+                "fontsize": int(_scalar(d.get("fontsize", 12))),
                 "fontweight": d.get("fontweight", "normal"),
             }
             # Outline (a halo stroked under the fill): only on the wire when set.
             if d.get("outline_color") is not None:
                 wire["outline_color"] = d["outline_color"]
-                wire["outline_width"] = float(d.get("outline_width", 3.0))
+                wire["outline_width"] = float(_scalar(d.get("outline_width", 3.0)))
 
         # ── 1D-only types ───────────────────────────────────────────────────
         elif t == "points":
@@ -360,8 +394,8 @@ class MarkerGroup:
                 "type":      "points",
                 "offsets":   offsets,
                 "sizes":     _broadcast(d.get("sizes", 5), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -372,8 +406,8 @@ class MarkerGroup:
                 "name":      self._name,
                 "type":      "vlines",
                 "offsets":   [[row[0]] for row in offsets],
-                "color":     d.get("color", d.get("edgecolors", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("color", d.get("edgecolors", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "hlines":
@@ -383,8 +417,8 @@ class MarkerGroup:
                 "name":      self._name,
                 "type":      "hlines",
                 "offsets":   [[row[0]] for row in offsets],
-                "color":     d.get("color", d.get("edgecolors", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("color", d.get("edgecolors", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "raster":
@@ -444,10 +478,10 @@ class MarkerGroup:
         # facecolors → hover_facecolors.  Any CSS colour string is accepted.
         hec = d.get("hover_edgecolors")
         if hec is not None:
-            wire["hover_color"] = str(hec)
+            wire["hover_color"] = str(_color(hec))
         hfc = d.get("hover_facecolors")
         if hfc is not None:
-            wire["hover_facecolor"] = str(hfc)
+            wire["hover_facecolor"] = str(_color(hfc))
 
         return wire
 
