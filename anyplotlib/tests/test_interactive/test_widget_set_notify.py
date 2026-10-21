@@ -80,6 +80,44 @@ class TestSetNotify:
         assert widget.x == 10
 
 
+class TestPublicNotify:
+    """``notify=`` is the public spelling; ``_notify=`` remains an alias."""
+
+    def test_notify_false_suppresses_callbacks(self):
+        _, _, widget = _plot_with_widget()
+        seen = []
+        widget.add_event_handler(lambda e: seen.append(e), "pointer_move")
+        widget.set(x=5, notify=False)
+        assert seen == []
+        assert widget.x == 5
+
+    def test_notify_true_fires(self):
+        _, _, widget = _plot_with_widget()
+        seen = []
+        widget.add_event_handler(lambda e: seen.append(e), "pointer_move")
+        widget.set(x=5, notify=True)
+        assert len(seen) == 1
+
+    def test_notify_wins_over_alias(self):
+        _, _, widget = _plot_with_widget()
+        seen = []
+        widget.add_event_handler(lambda e: seen.append(e), "pointer_move")
+        widget.set(x=5, notify=False, _notify=True)
+        assert seen == []
+
+    def test_notify_false_still_pushes(self):
+        _, _, widget = _plot_with_widget()
+        pushed = []
+        widget._push_fn = lambda: pushed.append(True)
+        widget.set(x=9, notify=False)
+        assert pushed == [True]
+
+    def test_notify_not_stored_as_state(self):
+        _, _, widget = _plot_with_widget()
+        widget.set(x=3, notify=False)
+        assert "notify" not in widget.to_dict()
+
+
 class TestWidgetRemove:
     def test_remove_detaches_from_plot(self):
         _, plot, widget = _plot_with_widget()

@@ -84,43 +84,50 @@ class Widget(_EventMixin):
 
     # ── set / get ─────────────────────────────────────────────────────
 
-    def set(self, _push: bool = True, _notify: bool = True, **kwargs) -> None:
+    def set(self, _push: bool = True, _notify: bool = True, *,
+            notify: bool | None = None, **kwargs) -> None:
         """Update properties and send targeted update to JavaScript.
 
         Parameters
         ----------
-        _push : bool, optional
-            Whether to push update to renderer. Default True.
-            Set to False internally to avoid echo loops.
-        _notify : bool, optional
-            Whether to fire ``pointer_move`` callbacks.  Default True.
+        notify : bool, optional
+            Whether to fire ``pointer_move`` callbacks.  Default ``True``.
 
             A ``set()`` from Python is otherwise indistinguishable from a user
             drag: handlers that react to the widget moving will run, and one
             that writes back to the widget feeds into itself.  Pass
-            ``_notify=False`` when *you* are the one moving the widget and the
+            ``notify=False`` when *you* are the one moving the widget and the
             handlers are only meant to hear about user input::
 
-                widget.set(_notify=False, x=new_x)
+                widget.set(x=new_x, notify=False)
 
             This supersedes wrapping the call in :meth:`pause_events`, which
             suppresses every event type for the duration rather than just this
             update's echo.
+        _notify : bool, optional
+            Older spelling of ``notify``, kept as an alias.  ``notify`` wins
+            when both are given.
+        _push : bool, optional
+            Whether to push update to renderer. Default True.
+            Set to False internally to avoid echo loops.
         **kwargs : dict
             Properties to update (e.g., x=100, y=50, radius=20).
 
         Notes
         -----
-        Both flags are spelled with a leading underscore so they can never
-        collide with a widget property of the same name in ``**kwargs``.
+        No widget has a property called ``notify``, so the keyword cannot
+        collide with one; ``_notify`` / ``_push`` keep their leading
+        underscore for the same reason.
 
         Updates are sent as targeted widget updates, not full panel re-renders.
         This is more efficient for frequent updates during dragging.
         """
+        if notify is None:
+            notify = _notify
         self._data.update(kwargs)
         if _push:
             self._push_fn()
-        if _notify:
+        if notify:
             self.callbacks.fire(Event("pointer_move", source=self))
 
     def get(self, key: str, default=None):
