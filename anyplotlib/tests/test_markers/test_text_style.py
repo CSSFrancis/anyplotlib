@@ -209,3 +209,28 @@ class TestRendering:
         assert _count(halo, RED) > 100, "no outline pixels on the canvas"
         # The fill sits on top of the stroke: the glyph body keeps its colour.
         assert _count(halo, BLUE) > 0.5 * _count(base, BLUE)
+
+    @pytest.mark.parametrize("make", [_plot2d, _plot1d])
+    def test_bold_survives_tex_typesetting(self, take_screenshot, make):
+        # _drawTex rebuilds the canvas font, so the marker's weight must be
+        # handed to it or math labels silently drop back to normal.
+        ink = {}
+        for weight in ("normal", "bold"):
+            fig, plot = make()
+            plot.add_texts(texts=[r"$\mathrm{WWWW}$"], color="#ff0000",
+                           fontsize=28, fontweight=weight, **_PLACE[make])
+            ink[weight] = _count(take_screenshot(fig), RED)
+        assert ink["normal"] > 0, "the label did not render"
+        assert ink["bold"] > ink["normal"] * 1.15, ink
+
+    @pytest.mark.parametrize("text", ["$$$", "Cost $5"])
+    def test_odd_dollars_stay_literal(self, take_screenshot, text):
+        # Like matplotlib, an odd dollar count is plain text: the dollars
+        # are drawn, not swallowed as math delimiters.
+        ink = {}
+        for s in (text, text.replace("$", "")):
+            fig, plot = _plot2d()
+            plot.add_texts(texts=[s], color="#ff0000", fontsize=28,
+                           **_PLACE[_plot2d])
+            ink[s] = _count(take_screenshot(fig), RED)
+        assert ink[text] > ink[text.replace("$", "")] + 20, ink
