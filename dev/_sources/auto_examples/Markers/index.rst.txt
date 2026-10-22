@@ -221,6 +221,23 @@ A collection of short examples using markers
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="All text in anyplotlib — titles, axis labels, the colorbar label and texts markers — is drawn straight onto the canvas.  Sizes are CSS pixels, and strings may use a small TeX subset inside $...$.">
+
+.. only:: html
+
+  .. image:: /auto_examples/Markers/images/thumb/sphx_glr_plot_fonts_and_labels_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/Markers/plot_fonts_and_labels`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Fonts and Labels</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -243,4 +260,5 @@ A collection of short examples using markers
    /auto_examples/Markers/plot_squares
    /auto_examples/Markers/plot_polygons
    /auto_examples/Markers/plot_transform_markers
+   /auto_examples/Markers/plot_fonts_and_labels
 
