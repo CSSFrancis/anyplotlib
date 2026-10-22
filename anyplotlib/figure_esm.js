@@ -137,19 +137,27 @@ function render({ model, el, onResize, onReadout }) {
     ctx.strokeStyle=ms.outline_color; ctx.lineWidth=ow; ctx.lineJoin='round';
     return true;
   }
+  // matplotlib's cbook.is_math_text: a string is math only when it holds an
+  // even, non-zero number of unescaped dollars, so "Cost $5" stays literal.
+  function _isMathText(s) {
+    const n = (s.match(/\$/g) || []).length - (s.match(/\\\$/g) || []).length;
+    return n > 0 && n % 2 === 0;
+  }
   function _drawMarkerText(ctx, ms, s, x, y, outlined) {
     // Anchor at the offset point first, then rotate about it (matplotlib
     // semantics: a positive rotation reads counter-clockwise).  Canvas's
     // y axis points down, so the sign flips.
     const rot = ms.rotation || 0;
     if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(-rot); x = 0; y = 0; }
-    if (s.indexOf('$') === -1) {
+    if (!_isMathText(s)) {
       if(outlined) ctx.strokeText(s, x, y);
       ctx.fillText(s, x, y);
     } else {
       // $...$ markup typesets through the axis-label TeX engine instead
-      // of showing raw dollars.
-      _drawTex(ctx, s, x, y, ms.fontsize||12, {align: ms.halign||'left', outlined});
+      // of showing raw dollars.  _drawTex rebuilds ctx.font, so the
+      // weight has to travel with it.
+      _drawTex(ctx, s, x, y, ms.fontsize||12,
+               {align: ms.halign||'left', weight: ms.fontweight||'', outlined});
     }
     if (rot) ctx.restore();
   }
