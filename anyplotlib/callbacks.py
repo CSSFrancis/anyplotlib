@@ -146,6 +146,23 @@ class Event:
         return "Event(" + ", ".join(parts) + ")"
 
 
+def _fn_key(fn: Callable):
+    """Return a stable identity key for a handler.
+
+    A bound method is a *new* object on every attribute access
+    (``obj.method is obj.method`` is ``False``), so ``id(fn)`` cannot identify
+    it: ``remove_handler(obj.method)`` would never find the handler registered
+    with ``add_event_handler(obj.method, ...)``.  Key bound methods by their
+    ``(instance, function)`` pair instead, which is what makes two accesses
+    compare equal.
+    """
+    self_ = getattr(fn, "__self__", None)
+    func = getattr(fn, "__func__", None)
+    if self_ is not None and func is not None:
+        return (id(self_), id(func))
+    return id(fn)
+
+
 class CallbackRegistry:
     """Per-object handler store.
 
@@ -163,8 +180,8 @@ class CallbackRegistry:
         self._next_cid: int = 1
         # {cid: set[str]} — which types this cid is registered under
         self._cid_map: dict[int, set[str]] = {}
-        # {id(fn): set[int]} — which cids this fn owns
-        self._fn_map: dict[int, set[int]] = defaultdict(set)
+        # {_fn_key(fn): set[int]} — which cids this fn owns
+        self._fn_map: dict = defaultdict(set)
         # pause/hold state (populated in Task 3)
         self._pause_counts: dict[str, int] = {}
         self._hold_counts: dict[str, int] = {}
@@ -184,7 +201,7 @@ class CallbackRegistry:
         self._handlers[event_type].append((order, cid, fn))
         self._handlers[event_type].sort(key=lambda t: t[0])
         self._cid_map.setdefault(cid, set()).add(event_type)
-        self._fn_map[id(fn)].add(cid)
+        self._fn_map[_fn_key(fn)].add(cid)
         return cid
 
     def disconnect(self, cid: int) -> None:
@@ -199,7 +216,7 @@ class CallbackRegistry:
 
     def disconnect_fn(self, fn: Callable, *types: str) -> None:
         """Remove fn from the given types (all types if none given)."""
-        for cid in list(self._fn_map.get(id(fn), set())):
+        for cid in list(self._fn_map.get(_fn_key(fn), set())):
             cid_types = self._cid_map.get(cid, set())
             if not types or cid_types & set(types):
                 self.disconnect(cid)
@@ -300,10 +317,17 @@ class _EventMixin:
             @plot.add_event_handler("pointer_settled", ms=400, delta=5)
             def on_settle(event): ...
 
+        Any callable works as a handler, including bound methods::
+
+            plot.add_event_handler(self.on_move, "pointer_move")
+            plot.remove_handler(self.on_move)   # finds the same registration
+
         Parameters
         ----------
         fn_or_type : callable or str
-            Handler function (direct call) or first event type string (decorator).
+            Handler (direct call) or first event type string (decorator).
+            Plain functions, lambdas, bound methods and other callables are
+            all accepted.
         *args : str
             Remaining event type strings.
         order : float
@@ -338,7 +362,13 @@ class _EventMixin:
             self.callbacks.connect(event_type, fn, order=order)
         if has_settled:
             self._configure_pointer_settled(ms, delta)
-        fn._event_types = getattr(fn, "_event_types", set()) | set(types)
+        try:
+            fn._event_types = getattr(fn, "_event_types", set()) | set(types)
+        except AttributeError:
+            # Bound methods (and builtins / functools.partial with __slots__)
+            # refuse new attributes.  The stamp is informational only, so a
+            # handler that cannot carry it is still registered.
+            pass
         return fn
 
     def remove_handler(self, cid_or_fn, *types: str) -> None:

@@ -24,6 +24,13 @@ Axes, Plots & Layout
    Plot3D
    PlotBar
 
+.. rubric:: Coordinates
+
+.. autosummary::
+   :nosignatures:
+
+   ImageTransform
+
 .. rubric:: Layout
 
 .. autosummary::
@@ -65,6 +72,12 @@ Axes, Plots & Layout
    :no-index:
 
 .. autoclass:: anyplotlib.plot2d.PlotMesh
+   :members:
+   :show-inheritance:
+   :member-order: bysource
+   :no-index:
+
+.. autoclass:: anyplotlib.plot2d.ImageTransform
    :members:
    :show-inheritance:
    :member-order: bysource

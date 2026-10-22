@@ -48,6 +48,9 @@ class VLineWidget(Widget):
     linewidth : float, optional
         Line stroke width in px. Default 2.
     """
+    #: Geometry roles, used when the line sits on a 2-D image panel.
+    _GEOMETRY = {"x": "x", "snap_values": "x_list"}
+
     def __init__(self, push_fn, *, x, color="#00e5ff", linewidth=2,
                  snap_values=None):
         super().__init__("vline", push_fn, x=float(x), color=color,
@@ -72,6 +75,9 @@ class HLineWidget(Widget):
     linewidth : float, optional
         Line stroke width in px. Default 2.
     """
+    #: Geometry roles, used when the line sits on a 2-D image panel.
+    _GEOMETRY = {"y": "y", "snap_values": "y_list"}
+
     def __init__(self, push_fn, *, y, color="#00e5ff", linewidth=2,
                  snap_values=None):
         super().__init__("hline", push_fn, y=float(y), color=color,

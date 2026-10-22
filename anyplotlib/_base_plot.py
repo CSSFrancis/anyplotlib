@@ -380,7 +380,7 @@ class _PanelMixin:
     def _push(self) -> None:
         if self._fig is None:
             return
-        self._state["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        self._state["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         self._fig._push(self._id)
 
     # ── geometry / coordinate conversion ──────────────────────────────────
@@ -632,7 +632,7 @@ class _PanelMixin:
             wid = wid.id
         if wid not in self._widgets:
             raise KeyError(wid)
-        del self._widgets[wid]
+        self._widgets.pop(wid)._plot = None   # Widget.plot -> None once detached
         self._push()
 
     def list_widgets(self) -> list:
@@ -641,6 +641,8 @@ class _PanelMixin:
 
     def clear_widgets(self) -> None:
         """Remove all interactive overlay widgets from this panel."""
+        for w in self._widgets.values():
+            w._plot = None
         self._widgets.clear()
         self._push()
 

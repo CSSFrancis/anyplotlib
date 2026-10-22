@@ -31,6 +31,123 @@ class Axes:
         self._fig  = fig
         self._spec = spec
         self._plot: "Plot1D | Plot2D | None" = None
+        # Labels set through Axes.set_xlabel / set_ylabel / set_title:
+        # {setter name: (label, fontsize)}.  Kept on the axes (not only on the
+        # plot) so they are applied to every plot attached later -- the first
+        # one, and any that replaces it via a second factory call.
+        self._labels: dict = {}
+
+    # ------------------------------------------------------------------
+    # Labels (work before a plot is attached)
+    # ------------------------------------------------------------------
+    def set_xlabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the x-axis label of this axes' plot.
+
+        Works before a plot is attached: the label is stored on the axes and
+        applied when :meth:`imshow`, :meth:`plot`, … attaches one, so layout
+        code can label an axes before deciding what to draw in it.  With a
+        plot attached it also sets ``ax.primary_plot.set_xlabel(...)``.
+
+        The axes keeps the label, so a plot that *replaces* the current one
+        (a second ``imshow``/``plot``/… call on this axes) gets it too.
+        Labels set directly on the plot object (``plot.set_xlabel``) belong
+        to that plot only and are not carried over.
+
+        Parameters
+        ----------
+        label : str
+            Label text (mini-TeX allowed, see :meth:`Plot2D.set_xlabel
+            <anyplotlib.Plot2D.set_xlabel>`).
+        fontsize : float, optional
+            Font size in CSS pixels.
+
+        Raises
+        ------
+        AttributeError
+            If the attached plot type has no x label.
+        """
+        self._set_label("set_xlabel", label, fontsize)
+
+    def set_ylabel(self, label: str, fontsize: float | None = None) -> None:
+        """Set the y-axis label.  Same deferral rules as :meth:`set_xlabel`."""
+        self._set_label("set_ylabel", label, fontsize)
+
+    def set_title(self, label: str, fontsize: float | None = None) -> None:
+        """Set the panel title.  Same deferral rules as :meth:`set_xlabel`."""
+        self._set_label("set_title", label, fontsize)
+
+    def _set_label(self, method: str, label: str, fontsize) -> None:
+        if self._plot is not None:
+            fn = getattr(self._plot, method, None)
+            if fn is None:
+                raise AttributeError(
+                    f"{type(self._plot).__name__} does not support {method}()")
+            fn(label, fontsize=fontsize)
+        self._labels[method] = (label, fontsize)
+
+    def _apply_axes_labels(self, plot) -> None:
+        """Apply the labels set through this axes to a newly attached *plot*."""
+        for method, (label, fontsize) in self._labels.items():
+            fn = getattr(plot, method, None)
+            if fn is not None:       # e.g. a 3-D plot has no title setter
+                fn(label, fontsize=fontsize)
+
+    # ------------------------------------------------------------------
+    # Identity
+    # ------------------------------------------------------------------
+    @property
+    def figure(self) -> "Figure":
+        """The :class:`~anyplotlib.Figure` this axes belongs to (read-only).
+
+        Assigning the same figure again is allowed (a no-op) so code written
+        for matplotlib's settable ``ax.figure`` keeps working; assigning a
+        different one raises ``AttributeError``.
+        """
+        return self._fig
+
+    @figure.setter
+    def figure(self, fig) -> None:
+        if fig is not self._fig:
+            raise AttributeError(
+                "Axes.figure is read-only; an Axes cannot move to another figure")
+
+    @property
+    def primary_plot(self):
+        """The plot attached by the last factory call, or ``None`` if empty.
+
+        This is the object :meth:`imshow`, :meth:`plot`, :meth:`pcolormesh`,
+        … returned (``Plot2D``, ``Plot1D``, ``PlotMesh``, ``Plot3D``,
+        ``PlotBar``, ``PlotXY``).  Overlays drawn *on* it — extra lines from
+        :meth:`Plot1D.add_line <anyplotlib.Plot1D.add_line>`, markers,
+        widgets — belong to that plot and never replace it here.  Calling a
+        factory again replaces the plot.
+        """
+        return self._plot
+
+    @property
+    def plots(self) -> tuple:
+        """All plot panels attached to this axes, primary first.
+
+        An axes cell holds at most one plot panel today, so this is
+        ``(primary_plot,)`` or ``()``; iterate it rather than indexing ``[0]``
+        so code keeps working if overlay panels are added later.
+        """
+        return () if self._plot is None else (self._plot,)
+
+    @property
+    def image_plot(self):
+        """The primary plot if it is a 2-D image (``Plot2D`` / ``PlotMesh``),
+        else ``None``.
+
+        Handy for code that places image-space widgets or markers and must
+        not mistake a line or bar panel for an image.
+        """
+        return self._plot if isinstance(self._plot, Plot2D) else None
+
+    @property
+    def has_plot(self) -> bool:
+        """``True`` once a plot has been attached."""
+        return self._plot is not None
 
     # ------------------------------------------------------------------
     def imshow(self, data,
@@ -45,7 +162,8 @@ class Axes:
                integration_method: str = "mean",
                overview_method: str = "mean",
                tile_backend=None,
-               probe_exact: bool = True) -> "Plot2D":
+               probe_exact: bool = True,
+               extent=None) -> "Plot2D":
         """Attach a 2-D image to this axes cell.
 
         Parameters
@@ -77,11 +195,19 @@ class Axes:
             cursor dwells on a pixel (default ``True``).  Without it the value
             comes from the 8-bit codes the renderer holds, which quantises wide
             dtypes to ``range/255``.  See :meth:`~anyplotlib.Plot2D.set_value_probe`.
+        extent : (left, right, bottom, top), optional
+            Calibrate from the image's outer edges, as matplotlib's
+            ``imshow(extent=...)`` does, instead of per-pixel ``axes``.
+            ``top`` is the y coordinate of the top of the displayed image
+            whatever the ``origin``.  Mutually exclusive with ``axes``.  See
+            :meth:`~anyplotlib.Plot2D.set_extent_edges`.
 
         Returns
         -------
         Plot2D
         """
+        if extent is not None and axes is not None:
+            raise ValueError("pass either axes or extent, not both")
         x_axis = axes[0] if axes and len(axes) > 0 else None
         y_axis = axes[1] if axes and len(axes) > 1 else None
         plot = Plot2D(data, x_axis=x_axis, y_axis=y_axis, units=units,
@@ -89,6 +215,10 @@ class Axes:
                       tile=tile, integration_method=integration_method,
                       overview_method=overview_method,
                       tile_backend=tile_backend, probe_exact=probe_exact)
+        if extent is not None:
+            left, right, bottom, top = (float(v) for v in extent)
+            # Not attached yet, so this only updates state (no push).
+            plot.set_extent_edges(left, right, bottom, top)
         self._attach(plot)
         return plot
 
@@ -538,6 +668,7 @@ class Axes:
         plot._fig = self._fig
         self._plot = plot
         self._fig._register_panel(self, plot)
+        self._apply_axes_labels(plot)
 
     def __repr__(self) -> str:
         kind = type(self._plot).__name__ if self._plot else "empty"

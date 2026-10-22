@@ -11,6 +11,7 @@ from typing import Callable
 
 from anyplotlib._base_plot import _BasePlot, _PanelMixin
 from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.widgets._base import _check_data_only
 from anyplotlib.widgets import (
     Widget,
     VLineWidget as _VLineWidget,
@@ -218,7 +219,7 @@ class PlotBar(_BasePlot, _PanelMixin):
 
     def to_state_dict(self) -> dict:
         d = dict(self._state)
-        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        d["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         return d
 
     # ------------------------------------------------------------------
@@ -384,17 +385,21 @@ class PlotBar(_BasePlot, _PanelMixin):
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
-    def add_vline_widget(self, x: float, color: str = "#00e5ff") -> _VLineWidget:
+    def add_vline_widget(self, x: float, color: str = "#00e5ff",
+                         coords: str = "data") -> _VLineWidget:
         """Add a draggable vertical line at data position *x*."""
         widget = _VLineWidget(lambda: None, x=float(x), color=color)
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
         return widget
 
-    def add_hline_widget(self, y: float, color: str = "#00e5ff") -> _HLineWidget:
+    def add_hline_widget(self, y: float, color: str = "#00e5ff",
+                         coords: str = "data") -> _HLineWidget:
         """Add a draggable horizontal line at value-axis position *y*."""
         widget = _HLineWidget(lambda: None, y=float(y), color=color)
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         self._push()
@@ -404,10 +409,12 @@ class PlotBar(_BasePlot, _PanelMixin):
                          color: str = "#00e5ff",
                          style: str = "band",
                          y: float = 0.0,
+                         coords: str = "data",
                          _push: bool = True) -> _RangeWidget:
         """Add a draggable range overlay. See :meth:`Plot1D.add_range_widget` for full docs."""
         widget = _RangeWidget(lambda: None, x0=float(x0), x1=float(x1),
                               color=color, style=style, y=float(y))
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:
@@ -417,10 +424,12 @@ class PlotBar(_BasePlot, _PanelMixin):
     def add_point_widget(self, x: float, y: float,
                          color: str = "#00e5ff",
                          show_crosshair: bool = True,
+                         coords: str = "data",
                          _push: bool = True) -> _PointWidget:
         """Add a freely-draggable control point to this panel."""
         widget = _PointWidget(lambda: None, x=float(x), y=float(y), color=color,
                               show_crosshair=show_crosshair)
+        widget._coords = _check_data_only(coords)
         widget._push_fn = self._make_widget_push_fn(widget)
         self._widgets[widget.id] = widget
         if _push:

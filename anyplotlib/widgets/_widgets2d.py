@@ -22,9 +22,13 @@ class RectangleWidget(Widget):
     push_fn : Callable
         Update callback.
     x, y : float
-        Top-left corner position in pixel/data coordinates.
+        Corner with the smallest coordinates: the top-left pixel corner in
+        pixel coordinates; in data coordinates (``coords="data"``) the corner
+        with the smallest data x and y, wherever that is on screen (top-right
+        on a descending x axis, bottom-left with ``origin="lower"``).
     w, h : float
-        Width and height in pixel/data coordinates.
+        Width and height, non-negative, in pixel/data coordinates.  The
+        rectangle spans ``[x, x + w] × [y, y + h]`` in its frame.
     color : str, optional
         CSS colour for the rectangle outline. Default ``"#00e5ff"``.
     linewidth : float, optional
@@ -41,6 +45,12 @@ class RectangleWidget(Widget):
         Use this when the rectangle's area costs real work downstream — e.g. an
         integrating ROI whose size is a number of frames to read.
     """
+    _GEOMETRY = {"x": "x", "y": "y", "w": "dx", "h": "dy", "max_w": "dx", "max_h": "dy"}
+    # In data coords (x, y) is the corner with the smallest data x and y and
+    # (w, h) are positive data lengths; converted as spans so a descending
+    # axis or origin="lower" anchors the right pixel corner.
+    _SPANS = (("x", "w"), ("y", "h"))
+
     def __init__(self, push_fn, *, x, y, w, h, color="#00e5ff",
                  linewidth=2, show_handles=True, max_extent=None):
         if max_extent is None:
@@ -90,6 +100,8 @@ class CircleWidget(Widget):
         that can only ever be wrong, and one nudged off-centre silently
         corrupts every radius measured from it.
     """
+    _GEOMETRY = {"cx": "x", "cy": "y", "r": "r"}
+
     def __init__(self, push_fn, *, cx, cy, r, color="#00e5ff",
                  linewidth=2, show_handles=True, lock_center=False):
         super().__init__("circle", push_fn,
@@ -123,6 +135,8 @@ class AnnularWidget(Widget):
     ValueError
         If r_inner >= r_outer.
     """
+    _GEOMETRY = {"cx": "x", "cy": "y", "r_outer": "r", "r_inner": "r"}
+
     def __init__(self, push_fn, *, cx, cy, r_outer, r_inner, color="#00e5ff",
                  linewidth=2, show_handles=True):
         if r_inner >= r_outer:
@@ -158,6 +172,8 @@ class LineWidget(Widget):
     show_handles : bool, optional
         Draw the endpoint grab handles. Default ``True``.
     """
+    _GEOMETRY = {"x1": "x", "y1": "y", "x2": "x", "y2": "y"}
+
     def __init__(self, push_fn, *, x1, y1, x2, y2, color="#00e5ff",
                  linewidth=2, show_handles=True):
         super().__init__("line", push_fn,
@@ -190,6 +206,8 @@ class CrosshairWidget(Widget):
     show_handles : bool, optional
         Draw the centre dot handle. Default ``True``.
     """
+    _GEOMETRY = {"cx": "x", "cy": "y"}
+
     def __init__(self, push_fn, *, cx, cy, color="#00e5ff", linewidth=2,
                  show_handles=True):
         super().__init__("crosshair", push_fn,
@@ -220,6 +238,8 @@ class PolygonWidget(Widget):
     ValueError
         If fewer than 3 vertices provided.
     """
+    _GEOMETRY = {"vertices": "points"}
+
     def __init__(self, push_fn, *, vertices, color="#00e5ff", linewidth=2,
                  show_handles=True):
         verts = [[float(x), float(y)] for x, y in vertices]
@@ -248,6 +268,8 @@ class LabelWidget(Widget):
     show_handles : bool, optional
         Draw the anchor grab handle. Default ``True``.
     """
+    _GEOMETRY = {"x": "x", "y": "y"}
+
     def __init__(self, push_fn, *, x, y, text="Label", fontsize=14,
                  color="#00e5ff", show_handles=True):
         super().__init__("label", push_fn,
@@ -375,6 +397,8 @@ class BrushWidget(Widget):
     PolygonWidget : Closed straight-edged region with draggable vertices.
     """
 
+    _GEOMETRY = {"radius": "r", "strokes": "strokes"}
+
     def __init__(self, push_fn, *, radius=8.0, color="#00e5ff", colors=None,
                  class_id=0, strokes=None, stroke_classes=None, alpha=0.6,
                  active=True, erase=False):
@@ -429,7 +453,8 @@ class BrushWidget(Widget):
         Parameters
         ----------
         points : list of tuple
-            ``[(x, y), ...]`` in image-pixel coordinates; at least one point.
+            ``[(x, y), ...]`` in the widget's :attr:`~Widget.coords` frame
+            (image pixels by default); at least one point.
         class_id : int, optional
             Label class for this stroke.  Defaults to the widget's current
             ``class_id``.
@@ -443,8 +468,10 @@ class BrushWidget(Widget):
         cid = int(self._data["class_id"] if class_id is None else class_id)
         if cid < 0:
             raise ValueError(f"class_id must be >= 0, got {cid}")
-        self.set(strokes=self._data["strokes"] + [stroke],
-                 stroke_classes=self._data["stroke_classes"] + [cid])
+        # The stored strokes are already in pixels; convert only the new one.
+        (stroke,) = self._geom_in({"strokes": [stroke]})["strokes"]
+        self._set_pixels(strokes=self._data["strokes"] + [stroke],
+                         stroke_classes=self._data["stroke_classes"] + [cid])
 
     def set_strokes(self, strokes, classes=None) -> None:
         """Replace every stroke (and its class) in one push.
@@ -492,8 +519,9 @@ class BrushWidget(Widget):
             ``[[[x, y], ...], ...]`` — the matching strokes, in paint order.
         """
         cid = int(class_id)
-        return [s for s, c in zip(self._data["strokes"],
-                                  self._data["stroke_classes"]) if c == cid]
+        picked = [s for s, c in zip(self._data["strokes"],
+                                    self._data["stroke_classes"]) if c == cid]
+        return self._geom_out({"strokes": picked})["strokes"]
 
 
 class ArrowWidget(Widget):
@@ -518,6 +546,8 @@ class ArrowWidget(Widget):
     show_handles : bool, optional
         Draw the tail/head grab handles. Default ``True``.
     """
+    _GEOMETRY = {"x": "x", "y": "y", "u": "u", "v": "v"}
+
     def __init__(self, push_fn, *, x, y, u, v, color="#00e5ff",
                  linewidth=2, show_handles=True):
         super().__init__("arrow", push_fn,

@@ -39,6 +39,17 @@ or a sequence of colours parallel to the markers — matplotlib's
 
 A sequence shorter than the group cycles, as matplotlib's colour cycle does.
 This works for every marker type on both 1-D and 2-D panels.
+
+Calibrated coordinates on 2-D panels
+------------------------------------
+On a :class:`~anyplotlib.Plot2D`, ``transform="data"`` positions are image
+pixels.  Pass ``coords="data"`` to give positions *and* lengths in the panel's
+calibrated axis units instead; the group keeps those values and converts them
+through :attr:`Plot2D.transform <anyplotlib.Plot2D.transform>` each time it is
+serialised, so it stays put when the panel is re-calibrated::
+
+    plot = ax.imshow(img, axes=[x_nm, y_nm], units="nm")
+    plot.add_circles([[11.0, -2.0]], radius=0.5, coords="data")
 """
 
 from __future__ import annotations
@@ -52,17 +63,57 @@ __all__ = ["MarkerGroup", "MarkerTypeDict", "MarkerRegistry"]
 # ---------------------------------------------------------------------------
 
 def _broadcast(val, n: int) -> list:
-    """Broadcast scalar or sequence to a list of length *n*."""
+    """Broadcast scalar or sequence to a list of length *n*.
+
+    A length-1 sequence counts as a scalar, as it does in matplotlib (whose
+    collections cycle per-item properties), so ``radius=[5]`` sizes every
+    marker in the group rather than being rejected when ``n > 1``.
+    """
     arr = np.asarray(val, dtype=float)
     if arr.ndim == 0:
         return np.full(n, float(arr)).tolist()
     if arr.ndim == 1 and len(arr) == n:
         return arr.tolist()
-    raise ValueError(f"Expected scalar or length-{n} array, got shape {arr.shape}")
+    if arr.ndim == 1 and len(arr) == 1:
+        return np.full(n, float(arr[0])).tolist()
+    raise ValueError(
+        f"Expected scalar, length-1 or length-{n} array, got shape {arr.shape}")
+
+
+def _scalar(val):
+    """Unwrap a length-1 sequence to its element; return anything else as-is.
+
+    Used for group-wide (not per-marker) properties such as ``linewidths``,
+    ``alpha`` and ``fontsize``, so a matplotlib-style ``(1.5,)`` is accepted
+    where a bare ``1.5`` is expected.  Strings are never unwrapped.
+    """
+    if isinstance(val, str):
+        return val
+    if isinstance(val, np.ndarray):
+        return val.reshape(-1)[0].item() if val.size == 1 else val
+    if isinstance(val, (list, tuple)) and len(val) == 1:
+        return val[0]
+    return val
+
+
+def _color(val):
+    """A colour kwarg: unwrap a single-colour sequence (``["#f00"]``) to the
+    colour itself; longer sequences stay per-marker lists."""
+    if isinstance(val, np.ndarray):
+        val = val.tolist()
+    if isinstance(val, (list, tuple)) and len(val) == 1 and isinstance(val[0], str):
+        return val[0]
+    return val
 
 
 def _offsets_2d(offsets) -> list:
     arr = np.asarray(offsets, dtype=float)
+    if arr.size == 0:
+        # An empty group (zero markers) is valid and renders nothing.  Accept
+        # any empty input -- ``np.zeros((0, 2))`` but also ``[]``, which is what
+        # an empty (0, 2) array becomes after ``.tolist()`` (e.g. in the
+        # ``coords="data"`` -> pixel conversion).
+        return []
     if arr.ndim == 1 and arr.shape[0] == 2:
         arr = arr[np.newaxis, :]
     if arr.ndim != 2 or arr.shape[1] != 2:
@@ -123,8 +174,8 @@ def _apply_fill_color(wire: dict, d: dict) -> None:
     """Apply facecolors/alpha fill fields to a wire dict if facecolors is set."""
     fc = d.get("facecolors")
     if fc is not None:
-        wire["fill_color"] = fc
-        wire["fill_alpha"] = float(d.get("alpha", 0.3))
+        wire["fill_color"] = _color(fc)
+        wire["fill_alpha"] = float(_scalar(d.get("alpha", 0.3)))
 
 
 def _offsets_1d(offsets) -> list:
@@ -137,6 +188,45 @@ def _offsets_1d(offsets) -> list:
     if arr.ndim == 2 and arr.shape[1] in (1, 2):
         return arr.tolist()
     raise ValueError("offsets must be 1-D or shape (N,1)/(N,2)")
+
+
+_VALID_COORDS = ("pixel", "data")
+
+#: ``{key: role}`` for marker geometry, used by ``coords="data"``.
+#: Lengths (``dx``/``dy``/``r``) are skipped for ``size_units="px"`` groups,
+#: whose sizes are screen pixels rather than data.
+_MARKER_POINT_KEYS = {"offsets": 1, "clip_path": 1, "segments": 2,
+                      "vertices_list": 2}
+_MARKER_LENGTH_KEYS = {"widths": "dx", "heights": "dy", "radius": "r",
+                       "U": "u", "V": "v"}
+
+
+def _check_coords(coords) -> str:
+    if coords not in _VALID_COORDS:
+        raise ValueError(f"coords must be one of {_VALID_COORDS}, got {coords!r}")
+    return coords
+
+
+def _points_to_pixels(value, depth: int, transform):
+    """Convert ``[x, y]`` pairs nested *depth* list levels deep."""
+    if depth == 1:
+        arr = np.asarray(value, dtype=float)
+        if arr.size == 0:
+            return arr.reshape(0, 2).tolist()
+        single = arr.ndim == 1
+        out = transform.data_to_pixel(arr.reshape(-1, 2))
+        return out[0].tolist() if single else out.tolist()
+    return [_points_to_pixels(item, depth - 1, transform) for item in value]
+
+
+def _length_to_pixels(role: str, value, transform):
+    if role == "u":
+        return (np.asarray(value, dtype=float) / transform.x_scale).tolist()
+    if role == "v":
+        return (np.asarray(value, dtype=float) / transform.y_scale).tolist()
+    arr = np.asarray(value, dtype=float)
+    fn = transform.y_length_to_pixels if role == "dy" else transform.x_length_to_pixels
+    return np.asarray(fn(arr)).tolist()
 
 
 # ---------------------------------------------------------------------------
@@ -171,9 +261,68 @@ class MarkerGroup:
         if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
             raise ValueError("clip_display must be a bool")
         _check_text_style(kwargs)
-        self._data: dict = dict(kwargs)
+        kwargs = dict(kwargs)
+        self._coords: str = _check_coords(kwargs.pop("coords", "pixel"))
+        self._data: dict = kwargs
         self._push_fn = push_fn
         self._parent: "MarkerTypeDict | None" = parent
+
+    @property
+    def marker_type(self) -> str:
+        """The marker type, e.g. ``"circles"`` or ``"lines"`` (read-only)."""
+        return self._type
+
+    @property
+    def name(self) -> str:
+        """The group's key in ``plot.markers[marker_type]`` (read-only)."""
+        return self._name
+
+    def get(self, key: str, default=None):
+        """Return a property as last given to the constructor or :meth:`set`
+        (matplotlib-style name, in the group's :attr:`coords` frame).
+
+        >>> group.get("edgecolors")            # doctest: +SKIP
+        '#ff0000'
+        """
+        return self._data.get(key, default)
+
+    @property
+    def coords(self) -> str:
+        """Frame of this group's positions and lengths: ``"pixel"`` or ``"data"``.
+
+        Only meaningful for ``transform="data"`` groups on a 2-D image panel,
+        where ``"pixel"`` (the default) means image pixels and ``"data"`` the
+        calibrated axis values.  On 1-D panels both mean data coordinates.
+        Change it with ``group.set(coords=...)``; the stored values are then
+        reinterpreted, not converted.
+        """
+        return self._coords
+
+    def _transform(self):
+        parent = self._parent
+        fn = getattr(parent, "_transform_fn", None) if parent is not None else None
+        return fn() if fn is not None else None
+
+    def _wire_data(self) -> dict:
+        """``_data`` with ``coords="data"`` geometry converted to image pixels."""
+        d = self._data
+        if self._coords != "data" or d.get("transform", "data") != "data":
+            return d
+        t = self._transform()
+        if t is None:
+            return d
+        out = dict(d)
+        for key, depth in _MARKER_POINT_KEYS.items():
+            if out.get(key) is not None:
+                out[key] = _points_to_pixels(out[key], depth, t)
+        px_sizes = d.get("size_units") == "px"
+        for key, role in _MARKER_LENGTH_KEYS.items():
+            if out.get(key) is None:
+                continue
+            if px_sizes and role in ("dx", "dy", "r"):
+                continue
+            out[key] = _length_to_pixels(role, out[key], t)
+        return out
 
     # ------------------------------------------------------------------
     def set(self, **kwargs) -> None:
@@ -183,7 +332,8 @@ class MarkerGroup:
         ----------
         **kwargs : dict
             Properties to update (e.g., offsets, radius, facecolors).
-            Matplotlib-style names are translated to wire format.
+            Matplotlib-style names are translated to wire format.  Positions
+            and lengths are read in the group's :attr:`coords` frame.
         """
         if "transform" in kwargs and kwargs["transform"] not in _VALID_TRANSFORMS:
             raise ValueError(
@@ -193,6 +343,9 @@ class MarkerGroup:
         if "clip_display" in kwargs and not isinstance(kwargs["clip_display"], bool):
             raise ValueError("clip_display must be a bool")
         _check_text_style(kwargs)
+        if "coords" in kwargs:
+            kwargs = dict(kwargs)
+            self._coords = _check_coords(kwargs.pop("coords"))
         self._data.update(kwargs)
         self._push_fn()
 
@@ -232,7 +385,7 @@ class MarkerGroup:
             Wire-format dict with type-specific structure, ready for JSON
             serialization and transmission to the JavaScript renderer.
         """
-        d = self._data
+        d = self._wire_data()
         t = self._type
 
         # Build the wire dict based on marker type
@@ -245,8 +398,8 @@ class MarkerGroup:
                 "type":      "circles",
                 "offsets":   offsets,
                 "sizes":     _broadcast(d.get("radius", 5), n),
-                "color":     d.get("edgecolors", "#ff0000"),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", "#ff0000")),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -260,8 +413,8 @@ class MarkerGroup:
                 "offsets":   offsets,
                 "U":         _broadcast(d.get("U", 0), n),
                 "V":         _broadcast(d.get("V", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "ellipses":
@@ -275,8 +428,8 @@ class MarkerGroup:
                 "widths":    _broadcast(d.get("widths", 10), n),
                 "heights":   _broadcast(d.get("heights", 10), n),
                 "angles":    _broadcast(d.get("angles", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -294,8 +447,8 @@ class MarkerGroup:
                 "name":      self._name,
                 "type":      "lines",
                 "segments":  segs.tolist(),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "rectangles":
@@ -309,8 +462,8 @@ class MarkerGroup:
                 "widths":    _broadcast(d.get("widths", 10), n),
                 "heights":   _broadcast(d.get("heights", 10), n),
                 "angles":    _broadcast(d.get("angles", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -324,8 +477,8 @@ class MarkerGroup:
                 "offsets":   offsets,
                 "widths":    _broadcast(d.get("widths", 10), n),
                 "angles":    _broadcast(d.get("angles", 0), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -341,8 +494,8 @@ class MarkerGroup:
                 "name":         self._name,
                 "type":         "polygons",
                 "vertices_list": vlist,
-                "color":        d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth":    float(d.get("linewidths", 1.5)),
+                "color":        _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth":    float(_scalar(d.get("linewidths", 1.5))),
             }
             cp = d.get("clip_path")
             if cp is not None:
@@ -360,8 +513,8 @@ class MarkerGroup:
                 "type":     "texts",
                 "offsets":  offsets,
                 "texts":    texts,
-                "color":    d.get("color", d.get("edgecolors", "#ff0000")),
-                "fontsize": int(d.get("fontsize", 12)),
+                "color":    _color(d.get("color", d.get("edgecolors", "#ff0000"))),
+                "fontsize": int(_scalar(d.get("fontsize", 12))),
                 "fontweight": d.get("fontweight", "normal"),
                 # Rotation is in radians (matplotlib's TextCollection
                 # convention): the text anchors at the offset point, then
@@ -373,7 +526,7 @@ class MarkerGroup:
             # Outline (a halo stroked under the fill): only on the wire when set.
             if d.get("outline_color") is not None:
                 wire["outline_color"] = d["outline_color"]
-                wire["outline_width"] = float(d.get("outline_width", 3.0))
+                wire["outline_width"] = float(_scalar(d.get("outline_width", 3.0)))
 
         # ── 1D-only types ───────────────────────────────────────────────────
         elif t == "points":
@@ -385,8 +538,8 @@ class MarkerGroup:
                 "type":      "points",
                 "offsets":   offsets,
                 "sizes":     _broadcast(d.get("sizes", 5), n),
-                "color":     d.get("edgecolors", d.get("color", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("edgecolors", d.get("color", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
             _apply_fill_color(wire, d)
 
@@ -397,8 +550,8 @@ class MarkerGroup:
                 "name":      self._name,
                 "type":      "vlines",
                 "offsets":   [[row[0]] for row in offsets],
-                "color":     d.get("color", d.get("edgecolors", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("color", d.get("edgecolors", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "hlines":
@@ -408,8 +561,8 @@ class MarkerGroup:
                 "name":      self._name,
                 "type":      "hlines",
                 "offsets":   [[row[0]] for row in offsets],
-                "color":     d.get("color", d.get("edgecolors", "#ff0000")),
-                "linewidth": float(d.get("linewidths", 1.5)),
+                "color":     _color(d.get("color", d.get("edgecolors", "#ff0000"))),
+                "linewidth": float(_scalar(d.get("linewidths", 1.5))),
             }
 
         elif t == "raster":
@@ -469,10 +622,10 @@ class MarkerGroup:
         # facecolors → hover_facecolors.  Any CSS colour string is accepted.
         hec = d.get("hover_edgecolors")
         if hec is not None:
-            wire["hover_color"] = str(hec)
+            wire["hover_color"] = str(_color(hec))
         hfc = d.get("hover_facecolors")
         if hfc is not None:
-            wire["hover_facecolor"] = str(hfc)
+            wire["hover_facecolor"] = str(_color(hfc))
 
         return wire
 
@@ -495,9 +648,12 @@ class MarkerTypeDict:
         Zero-arg callback to trigger re-render on mutations.
     """
 
-    def __init__(self, marker_type: str, push_fn):
+    def __init__(self, marker_type: str, push_fn, transform_fn=None):
         self._type = marker_type
         self._push_fn = push_fn
+        # Zero-arg callable returning the panel's ImageTransform (or None);
+        # used by groups created with coords="data".
+        self._transform_fn = transform_fn
         self._groups: dict[str, MarkerGroup] = {}
 
     # ------------------------------------------------------------------
@@ -655,7 +811,8 @@ class MarkerRegistry:
     # pcolormesh panels only support points (circles) and line segments
     _KNOWN_MESH = frozenset({"circles", "lines"})
 
-    def __init__(self, push_fn, allowed: frozenset | None = None):
+    def __init__(self, push_fn, allowed: frozenset | None = None,
+                 transform_fn=None):
         """
         Parameters
         ----------
@@ -664,9 +821,14 @@ class MarkerRegistry:
             Figure trait.
         allowed :
             Set of allowed type names.  ``None`` means all known types.
+        transform_fn :
+            Zero-arg callable returning the panel's
+            :class:`~anyplotlib.ImageTransform`, for groups created with
+            ``coords="data"``.  ``None`` (1-D panels) leaves them unconverted.
         """
         self._push_fn = push_fn
         self._allowed = allowed
+        self._transform_fn = transform_fn
         self._types: dict[str, MarkerTypeDict] = {}
 
     # ------------------------------------------------------------------
@@ -694,7 +856,8 @@ class MarkerRegistry:
                 f"Allowed types: {sorted(self._allowed)}"
             )
         if marker_type not in self._types:
-            self._types[marker_type] = MarkerTypeDict(marker_type, self._push_fn)
+            self._types[marker_type] = MarkerTypeDict(
+                marker_type, self._push_fn, self._transform_fn)
         return self._types[marker_type]
 
     def __contains__(self, marker_type: object) -> bool:
@@ -741,6 +904,8 @@ class MarkerRegistry:
             Group name. Auto-generated (``'circles_1'`` etc.) if ``None``.
         **kwargs : dict
             Matplotlib-style kwargs for the group (offsets, radius, colors, etc.).
+            ``coords="data"`` gives positions and lengths in calibrated axis
+            units on a 2-D image panel (see :attr:`MarkerGroup.coords`).
 
         Returns
         -------

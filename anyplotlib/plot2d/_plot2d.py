@@ -22,7 +22,9 @@ _TILE_DEBUG = os.environ.get("APL_TILE_DEBUG") == "1"
 
 from anyplotlib._base_plot import _BasePlot, _PanelMixin, _MarkerMixin
 from anyplotlib.markers import MarkerRegistry
+from anyplotlib.plot2d._transform import ImageTransform
 from anyplotlib.callbacks import CallbackRegistry
+from anyplotlib.widgets._base import _check_coords, _convert_role, _convert_span
 from anyplotlib.widgets import (
     Widget,
     RectangleWidget, CircleWidget, AnnularWidget,
@@ -77,6 +79,17 @@ def _reduce_mask_any(mask, out_h: int, out_w: int):
         out[:sh, sw - 1] |= mask[:keep_h, keep_w:].reshape(
             keep_h // ys, ys, 1, src_w - keep_w).any(axis=(1, 3))[:sh, 0]
     return out
+
+
+def _edge_centres(edge0: float, edge1: float, count: int) -> np.ndarray:
+    """Pixel-centre coordinates of *count* pixels spanning ``edge0 → edge1``.
+
+    The edges are the OUTER boundary of the image, so the centres sit half a
+    pixel in from either end (matplotlib's ``imshow(extent=...)``).
+    """
+    count = int(count)
+    size = (float(edge1) - float(edge0)) / count
+    return float(edge0) + size * (np.arange(count, dtype=float) + 0.5)
 
 
 class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
@@ -389,7 +402,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         }
 
         self.markers = MarkerRegistry(self._push_markers,
-                                      allowed=MarkerRegistry._KNOWN_2D)
+                                      allowed=MarkerRegistry._KNOWN_2D,
+                                      transform_fn=lambda: self.transform)
         self.callbacks = CallbackRegistry()
         # Tile mode: anyplotlib itself reacts to view_changed (zoom/pan) → sample a
         # hi-res detail tile of the visible region from the backend. The consumer
@@ -986,7 +1000,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         :meth:`resolve_pixel_tokens` on the returned dict (``Figure._push`` does
         this for the standalone trait when binary transport is off)."""
         d = dict(self._state)
-        d["overlay_widgets"] = [w.to_dict() for w in self._widgets.values()]
+        d["overlay_widgets"] = [w._wire_dict() for w in self._widgets.values()]
         d["markers"] = self.markers.to_wire_list()
         return d
 
@@ -1862,6 +1876,73 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         xarr = np.asarray(self._state["x_axis"])
         return (float(xarr.min()), float(xarr.max()))
 
+    # ------------------------------------------------------------------
+    # Calibration / data <-> pixel coordinates
+    # ------------------------------------------------------------------
+    @property
+    def x_axis(self) -> np.ndarray:
+        """The calibrated x coordinates (read-only copy).
+
+        One value per pixel centre for an ``imshow`` panel, the ``N + 1`` cell
+        edges for a ``pcolormesh`` one.  Change it with :meth:`set_extent`.
+        """
+        return np.asarray(self._state["x_axis"], dtype=float)
+
+    @property
+    def y_axis(self) -> np.ndarray:
+        """The calibrated y coordinates, top row first (read-only copy).
+
+        Already ``origin``-applied: for ``origin="lower"`` this is the axis
+        passed in, reversed.  See :attr:`x_axis`.
+        """
+        return np.asarray(self._state["y_axis"], dtype=float)
+
+    @property
+    def transform(self) -> ImageTransform:
+        """Data ↔ image-pixel coordinate transform for this panel.
+
+        Widgets and ``transform="data"`` markers on a 2-D panel are placed in
+        image pixels (integer *i* = centre of pixel *i*); the transform maps
+        those to and from the calibrated axis values, handling offset,
+        non-unit scale, descending axes and non-uniform axes.  It reads the
+        current axes on every call, so it never goes stale.
+
+        Most code does not need it directly: pass ``coords="data"`` to the
+        ``add_*_widget`` and marker methods instead.
+
+        Returns
+        -------
+        ImageTransform
+        """
+        return ImageTransform(self)
+
+    def data_to_pixel(self, points):
+        """Convert calibrated ``(x, y)`` data points to image-pixel coordinates.
+
+        Shorthand for ``plot.transform.data_to_pixel(points)``.  Compose with
+        :meth:`data_to_display` (which takes image pixels on a 2-D panel) to
+        reach screen pixels.
+
+        Parameters
+        ----------
+        points : array-like
+            A single ``(x, y)`` pair or an ``(N, 2)`` sequence.
+
+        Returns
+        -------
+        numpy.ndarray
+            Same shape as *points*: ``(column, row)`` with integer *i* at the
+            centre of pixel *i*.
+        """
+        return self.transform.data_to_pixel(points)
+
+    def pixel_to_data(self, points):
+        """Convert image-pixel ``(column, row)`` points to calibrated data.
+
+        The inverse of :meth:`data_to_pixel`.
+        """
+        return self.transform.pixel_to_data(points)
+
     def set_extent(self, x_axis, y_axis, units: str | None = None) -> None:
         """Recalibrate the image axes to the given coordinate arrays.
 
@@ -1885,6 +1966,43 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         if units is not None:
             self._state["units"] = units
         self._push()
+
+    def set_extent_edges(self, left: float, right: float, bottom: float,
+                         top: float, units: str | None = None) -> None:
+        """Calibrate the image from its outer edges (matplotlib's ``extent``).
+
+        The image is ``image_width`` × ``image_height`` pixels spanning
+        ``left → right`` horizontally and ``top → bottom`` from the top of the
+        panel down — the box matplotlib's ``imshow(extent=(left, right,
+        bottom, top))`` describes.  Each pixel's centre coordinate is derived
+        from that box and passed to :meth:`set_extent`.
+
+        Parameters
+        ----------
+        left, right : float
+            x coordinate of the left and right image edges.
+        bottom, top : float
+            y coordinate of the bottom and top image edges, *as displayed*.
+            Pass ``top < bottom`` for the usual "y grows downwards" image
+            convention, e.g. ``(0, 25, 12, 0)`` for a 12 × 25 image in pixel
+            units.
+        units : str, optional
+            Scale-bar / axis units label.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import anyplotlib as apl
+        >>> fig, ax = apl.subplots()
+        >>> plot = ax.imshow(np.zeros((12, 25)))
+        >>> plot.set_extent_edges(0.0, 5.0, 2.4, 0.0, units="nm")
+        >>> plot.x_axis[:2].round(3).tolist(), plot.y_axis[:2].round(3).tolist()
+        ([0.1, 0.3], [0.1, 0.3])
+        """
+        w = int(self._state["image_width"])
+        h = int(self._state["image_height"])
+        self.set_extent(_edge_centres(left, right, w),
+                        _edge_centres(top, bottom, h), units=units)
 
     def set_colorbar_label(self, label: str, fontsize: float | None = None) -> None:
         """Set the colorbar label (mini-TeX allowed; default size 10 px)."""
@@ -1945,6 +2063,35 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
     # ------------------------------------------------------------------
     # Overlay Widgets
     # ------------------------------------------------------------------
+    def _widget_args(self, cls, coords: str, **fields) -> dict:
+        """Convert the geometry in *fields* from *coords* to image pixels.
+
+        ``None`` values (meaning "use the default") pass through so the
+        defaults are still computed in pixel space.
+        """
+        if _check_coords(coords) != "data":
+            return fields
+        t = self.transform
+        geom = cls._GEOMETRY
+        out = {k: (_convert_role(geom[k], v, t, True)
+                   if k in geom and v is not None else v)
+               for k, v in fields.items()}
+        # Corner + size pairs convert together (see ``_convert_span``).
+        # Callers fill defaults first so both halves are present.
+        for start, length in getattr(cls, "_SPANS", ()):
+            if fields.get(start) is not None and fields.get(length) is not None:
+                out[start], out[length] = _convert_span(
+                    geom[start], fields[start], fields[length], t, True)
+        return out
+
+    def _register_widget(self, widget: Widget, coords: str) -> Widget:
+        """Attach *widget* to this panel in the given coordinate frame and push."""
+        widget._coords = coords
+        widget._push_fn = self._make_widget_push_fn(widget)
+        self._widgets[widget.id] = widget
+        self._push()
+        return widget
+
     def add_widget(self, kind: str, color: str = "#00e5ff", **kwargs) -> Widget:
         """Add an overlay widget by kind name.
 
@@ -1956,8 +2103,19 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         Every kind also accepts ``show_handles`` (default ``True``) to toggle
         the grab-handle dots without changing hit-testing / draggability.
         ``vline`` / ``hline`` have no handles — the whole line is the grab
-        target — so they ignore it, and neither does ``brush`` (a freehand
-        stroke has no grab point).
+        target — so they ignore it, as does ``brush`` (a freehand stroke has
+        no grab point).
+
+        Every kind also accepts ``coords`` (``"pixel"`` default, or
+        ``"data"``) to give the geometry in calibrated axis units — see
+        :attr:`Widget.coords`::
+
+            x = 10.0 + 0.5 * np.arange(25)        # nm
+            y = -3.0 + 0.25 * np.arange(12)
+            plot = ax.imshow(img, axes=[x, y], units="nm")
+            roi = plot.add_widget("rectangle", x=11.0, y=-2.0, w=2.0, h=1.0,
+                                  coords="data")
+            roi.x            # 11.0 — reads come back in nm too
         """
         dispatch = {
             "circle":    self.add_circle_widget,
@@ -1981,7 +2139,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                           r: float | None = None, color: str = "#00e5ff",
                           linewidth: float = 2,
                           show_handles: bool = True,
-                          lock_center: bool = False) -> CircleWidget:
+                          lock_center: bool = False,
+                          coords: str = "pixel") -> CircleWidget:
         """Add a draggable circle overlay.
 
         ``lock_center`` pins the centre and leaves only the radius draggable —
@@ -1990,6 +2149,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         centred on the DC term), so it cannot be nudged off and silently
         corrupt every radius measured from it.
         """
+        a = self._widget_args(CircleWidget, coords, cx=cx, cy=cy, r=r)
+        cx, cy, r = a["cx"], a["cy"], a["r"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CircleWidget(lambda: None,
                               cx=float(cx) if cx is not None else iw / 2,
@@ -1998,23 +2159,33 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                               color=color, linewidth=linewidth,
                               show_handles=show_handles,
                               lock_center=lock_center)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_rectangle_widget(self, x: float | None = None, y: float | None = None,
                               w: float | None = None, h: float | None = None,
                               color: str = "#00e5ff", linewidth: float = 2,
                               show_handles: bool = True,
-                              max_extent=None) -> RectangleWidget:
+                              max_extent=None,
+                              coords: str = "pixel") -> RectangleWidget:
         """Add a draggable rectangle overlay.
+
+        With ``coords="data"`` the rectangle spans ``[x, x + w] × [y, y + h]``
+        in data: ``(x, y)`` is the corner with the smallest data x and y and
+        ``w``, ``h`` are positive data lengths, on flipped and descending axes
+        too.  Omitted geometry defaults to the same pixel rectangle as in
+        pixel coordinates.
 
         ``max_extent`` caps the rectangle's size in the widget's coordinates —
         a scalar caps both axes, a ``(max_w, max_h)`` pair caps them separately.
         The rectangle then physically stops growing at the cap while dragging
         (the dragged corner pins, the opposite corner stays put).
         """
+        if coords == "data" and max_extent is not None:
+            mw, mh = (max_extent if isinstance(max_extent, (tuple, list))
+                      else (max_extent, max_extent))
+            t = self.transform
+            max_extent = (None if mw is None else t.x_length_to_pixels(mw),
+                          None if mh is None else t.y_length_to_pixels(mh))
         iw, ih = self._state["image_width"], self._state["image_height"]
         # The DEFAULT size honours max_extent. Without this a capped rectangle is
         # born at half the image and then snaps down to the cap on first use —
@@ -2030,6 +2201,18 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             cap_w = cap_h = max_extent
         def_w = _cap(iw * 0.5, cap_w)
         def_h = _cap(ih * 0.5, cap_h)
+        if coords == "data" and None in (x, y, w, h):
+            # Defaults are defined in pixels; express them in data so a
+            # partly-given data rectangle is completed span by span.
+            t = self.transform
+            dx, dw = _convert_span("x", iw * 0.25, def_w, t, False)
+            dy, dh = _convert_span("y", ih * 0.25, def_h, t, False)
+            x = dx if x is None else x
+            w = dw if w is None else w
+            y = dy if y is None else y
+            h = dh if h is None else h
+        a = self._widget_args(RectangleWidget, coords, x=x, y=y, w=w, h=h)
+        x, y, w, h = a["x"], a["y"], a["w"], a["h"]
         widget = RectangleWidget(lambda: None,
                                  x=float(x) if x is not None else iw * 0.25,
                                  y=float(y) if y is not None else ih * 0.25,
@@ -2038,16 +2221,18 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                  color=color, linewidth=linewidth,
                                  show_handles=show_handles,
                                  max_extent=max_extent)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_annular_widget(self, cx: float | None = None, cy: float | None = None,
                            r_outer: float | None = None, r_inner: float | None = None,
                            color: str = "#00e5ff", linewidth: float = 2,
-                           show_handles: bool = True) -> AnnularWidget:
+                           show_handles: bool = True,
+                           coords: str = "pixel") -> AnnularWidget:
         """Add a draggable annular (ring) overlay."""
+        a = self._widget_args(AnnularWidget, coords, cx=cx, cy=cy,
+                              r_outer=r_outer, r_inner=r_inner)
+        cx, cy = a["cx"], a["cy"]
+        r_outer, r_inner = a["r_outer"], a["r_inner"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = AnnularWidget(lambda: None,
                                cx=float(cx) if cx is not None else iw / 2,
@@ -2056,31 +2241,29 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                r_inner=float(r_inner) if r_inner is not None else iw * 0.1,
                                color=color, linewidth=linewidth,
                                show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_polygon_widget(self, vertices=None, color: str = "#00e5ff",
                            linewidth: float = 2,
-                           show_handles: bool = True) -> PolygonWidget:
+                           show_handles: bool = True,
+                           coords: str = "pixel") -> PolygonWidget:
         """Add a draggable polygon overlay."""
+        vertices = self._widget_args(PolygonWidget, coords,
+                                     vertices=vertices)["vertices"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         if vertices is None:
             vertices = [[iw * .25, ih * .25], [iw * .75, ih * .25],
                         [iw * .75, ih * .75], [iw * .25, ih * .75]]
         widget = PolygonWidget(lambda: None, vertices=vertices, color=color,
                                linewidth=linewidth, show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_brush_widget(self, radius: float | None = None,
                          color: str = "#00e5ff", colors=None,
                          class_id: int = 0, strokes=None, stroke_classes=None,
                          alpha: float = 0.6, active: bool = True,
-                         erase: bool = False) -> BrushWidget:
+                         erase: bool = False,
+                         coords: str = "pixel") -> BrushWidget:
         """Add a freehand paint-brush overlay for labelling regions.
 
         **Shift** + drag paints a stroke; a *bare* drag still pans the image and
@@ -2124,6 +2307,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         erase : bool, optional
             Armed drags remove stroke points within ``radius`` instead of
             painting.  Default ``False``.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``radius`` and ``strokes`` (and for later reads).
+            Default ``"pixel"``.
 
         Returns
         -------
@@ -2132,6 +2318,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             the painted geometry; :meth:`~anyplotlib.BrushWidget.clear_strokes`
             and :meth:`~anyplotlib.BrushWidget.strokes_for_class` manage it.
         """
+        a = self._widget_args(BrushWidget, coords, radius=radius,
+                              strokes=strokes)
+        radius, strokes = a["radius"], a["strokes"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         if radius is None:
             radius = max(2.0, min(iw, ih) * 0.02)
@@ -2140,50 +2329,50 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                              class_id=class_id, strokes=strokes,
                              stroke_classes=stroke_classes, alpha=alpha,
                              active=active, erase=erase)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_crosshair_widget(self, cx: float | None = None, cy: float | None = None,
                               color: str = "#00e5ff", linewidth: float = 2,
-                              show_handles: bool = True) -> CrosshairWidget:
+                              show_handles: bool = True,
+                              coords: str = "pixel") -> CrosshairWidget:
         """Add a draggable crosshair overlay."""
+        a = self._widget_args(CrosshairWidget, coords, cx=cx, cy=cy)
+        cx, cy = a["cx"], a["cy"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = CrosshairWidget(lambda: None,
                                  cx=float(cx) if cx is not None else iw / 2,
                                  cy=float(cy) if cy is not None else ih / 2,
                                  color=color, linewidth=linewidth,
                                  show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_label_widget(self, x: float | None = None, y: float | None = None,
                           text: str = "Label", fontsize: int = 14,
                           color: str = "#00e5ff",
-                          show_handles: bool = True) -> LabelWidget:
+                          show_handles: bool = True,
+                          coords: str = "pixel") -> LabelWidget:
         """Add a draggable text label overlay."""
+        a = self._widget_args(LabelWidget, coords, x=x, y=y)
+        x, y = a["x"], a["y"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = LabelWidget(lambda: None,
                              x=float(x) if x is not None else iw * 0.1,
                              y=float(y) if y is not None else ih * 0.1,
                              text=str(text), fontsize=int(fontsize), color=color,
                              show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_arrow_widget(self, x: float | None = None, y: float | None = None,
                          u: float | None = None, v: float | None = None,
                          color: str = "#00e5ff", linewidth: float = 2,
-                         show_handles: bool = True) -> ArrowWidget:
+                         show_handles: bool = True,
+                         coords: str = "pixel") -> ArrowWidget:
         """Add a draggable arrow overlay (tail at ``(x, y)``, head at
         ``(x + u, y + v)``). Defaults place the tail at 25 %, 25 % of the image
         with a vector of 15 % of the image size, mirroring
         :meth:`add_label_widget`'s defaulting."""
+        a = self._widget_args(ArrowWidget, coords, x=x, y=y, u=u, v=v)
+        x, y, u, v = a["x"], a["y"], a["u"], a["v"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = ArrowWidget(lambda: None,
                              x=float(x) if x is not None else iw * 0.25,
@@ -2192,15 +2381,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                              v=float(v) if v is not None else ih * 0.15,
                              color=color, linewidth=linewidth,
                              show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_line_widget(self, x1: float | None = None, y1: float | None = None,
                         x2: float | None = None, y2: float | None = None,
                         color: str = "#00e5ff", linewidth: float = 2,
-                        show_handles: bool = True) -> LineWidget:
+                        show_handles: bool = True,
+                        coords: str = "pixel") -> LineWidget:
         """Add a draggable two-endpoint line segment overlay.
 
         A bare segment with a grab handle at each end — no arrowhead (see
@@ -2221,6 +2408,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             Stroke width in px.  Default 2.
         show_handles : bool, optional
             Draw the endpoint grab handles.  Default ``True``.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for the endpoints (and for later reads / ``set``).
+            Default ``"pixel"``; see :attr:`Widget.coords`.
 
         Returns
         -------
@@ -2228,6 +2418,8 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             Widget object.  ``widget.length`` gives the segment length in
             data coordinates.
         """
+        a = self._widget_args(LineWidget, coords, x1=x1, y1=y1, x2=x2, y2=y2)
+        x1, y1, x2, y2 = a["x1"], a["y1"], a["x2"], a["y2"]
         iw, ih = self._state["image_width"], self._state["image_height"]
         widget = LineWidget(lambda: None,
                             x1=float(x1) if x1 is not None else iw * 0.25,
@@ -2236,13 +2428,11 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                             y2=float(y2) if y2 is not None else ih * 0.75,
                             color=color, linewidth=linewidth,
                             show_handles=show_handles)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_vline_widget(self, x: float | None = None, color: str = "#00e5ff",
-                         linewidth: float = 2) -> VLineWidget:
+                         linewidth: float = 2,
+                         coords: str = "pixel") -> VLineWidget:
         """Add a draggable full-height vertical line overlay.
 
         The line spans the whole panel and is grabbable anywhere along its
@@ -2257,22 +2447,24 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             CSS colour string.  Default ``"#00e5ff"``.
         linewidth : float, optional
             Stroke width in px.  Default 2.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``x`` (and for later reads / ``set``).  Default
+            ``"pixel"``; pass ``"data"`` to work in calibrated axis units.
 
         Returns
         -------
         VLineWidget
         """
+        x = self._widget_args(VLineWidget, coords, x=x)["x"]
         iw = self._state["image_width"]
         widget = VLineWidget(lambda: None,
                              x=float(x) if x is not None else iw / 2,
                              color=color, linewidth=linewidth)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     def add_hline_widget(self, y: float | None = None, color: str = "#00e5ff",
-                         linewidth: float = 2) -> HLineWidget:
+                         linewidth: float = 2,
+                         coords: str = "pixel") -> HLineWidget:
         """Add a draggable full-width horizontal line overlay.
 
         The row counterpart of :meth:`add_vline_widget`; grabbable anywhere
@@ -2286,19 +2478,20 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             CSS colour string.  Default ``"#00e5ff"``.
         linewidth : float, optional
             Stroke width in px.  Default 2.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``y`` (and for later reads / ``set``).  Default
+            ``"pixel"``; pass ``"data"`` to work in calibrated axis units.
 
         Returns
         -------
         HLineWidget
         """
+        y = self._widget_args(HLineWidget, coords, y=y)["y"]
         ih = self._state["image_height"]
         widget = HLineWidget(lambda: None,
                              y=float(y) if y is not None else ih / 2,
                              color=color, linewidth=linewidth)
-        widget._push_fn = self._make_widget_push_fn(widget)
-        self._widgets[widget.id] = widget
-        self._push()
-        return widget
+        return self._register_widget(widget, coords)
 
     # ------------------------------------------------------------------
     # View control
@@ -2395,6 +2588,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
+                    coords: str = "pixel",
                     clip_display: bool = True,
                     size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add circle markers at (x, y) positions in data coordinates.
@@ -2402,6 +2596,11 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         ``size_units="px"`` pins *radius* to screen pixels so the circles keep
         their size through a zoom; the default ``"data"`` scales them with the
         data, as a shape drawn on the image does.
+
+        Positions (and data-sized lengths) are image pixels by default; pass
+        ``coords="data"`` to give them in the panel's calibrated axis units.
+        This applies to every ``add_*`` marker method on a 2-D panel — see
+        :attr:`MarkerGroup.coords <anyplotlib.markers.MarkerGroup.coords>`.
         """
         return self._add_marker("circles", name, offsets=offsets, radius=radius,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -2409,7 +2608,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2419,6 +2618,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                    hover_edgecolors=None, hover_facecolors=None,
                    labels=None, label=None,
                    transform: str = "data",
+                   coords: str = "pixel",
                    clip_display: bool = True,
                    size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         """Add point markers at (x, y) positions in data coordinates.
@@ -2433,7 +2633,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2470,12 +2670,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                    hover_edgecolors=None,
                    labels=None, label=None,
                    transform: str = "data",
+                   coords: str = "pixel",
                    clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         return self._add_marker("arrows", name, offsets=offsets, U=U, V=V,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def add_ellipses(self, offsets, widths, heights, name=None, *,
@@ -2484,6 +2685,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None,
                      transform: str = "data",
+                     coords: str = "pixel",
                      clip_display: bool = True,
                      size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("ellipses", name, offsets=offsets,
@@ -2493,7 +2695,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2502,12 +2704,13 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                   hover_edgecolors=None,
                   labels=None, label=None,
                   transform: str = "data",
+                  coords: str = "pixel",
                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         return self._add_marker("lines", name, segments=segments,
                                 edgecolors=edgecolors, linewidths=linewidths,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def add_rectangles(self, offsets, widths, heights, name=None, *,
@@ -2516,6 +2719,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                        hover_edgecolors=None, hover_facecolors=None,
                        labels=None, label=None,
                        transform: str = "data",
+                       coords: str = "pixel",
                        clip_display: bool = True,
                        size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("rectangles", name, offsets=offsets,
@@ -2525,7 +2729,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2535,6 +2739,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                     hover_edgecolors=None, hover_facecolors=None,
                     labels=None, label=None,
                     transform: str = "data",
+                    coords: str = "pixel",
                     clip_display: bool = True,
                     size_units: str = "data") -> "MarkerGroup":  # noqa: F821
         return self._add_marker("squares", name, offsets=offsets,
@@ -2544,7 +2749,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display,
                                 size_units=size_units)
 
@@ -2554,6 +2759,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                      hover_edgecolors=None, hover_facecolors=None,
                      labels=None, label=None,
                      transform: str = "data",
+                     coords: str = "pixel",
                      clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         return self._add_marker("polygons", name, vertices_list=vertices_list,
                                 facecolors=facecolors, edgecolors=edgecolors,
@@ -2561,7 +2767,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 hover_edgecolors=hover_edgecolors,
                                 hover_facecolors=hover_facecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def add_texts(self, offsets, texts, name=None, *,
@@ -2572,6 +2778,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                   hover_edgecolors=None,
                   labels=None, label=None,
                   transform: str = "data",
+                  coords: str = "pixel",
                   clip_display: bool = True) -> "MarkerGroup":  # noqa: F821
         """Add text annotations at image-pixel positions.
 
@@ -2618,6 +2825,9 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             Coordinate system for ``offsets``.  Default ``"data"``.
         clip_display : bool, optional
             Clip ``"display"``-transform texts to the image.  Default ``True``.
+        coords : ``"pixel"`` | ``"data"``, optional
+            Frame for ``transform="data"`` offsets: image pixels (default) or
+            the panel's calibrated axis units.
 
         Returns
         -------
@@ -2640,7 +2850,7 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 verticalalignment=verticalalignment,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
-                                transform=transform,
+                                transform=transform, coords=coords,
                                 clip_display=clip_display)
 
     def __repr__(self) -> str:

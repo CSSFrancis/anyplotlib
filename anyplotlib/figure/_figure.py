@@ -143,6 +143,10 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         self._sharex = sharex
         self._sharey = sharey
         self._axes_map: dict  = {}
+        # Every grid Axes created by add_subplot, in creation order, plotted
+        # or not; ``_axes_map`` only gains an entry once a plot is attached,
+        # so ``get_axes`` needs this to list empty axes too.
+        self._created_axes: list = []
         self._plots_map: dict = {}
         self._insets_map: dict = {}
         self._hspace: float | None = None
@@ -168,6 +172,9 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         self.callbacks: CallbackRegistry = CallbackRegistry()
         # Authoritative Python-side copy of the figure-level annotation list.
         self._figure_markers: list = []
+        # Lifecycle flags (see the ``closed`` / ``displayed`` properties).
+        self._closed: bool = False
+        self._displayed: bool = False
         with self.hold_trait_notifications():
             self.fig_width     = figsize[0]
             self.fig_height    = figsize[1]
@@ -280,7 +287,9 @@ class Figure(anywidget.AnyWidget, _EventMixin):
             spec = SubplotSpec(None, row, row + 1, col, col + 1)
         else:
             raise TypeError(f"add_subplot: unsupported spec type {type(spec)!r}")
-        return Axes(self, spec)
+        ax = Axes(self, spec)
+        self._created_axes.append(ax)
+        return ax
 
     # ── internal registration (called by Axes._attach) ────────────────────────
     def _register_panel(self, ax: Axes, plot) -> None:
@@ -924,7 +933,11 @@ class Figure(anywidget.AnyWidget, _EventMixin):
 
     # ── helpers ───────────────────────────────────────────────────────────────
     def get_axes(self) -> list:
-        """Return a list of all Axes, sorted by grid position.
+        """Return a list of all grid Axes, sorted by grid position.
+
+        Includes axes that have no plot attached yet (as matplotlib does), so
+        ``fig, ax = apl.subplots(1, 1); fig.get_axes()[0] is ax``.  Floating
+        insets from :meth:`add_inset` are not listed.
 
         Returns
         -------
@@ -932,7 +945,15 @@ class Figure(anywidget.AnyWidget, _EventMixin):
             Axes sorted by (row_start, col_start) to match typical left-to-right,
             top-to-bottom iteration order.
         """
-        return sorted(self._axes_map.values(),
+        axes = list(self._axes_map.values())
+        seen = {id(a) for a in axes}
+        # Add the still-empty axes.  An axes whose plot was superseded by
+        # another axes on the same cell (same panel id) is left out, as before.
+        for a in getattr(self, "_created_axes", ()):
+            if id(a) not in seen and a._plot is None:
+                axes.append(a)
+                seen.add(id(a))
+        return sorted(axes,
                       key=lambda a: (a._spec.row_start, a._spec.col_start))
 
     def _repr_html_(self) -> str:
@@ -947,6 +968,7 @@ class Figure(anywidget.AnyWidget, _EventMixin):
         str
             HTML string containing an embedded iframe with srcdoc attribute.
         """
+        self._displayed = True
         return repr_html_iframe(self)
 
     def to_html(self, *, resizable: bool = True) -> str:
@@ -1017,24 +1039,125 @@ class Figure(anywidget.AnyWidget, _EventMixin):
                        include_widgets=include_widgets, panel=panel,
                        timeout_ms=timeout_ms)
 
+    # ── lifecycle ─────────────────────────────────────────────────────────────
+    @property
+    def closed(self) -> bool:
+        """``True`` once :meth:`close` has run."""
+        return bool(getattr(self, "_closed", False))
+
+    @property
+    def displayed(self) -> bool:
+        """``True`` once the figure has been handed to a display front-end.
+
+        Set by :meth:`display`, and also when the figure is shown any other
+        way that goes through its rich repr — the last expression of a
+        notebook cell, ``IPython.display.display(fig)``, or the HTML repr
+        Sphinx Gallery uses.
+        """
+        return bool(getattr(self, "_displayed", False))
+
+    def _repr_mimebundle_(self, **kwargs):
+        self._displayed = True
+        return super()._repr_mimebundle_(**kwargs)
+
+    def display(self, *, force: bool = False) -> bool:
+        """Show the figure in the current IPython front-end, at most once.
+
+        Safe to call from several code paths that each want the figure on
+        screen: only the first call (or a figure not yet shown by any other
+        means, see :attr:`displayed`) actually displays it, so the output is
+        never duplicated.
+
+        Parameters
+        ----------
+        force : bool, optional
+            Display again even if already displayed (e.g. in a new cell).
+
+        Returns
+        -------
+        bool
+            ``True`` if the figure was displayed by this call, ``False`` if it
+            was skipped because it was already displayed or is closed.
+        """
+        if self.closed or (self.displayed and not force):
+            return False
+        from IPython.display import display as _ipy_display
+        _ipy_display(self)
+        self._displayed = True
+        return True
+
+    def on_close(self, callback) -> int:
+        """Register *callback* to run when the figure is closed.
+
+        Shorthand for ``fig.add_event_handler(callback, "close")``; the
+        callback receives the ``close`` :class:`~anyplotlib.Event`.  Figure
+        level close handlers run before the per-panel ones.
+
+        Parameters
+        ----------
+        callback : callable
+            ``callback(event)``; a bound method is fine.
+
+        Returns
+        -------
+        int
+            Connection id; pass it to :meth:`remove_handler` to unregister.
+
+        Examples
+        --------
+        >>> import anyplotlib as apl
+        >>> fig, ax = apl.subplots()
+        >>> cid = fig.on_close(lambda event: print("bye"))
+        >>> fig.close()
+        bye
+        """
+        return self.callbacks.connect("close", callback)
+
     def close(self) -> None:
         """Close the figure.
 
-        Fires a ``"close"`` event on every panel's :attr:`callbacks`, then
-        hides the widget by setting its CSS ``display`` to ``"none"``.
-        Subsequent calls are no-ops.
+        Fires a ``"close"`` event on the figure's own :attr:`callbacks` (see
+        :meth:`on_close`), then on every panel's, then hides the widget by
+        setting its CSS ``display`` to ``"none"``.  :attr:`closed` becomes
+        ``True``.  Subsequent calls are no-ops.
+
+        Finally the underlying ipywidgets comm is closed (front-end views are
+        removed) and the widget is released, so a closed figure that is no
+        longer referenced can be garbage collected.  The Python objects stay
+        usable — plots can still be read, exported or saved.
+
+        The figure-level handlers and each panel's handlers run independently:
+        if one of them raises, the others still run, the figure is still
+        marked closed and hidden, and the first exception is re-raised at the
+        end.
         """
-        if getattr(self, "_closed", False):
+        if self.closed:
             return
         self._closed = True
-        close_event = Event(event_type="close")
-        for plot in self._plots_map.values():
-            if hasattr(plot, "callbacks"):
-                plot.callbacks.fire(close_event)
+        registries = [self.callbacks]
+        registries += [plot.callbacks for plot in list(self._plots_map.values())
+                       if hasattr(plot, "callbacks")]
+        first_exc = None
+        for registry in registries:
+            try:
+                registry.fire(Event(event_type="close", source=self))
+            except Exception as exc:   # keep closing; report the first error
+                if first_exc is None:
+                    first_exc = exc
         try:
             self.layout.display = "none"
         except Exception:
             pass
+        # Release the ipywidgets side: close the comm and drop the figure from
+        # ipywidgets' global instance registry.  Without this every figure
+        # ever created stays referenced by that registry (and its comm), so a
+        # closed figure and all its plot data can never be garbage collected.
+        try:
+            super().close()
+        except Exception:
+            pass
+        if first_exc is not None:
+            raise first_exc
 
     def __repr__(self) -> str:
         return (f"Figure({self._nrows}x{self._ncols}, "
