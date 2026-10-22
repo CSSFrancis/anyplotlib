@@ -2101,9 +2101,14 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
         ``"brush"``, ``"vline"``, ``"hline"``.
 
         Every kind also accepts ``show_handles`` (default ``True``) to toggle
-        the grab-handle dots without changing hit-testing / draggability, and
-        ``coords`` (``"pixel"`` default, or ``"data"``) to give the geometry in
-        calibrated axis units — see :attr:`Widget.coords`::
+        the grab-handle dots without changing hit-testing / draggability.
+        ``vline`` / ``hline`` have no handles — the whole line is the grab
+        target — so they ignore it, as does ``brush`` (a freehand stroke has
+        no grab point).
+
+        Every kind also accepts ``coords`` (``"pixel"`` default, or
+        ``"data"``) to give the geometry in calibrated axis units — see
+        :attr:`Widget.coords`::
 
             x = 10.0 + 0.5 * np.arange(25)        # nm
             y = -3.0 + 0.25 * np.arange(12)
@@ -2111,9 +2116,6 @@ class Plot2D(_BasePlot, _PanelMixin, _MarkerMixin):
             roi = plot.add_widget("rectangle", x=11.0, y=-2.0, w=2.0, h=1.0,
                                   coords="data")
             roi.x            # 11.0 — reads come back in nm too
-        ``vline`` / ``hline`` have no handles — the whole line is the grab
-        target — so they ignore it, and neither does ``brush`` (a freehand
-        stroke has no grab point).
         """
         dispatch = {
             "circle":    self.add_circle_widget,
