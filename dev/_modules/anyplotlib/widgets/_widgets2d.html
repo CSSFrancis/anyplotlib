@@ -473,9 +473,13 @@
 <span class="sd">    push_fn : Callable</span>
 <span class="sd">        Update callback.</span>
 <span class="sd">    x, y : float</span>
-<span class="sd">        Top-left corner position in pixel/data coordinates.</span>
+<span class="sd">        Corner with the smallest coordinates: the top-left pixel corner in</span>
+<span class="sd">        pixel coordinates; in data coordinates (``coords=&quot;data&quot;``) the corner</span>
+<span class="sd">        with the smallest data x and y, wherever that is on screen (top-right</span>
+<span class="sd">        on a descending x axis, bottom-left with ``origin=&quot;lower&quot;``).</span>
 <span class="sd">    w, h : float</span>
-<span class="sd">        Width and height in pixel/data coordinates.</span>
+<span class="sd">        Width and height, non-negative, in pixel/data coordinates.  The</span>
+<span class="sd">        rectangle spans ``[x, x + w] × [y, y + h]`` in its frame.</span>
 <span class="sd">    color : str, optional</span>
 <span class="sd">        CSS colour for the rectangle outline. Default ``&quot;#00e5ff&quot;``.</span>
 <span class="sd">    linewidth : float, optional</span>
@@ -492,6 +496,12 @@
 <span class="sd">        Use this when the rectangle&#39;s area costs real work downstream — e.g. an</span>
 <span class="sd">        integrating ROI whose size is a number of frames to read.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="s2">&quot;dx&quot;</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">:</span> <span class="s2">&quot;dy&quot;</span><span class="p">,</span> <span class="s2">&quot;max_w&quot;</span><span class="p">:</span> <span class="s2">&quot;dx&quot;</span><span class="p">,</span> <span class="s2">&quot;max_h&quot;</span><span class="p">:</span> <span class="s2">&quot;dy&quot;</span><span class="p">}</span>
+    <span class="c1"># In data coords (x, y) is the corner with the smallest data x and y and</span>
+    <span class="c1"># (w, h) are positive data lengths; converted as spans so a descending</span>
+    <span class="c1"># axis or origin=&quot;lower&quot; anchors the right pixel corner.</span>
+    <span class="n">_SPANS</span> <span class="o">=</span> <span class="p">((</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">))</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                  <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">max_extent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -544,6 +554,8 @@
 <span class="sd">        that can only ever be wrong, and one nudged off-centre silently</span>
 <span class="sd">        corrupts every radius measured from it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cx&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;cy&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span> <span class="s2">&quot;r&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                  <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lock_center</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;circle&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
@@ -580,6 +592,8 @@
 <span class="sd">    ValueError</span>
 <span class="sd">        If r_inner &gt;= r_outer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cx&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;cy&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;r_outer&quot;</span><span class="p">:</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;r_inner&quot;</span><span class="p">:</span> <span class="s2">&quot;r&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r_outer</span><span class="p">,</span> <span class="n">r_inner</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                  <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">r_inner</span> <span class="o">&gt;=</span> <span class="n">r_outer</span><span class="p">:</span>
@@ -616,6 +630,8 @@
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the endpoint grab handles. Default ``True``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x1&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y1&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x2&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y2&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                  <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
@@ -650,6 +666,8 @@
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the centre dot handle. Default ``True``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cx&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;cy&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                  <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;crosshair&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
@@ -683,6 +701,8 @@
 <span class="sd">    ValueError</span>
 <span class="sd">        If fewer than 3 vertices provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;vertices&quot;</span><span class="p">:</span> <span class="s2">&quot;points&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                  <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">verts</span> <span class="o">=</span> <span class="p">[[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)]</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">]</span>
@@ -714,6 +734,8 @@
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the anchor grab handle. Default ``True``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Label&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
                  <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>
@@ -844,6 +866,8 @@
 <span class="sd">    PolygonWidget : Closed straight-edged region with draggable vertices.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;radius&quot;</span><span class="p">:</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;strokes&quot;</span><span class="p">:</span> <span class="s2">&quot;strokes&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">class_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">strokes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
                  <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">erase</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -903,7 +927,8 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        points : list of tuple</span>
-<span class="sd">            ``[(x, y), ...]`` in image-pixel coordinates; at least one point.</span>
+<span class="sd">            ``[(x, y), ...]`` in the widget&#39;s :attr:`~Widget.coords` frame</span>
+<span class="sd">            (image pixels by default); at least one point.</span>
 <span class="sd">        class_id : int, optional</span>
 <span class="sd">            Label class for this stroke.  Defaults to the widget&#39;s current</span>
 <span class="sd">            ``class_id``.</span>
@@ -917,8 +942,10 @@
         <span class="n">cid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;class_id&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">class_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">class_id</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cid</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;class_id must be &gt;= 0, got </span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">stroke</span><span class="p">],</span>
-                 <span class="n">stroke_classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">cid</span><span class="p">])</span></div>
+        <span class="c1"># The stored strokes are already in pixels; convert only the new one.</span>
+        <span class="p">(</span><span class="n">stroke</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geom_in</span><span class="p">({</span><span class="s2">&quot;strokes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">stroke</span><span class="p">]})[</span><span class="s2">&quot;strokes&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_pixels</span><span class="p">(</span><span class="n">strokes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">stroke</span><span class="p">],</span>
+                         <span class="n">stroke_classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">cid</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="BrushWidget.set_strokes">
@@ -972,8 +999,9 @@
 <span class="sd">            ``[[[x, y], ...], ...]`` — the matching strokes, in paint order.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">],</span>
-                                  <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">cid</span><span class="p">]</span></div>
+        <span class="n">picked</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">],</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;stroke_classes&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">cid</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geom_out</span><span class="p">({</span><span class="s2">&quot;strokes&quot;</span><span class="p">:</span> <span class="n">picked</span><span class="p">})[</span><span class="s2">&quot;strokes&quot;</span><span class="p">]</span></div>
 </div>
 
 
@@ -1002,6 +1030,8 @@
 <span class="sd">    show_handles : bool, optional</span>
 <span class="sd">        Draw the tail/head grab handles. Default ``True``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_GEOMETRY</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="s2">&quot;v&quot;</span><span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                  <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;arrow&quot;</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span>

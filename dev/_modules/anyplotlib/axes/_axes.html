@@ -482,6 +482,132 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span>  <span class="o">=</span> <span class="n">fig</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span> <span class="o">=</span> <span class="n">spec</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">:</span> <span class="s2">&quot;Plot1D | Plot2D | None&quot;</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># Labels set through Axes.set_xlabel / set_ylabel / set_title:</span>
+        <span class="c1"># {setter name: (label, fontsize)}.  Kept on the axes (not only on the</span>
+        <span class="c1"># plot) so they are applied to every plot attached later -- the first</span>
+        <span class="c1"># one, and any that replaces it via a second factory call.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Labels (work before a plot is attached)</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Axes.set_xlabel">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Axes.html#anyplotlib.axes.Axes.set_xlabel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_xlabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the x-axis label of this axes&#39; plot.</span>
+
+<span class="sd">        Works before a plot is attached: the label is stored on the axes and</span>
+<span class="sd">        applied when :meth:`imshow`, :meth:`plot`, … attaches one, so layout</span>
+<span class="sd">        code can label an axes before deciding what to draw in it.  With a</span>
+<span class="sd">        plot attached it also sets ``ax.primary_plot.set_xlabel(...)``.</span>
+
+<span class="sd">        The axes keeps the label, so a plot that *replaces* the current one</span>
+<span class="sd">        (a second ``imshow``/``plot``/… call on this axes) gets it too.</span>
+<span class="sd">        Labels set directly on the plot object (``plot.set_xlabel``) belong</span>
+<span class="sd">        to that plot only and are not carried over.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        label : str</span>
+<span class="sd">            Label text (mini-TeX allowed, see :meth:`Plot2D.set_xlabel</span>
+<span class="sd">            &lt;anyplotlib.Plot2D.set_xlabel&gt;`).</span>
+<span class="sd">        fontsize : float, optional</span>
+<span class="sd">            Font size in CSS pixels.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        AttributeError</span>
+<span class="sd">            If the attached plot type has no x label.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_label</span><span class="p">(</span><span class="s2">&quot;set_xlabel&quot;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Axes.set_ylabel">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Axes.html#anyplotlib.axes.Axes.set_ylabel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_ylabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the y-axis label.  Same deferral rules as :meth:`set_xlabel`.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_label</span><span class="p">(</span><span class="s2">&quot;set_ylabel&quot;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Axes.set_title">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Axes.html#anyplotlib.axes.Axes.set_title">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the panel title.  Same deferral rules as :meth:`set_xlabel`.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_label</span><span class="p">(</span><span class="s2">&quot;set_title&quot;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> does not support </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">()&quot;</span><span class="p">)</span>
+            <span class="n">fn</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_axes_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply the labels set through this axes to a newly attached *plot*.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">method</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>       <span class="c1"># e.g. a 3-D plot has no title setter</span>
+                <span class="n">fn</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Identity</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">figure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Figure&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The :class:`~anyplotlib.Figure` this axes belongs to (read-only).</span>
+
+<span class="sd">        Assigning the same figure again is allowed (a no-op) so code written</span>
+<span class="sd">        for matplotlib&#39;s settable ``ax.figure`` keeps working; assigning a</span>
+<span class="sd">        different one raises ``AttributeError``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span>
+
+    <span class="nd">@figure</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">figure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s2">&quot;Axes.figure is read-only; an Axes cannot move to another figure&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">primary_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The plot attached by the last factory call, or ``None`` if empty.</span>
+
+<span class="sd">        This is the object :meth:`imshow`, :meth:`plot`, :meth:`pcolormesh`,</span>
+<span class="sd">        … returned (``Plot2D``, ``Plot1D``, ``PlotMesh``, ``Plot3D``,</span>
+<span class="sd">        ``PlotBar``, ``PlotXY``).  Overlays drawn *on* it — extra lines from</span>
+<span class="sd">        :meth:`Plot1D.add_line &lt;anyplotlib.Plot1D.add_line&gt;`, markers,</span>
+<span class="sd">        widgets — belong to that plot and never replace it here.  Calling a</span>
+<span class="sd">        factory again replaces the plot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plots</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;All plot panels attached to this axes, primary first.</span>
+
+<span class="sd">        An axes cell holds at most one plot panel today, so this is</span>
+<span class="sd">        ``(primary_plot,)`` or ``()``; iterate it rather than indexing ``[0]``</span>
+<span class="sd">        so code keeps working if overlay panels are added later.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">,)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">image_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The primary plot if it is a 2-D image (``Plot2D`` / ``PlotMesh``),</span>
+<span class="sd">        else ``None``.</span>
+
+<span class="sd">        Handy for code that places image-space widgets or markers and must</span>
+<span class="sd">        not mistake a line or bar panel for an image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">,</span> <span class="n">Plot2D</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">has_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``True`` once a plot has been attached.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Axes.imshow">
@@ -498,7 +624,8 @@
                <span class="n">integration_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
                <span class="n">overview_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
                <span class="n">tile_backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">probe_exact</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Plot2D&quot;</span><span class="p">:</span>
+               <span class="n">probe_exact</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+               <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Plot2D&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Attach a 2-D image to this axes cell.</span>
 
 <span class="sd">        Parameters</span>
@@ -530,11 +657,19 @@
 <span class="sd">            cursor dwells on a pixel (default ``True``).  Without it the value</span>
 <span class="sd">            comes from the 8-bit codes the renderer holds, which quantises wide</span>
 <span class="sd">            dtypes to ``range/255``.  See :meth:`~anyplotlib.Plot2D.set_value_probe`.</span>
+<span class="sd">        extent : (left, right, bottom, top), optional</span>
+<span class="sd">            Calibrate from the image&#39;s outer edges, as matplotlib&#39;s</span>
+<span class="sd">            ``imshow(extent=...)`` does, instead of per-pixel ``axes``.</span>
+<span class="sd">            ``top`` is the y coordinate of the top of the displayed image</span>
+<span class="sd">            whatever the ``origin``.  Mutually exclusive with ``axes``.  See</span>
+<span class="sd">            :meth:`~anyplotlib.Plot2D.set_extent_edges`.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        Plot2D</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">axes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;pass either axes or extent, not both&quot;</span><span class="p">)</span>
         <span class="n">x_axis</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">axes</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="n">y_axis</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">axes</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="n">plot</span> <span class="o">=</span> <span class="n">Plot2D</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x_axis</span><span class="o">=</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="o">=</span><span class="n">y_axis</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span>
@@ -542,6 +677,10 @@
                       <span class="n">tile</span><span class="o">=</span><span class="n">tile</span><span class="p">,</span> <span class="n">integration_method</span><span class="o">=</span><span class="n">integration_method</span><span class="p">,</span>
                       <span class="n">overview_method</span><span class="o">=</span><span class="n">overview_method</span><span class="p">,</span>
                       <span class="n">tile_backend</span><span class="o">=</span><span class="n">tile_backend</span><span class="p">,</span> <span class="n">probe_exact</span><span class="o">=</span><span class="n">probe_exact</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">top</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">extent</span><span class="p">)</span>
+            <span class="c1"># Not attached yet, so this only updates state (no push).</span>
+            <span class="n">plot</span><span class="o">.</span><span class="n">set_extent_edges</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">top</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_attach</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">plot</span></div>
 
@@ -1019,6 +1158,7 @@
         <span class="n">plot</span><span class="o">.</span><span class="n">_fig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="o">=</span> <span class="n">plot</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_register_panel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_apply_axes_labels</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">kind</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="k">else</span> <span class="s2">&quot;empty&quot;</span>

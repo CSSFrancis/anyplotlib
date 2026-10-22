@@ -620,6 +620,38 @@ for worked examples.</p>
 <span class="n">v</span>  <span class="c1"># display in a Jupyter cell</span>
 </pre></div>
 </div>
+<section id="calibrated-coordinates">
+<h4>Calibrated coordinates<a class="headerlink" href="#calibrated-coordinates" title="Link to this heading">#</a></h4>
+<p>Widgets and markers on a 2-D panel are positioned in <em>image pixels</em> by default
+(integer <em>i</em> is the centre of pixel <em>i</em>).  When the image has physical axes,
+pass <code class="docutils literal notranslate"><span class="pre">coords=&quot;data&quot;</span></code> to work in those units instead — positions, lengths,
+attribute reads, <code class="docutils literal notranslate"><span class="pre">set()</span></code> and drag callbacks all use them:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>          <span class="c1"># nm, one value per column</span>
+<span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">3.0</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>         <span class="c1"># nm, one value per row</span>
+<span class="n">plot</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mi">25</span><span class="p">)),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;nm&quot;</span><span class="p">)</span>
+
+<span class="n">roi</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=-</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                      <span class="n">coords</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+<span class="n">roi</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">roi</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">roi</span><span class="o">.</span><span class="n">w</span><span class="p">),</span> <span class="s2">&quot;pointer_up&quot;</span><span class="p">)</span>  <span class="c1"># nm</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">add_circles</span><span class="p">([[</span><span class="mf">12.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">]],</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+
+<span class="n">plot</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">x_to_pixel</span><span class="p">(</span><span class="mf">11.0</span><span class="p">)</span>          <span class="c1"># 2.0</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">pixel_to_data</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>               <span class="c1"># array([11., -2.])</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.transform" title="anyplotlib.Plot2D.transform"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Plot2D.transform</span></code></a> handles offsets,
+non-unit and non-uniform spacing, and descending axes (<code class="docutils literal notranslate"><span class="pre">origin=&quot;lower&quot;</span></code>).
+A data-coordinate rectangle spans <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">w]</span> <span class="pre">×</span> <span class="pre">[y,</span> <span class="pre">y</span> <span class="pre">+</span> <span class="pre">h]</span></code> in data —
+<code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> is its corner with the smallest data values and <code class="docutils literal notranslate"><span class="pre">w</span></code>, <code class="docutils literal notranslate"><span class="pre">h</span></code> are
+positive — whichever way the axes run on screen.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A data-coordinate <em>widget</em> still stores pixels, so after
+<a class="reference internal" href="api/generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.set_extent" title="anyplotlib.Plot2D.set_extent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_extent()</span></code></a> it stays on the same pixels and its
+data values change, whereas a data-coordinate <em>marker group</em> keeps its data
+position.</p>
+</div>
+</section>
 </section>
 <section id="bar-chart">
 <h3>Bar chart<a class="headerlink" href="#bar-chart" title="Link to this heading">#</a></h3>
@@ -690,7 +722,10 @@ the <a class="reference internal" href="api/index.html"><span class="doc">API Re
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#d-plot">1-D plot</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#d-image">2-D image</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#d-image">2-D image</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#calibrated-coordinates">Calibrated coordinates</a></li>
+</ul>
+</li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bar-chart">Bar chart</a></li>
 </ul>
 </li>

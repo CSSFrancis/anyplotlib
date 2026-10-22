@@ -488,6 +488,17 @@
 
 <span class="sd">A sequence shorter than the group cycles, as matplotlib&#39;s colour cycle does.</span>
 <span class="sd">This works for every marker type on both 1-D and 2-D panels.</span>
+
+<span class="sd">Calibrated coordinates on 2-D panels</span>
+<span class="sd">------------------------------------</span>
+<span class="sd">On a :class:`~anyplotlib.Plot2D`, ``transform=&quot;data&quot;`` positions are image</span>
+<span class="sd">pixels.  Pass ``coords=&quot;data&quot;`` to give positions *and* lengths in the panel&#39;s</span>
+<span class="sd">calibrated axis units instead; the group keeps those values and converts them</span>
+<span class="sd">through :attr:`Plot2D.transform &lt;anyplotlib.Plot2D.transform&gt;` each time it is</span>
+<span class="sd">serialised, so it stays put when the panel is re-calibrated::</span>
+
+<span class="sd">    plot = ax.imshow(img, axes=[x_nm, y_nm], units=&quot;nm&quot;)</span>
+<span class="sd">    plot.add_circles([[11.0, -2.0]], radius=0.5, coords=&quot;data&quot;)</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -501,17 +512,57 @@
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_broadcast</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Broadcast scalar or sequence to a list of length *n*.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Broadcast scalar or sequence to a list of length *n*.</span>
+
+<span class="sd">    A length-1 sequence counts as a scalar, as it does in matplotlib (whose</span>
+<span class="sd">    collections cycle per-item properties), so ``radius=[5]`` sizes every</span>
+<span class="sd">    marker in the group rather than being rejected when ``n &gt; 1``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">==</span> <span class="n">n</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected scalar or length-</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> array, got shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Expected scalar, length-1 or length-</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> array, got shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_scalar</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unwrap a length-1 sequence to its element; return anything else as-is.</span>
+
+<span class="sd">    Used for group-wide (not per-marker) properties such as ``linewidths``,</span>
+<span class="sd">    ``alpha`` and ``fontsize``, so a matplotlib-style ``(1.5,)`` is accepted</span>
+<span class="sd">    where a bare ``1.5`` is expected.  Strings are never unwrapped.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">val</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">val</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_color</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A colour kwarg: unwrap a single-colour sequence (``[&quot;#f00&quot;]``) to the</span>
+<span class="sd">    colour itself; longer sequences stay per-marker lists.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">val</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_offsets_2d</span><span class="p">(</span><span class="n">offsets</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">offsets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># An empty group (zero markers) is valid and renders nothing.  Accept</span>
+        <span class="c1"># any empty input -- ``np.zeros((0, 2))`` but also ``[]``, which is what</span>
+        <span class="c1"># an empty (0, 2) array becomes after ``.tolist()`` (e.g. in the</span>
+        <span class="c1"># ``coords=&quot;data&quot;`` -&gt; pixel conversion).</span>
+        <span class="k">return</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
     <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
@@ -572,8 +623,8 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply facecolors/alpha fill fields to a wire dict if facecolors is set.&quot;&quot;&quot;</span>
     <span class="n">fc</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;facecolors&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;fill_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fc</span>
-        <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;fill_alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
+        <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;fill_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_color</span><span class="p">(</span><span class="n">fc</span><span class="p">)</span>
+        <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;fill_alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">)))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_offsets_1d</span><span class="p">(</span><span class="n">offsets</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
@@ -586,6 +637,45 @@
     <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;offsets must be 1-D or shape (N,1)/(N,2)&quot;</span><span class="p">)</span>
+
+
+<span class="n">_VALID_COORDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;pixel&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span>
+
+<span class="c1">#: ``{key: role}`` for marker geometry, used by ``coords=&quot;data&quot;``.</span>
+<span class="c1">#: Lengths (``dx``/``dy``/``r``) are skipped for ``size_units=&quot;px&quot;`` groups,</span>
+<span class="c1">#: whose sizes are screen pixels rather than data.</span>
+<span class="n">_MARKER_POINT_KEYS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;offsets&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;clip_path&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;segments&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                      <span class="s2">&quot;vertices_list&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="n">_MARKER_LENGTH_KEYS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;widths&quot;</span><span class="p">:</span> <span class="s2">&quot;dx&quot;</span><span class="p">,</span> <span class="s2">&quot;heights&quot;</span><span class="p">:</span> <span class="s2">&quot;dy&quot;</span><span class="p">,</span> <span class="s2">&quot;radius&quot;</span><span class="p">:</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span>
+                       <span class="s2">&quot;U&quot;</span><span class="p">:</span> <span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span> <span class="s2">&quot;v&quot;</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">coords</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_VALID_COORDS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coords must be one of </span><span class="si">{</span><span class="n">_VALID_COORDS</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">coords</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coords</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_points_to_pixels</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert ``[x, y]`` pairs nested *depth* list levels deep.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">single</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">data_to_pixel</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="n">single</span> <span class="k">else</span> <span class="n">out</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">_points_to_pixels</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_length_to_pixels</span><span class="p">(</span><span class="n">role</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;u&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="n">transform</span><span class="o">.</span><span class="n">x_scale</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;v&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="n">transform</span><span class="o">.</span><span class="n">y_scale</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">y_length_to_pixels</span> <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;dy&quot;</span> <span class="k">else</span> <span class="n">transform</span><span class="o">.</span><span class="n">x_length_to_pixels</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">fn</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -622,9 +712,71 @@
         <span class="k">if</span> <span class="s2">&quot;clip_display&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;clip_display&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;clip_display must be a bool&quot;</span><span class="p">)</span>
         <span class="n">_check_text_style</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">_check_coords</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;coords&quot;</span><span class="p">,</span> <span class="s2">&quot;pixel&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">kwargs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">push_fn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="p">:</span> <span class="s2">&quot;MarkerTypeDict | None&quot;</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">marker_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The marker type, e.g. ``&quot;circles&quot;`` or ``&quot;lines&quot;`` (read-only).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The group&#39;s key in ``plot.markers[marker_type]`` (read-only).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+<div class="viewcode-block" id="MarkerGroup.get">
+<a class="viewcode-back" href="../../api/markers.html#anyplotlib.markers.MarkerGroup.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a property as last given to the constructor or :meth:`set`</span>
+<span class="sd">        (matplotlib-style name, in the group&#39;s :attr:`coords` frame).</span>
+
+<span class="sd">        &gt;&gt;&gt; group.get(&quot;edgecolors&quot;)            # doctest: +SKIP</span>
+<span class="sd">        &#39;#ff0000&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coords</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frame of this group&#39;s positions and lengths: ``&quot;pixel&quot;`` or ``&quot;data&quot;``.</span>
+
+<span class="sd">        Only meaningful for ``transform=&quot;data&quot;`` groups on a 2-D image panel,</span>
+<span class="sd">        where ``&quot;pixel&quot;`` (the default) means image pixels and ``&quot;data&quot;`` the</span>
+<span class="sd">        calibrated axis values.  On 1-D panels both mean data coordinates.</span>
+<span class="sd">        Change it with ``group.set(coords=...)``; the stored values are then</span>
+<span class="sd">        reinterpreted, not converted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="s2">&quot;_transform_fn&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">fn</span><span class="p">()</span> <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wire_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``_data`` with ``coords=&quot;data&quot;`` geometry converted to image pixels.&quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span> <span class="o">!=</span> <span class="s2">&quot;data&quot;</span> <span class="ow">or</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;transform&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">d</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">d</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">depth</span> <span class="ow">in</span> <span class="n">_MARKER_POINT_KEYS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_points_to_pixels</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">depth</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+        <span class="n">px_sizes</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;size_units&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;px&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">role</span> <span class="ow">in</span> <span class="n">_MARKER_LENGTH_KEYS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">px_sizes</span> <span class="ow">and</span> <span class="n">role</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;dx&quot;</span><span class="p">,</span> <span class="s2">&quot;dy&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_length_to_pixels</span><span class="p">(</span><span class="n">role</span><span class="p">,</span> <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">t</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="MarkerGroup.set">
@@ -636,7 +788,8 @@
 <span class="sd">        ----------</span>
 <span class="sd">        **kwargs : dict</span>
 <span class="sd">            Properties to update (e.g., offsets, radius, facecolors).</span>
-<span class="sd">            Matplotlib-style names are translated to wire format.</span>
+<span class="sd">            Matplotlib-style names are translated to wire format.  Positions</span>
+<span class="sd">            and lengths are read in the group&#39;s :attr:`coords` frame.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s2">&quot;transform&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;transform&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_VALID_TRANSFORMS</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -646,6 +799,9 @@
         <span class="k">if</span> <span class="s2">&quot;clip_display&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;clip_display&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;clip_display must be a bool&quot;</span><span class="p">)</span>
         <span class="n">_check_text_style</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;coords&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span> <span class="o">=</span> <span class="n">_check_coords</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;coords&quot;</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">()</span></div>
 
@@ -691,7 +847,7 @@
 <span class="sd">            Wire-format dict with type-specific structure, ready for JSON</span>
 <span class="sd">            serialization and transmission to the JavaScript renderer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wire_data</span><span class="p">()</span>
         <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type</span>
 
         <span class="c1"># Build the wire dict based on marker type</span>
@@ -704,8 +860,8 @@
                 <span class="s2">&quot;type&quot;</span><span class="p">:</span>      <span class="s2">&quot;circles&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;offsets&quot;</span><span class="p">:</span>   <span class="n">offsets</span><span class="p">,</span>
                 <span class="s2">&quot;sizes&quot;</span><span class="p">:</span>     <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;radius&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
             <span class="n">_apply_fill_color</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 
@@ -719,8 +875,8 @@
                 <span class="s2">&quot;offsets&quot;</span><span class="p">:</span>   <span class="n">offsets</span><span class="p">,</span>
                 <span class="s2">&quot;U&quot;</span><span class="p">:</span>         <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;U&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
                 <span class="s2">&quot;V&quot;</span><span class="p">:</span>         <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
 
         <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;ellipses&quot;</span><span class="p">:</span>
@@ -734,8 +890,8 @@
                 <span class="s2">&quot;widths&quot;</span><span class="p">:</span>    <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;widths&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
                 <span class="s2">&quot;heights&quot;</span><span class="p">:</span>   <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;heights&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
                 <span class="s2">&quot;angles&quot;</span><span class="p">:</span>    <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;angles&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
             <span class="n">_apply_fill_color</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 
@@ -753,8 +909,8 @@
                 <span class="s2">&quot;name&quot;</span><span class="p">:</span>      <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
                 <span class="s2">&quot;type&quot;</span><span class="p">:</span>      <span class="s2">&quot;lines&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;segments&quot;</span><span class="p">:</span>  <span class="n">segs</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
 
         <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;rectangles&quot;</span><span class="p">:</span>
@@ -768,8 +924,8 @@
                 <span class="s2">&quot;widths&quot;</span><span class="p">:</span>    <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;widths&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
                 <span class="s2">&quot;heights&quot;</span><span class="p">:</span>   <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;heights&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
                 <span class="s2">&quot;angles&quot;</span><span class="p">:</span>    <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;angles&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
             <span class="n">_apply_fill_color</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 
@@ -783,8 +939,8 @@
                 <span class="s2">&quot;offsets&quot;</span><span class="p">:</span>   <span class="n">offsets</span><span class="p">,</span>
                 <span class="s2">&quot;widths&quot;</span><span class="p">:</span>    <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;widths&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
                 <span class="s2">&quot;angles&quot;</span><span class="p">:</span>    <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;angles&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
             <span class="n">_apply_fill_color</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 
@@ -800,8 +956,8 @@
                 <span class="s2">&quot;name&quot;</span><span class="p">:</span>         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
                 <span class="s2">&quot;type&quot;</span><span class="p">:</span>         <span class="s2">&quot;polygons&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;vertices_list&quot;</span><span class="p">:</span> <span class="n">vlist</span><span class="p">,</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>        <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span>    <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>        <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span>    <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
             <span class="n">cp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;clip_path&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -819,8 +975,8 @@
                 <span class="s2">&quot;type&quot;</span><span class="p">:</span>     <span class="s2">&quot;texts&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;offsets&quot;</span><span class="p">:</span>  <span class="n">offsets</span><span class="p">,</span>
                 <span class="s2">&quot;texts&quot;</span><span class="p">:</span>    <span class="n">texts</span><span class="p">,</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>    <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;fontsize&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fontsize&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>    <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;fontsize&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fontsize&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">))),</span>
                 <span class="s2">&quot;fontweight&quot;</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fontweight&quot;</span><span class="p">,</span> <span class="s2">&quot;normal&quot;</span><span class="p">),</span>
                 <span class="c1"># Rotation is in radians (matplotlib&#39;s TextCollection</span>
                 <span class="c1"># convention): the text anchors at the offset point, then</span>
@@ -832,7 +988,7 @@
             <span class="c1"># Outline (a halo stroked under the fill): only on the wire when set.</span>
             <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;outline_color&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;outline_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;outline_color&quot;</span><span class="p">]</span>
-                <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;outline_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;outline_width&quot;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">))</span>
+                <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;outline_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;outline_width&quot;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)))</span>
 
         <span class="c1"># ── 1D-only types ───────────────────────────────────────────────────</span>
         <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;points&quot;</span><span class="p">:</span>
@@ -844,8 +1000,8 @@
                 <span class="s2">&quot;type&quot;</span><span class="p">:</span>      <span class="s2">&quot;points&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;offsets&quot;</span><span class="p">:</span>   <span class="n">offsets</span><span class="p">,</span>
                 <span class="s2">&quot;sizes&quot;</span><span class="p">:</span>     <span class="n">_broadcast</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sizes&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">n</span><span class="p">),</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
             <span class="n">_apply_fill_color</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 
@@ -856,8 +1012,8 @@
                 <span class="s2">&quot;name&quot;</span><span class="p">:</span>      <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
                 <span class="s2">&quot;type&quot;</span><span class="p">:</span>      <span class="s2">&quot;vlines&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;offsets&quot;</span><span class="p">:</span>   <span class="p">[[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">],</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
 
         <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;hlines&quot;</span><span class="p">:</span>
@@ -867,8 +1023,8 @@
                 <span class="s2">&quot;name&quot;</span><span class="p">:</span>      <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
                 <span class="s2">&quot;type&quot;</span><span class="p">:</span>      <span class="s2">&quot;hlines&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;offsets&quot;</span><span class="p">:</span>   <span class="p">[[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">],</span>
-                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">)),</span>
-                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)),</span>
+                <span class="s2">&quot;color&quot;</span><span class="p">:</span>     <span class="n">_color</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff0000&quot;</span><span class="p">))),</span>
+                <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">_scalar</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linewidths&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))),</span>
             <span class="p">}</span>
 
         <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;raster&quot;</span><span class="p">:</span>
@@ -928,10 +1084,10 @@
         <span class="c1"># facecolors → hover_facecolors.  Any CSS colour string is accepted.</span>
         <span class="n">hec</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hover_edgecolors&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">hec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;hover_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hec</span><span class="p">)</span>
+            <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;hover_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_color</span><span class="p">(</span><span class="n">hec</span><span class="p">))</span>
         <span class="n">hfc</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hover_facecolors&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">hfc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;hover_facecolor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hfc</span><span class="p">)</span>
+            <span class="n">wire</span><span class="p">[</span><span class="s2">&quot;hover_facecolor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_color</span><span class="p">(</span><span class="n">hfc</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">wire</span></div>
 </div>
@@ -958,9 +1114,12 @@
 <span class="sd">        Zero-arg callback to trigger re-render on mutations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">marker_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">marker_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">transform_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_type</span> <span class="o">=</span> <span class="n">marker_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">push_fn</span>
+        <span class="c1"># Zero-arg callable returning the panel&#39;s ImageTransform (or None);</span>
+        <span class="c1"># used by groups created with coords=&quot;data&quot;.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform_fn</span> <span class="o">=</span> <span class="n">transform_fn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MarkerGroup</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -1136,7 +1295,8 @@
     <span class="c1"># pcolormesh panels only support points (circles) and line segments</span>
     <span class="n">_KNOWN_MESH</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;circles&quot;</span><span class="p">,</span> <span class="s2">&quot;lines&quot;</span><span class="p">})</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">allowed</span><span class="p">:</span> <span class="nb">frozenset</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">push_fn</span><span class="p">,</span> <span class="n">allowed</span><span class="p">:</span> <span class="nb">frozenset</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">transform_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1145,9 +1305,14 @@
 <span class="sd">            Figure trait.</span>
 <span class="sd">        allowed :</span>
 <span class="sd">            Set of allowed type names.  ``None`` means all known types.</span>
+<span class="sd">        transform_fn :</span>
+<span class="sd">            Zero-arg callable returning the panel&#39;s</span>
+<span class="sd">            :class:`~anyplotlib.ImageTransform`, for groups created with</span>
+<span class="sd">            ``coords=&quot;data&quot;``.  ``None`` (1-D panels) leaves them unconverted.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="n">push_fn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_allowed</span> <span class="o">=</span> <span class="n">allowed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform_fn</span> <span class="o">=</span> <span class="n">transform_fn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MarkerTypeDict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -1175,7 +1340,8 @@
                 <span class="sa">f</span><span class="s2">&quot;Allowed types: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_allowed</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">marker_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">marker_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">MarkerTypeDict</span><span class="p">(</span><span class="n">marker_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">marker_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">MarkerTypeDict</span><span class="p">(</span>
+                <span class="n">marker_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_fn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_fn</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">marker_type</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">marker_type</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1224,6 +1390,8 @@
 <span class="sd">            Group name. Auto-generated (``&#39;circles_1&#39;`` etc.) if ``None``.</span>
 <span class="sd">        **kwargs : dict</span>
 <span class="sd">            Matplotlib-style kwargs for the group (offsets, radius, colors, etc.).</span>
+<span class="sd">            ``coords=&quot;data&quot;`` gives positions and lengths in calibrated axis</span>
+<span class="sd">            units on a 2-D image panel (see :attr:`MarkerGroup.coords`).</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>

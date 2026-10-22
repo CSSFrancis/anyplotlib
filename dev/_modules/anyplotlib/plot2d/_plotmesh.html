@@ -516,7 +516,8 @@
 
         <span class="c1"># Restrict markers to circles + lines only</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span> <span class="o">=</span> <span class="n">MarkerRegistry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_push_markers</span><span class="p">,</span>
-                                      <span class="n">allowed</span><span class="o">=</span><span class="n">MarkerRegistry</span><span class="o">.</span><span class="n">_KNOWN_MESH</span><span class="p">)</span>
+                                      <span class="n">allowed</span><span class="o">=</span><span class="n">MarkerRegistry</span><span class="o">.</span><span class="n">_KNOWN_MESH</span><span class="p">,</span>
+                                      <span class="n">transform_fn</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">)</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="c1"># Data</span>

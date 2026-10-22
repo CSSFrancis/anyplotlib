@@ -598,6 +598,23 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_fn_key</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a stable identity key for a handler.</span>
+
+<span class="sd">    A bound method is a *new* object on every attribute access</span>
+<span class="sd">    (``obj.method is obj.method`` is ``False``), so ``id(fn)`` cannot identify</span>
+<span class="sd">    it: ``remove_handler(obj.method)`` would never find the handler registered</span>
+<span class="sd">    with ``add_event_handler(obj.method, ...)``.  Key bound methods by their</span>
+<span class="sd">    ``(instance, function)`` pair instead, which is what makes two accesses</span>
+<span class="sd">    compare equal.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">self_</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;__self__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;__func__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">self_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">self_</span><span class="p">),</span> <span class="nb">id</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="CallbackRegistry">
 <a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CallbackRegistry</span><span class="p">:</span>
@@ -617,8 +634,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_next_cid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="c1"># {cid: set[str]} — which types this cid is registered under</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cid_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="c1"># {id(fn): set[int]} — which cids this fn owns</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="c1"># {_fn_key(fn): set[int]} — which cids this fn owns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
         <span class="c1"># pause/hold state (populated in Task 3)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pause_counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_hold_counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -640,7 +657,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">[</span><span class="n">event_type</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">order</span><span class="p">,</span> <span class="n">cid</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">[</span><span class="n">event_type</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cid_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">event_type</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">fn</span><span class="p">)]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="p">[</span><span class="n">_fn_key</span><span class="p">(</span><span class="n">fn</span><span class="p">)]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">cid</span></div>
 
 
@@ -661,7 +678,7 @@
 <a class="viewcode-back" href="../../api/generated/anyplotlib.CallbackRegistry.html#anyplotlib.callbacks.CallbackRegistry.disconnect_fn">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">disconnect_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove fn from the given types (all types if none given).&quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="nb">set</span><span class="p">())):</span>
+        <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fn_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_fn_key</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="nb">set</span><span class="p">())):</span>
             <span class="n">cid_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cid_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">types</span> <span class="ow">or</span> <span class="n">cid_types</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span></div>
@@ -773,10 +790,17 @@
 <span class="sd">            @plot.add_event_handler(&quot;pointer_settled&quot;, ms=400, delta=5)</span>
 <span class="sd">            def on_settle(event): ...</span>
 
+<span class="sd">        Any callable works as a handler, including bound methods::</span>
+
+<span class="sd">            plot.add_event_handler(self.on_move, &quot;pointer_move&quot;)</span>
+<span class="sd">            plot.remove_handler(self.on_move)   # finds the same registration</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        fn_or_type : callable or str</span>
-<span class="sd">            Handler function (direct call) or first event type string (decorator).</span>
+<span class="sd">            Handler (direct call) or first event type string (decorator).</span>
+<span class="sd">            Plain functions, lambdas, bound methods and other callables are</span>
+<span class="sd">            all accepted.</span>
 <span class="sd">        *args : str</span>
 <span class="sd">            Remaining event type strings.</span>
 <span class="sd">        order : float</span>
@@ -811,7 +835,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">has_settled</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_configure_pointer_settled</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
-        <span class="n">fn</span><span class="o">.</span><span class="n">_event_types</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;_event_types&quot;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fn</span><span class="o">.</span><span class="n">_event_types</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;_event_types&quot;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="c1"># Bound methods (and builtins / functools.partial with __slots__)</span>
+            <span class="c1"># refuse new attributes.  The stamp is informational only, so a</span>
+            <span class="c1"># handler that cannot carry it is still registered.</span>
+            <span class="k">pass</span>
         <span class="k">return</span> <span class="n">fn</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">remove_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid_or_fn</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

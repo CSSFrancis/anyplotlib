@@ -82,6 +82,10 @@ Event types
      - Key pressed while panel has focus.
    * - ``key_up``
      - Key released.
+   * - ``close``
+     - :meth:`Figure.close <anyplotlib.Figure.close>` ran.  Fires on the
+       figure's own registry first (:meth:`Figure.on_close
+       <anyplotlib.Figure.on_close>`), then on every panel's.
    * - ``*``
      - Wildcard — handler receives every dispatched event type.
 
@@ -356,6 +360,54 @@ mechanism is required.
     @overlay.add_event_handler("pointer_down")
     def on_pick(event):
         print(f"picked overlay line at xdata={event.xdata:.3f}")
+
+
+Handlers that are bound methods
+-------------------------------
+
+Any callable is a valid handler, including a bound method; removing it by
+the same expression finds the original registration even though Python
+builds a new method object on each attribute access:
+
+.. code-block:: python
+
+    class Tracker:
+        def on_move(self, event): ...
+
+    tracker = Tracker()
+    plot.add_event_handler(tracker.on_move, "pointer_move")
+    plot.remove_handler(tracker.on_move)
+
+
+Figure lifecycle
+----------------
+
+.. code-block:: python
+
+    fig, ax = apl.subplots(1, 1)
+    cid = fig.on_close(lambda event: release_resources())
+    fig.display()        # shows it; a second call is a no-op
+    fig.display()
+    fig.displayed        # True
+    fig.close()          # runs the close handlers once
+    fig.closed           # True
+
+``close()`` runs the figure's handlers and each panel's even if one raises
+(the first exception is re-raised afterwards), then hides the figure and
+closes its widget comm, so a closed figure can be garbage collected once
+nothing else references it.
+
+
+Moving widgets from Python without echo
+---------------------------------------
+
+``widget.set(...)`` fires the widget's ``pointer_move`` handlers so a Python
+update looks like a drag.  Pass ``notify=False`` when the handlers should only
+hear about the user:
+
+.. code-block:: python
+
+    widget.set(cx=new_x, cy=new_y, notify=False)
 
 
 Pause and hold

@@ -151,6 +151,41 @@ for worked examples.
     v = ax.imshow(data, units="px")
     v  # display in a Jupyter cell
 
+Calibrated coordinates
+^^^^^^^^^^^^^^^^^^^^^^
+
+Widgets and markers on a 2-D panel are positioned in *image pixels* by default
+(integer *i* is the centre of pixel *i*).  When the image has physical axes,
+pass ``coords="data"`` to work in those units instead — positions, lengths,
+attribute reads, ``set()`` and drag callbacks all use them:
+
+.. code-block:: python
+
+    x = 10.0 + 0.5 * np.arange(25)          # nm, one value per column
+    y = -3.0 + 0.25 * np.arange(12)         # nm, one value per row
+    plot = ax.imshow(np.zeros((12, 25)), axes=[x, y], units="nm")
+
+    roi = plot.add_widget("rectangle", x=11.0, y=-2.0, w=2.0, h=1.0,
+                          coords="data")
+    roi.add_event_handler(lambda e: print(roi.x, roi.w), "pointer_up")  # nm
+    plot.add_circles([[12.0, -1.0]], radius=0.5, coords="data")
+
+    plot.transform.x_to_pixel(11.0)          # 2.0
+    plot.pixel_to_data([2, 4])               # array([11., -2.])
+
+:attr:`Plot2D.transform <anyplotlib.Plot2D.transform>` handles offsets,
+non-unit and non-uniform spacing, and descending axes (``origin="lower"``).
+A data-coordinate rectangle spans ``[x, x + w] × [y, y + h]`` in data —
+``(x, y)`` is its corner with the smallest data values and ``w``, ``h`` are
+positive — whichever way the axes run on screen.
+
+.. note::
+
+   A data-coordinate *widget* still stores pixels, so after
+   :meth:`~anyplotlib.Plot2D.set_extent` it stays on the same pixels and its
+   data values change, whereas a data-coordinate *marker group* keeps its data
+   position.
+
 Bar chart
 ~~~~~~~~~
 

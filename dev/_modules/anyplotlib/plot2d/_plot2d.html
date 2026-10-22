@@ -471,7 +471,9 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._base_plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">_BasePlot</span><span class="p">,</span> <span class="n">_PanelMixin</span><span class="p">,</span> <span class="n">_MarkerMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.markers</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarkerRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.plot2d._transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageTransform</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">_check_coords</span><span class="p">,</span> <span class="n">_convert_role</span><span class="p">,</span> <span class="n">_convert_span</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Widget</span><span class="p">,</span>
     <span class="n">RectangleWidget</span><span class="p">,</span> <span class="n">CircleWidget</span><span class="p">,</span> <span class="n">AnnularWidget</span><span class="p">,</span>
@@ -526,6 +528,17 @@
         <span class="n">out</span><span class="p">[:</span><span class="n">sh</span><span class="p">,</span> <span class="n">sw</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">|=</span> <span class="n">mask</span><span class="p">[:</span><span class="n">keep_h</span><span class="p">,</span> <span class="n">keep_w</span><span class="p">:]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">keep_h</span> <span class="o">//</span> <span class="n">ys</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">src_w</span> <span class="o">-</span> <span class="n">keep_w</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))[:</span><span class="n">sh</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_edge_centres</span><span class="p">(</span><span class="n">edge0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">edge1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pixel-centre coordinates of *count* pixels spanning ``edge0 → edge1``.</span>
+
+<span class="sd">    The edges are the OUTER boundary of the image, so the centres sit half a</span>
+<span class="sd">    pixel in from either end (matplotlib&#39;s ``imshow(extent=...)``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">edge1</span><span class="p">)</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">edge0</span><span class="p">))</span> <span class="o">/</span> <span class="n">count</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">edge0</span><span class="p">)</span> <span class="o">+</span> <span class="n">size</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Plot2D">
@@ -840,7 +853,8 @@
         <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">markers</span> <span class="o">=</span> <span class="n">MarkerRegistry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_push_markers</span><span class="p">,</span>
-                                      <span class="n">allowed</span><span class="o">=</span><span class="n">MarkerRegistry</span><span class="o">.</span><span class="n">_KNOWN_2D</span><span class="p">)</span>
+                                      <span class="n">allowed</span><span class="o">=</span><span class="n">MarkerRegistry</span><span class="o">.</span><span class="n">_KNOWN_2D</span><span class="p">,</span>
+                                      <span class="n">transform_fn</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
         <span class="c1"># Tile mode: anyplotlib itself reacts to view_changed (zoom/pan) → sample a</span>
         <span class="c1"># hi-res detail tile of the visible region from the backend. The consumer</span>
@@ -1454,7 +1468,7 @@
 <span class="sd">        :meth:`resolve_pixel_tokens` on the returned dict (``Figure._push`` does</span>
 <span class="sd">        this for the standalone trait when binary transport is off).&quot;&quot;&quot;</span>
         <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
-        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;overlay_widgets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;overlay_widgets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">_wire_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
         <span class="n">d</span><span class="p">[</span><span class="s2">&quot;markers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">to_wire_list</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">d</span></div>
 
@@ -2382,6 +2396,79 @@
         <span class="k">return</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">xarr</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">float</span><span class="p">(</span><span class="n">xarr</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span></div>
 
 
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Calibration / data &lt;-&gt; pixel coordinates</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">x_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The calibrated x coordinates (read-only copy).</span>
+
+<span class="sd">        One value per pixel centre for an ``imshow`` panel, the ``N + 1`` cell</span>
+<span class="sd">        edges for a ``pcolormesh`` one.  Change it with :meth:`set_extent`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;x_axis&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">y_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The calibrated y coordinates, top row first (read-only copy).</span>
+
+<span class="sd">        Already ``origin``-applied: for ``origin=&quot;lower&quot;`` this is the axis</span>
+<span class="sd">        passed in, reversed.  See :attr:`x_axis`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;y_axis&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageTransform</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data ↔ image-pixel coordinate transform for this panel.</span>
+
+<span class="sd">        Widgets and ``transform=&quot;data&quot;`` markers on a 2-D panel are placed in</span>
+<span class="sd">        image pixels (integer *i* = centre of pixel *i*); the transform maps</span>
+<span class="sd">        those to and from the calibrated axis values, handling offset,</span>
+<span class="sd">        non-unit scale, descending axes and non-uniform axes.  It reads the</span>
+<span class="sd">        current axes on every call, so it never goes stale.</span>
+
+<span class="sd">        Most code does not need it directly: pass ``coords=&quot;data&quot;`` to the</span>
+<span class="sd">        ``add_*_widget`` and marker methods instead.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ImageTransform</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ImageTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Plot2D.data_to_pixel">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.data_to_pixel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data_to_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert calibrated ``(x, y)`` data points to image-pixel coordinates.</span>
+
+<span class="sd">        Shorthand for ``plot.transform.data_to_pixel(points)``.  Compose with</span>
+<span class="sd">        :meth:`data_to_display` (which takes image pixels on a 2-D panel) to</span>
+<span class="sd">        reach screen pixels.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        points : array-like</span>
+<span class="sd">            A single ``(x, y)`` pair or an ``(N, 2)`` sequence.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        numpy.ndarray</span>
+<span class="sd">            Same shape as *points*: ``(column, row)`` with integer *i* at the</span>
+<span class="sd">            centre of pixel *i*.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">data_to_pixel</span><span class="p">(</span><span class="n">points</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.pixel_to_data">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.pixel_to_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pixel_to_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert image-pixel ``(column, row)`` points to calibrated data.</span>
+
+<span class="sd">        The inverse of :meth:`data_to_pixel`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">pixel_to_data</span><span class="p">(</span><span class="n">points</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="Plot2D.set_extent">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_extent">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_extent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2407,6 +2494,46 @@
         <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">units</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Plot2D.set_extent_edges">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.set_extent_edges">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_extent_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">bottom</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                         <span class="n">top</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calibrate the image from its outer edges (matplotlib&#39;s ``extent``).</span>
+
+<span class="sd">        The image is ``image_width`` × ``image_height`` pixels spanning</span>
+<span class="sd">        ``left → right`` horizontally and ``top → bottom`` from the top of the</span>
+<span class="sd">        panel down — the box matplotlib&#39;s ``imshow(extent=(left, right,</span>
+<span class="sd">        bottom, top))`` describes.  Each pixel&#39;s centre coordinate is derived</span>
+<span class="sd">        from that box and passed to :meth:`set_extent`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        left, right : float</span>
+<span class="sd">            x coordinate of the left and right image edges.</span>
+<span class="sd">        bottom, top : float</span>
+<span class="sd">            y coordinate of the bottom and top image edges, *as displayed*.</span>
+<span class="sd">            Pass ``top &lt; bottom`` for the usual &quot;y grows downwards&quot; image</span>
+<span class="sd">            convention, e.g. ``(0, 25, 12, 0)`` for a 12 × 25 image in pixel</span>
+<span class="sd">            units.</span>
+<span class="sd">        units : str, optional</span>
+<span class="sd">            Scale-bar / axis units label.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import anyplotlib as apl</span>
+<span class="sd">        &gt;&gt;&gt; fig, ax = apl.subplots()</span>
+<span class="sd">        &gt;&gt;&gt; plot = ax.imshow(np.zeros((12, 25)))</span>
+<span class="sd">        &gt;&gt;&gt; plot.set_extent_edges(0.0, 5.0, 2.4, 0.0, units=&quot;nm&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; plot.x_axis[:2].round(3).tolist(), plot.y_axis[:2].round(3).tolist()</span>
+<span class="sd">        ([0.1, 0.3], [0.1, 0.3])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">])</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_extent</span><span class="p">(</span><span class="n">_edge_centres</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span>
+                        <span class="n">_edge_centres</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.set_colorbar_label">
@@ -2483,6 +2610,35 @@
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="c1"># Overlay Widgets</span>
     <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_widget_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">fields</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert the geometry in *fields* from *coords* to image pixels.</span>
+
+<span class="sd">        ``None`` values (meaning &quot;use the default&quot;) pass through so the</span>
+<span class="sd">        defaults are still computed in pixel space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">_check_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fields</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+        <span class="n">geom</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_GEOMETRY</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="n">_convert_role</span><span class="p">(</span><span class="n">geom</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                   <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">geom</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">v</span><span class="p">)</span>
+               <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="c1"># Corner + size pairs convert together (see ``_convert_span``).</span>
+        <span class="c1"># Callers fill defaults first so both halves are present.</span>
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;_SPANS&quot;</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="k">if</span> <span class="n">fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">length</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">start</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="n">_convert_span</span><span class="p">(</span>
+                    <span class="n">geom</span><span class="p">[</span><span class="n">start</span><span class="p">],</span> <span class="n">fields</span><span class="p">[</span><span class="n">start</span><span class="p">],</span> <span class="n">fields</span><span class="p">[</span><span class="n">length</span><span class="p">],</span> <span class="n">t</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="p">:</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Widget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attach *widget* to this panel in the given coordinate frame and push.&quot;&quot;&quot;</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_coords</span> <span class="o">=</span> <span class="n">coords</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">widget</span>
+
 <div class="viewcode-block" id="Plot2D.add_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Widget</span><span class="p">:</span>
@@ -2496,8 +2652,19 @@
 <span class="sd">        Every kind also accepts ``show_handles`` (default ``True``) to toggle</span>
 <span class="sd">        the grab-handle dots without changing hit-testing / draggability.</span>
 <span class="sd">        ``vline`` / ``hline`` have no handles — the whole line is the grab</span>
-<span class="sd">        target — so they ignore it, and neither does ``brush`` (a freehand</span>
-<span class="sd">        stroke has no grab point).</span>
+<span class="sd">        target — so they ignore it, as does ``brush`` (a freehand stroke has</span>
+<span class="sd">        no grab point).</span>
+
+<span class="sd">        Every kind also accepts ``coords`` (``&quot;pixel&quot;`` default, or</span>
+<span class="sd">        ``&quot;data&quot;``) to give the geometry in calibrated axis units — see</span>
+<span class="sd">        :attr:`Widget.coords`::</span>
+
+<span class="sd">            x = 10.0 + 0.5 * np.arange(25)        # nm</span>
+<span class="sd">            y = -3.0 + 0.25 * np.arange(12)</span>
+<span class="sd">            plot = ax.imshow(img, axes=[x, y], units=&quot;nm&quot;)</span>
+<span class="sd">            roi = plot.add_widget(&quot;rectangle&quot;, x=11.0, y=-2.0, w=2.0, h=1.0,</span>
+<span class="sd">                                  coords=&quot;data&quot;)</span>
+<span class="sd">            roi.x            # 11.0 — reads come back in nm too</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dispatch</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;circle&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">add_circle_widget</span><span class="p">,</span>
@@ -2524,7 +2691,8 @@
                           <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                           <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
                           <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-                          <span class="n">lock_center</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CircleWidget</span><span class="p">:</span>
+                          <span class="n">lock_center</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                          <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CircleWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable circle overlay.</span>
 
 <span class="sd">        ``lock_center`` pins the centre and leaves only the radius draggable —</span>
@@ -2533,6 +2701,8 @@
 <span class="sd">        centred on the DC term), so it cannot be nudged off and silently</span>
 <span class="sd">        corrupt every radius measured from it.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">CircleWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><span class="n">cy</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
+        <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;cx&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;cy&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">CircleWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                               <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span> <span class="k">if</span> <span class="n">cx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
@@ -2541,10 +2711,7 @@
                               <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
                               <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">,</span>
                               <span class="n">lock_center</span><span class="o">=</span><span class="n">lock_center</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_rectangle_widget">
@@ -2553,14 +2720,27 @@
                               <span class="n">w</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                               <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
                               <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-                              <span class="n">max_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RectangleWidget</span><span class="p">:</span>
+                              <span class="n">max_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RectangleWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable rectangle overlay.</span>
+
+<span class="sd">        With ``coords=&quot;data&quot;`` the rectangle spans ``[x, x + w] × [y, y + h]``</span>
+<span class="sd">        in data: ``(x, y)`` is the corner with the smallest data x and y and</span>
+<span class="sd">        ``w``, ``h`` are positive data lengths, on flipped and descending axes</span>
+<span class="sd">        too.  Omitted geometry defaults to the same pixel rectangle as in</span>
+<span class="sd">        pixel coordinates.</span>
 
 <span class="sd">        ``max_extent`` caps the rectangle&#39;s size in the widget&#39;s coordinates —</span>
 <span class="sd">        a scalar caps both axes, a ``(max_w, max_h)`` pair caps them separately.</span>
 <span class="sd">        The rectangle then physically stops growing at the cap while dragging</span>
 <span class="sd">        (the dragged corner pins, the opposite corner stays put).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">coords</span> <span class="o">==</span> <span class="s2">&quot;data&quot;</span> <span class="ow">and</span> <span class="n">max_extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mw</span><span class="p">,</span> <span class="n">mh</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_extent</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">max_extent</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+                      <span class="k">else</span> <span class="p">(</span><span class="n">max_extent</span><span class="p">,</span> <span class="n">max_extent</span><span class="p">))</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+            <span class="n">max_extent</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="n">mw</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">x_length_to_pixels</span><span class="p">(</span><span class="n">mw</span><span class="p">),</span>
+                          <span class="kc">None</span> <span class="k">if</span> <span class="n">mh</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">y_length_to_pixels</span><span class="p">(</span><span class="n">mh</span><span class="p">))</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="c1"># The DEFAULT size honours max_extent. Without this a capped rectangle is</span>
         <span class="c1"># born at half the image and then snaps down to the cap on first use —</span>
@@ -2576,6 +2756,18 @@
             <span class="n">cap_w</span> <span class="o">=</span> <span class="n">cap_h</span> <span class="o">=</span> <span class="n">max_extent</span>
         <span class="n">def_w</span> <span class="o">=</span> <span class="n">_cap</span><span class="p">(</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">cap_w</span><span class="p">)</span>
         <span class="n">def_h</span> <span class="o">=</span> <span class="n">_cap</span><span class="p">(</span><span class="n">ih</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">cap_h</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">coords</span> <span class="o">==</span> <span class="s2">&quot;data&quot;</span> <span class="ow">and</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+            <span class="c1"># Defaults are defined in pixels; express them in data so a</span>
+            <span class="c1"># partly-given data rectangle is completed span by span.</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+            <span class="n">dx</span><span class="p">,</span> <span class="n">dw</span> <span class="o">=</span> <span class="n">_convert_span</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">def_w</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">dy</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="n">_convert_span</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">def_h</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">dx</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">dw</span> <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">w</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">dy</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">y</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">dh</span> <span class="k">if</span> <span class="n">h</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">h</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">RectangleWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;w&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;h&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">RectangleWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                                  <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
                                  <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
@@ -2584,10 +2776,7 @@
                                  <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
                                  <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">,</span>
                                  <span class="n">max_extent</span><span class="o">=</span><span class="n">max_extent</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_annular_widget">
@@ -2595,8 +2784,13 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">add_annular_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                            <span class="n">r_outer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">r_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                            <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                           <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnnularWidget</span><span class="p">:</span>
+                           <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                           <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnnularWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable annular (ring) overlay.&quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">AnnularWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><span class="n">cy</span><span class="p">,</span>
+                              <span class="n">r_outer</span><span class="o">=</span><span class="n">r_outer</span><span class="p">,</span> <span class="n">r_inner</span><span class="o">=</span><span class="n">r_inner</span><span class="p">)</span>
+        <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;cx&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;cy&quot;</span><span class="p">]</span>
+        <span class="n">r_outer</span><span class="p">,</span> <span class="n">r_inner</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;r_outer&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;r_inner&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">AnnularWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                                <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span> <span class="k">if</span> <span class="n">cx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
@@ -2605,28 +2799,25 @@
                                <span class="n">r_inner</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_inner</span><span class="p">)</span> <span class="k">if</span> <span class="n">r_inner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
                                <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
                                <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_polygon_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_polygon_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_polygon_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                            <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                           <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PolygonWidget</span><span class="p">:</span>
+                           <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                           <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PolygonWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable polygon overlay.&quot;&quot;&quot;</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">PolygonWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span>
+                                     <span class="n">vertices</span><span class="o">=</span><span class="n">vertices</span><span class="p">)[</span><span class="s2">&quot;vertices&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">vertices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">vertices</span> <span class="o">=</span> <span class="p">[[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">],</span> <span class="p">[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">],</span>
                         <span class="p">[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">],</span> <span class="p">[</span><span class="n">iw</span> <span class="o">*</span> <span class="mf">.25</span><span class="p">,</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">.75</span><span class="p">]]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">PolygonWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="n">vertices</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                                <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_brush_widget">
@@ -2635,7 +2826,8 @@
                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                          <span class="n">class_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">strokes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stroke_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                          <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span> <span class="n">active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-                         <span class="n">erase</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BrushWidget</span><span class="p">:</span>
+                         <span class="n">erase</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BrushWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a freehand paint-brush overlay for labelling regions.</span>
 
 <span class="sd">        **Shift** + drag paints a stroke; a *bare* drag still pans the image and</span>
@@ -2679,6 +2871,9 @@
 <span class="sd">        erase : bool, optional</span>
 <span class="sd">            Armed drags remove stroke points within ``radius`` instead of</span>
 <span class="sd">            painting.  Default ``False``.</span>
+<span class="sd">        coords : ``&quot;pixel&quot;`` | ``&quot;data&quot;``, optional</span>
+<span class="sd">            Frame for ``radius`` and ``strokes`` (and for later reads).</span>
+<span class="sd">            Default ``&quot;pixel&quot;``.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -2687,6 +2882,9 @@
 <span class="sd">            the painted geometry; :meth:`~anyplotlib.BrushWidget.clear_strokes`</span>
 <span class="sd">            and :meth:`~anyplotlib.BrushWidget.strokes_for_class` manage it.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">BrushWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
+                              <span class="n">strokes</span><span class="o">=</span><span class="n">strokes</span><span class="p">)</span>
+        <span class="n">radius</span><span class="p">,</span> <span class="n">strokes</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;radius&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;strokes&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">radius</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">radius</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">2.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">iw</span><span class="p">,</span> <span class="n">ih</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.02</span><span class="p">)</span>
@@ -2695,28 +2893,25 @@
                              <span class="n">class_id</span><span class="o">=</span><span class="n">class_id</span><span class="p">,</span> <span class="n">strokes</span><span class="o">=</span><span class="n">strokes</span><span class="p">,</span>
                              <span class="n">stroke_classes</span><span class="o">=</span><span class="n">stroke_classes</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
                              <span class="n">active</span><span class="o">=</span><span class="n">active</span><span class="p">,</span> <span class="n">erase</span><span class="o">=</span><span class="n">erase</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_crosshair_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_crosshair_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_crosshair_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                               <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                              <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CrosshairWidget</span><span class="p">:</span>
+                              <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                              <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CrosshairWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable crosshair overlay.&quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">CrosshairWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">cx</span><span class="o">=</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><span class="n">cy</span><span class="p">)</span>
+        <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;cx&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;cy&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">CrosshairWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                                  <span class="n">cx</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span> <span class="k">if</span> <span class="n">cx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                                  <span class="n">cy</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">)</span> <span class="k">if</span> <span class="n">cy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                                  <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
                                  <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_label_widget">
@@ -2724,18 +2919,18 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">add_label_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                           <span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Label&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">14</span><span class="p">,</span>
                           <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                          <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LabelWidget</span><span class="p">:</span>
+                          <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                          <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LabelWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable text label overlay.&quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">LabelWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">LabelWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                              <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
                              <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
                              <span class="n">text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">fontsize</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                              <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_arrow_widget">
@@ -2743,11 +2938,14 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">add_arrow_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                          <span class="n">u</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                         <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArrowWidget</span><span class="p">:</span>
+                         <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArrowWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable arrow overlay (tail at ``(x, y)``, head at</span>
 <span class="sd">        ``(x + u, y + v)``). Defaults place the tail at 25 %, 25 % of the image</span>
 <span class="sd">        with a vector of 15 % of the image size, mirroring</span>
 <span class="sd">        :meth:`add_label_widget`&#39;s defaulting.&quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">ArrowWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">ArrowWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                              <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
@@ -2756,10 +2954,7 @@
                              <span class="n">v</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.15</span><span class="p">,</span>
                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
                              <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_line_widget">
@@ -2767,7 +2962,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">add_line_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                         <span class="n">x2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                        <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LineWidget</span><span class="p">:</span>
+                        <span class="n">show_handles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                        <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LineWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable two-endpoint line segment overlay.</span>
 
 <span class="sd">        A bare segment with a grab handle at each end — no arrowhead (see</span>
@@ -2788,6 +2984,9 @@
 <span class="sd">            Stroke width in px.  Default 2.</span>
 <span class="sd">        show_handles : bool, optional</span>
 <span class="sd">            Draw the endpoint grab handles.  Default ``True``.</span>
+<span class="sd">        coords : ``&quot;pixel&quot;`` | ``&quot;data&quot;``, optional</span>
+<span class="sd">            Frame for the endpoints (and for later reads / ``set``).</span>
+<span class="sd">            Default ``&quot;pixel&quot;``; see :attr:`Widget.coords`.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -2795,6 +2994,8 @@
 <span class="sd">            Widget object.  ``widget.length`` gives the segment length in</span>
 <span class="sd">            data coordinates.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">LineWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">x1</span><span class="o">=</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="o">=</span><span class="n">y2</span><span class="p">)</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;x1&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;y1&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;x2&quot;</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;y2&quot;</span><span class="p">]</span>
         <span class="n">iw</span><span class="p">,</span> <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">LineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                             <span class="n">x1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span> <span class="k">if</span> <span class="n">x1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">*</span> <span class="mf">0.25</span><span class="p">,</span>
@@ -2803,16 +3004,14 @@
                             <span class="n">y2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y2</span><span class="p">)</span> <span class="k">if</span> <span class="n">y2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">*</span> <span class="mf">0.75</span><span class="p">,</span>
                             <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
                             <span class="n">show_handles</span><span class="o">=</span><span class="n">show_handles</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_vline_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_vline_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_vline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VLineWidget</span><span class="p">:</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VLineWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable full-height vertical line overlay.</span>
 
 <span class="sd">        The line spans the whole panel and is grabbable anywhere along its</span>
@@ -2827,25 +3026,27 @@
 <span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
 <span class="sd">        linewidth : float, optional</span>
 <span class="sd">            Stroke width in px.  Default 2.</span>
+<span class="sd">        coords : ``&quot;pixel&quot;`` | ``&quot;data&quot;``, optional</span>
+<span class="sd">            Frame for ``x`` (and for later reads / ``set``).  Default</span>
+<span class="sd">            ``&quot;pixel&quot;``; pass ``&quot;data&quot;`` to work in calibrated axis units.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        VLineWidget</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">VLineWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
         <span class="n">iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">VLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                              <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">iw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Plot2D.add_hline_widget">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot2D.html#anyplotlib.plot2d.Plot2D.add_hline_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_hline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
-                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HLineWidget</span><span class="p">:</span>
+                         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HLineWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable full-width horizontal line overlay.</span>
 
 <span class="sd">        The row counterpart of :meth:`add_vline_widget`; grabbable anywhere</span>
@@ -2859,19 +3060,20 @@
 <span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
 <span class="sd">        linewidth : float, optional</span>
 <span class="sd">            Stroke width in px.  Default 2.</span>
+<span class="sd">        coords : ``&quot;pixel&quot;`` | ``&quot;data&quot;``, optional</span>
+<span class="sd">            Frame for ``y`` (and for later reads / ``set``).  Default</span>
+<span class="sd">            ``&quot;pixel&quot;``; pass ``&quot;data&quot;`` to work in calibrated axis units.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        HLineWidget</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widget_args</span><span class="p">(</span><span class="n">HLineWidget</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>
         <span class="n">ih</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">HLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                              <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ih</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
                              <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
-        <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">widget</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_register_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
 
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -2977,6 +3179,7 @@
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                    <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                     <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                     <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add circle markers at (x, y) positions in data coordinates.</span>
@@ -2984,6 +3187,11 @@
 <span class="sd">        ``size_units=&quot;px&quot;`` pins *radius* to screen pixels so the circles keep</span>
 <span class="sd">        their size through a zoom; the default ``&quot;data&quot;`` scales them with the</span>
 <span class="sd">        data, as a shape drawn on the image does.</span>
+
+<span class="sd">        Positions (and data-sized lengths) are image pixels by default; pass</span>
+<span class="sd">        ``coords=&quot;data&quot;`` to give them in the panel&#39;s calibrated axis units.</span>
+<span class="sd">        This applies to every ``add_*`` marker method on a 2-D panel — see</span>
+<span class="sd">        :attr:`MarkerGroup.coords &lt;anyplotlib.markers.MarkerGroup.coords&gt;`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;circles&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -2991,7 +3199,7 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
                                 <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
@@ -3004,6 +3212,7 @@
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                   <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                    <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add point markers at (x, y) positions in data coordinates.</span>
@@ -3018,7 +3227,7 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
                                 <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
@@ -3064,12 +3273,13 @@
                    <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                   <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                    <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;arrows&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span> <span class="n">V</span><span class="o">=</span><span class="n">V</span><span class="p">,</span>
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
@@ -3081,6 +3291,7 @@
                      <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                     <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                      <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                      <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;ellipses&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
@@ -3090,7 +3301,7 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
                                 <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
@@ -3102,12 +3313,13 @@
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                  <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">segments</span><span class="o">=</span><span class="n">segments</span><span class="p">,</span>
                                 <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
@@ -3119,6 +3331,7 @@
                        <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                       <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                        <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                        <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;rectangles&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
@@ -3128,7 +3341,7 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
                                 <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
@@ -3141,6 +3354,7 @@
                     <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                    <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                     <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                     <span class="n">size_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;squares&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
@@ -3150,7 +3364,7 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">,</span>
                                 <span class="n">size_units</span><span class="o">=</span><span class="n">size_units</span><span class="p">)</span></div>
 
@@ -3163,6 +3377,7 @@
                      <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hover_facecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                     <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                      <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_marker</span><span class="p">(</span><span class="s2">&quot;polygons&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vertices_list</span><span class="o">=</span><span class="n">vertices_list</span><span class="p">,</span>
                                 <span class="n">facecolors</span><span class="o">=</span><span class="n">facecolors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">edgecolors</span><span class="p">,</span>
@@ -3170,7 +3385,7 @@
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">hover_facecolors</span><span class="o">=</span><span class="n">hover_facecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 
@@ -3184,6 +3399,7 @@
                   <span class="n">hover_edgecolors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">transform</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                  <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pixel&quot;</span><span class="p">,</span>
                   <span class="n">clip_display</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MarkerGroup&quot;</span><span class="p">:</span>  <span class="c1"># noqa: F821</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add text annotations at image-pixel positions.</span>
 
@@ -3230,6 +3446,9 @@
 <span class="sd">            Coordinate system for ``offsets``.  Default ``&quot;data&quot;``.</span>
 <span class="sd">        clip_display : bool, optional</span>
 <span class="sd">            Clip ``&quot;display&quot;``-transform texts to the image.  Default ``True``.</span>
+<span class="sd">        coords : ``&quot;pixel&quot;`` | ``&quot;data&quot;``, optional</span>
+<span class="sd">            Frame for ``transform=&quot;data&quot;`` offsets: image pixels (default) or</span>
+<span class="sd">            the panel&#39;s calibrated axis units.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -3252,7 +3471,7 @@
                                 <span class="n">verticalalignment</span><span class="o">=</span><span class="n">verticalalignment</span><span class="p">,</span>
                                 <span class="n">hover_edgecolors</span><span class="o">=</span><span class="n">hover_edgecolors</span><span class="p">,</span>
                                 <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
                                 <span class="n">clip_display</span><span class="o">=</span><span class="n">clip_display</span><span class="p">)</span></div>
 
 

@@ -560,6 +560,18 @@ or a sequence of colours parallel to the markers — matplotlib’s
 <p>A sequence shorter than the group cycles, as matplotlib’s colour cycle does.
 This works for every marker type on both 1-D and 2-D panels.</p>
 </section>
+<section id="calibrated-coordinates-on-2-d-panels">
+<h3>Calibrated coordinates on 2-D panels<a class="headerlink" href="#calibrated-coordinates-on-2-d-panels" title="Link to this heading">#</a></h3>
+<p>On a <a class="reference internal" href="generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D" title="anyplotlib.Plot2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Plot2D</span></code></a>, <code class="docutils literal notranslate"><span class="pre">transform=&quot;data&quot;</span></code> positions are image
+pixels.  Pass <code class="docutils literal notranslate"><span class="pre">coords=&quot;data&quot;</span></code> to give positions <em>and</em> lengths in the panel’s
+calibrated axis units instead; the group keeps those values and converts them
+through <a class="reference internal" href="generated/anyplotlib.Plot2D.html#anyplotlib.Plot2D.transform" title="anyplotlib.Plot2D.transform"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Plot2D.transform</span></code></a> each time it is
+serialised, so it stays put when the panel is re-calibrated:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">plot</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="n">x_nm</span><span class="p">,</span> <span class="n">y_nm</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;nm&quot;</span><span class="p">)</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">add_circles</span><span class="p">([[</span><span class="mf">11.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">]],</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
 </section>
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
@@ -594,6 +606,50 @@ the parent figure trait.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">marker_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></dt>
+<dd><p>The marker type, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;circles&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;lines&quot;</span></code> (read-only).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></dt>
+<dd><p>The group’s key in <code class="docutils literal notranslate"><span class="pre">plot.markers[marker_type]</span></code> (read-only).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerGroup.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Return a property as last given to the constructor or <a class="reference internal" href="generated/anyplotlib.markers.MarkerGroup.html#anyplotlib.markers.MarkerGroup.set" title="anyplotlib.markers.MarkerGroup.set"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set()</span></code></a>
+(matplotlib-style name, in the group’s <a class="reference internal" href="generated/anyplotlib.markers.MarkerGroup.html#anyplotlib.markers.MarkerGroup.coords" title="anyplotlib.markers.MarkerGroup.coords"><code class="xref py py-attr docutils literal notranslate"><span class="pre">coords</span></code></a> frame).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">group</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edgecolors&quot;</span><span class="p">)</span>
+<span class="go">&#39;#ff0000&#39;</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">coords</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;pixel&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;data&quot;</span></code>.</p>
+<p>Only meaningful for <code class="docutils literal notranslate"><span class="pre">transform=&quot;data&quot;</span></code> groups on a 2-D image panel,
+where <code class="docutils literal notranslate"><span class="pre">&quot;pixel&quot;</span></code> (the default) means image pixels and <code class="docutils literal notranslate"><span class="pre">&quot;data&quot;</span></code> the
+calibrated axis values.  On 1-D panels both mean data coordinates.
+Change it with <code class="docutils literal notranslate"><span class="pre">group.set(coords=...)</span></code>; the stored values are then
+reinterpreted, not converted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Frame of this group’s positions and lengths</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerGroup.set"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
@@ -601,7 +657,8 @@ the parent figure trait.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><em>dict</em></a>) – Properties to update (e.g., offsets, radius, facecolors).
-Matplotlib-style names are translated to wire format.</p>
+Matplotlib-style names are translated to wire format.  Positions
+and lengths are read in the group’s <a class="reference internal" href="generated/anyplotlib.markers.MarkerGroup.html#anyplotlib.markers.MarkerGroup.coords" title="anyplotlib.markers.MarkerGroup.coords"><code class="xref py py-attr docutils literal notranslate"><span class="pre">coords</span></code></a> frame.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
@@ -642,7 +699,7 @@ serialization and transmission to the JavaScript renderer.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.markers.</span></span><span class="sig-name descname"><span class="pre">MarkerTypeDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">marker_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerTypeDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.markers.</span></span><span class="sig-name descname"><span class="pre">MarkerTypeDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">marker_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerTypeDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Dict-like container for all named groups of one marker type.</p>
 <p>Any modification (<code class="docutils literal notranslate"><span class="pre">__setitem__</span></code>, <code class="docutils literal notranslate"><span class="pre">__delitem__</span></code>) automatically triggers
@@ -711,7 +768,7 @@ the <code class="docutils literal notranslate"><span class="pre">_push_fn</span>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.markers.</span></span><span class="sig-name descname"><span class="pre">MarkerRegistry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">anyplotlib.markers.</span></span><span class="sig-name descname"><span class="pre">MarkerRegistry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">push_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/anyplotlib/markers.html#MarkerRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Top-level two-level marker registry for a plot.</p>
 <p>Usage:</p>
@@ -734,7 +791,9 @@ the <code class="docutils literal notranslate"><span class="pre">_push_fn</span>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>marker_type</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Type string, e.g. <code class="docutils literal notranslate"><span class="pre">'circles'</span></code>, <code class="docutils literal notranslate"><span class="pre">'lines'</span></code>, <code class="docutils literal notranslate"><span class="pre">'arrows'</span></code>.</p></li>
 <li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><em>optional</em>) – Group name. Auto-generated (<code class="docutils literal notranslate"><span class="pre">'circles_1'</span></code> etc.) if <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><em>dict</em></a>) – Matplotlib-style kwargs for the group (offsets, radius, colors, etc.).</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><em>dict</em></a>) – Matplotlib-style kwargs for the group (offsets, radius, colors, etc.).
+<code class="docutils literal notranslate"><span class="pre">coords=&quot;data&quot;</span></code> gives positions and lengths in calibrated axis
+units on a 2-D image panel (see <a class="reference internal" href="generated/anyplotlib.markers.MarkerGroup.html#anyplotlib.markers.MarkerGroup.coords" title="anyplotlib.markers.MarkerGroup.coords"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MarkerGroup.coords</span></code></a>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -852,6 +911,7 @@ properties as attributes.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#design">Design</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#wire-format-translation">Wire-format translation</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-marker-colours">Per-marker colours</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#calibrated-coordinates-on-2-d-panels">Calibrated coordinates on 2-D panels</a></li>
 </ul>
 </li>
 </ul>

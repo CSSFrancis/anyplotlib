@@ -781,7 +781,10 @@ call <a class="reference internal" href="#anyplotlib.Figure.set_figure_markers" 
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Figure.get_axes">
 <span class="sig-name descname"><span class="pre">get_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.get_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.get_axes" title="Link to this definition">#</a></dt>
-<dd><p>Return a list of all Axes, sorted by grid position.</p>
+<dd><p>Return a list of all grid Axes, sorted by grid position.</p>
+<p>Includes axes that have no plot attached yet (as matplotlib does), so
+<code class="docutils literal notranslate"><span class="pre">fig,</span> <span class="pre">ax</span> <span class="pre">=</span> <span class="pre">apl.subplots(1,</span> <span class="pre">1);</span> <span class="pre">fig.get_axes()[0]</span> <span class="pre">is</span> <span class="pre">ax</span></code>.  Floating
+insets from <a class="reference internal" href="#anyplotlib.Figure.add_inset" title="anyplotlib.Figure.add_inset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_inset()</span></code></a> are not listed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Axes sorted by (row_start, col_start) to match typical left-to-right,
@@ -869,13 +872,88 @@ figure has exactly one 2-D panel.</p></li>
 </div>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Figure.closed">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">closed</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#anyplotlib.Figure.closed" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> once <a class="reference internal" href="#anyplotlib.Figure.close" title="anyplotlib.Figure.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> has run.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Figure.displayed">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">displayed</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#anyplotlib.Figure.displayed" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> once the figure has been handed to a display front-end.</p>
+<p>Set by <a class="reference internal" href="#anyplotlib.Figure.display" title="anyplotlib.Figure.display"><code class="xref py py-meth docutils literal notranslate"><span class="pre">display()</span></code></a>, and also when the figure is shown any other
+way that goes through its rich repr — the last expression of a
+notebook cell, <code class="docutils literal notranslate"><span class="pre">IPython.display.display(fig)</span></code>, or the HTML repr
+Sphinx Gallery uses.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Figure.display">
+<span class="sig-name descname"><span class="pre">display</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.display"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.display" title="Link to this definition">#</a></dt>
+<dd><p>Show the figure in the current IPython front-end, at most once.</p>
+<p>Safe to call from several code paths that each want the figure on
+screen: only the first call (or a figure not yet shown by any other
+means, see <a class="reference internal" href="#anyplotlib.Figure.displayed" title="anyplotlib.Figure.displayed"><code class="xref py py-attr docutils literal notranslate"><span class="pre">displayed</span></code></a>) actually displays it, so the output is
+never duplicated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>force</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a><em>, </em><em>optional</em>) – Display again even if already displayed (e.g. in a new cell).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the figure was displayed by this call, <code class="docutils literal notranslate"><span class="pre">False</span></code> if it
+was skipped because it was already displayed or is closed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Figure.on_close">
+<span class="sig-name descname"><span class="pre">on_close</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.on_close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.on_close" title="Link to this definition">#</a></dt>
+<dd><p>Register <em>callback</em> to run when the figure is closed.</p>
+<p>Shorthand for <code class="docutils literal notranslate"><span class="pre">fig.add_event_handler(callback,</span> <span class="pre">&quot;close&quot;)</span></code>; the
+callback receives the <code class="docutils literal notranslate"><span class="pre">close</span></code> <a class="reference internal" href="anyplotlib.Event.html#anyplotlib.Event" title="anyplotlib.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a>.  Figure
+level close handlers run before the per-panel ones.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> (<em>callable</em>) – <code class="docutils literal notranslate"><span class="pre">callback(event)</span></code>; a bound method is fine.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Connection id; pass it to <code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_handler()</span></code> to unregister.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)">int</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">anyplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">apl</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cid</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">on_close</span><span class="p">(</span><span class="k">lambda</span> <span class="n">event</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;bye&quot;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="go">bye</span>
+</pre></div>
+</div>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Figure.close">
 <span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/figure/_figure.html#Figure.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Figure.close" title="Link to this definition">#</a></dt>
 <dd><p>Close the figure.</p>
-<p>Fires a <code class="docutils literal notranslate"><span class="pre">&quot;close&quot;</span></code> event on every panel’s <a class="reference internal" href="../callbacks.html#module-anyplotlib.callbacks" title="anyplotlib.callbacks"><code class="xref py py-attr docutils literal notranslate"><span class="pre">callbacks</span></code></a>, then
-hides the widget by setting its CSS <code class="docutils literal notranslate"><span class="pre">display</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.
-Subsequent calls are no-ops.</p>
+<p>Fires a <code class="docutils literal notranslate"><span class="pre">&quot;close&quot;</span></code> event on the figure’s own <a class="reference internal" href="../callbacks.html#module-anyplotlib.callbacks" title="anyplotlib.callbacks"><code class="xref py py-attr docutils literal notranslate"><span class="pre">callbacks</span></code></a> (see
+<a class="reference internal" href="#anyplotlib.Figure.on_close" title="anyplotlib.Figure.on_close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_close()</span></code></a>), then on every panel’s, then hides the widget by
+setting its CSS <code class="docutils literal notranslate"><span class="pre">display</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>.  <a class="reference internal" href="#anyplotlib.Figure.closed" title="anyplotlib.Figure.closed"><code class="xref py py-attr docutils literal notranslate"><span class="pre">closed</span></code></a> becomes
+<code class="docutils literal notranslate"><span class="pre">True</span></code>.  Subsequent calls are no-ops.</p>
+<p>Finally the underlying ipywidgets comm is closed (front-end views are
+removed) and the widget is released, so a closed figure that is no
+longer referenced can be garbage collected.  The Python objects stay
+usable — plots can still be read, exported or saved.</p>
+<p>The figure-level handlers and each panel’s handlers run independently:
+if one of them raises, the others still run, the figure is still
+marked closed and hidden, and the first exception is re-raised at the
+end.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -956,6 +1034,10 @@ Subsequent calls are no-ops.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.to_html"><code class="docutils literal notranslate"><span class="pre">Figure.to_html()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.save_html"><code class="docutils literal notranslate"><span class="pre">Figure.save_html()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.savefig"><code class="docutils literal notranslate"><span class="pre">Figure.savefig()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.closed"><code class="docutils literal notranslate"><span class="pre">Figure.closed</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.displayed"><code class="docutils literal notranslate"><span class="pre">Figure.displayed</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.display"><code class="docutils literal notranslate"><span class="pre">Figure.display()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.on_close"><code class="docutils literal notranslate"><span class="pre">Figure.on_close()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Figure.close"><code class="docutils literal notranslate"><span class="pre">Figure.close()</span></code></a></li>
 </ul>
 </li>

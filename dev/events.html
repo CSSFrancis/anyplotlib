@@ -554,7 +554,11 @@ Zero-cost when no handler is connected (timer never created).</p></td>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key_up</span></code></p></td>
 <td><p>Key released.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">*</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">close</span></code></p></td>
+<td><p><a class="reference internal" href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.close" title="anyplotlib.Figure.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Figure.close</span></code></a> ran.  Fires on the
+figure’s own registry first (<a class="reference internal" href="api/generated/anyplotlib.Figure.html#anyplotlib.Figure.on_close" title="anyplotlib.Figure.on_close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Figure.on_close</span></code></a>), then on every panel’s.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">*</span></code></p></td>
 <td><p>Wildcard — handler receives every dispatched event type.</p></td>
 </tr>
 </tbody>
@@ -883,6 +887,45 @@ mechanism is required.</p>
 <span class="nd">@overlay</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">&quot;pointer_down&quot;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">on_pick</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;picked overlay line at xdata=</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">xdata</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="handlers-that-are-bound-methods">
+<h2>Handlers that are bound methods<a class="headerlink" href="#handlers-that-are-bound-methods" title="Link to this heading">#</a></h2>
+<p>Any callable is a valid handler, including a bound method; removing it by
+the same expression finds the original registration even though Python
+builds a new method object on each attribute access:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Tracker</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span> <span class="o">...</span>
+
+<span class="n">tracker</span> <span class="o">=</span> <span class="n">Tracker</span><span class="p">()</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">on_move</span><span class="p">,</span> <span class="s2">&quot;pointer_move&quot;</span><span class="p">)</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">remove_handler</span><span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">on_move</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="figure-lifecycle">
+<h2>Figure lifecycle<a class="headerlink" href="#figure-lifecycle" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">apl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">cid</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">on_close</span><span class="p">(</span><span class="k">lambda</span> <span class="n">event</span><span class="p">:</span> <span class="n">release_resources</span><span class="p">())</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">display</span><span class="p">()</span>        <span class="c1"># shows it; a second call is a no-op</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">display</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">displayed</span>        <span class="c1"># True</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>          <span class="c1"># runs the close handlers once</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">closed</span>           <span class="c1"># True</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">close()</span></code> runs the figure’s handlers and each panel’s even if one raises
+(the first exception is re-raised afterwards), then hides the figure and
+closes its widget comm, so a closed figure can be garbage collected once
+nothing else references it.</p>
+</section>
+<section id="moving-widgets-from-python-without-echo">
+<h2>Moving widgets from Python without echo<a class="headerlink" href="#moving-widgets-from-python-without-echo" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">widget.set(...)</span></code> fires the widget’s <code class="docutils literal notranslate"><span class="pre">pointer_move</span></code> handlers so a Python
+update looks like a drag.  Pass <code class="docutils literal notranslate"><span class="pre">notify=False</span></code> when the handlers should only
+hear about the user:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">widget</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cx</span><span class="o">=</span><span class="n">new_x</span><span class="p">,</span> <span class="n">cy</span><span class="o">=</span><span class="n">new_y</span><span class="p">,</span> <span class="n">notify</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -1395,6 +1438,9 @@ mouse-only; touch and stylus events are not forwarded.</p></td>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#per-line-filtering-on-plot1d">Per-line filtering on Plot1D</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#handlers-that-are-bound-methods">Handlers that are bound methods</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#figure-lifecycle">Figure lifecycle</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#moving-widgets-from-python-without-echo">Moving widgets from Python without echo</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pause-and-hold">Pause and hold</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#priority-ordering">Priority ordering</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#comparison-with-matplotlib-and-pygfx">Comparison with Matplotlib and pygfx</a><ul class="pst-show_toc_level nav section-nav flex-column">

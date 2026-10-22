@@ -528,10 +528,18 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>push_fn</strong> (<em>Callable</em>) – Update callback.</p></li>
-<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Top-left corner position in pixel/data coordinates.</p></li>
-<li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Top-left corner position in pixel/data coordinates.</p></li>
-<li><p><strong>w</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Width and height in pixel/data coordinates.</p></li>
-<li><p><strong>h</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Width and height in pixel/data coordinates.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Corner with the smallest coordinates: the top-left pixel corner in
+pixel coordinates; in data coordinates (<code class="docutils literal notranslate"><span class="pre">coords=&quot;data&quot;</span></code>) the corner
+with the smallest data x and y, wherever that is on screen (top-right
+on a descending x axis, bottom-left with <code class="docutils literal notranslate"><span class="pre">origin=&quot;lower&quot;</span></code>).</p></li>
+<li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Corner with the smallest coordinates: the top-left pixel corner in
+pixel coordinates; in data coordinates (<code class="docutils literal notranslate"><span class="pre">coords=&quot;data&quot;</span></code>) the corner
+with the smallest data x and y, wherever that is on screen (top-right
+on a descending x axis, bottom-left with <code class="docutils literal notranslate"><span class="pre">origin=&quot;lower&quot;</span></code>).</p></li>
+<li><p><strong>w</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Width and height, non-negative, in pixel/data coordinates.  The
+rectangle spans <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">w]</span> <span class="pre">×</span> <span class="pre">[y,</span> <span class="pre">y</span> <span class="pre">+</span> <span class="pre">h]</span></code> in its frame.</p></li>
+<li><p><strong>h</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Width and height, non-negative, in pixel/data coordinates.  The
+rectangle spans <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">w]</span> <span class="pre">×</span> <span class="pre">[y,</span> <span class="pre">y</span> <span class="pre">+</span> <span class="pre">h]</span></code> in its frame.</p></li>
 <li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><em>optional</em>) – CSS colour for the rectangle outline. Default <code class="docutils literal notranslate"><span class="pre">&quot;#00e5ff&quot;</span></code>.</p></li>
 <li><p><strong>linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a><em>, </em><em>optional</em>) – Outline stroke width in px. Default 2.</p></li>
 <li><p><strong>show_handles</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a><em>, </em><em>optional</em>) – Draw the corner grab handles. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>

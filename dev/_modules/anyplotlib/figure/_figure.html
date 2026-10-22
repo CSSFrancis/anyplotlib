@@ -594,6 +594,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_sharex</span> <span class="o">=</span> <span class="n">sharex</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sharey</span> <span class="o">=</span> <span class="n">sharey</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="p">:</span> <span class="nb">dict</span>  <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Every grid Axes created by add_subplot, in creation order, plotted</span>
+        <span class="c1"># or not; ``_axes_map`` only gains an entry once a plot is attached,</span>
+        <span class="c1"># so ``get_axes`` needs this to list empty axes too.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_created_axes</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_insets_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_hspace</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -619,6 +623,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="p">:</span> <span class="n">CallbackRegistry</span> <span class="o">=</span> <span class="n">CallbackRegistry</span><span class="p">()</span>
         <span class="c1"># Authoritative Python-side copy of the figure-level annotation list.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_figure_markers</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Lifecycle flags (see the ``closed`` / ``displayed`` properties).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_closed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_displayed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_trait_notifications</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fig_width</span>     <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fig_height</span>    <span class="o">=</span> <span class="n">figsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -739,7 +746,9 @@
             <span class="n">spec</span> <span class="o">=</span> <span class="n">SubplotSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">row</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;add_subplot: unsupported spec type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">Axes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span></div>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_created_axes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ax</span></div>
 
 
     <span class="c1"># ── internal registration (called by Axes._attach) ────────────────────────</span>
@@ -1395,7 +1404,11 @@
 <div class="viewcode-block" id="Figure.get_axes">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.get_axes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of all Axes, sorted by grid position.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of all grid Axes, sorted by grid position.</span>
+
+<span class="sd">        Includes axes that have no plot attached yet (as matplotlib does), so</span>
+<span class="sd">        ``fig, ax = apl.subplots(1, 1); fig.get_axes()[0] is ax``.  Floating</span>
+<span class="sd">        insets from :meth:`add_inset` are not listed.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1403,7 +1416,15 @@
 <span class="sd">            Axes sorted by (row_start, col_start) to match typical left-to-right,</span>
 <span class="sd">            top-to-bottom iteration order.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes_map</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="n">seen</span> <span class="o">=</span> <span class="p">{</span><span class="nb">id</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">}</span>
+        <span class="c1"># Add the still-empty axes.  An axes whose plot was superseded by</span>
+        <span class="c1"># another axes on the same cell (same panel id) is left out, as before.</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_created_axes&quot;</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">_plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">axes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span>
                       <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">row_start</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">col_start</span><span class="p">))</span></div>
 
 
@@ -1419,6 +1440,7 @@
 <span class="sd">        str</span>
 <span class="sd">            HTML string containing an embedded iframe with srcdoc attribute.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_displayed</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="n">repr_html_iframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Figure.to_html">
@@ -1498,26 +1520,133 @@
                        <span class="n">timeout_ms</span><span class="o">=</span><span class="n">timeout_ms</span><span class="p">)</span></div>
 
 
+    <span class="c1"># ── lifecycle ─────────────────────────────────────────────────────────────</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">closed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``True`` once :meth:`close` has run.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_closed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">displayed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``True`` once the figure has been handed to a display front-end.</span>
+
+<span class="sd">        Set by :meth:`display`, and also when the figure is shown any other</span>
+<span class="sd">        way that goes through its rich repr — the last expression of a</span>
+<span class="sd">        notebook cell, ``IPython.display.display(fig)``, or the HTML repr</span>
+<span class="sd">        Sphinx Gallery uses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_displayed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_repr_mimebundle_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_displayed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_repr_mimebundle_</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Figure.display">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.display">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">display</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show the figure in the current IPython front-end, at most once.</span>
+
+<span class="sd">        Safe to call from several code paths that each want the figure on</span>
+<span class="sd">        screen: only the first call (or a figure not yet shown by any other</span>
+<span class="sd">        means, see :attr:`displayed`) actually displays it, so the output is</span>
+<span class="sd">        never duplicated.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        force : bool, optional</span>
+<span class="sd">            Display again even if already displayed (e.g. in a new cell).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            ``True`` if the figure was displayed by this call, ``False`` if it</span>
+<span class="sd">            was skipped because it was already displayed or is closed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displayed</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span> <span class="k">as</span> <span class="n">_ipy_display</span>
+        <span class="n">_ipy_display</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_displayed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="Figure.on_close">
+<a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.on_close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register *callback* to run when the figure is closed.</span>
+
+<span class="sd">        Shorthand for ``fig.add_event_handler(callback, &quot;close&quot;)``; the</span>
+<span class="sd">        callback receives the ``close`` :class:`~anyplotlib.Event`.  Figure</span>
+<span class="sd">        level close handlers run before the per-panel ones.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        callback : callable</span>
+<span class="sd">            ``callback(event)``; a bound method is fine.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            Connection id; pass it to :meth:`remove_handler` to unregister.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import anyplotlib as apl</span>
+<span class="sd">        &gt;&gt;&gt; fig, ax = apl.subplots()</span>
+<span class="sd">        &gt;&gt;&gt; cid = fig.on_close(lambda event: print(&quot;bye&quot;))</span>
+<span class="sd">        &gt;&gt;&gt; fig.close()</span>
+<span class="sd">        bye</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;close&quot;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="Figure.close">
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Figure.html#anyplotlib.figure.Figure.close">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Close the figure.</span>
 
-<span class="sd">        Fires a ``&quot;close&quot;`` event on every panel&#39;s :attr:`callbacks`, then</span>
-<span class="sd">        hides the widget by setting its CSS ``display`` to ``&quot;none&quot;``.</span>
-<span class="sd">        Subsequent calls are no-ops.</span>
+<span class="sd">        Fires a ``&quot;close&quot;`` event on the figure&#39;s own :attr:`callbacks` (see</span>
+<span class="sd">        :meth:`on_close`), then on every panel&#39;s, then hides the widget by</span>
+<span class="sd">        setting its CSS ``display`` to ``&quot;none&quot;``.  :attr:`closed` becomes</span>
+<span class="sd">        ``True``.  Subsequent calls are no-ops.</span>
+
+<span class="sd">        Finally the underlying ipywidgets comm is closed (front-end views are</span>
+<span class="sd">        removed) and the widget is released, so a closed figure that is no</span>
+<span class="sd">        longer referenced can be garbage collected.  The Python objects stay</span>
+<span class="sd">        usable — plots can still be read, exported or saved.</span>
+
+<span class="sd">        The figure-level handlers and each panel&#39;s handlers run independently:</span>
+<span class="sd">        if one of them raises, the others still run, the figure is still</span>
+<span class="sd">        marked closed and hidden, and the first exception is re-raised at the</span>
+<span class="sd">        end.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_closed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_closed</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">close_event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">(</span><span class="n">event_type</span><span class="o">=</span><span class="s2">&quot;close&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">plot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;callbacks&quot;</span><span class="p">):</span>
-                <span class="n">plot</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">close_event</span><span class="p">)</span>
+        <span class="n">registries</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="p">]</span>
+        <span class="n">registries</span> <span class="o">+=</span> <span class="p">[</span><span class="n">plot</span><span class="o">.</span><span class="n">callbacks</span> <span class="k">for</span> <span class="n">plot</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plots_map</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                       <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="s2">&quot;callbacks&quot;</span><span class="p">)]</span>
+        <span class="n">first_exc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">registry</span> <span class="ow">in</span> <span class="n">registries</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">registry</span><span class="o">.</span><span class="n">fire</span><span class="p">(</span><span class="n">Event</span><span class="p">(</span><span class="n">event_type</span><span class="o">=</span><span class="s2">&quot;close&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>   <span class="c1"># keep closing; report the first error</span>
+                <span class="k">if</span> <span class="n">first_exc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">first_exc</span> <span class="o">=</span> <span class="n">exc</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">display</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="k">pass</span></div>
+            <span class="k">pass</span>
+        <span class="c1"># Release the ipywidgets side: close the comm and drop the figure from</span>
+        <span class="c1"># ipywidgets&#39; global instance registry.  Without this every figure</span>
+        <span class="c1"># ever created stays referenced by that registry (and its comm), so a</span>
+        <span class="c1"># closed figure and all its plot data can never be garbage collected.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">if</span> <span class="n">first_exc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">first_exc</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

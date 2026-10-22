@@ -536,8 +536,115 @@ a Plot2D or Plot1D object.</p>
 </dd>
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Axes.set_xlabel">
+<span class="sig-name descname"><span class="pre">set_xlabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/axes/_axes.html#Axes.set_xlabel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Axes.set_xlabel" title="Link to this definition">#</a></dt>
+<dd><p>Set the x-axis label of this axes’ plot.</p>
+<p>Works before a plot is attached: the label is stored on the axes and
+applied when <a class="reference internal" href="#anyplotlib.Axes.imshow" title="anyplotlib.Axes.imshow"><code class="xref py py-meth docutils literal notranslate"><span class="pre">imshow()</span></code></a>, <a class="reference internal" href="#anyplotlib.Axes.plot" title="anyplotlib.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot()</span></code></a>, … attaches one, so layout
+code can label an axes before deciding what to draw in it.  With a
+plot attached it also sets <code class="docutils literal notranslate"><span class="pre">ax.primary_plot.set_xlabel(...)</span></code>.</p>
+<p>The axes keeps the label, so a plot that <em>replaces</em> the current one
+(a second <code class="docutils literal notranslate"><span class="pre">imshow</span></code>/<code class="docutils literal notranslate"><span class="pre">plot</span></code>/… call on this axes) gets it too.
+Labels set directly on the plot object (<code class="docutils literal notranslate"><span class="pre">plot.set_xlabel</span></code>) belong
+to that plot only and are not carried over.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Label text (mini-TeX allowed, see <a class="reference internal" href="anyplotlib.Plot2D.html#anyplotlib.Plot2D.set_xlabel" title="anyplotlib.Plot2D.set_xlabel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Plot2D.set_xlabel</span></code></a>).</p></li>
+<li><p><strong>fontsize</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a><em>, </em><em>optional</em>) – Font size in CSS pixels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#AttributeError" title="(in Python v3.15)"><strong>AttributeError</strong></a> – If the attached plot type has no x label.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Axes.set_ylabel">
+<span class="sig-name descname"><span class="pre">set_ylabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/axes/_axes.html#Axes.set_ylabel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Axes.set_ylabel" title="Link to this definition">#</a></dt>
+<dd><p>Set the y-axis label.  Same deferral rules as <a class="reference internal" href="#anyplotlib.Axes.set_xlabel" title="anyplotlib.Axes.set_xlabel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_xlabel()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
+<li><p><strong>fontsize</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="anyplotlib.Axes.set_title">
+<span class="sig-name descname"><span class="pre">set_title</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/axes/_axes.html#Axes.set_title"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Axes.set_title" title="Link to this definition">#</a></dt>
+<dd><p>Set the panel title.  Same deferral rules as <a class="reference internal" href="#anyplotlib.Axes.set_xlabel" title="anyplotlib.Axes.set_xlabel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_xlabel()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
+<li><p><strong>fontsize</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Axes.figure">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">figure</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><span class="pre">Figure</span></a></span><a class="headerlink" href="#anyplotlib.Axes.figure" title="Link to this definition">#</a></dt>
+<dd><p>The <a class="reference internal" href="anyplotlib.Figure.html#anyplotlib.Figure" title="anyplotlib.Figure"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></a> this axes belongs to (read-only).</p>
+<p>Assigning the same figure again is allowed (a no-op) so code written
+for matplotlib’s settable <code class="docutils literal notranslate"><span class="pre">ax.figure</span></code> keeps working; assigning a
+different one raises <code class="docutils literal notranslate"><span class="pre">AttributeError</span></code>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Axes.primary_plot">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">primary_plot</span></span><a class="headerlink" href="#anyplotlib.Axes.primary_plot" title="Link to this definition">#</a></dt>
+<dd><p>The plot attached by the last factory call, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if empty.</p>
+<p>This is the object <a class="reference internal" href="#anyplotlib.Axes.imshow" title="anyplotlib.Axes.imshow"><code class="xref py py-meth docutils literal notranslate"><span class="pre">imshow()</span></code></a>, <a class="reference internal" href="#anyplotlib.Axes.plot" title="anyplotlib.Axes.plot"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot()</span></code></a>, <a class="reference internal" href="#anyplotlib.Axes.pcolormesh" title="anyplotlib.Axes.pcolormesh"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pcolormesh()</span></code></a>,
+… returned (<code class="docutils literal notranslate"><span class="pre">Plot2D</span></code>, <code class="docutils literal notranslate"><span class="pre">Plot1D</span></code>, <code class="docutils literal notranslate"><span class="pre">PlotMesh</span></code>, <code class="docutils literal notranslate"><span class="pre">Plot3D</span></code>,
+<code class="docutils literal notranslate"><span class="pre">PlotBar</span></code>, <code class="docutils literal notranslate"><span class="pre">PlotXY</span></code>).  Overlays drawn <em>on</em> it — extra lines from
+<a class="reference internal" href="anyplotlib.Plot1D.html#anyplotlib.Plot1D.add_line" title="anyplotlib.Plot1D.add_line"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Plot1D.add_line</span></code></a>, markers,
+widgets — belong to that plot and never replace it here.  Calling a
+factory again replaces the plot.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Axes.plots">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">plots</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a></span><a class="headerlink" href="#anyplotlib.Axes.plots" title="Link to this definition">#</a></dt>
+<dd><p>All plot panels attached to this axes, primary first.</p>
+<p>An axes cell holds at most one plot panel today, so this is
+<code class="docutils literal notranslate"><span class="pre">(primary_plot,)</span></code> or <code class="docutils literal notranslate"><span class="pre">()</span></code>; iterate it rather than indexing <code class="docutils literal notranslate"><span class="pre">[0]</span></code>
+so code keeps working if overlay panels are added later.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Axes.image_plot">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">image_plot</span></span><a class="headerlink" href="#anyplotlib.Axes.image_plot" title="Link to this definition">#</a></dt>
+<dd><p>The primary plot if it is a 2-D image (<code class="docutils literal notranslate"><span class="pre">Plot2D</span></code> / <code class="docutils literal notranslate"><span class="pre">PlotMesh</span></code>),
+else <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>Handy for code that places image-space widgets or markers and must
+not mistake a line or bar panel for an image.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="anyplotlib.Axes.has_plot">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">has_plot</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#anyplotlib.Axes.has_plot" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> once a plot has been attached.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="anyplotlib.Axes.imshow">
-<span class="sig-name descname"><span class="pre">imshow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'upper'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integration_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overview_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_exact</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/axes/_axes.html#Axes.imshow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Axes.imshow" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">imshow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'px'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'upper'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integration_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overview_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_exact</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/anyplotlib/axes/_axes.html#Axes.imshow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#anyplotlib.Axes.imshow" title="Link to this definition">#</a></dt>
 <dd><p>Attach a 2-D image to this axes cell.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -547,7 +654,7 @@ a Plot2D or Plot1D object.</p>
 are used directly; floats are interpreted as 0–1 (or 0–255 when
 the max exceeds 1).  <code class="docutils literal notranslate"><span class="pre">cmap</span></code>/<code class="docutils literal notranslate"><span class="pre">vmin</span></code>/<code class="docutils literal notranslate"><span class="pre">vmax</span></code> and the colorbar
 do not apply to RGB images.</p></li>
-<li><p><strong>axes</strong> (<em>[</em><em>x_axis</em><em>, </em><em>y_axis</em><em>]</em><em>, </em><em>optional</em>) – Physical coordinate arrays for each axis.</p></li>
+<li><p><strong>axes</strong> (<em>[</em><a class="reference internal" href="anyplotlib.Plot2D.html#anyplotlib.Plot2D.x_axis" title="anyplotlib.Plot2D.x_axis"><em>x_axis</em></a><em>, </em><a class="reference internal" href="anyplotlib.Plot2D.html#anyplotlib.Plot2D.y_axis" title="anyplotlib.Plot2D.y_axis"><em>y_axis</em></a><em>]</em><em>, </em><em>optional</em>) – Physical coordinate arrays for each axis.</p></li>
 <li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><em>optional</em>) – Axis units label.  Default <code class="docutils literal notranslate"><span class="pre">&quot;px&quot;</span></code>.</p></li>
 <li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><em>optional</em>) – Colormap name (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;viridis&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;inferno&quot;</span></code>).
 Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;gray&quot;</span></code>.</p></li>
@@ -565,6 +672,11 @@ convention for matrices / scientific plots.</p></li>
 cursor dwells on a pixel (default <code class="docutils literal notranslate"><span class="pre">True</span></code>).  Without it the value
 comes from the 8-bit codes the renderer holds, which quantises wide
 dtypes to <code class="docutils literal notranslate"><span class="pre">range/255</span></code>.  See <a class="reference internal" href="anyplotlib.Plot2D.html#anyplotlib.Plot2D.set_value_probe" title="anyplotlib.Plot2D.set_value_probe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_value_probe()</span></code></a>.</p></li>
+<li><p><strong>extent</strong> (<em>(</em><em>left</em><em>, </em><em>right</em><em>, </em><em>bottom</em><em>, </em><em>top</em><em>)</em><em>, </em><em>optional</em>) – Calibrate from the image’s outer edges, as matplotlib’s
+<code class="docutils literal notranslate"><span class="pre">imshow(extent=...)</span></code> does, instead of per-pixel <code class="docutils literal notranslate"><span class="pre">axes</span></code>.
+<code class="docutils literal notranslate"><span class="pre">top</span></code> is the y coordinate of the top of the displayed image
+whatever the <code class="docutils literal notranslate"><span class="pre">origin</span></code>.  Mutually exclusive with <code class="docutils literal notranslate"><span class="pre">axes</span></code>.  See
+<a class="reference internal" href="anyplotlib.Plot2D.html#anyplotlib.Plot2D.set_extent_edges" title="anyplotlib.Plot2D.set_extent_edges"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_extent_edges()</span></code></a>.</p></li>
 <li><p><strong>gpu</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a>)</p></li>
 <li><p><strong>tile</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a>)</p></li>
 <li><p><strong>integration_method</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
@@ -959,6 +1071,14 @@ are generated automatically (backward-compatible call form).</p></li>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes"><code class="docutils literal notranslate"><span class="pre">Axes</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.set_xlabel"><code class="docutils literal notranslate"><span class="pre">Axes.set_xlabel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.set_ylabel"><code class="docutils literal notranslate"><span class="pre">Axes.set_ylabel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.set_title"><code class="docutils literal notranslate"><span class="pre">Axes.set_title()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.figure"><code class="docutils literal notranslate"><span class="pre">Axes.figure</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.primary_plot"><code class="docutils literal notranslate"><span class="pre">Axes.primary_plot</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.plots"><code class="docutils literal notranslate"><span class="pre">Axes.plots</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.image_plot"><code class="docutils literal notranslate"><span class="pre">Axes.image_plot</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.has_plot"><code class="docutils literal notranslate"><span class="pre">Axes.has_plot</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.imshow"><code class="docutils literal notranslate"><span class="pre">Axes.imshow()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.pcolormesh"><code class="docutils literal notranslate"><span class="pre">Axes.pcolormesh()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anyplotlib.Axes.plot_surface"><code class="docutils literal notranslate"><span class="pre">Axes.plot_surface()</span></code></a></li>

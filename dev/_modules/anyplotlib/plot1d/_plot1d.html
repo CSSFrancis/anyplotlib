@@ -464,6 +464,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib._base_plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">_BasePlot</span><span class="p">,</span> <span class="n">_PanelMixin</span><span class="p">,</span> <span class="n">_MarkerMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.markers</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarkerRegistry</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">_check_data_only</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">anyplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Widget</span><span class="p">,</span>
     <span class="n">VLineWidget</span> <span class="k">as</span> <span class="n">_VLineWidget</span><span class="p">,</span>
@@ -862,7 +863,7 @@
                 <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ex2</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;x_axis&quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
             <span class="n">new_extra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex2</span><span class="p">)</span>
         <span class="n">d</span><span class="p">[</span><span class="s2">&quot;extra_lines&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">new_extra</span>
-        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;overlay_widgets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;overlay_widgets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">_wire_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
         <span class="n">markers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">to_wire_list</span><span class="p">()</span>
         <span class="c1"># Hoist any raster image bytes into the deduped geometry channel so a</span>
         <span class="c1"># view-only push never re-serialises the (potentially large) RGBA blob.</span>
@@ -1195,7 +1196,8 @@
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.add_vline_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_vline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                          <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                         <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_VLineWidget</span><span class="p">:</span>
+                         <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_VLineWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable vertical-line overlay.</span>
 
 <span class="sd">        Parameters</span>
@@ -1206,6 +1208,10 @@
 <span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
 <span class="sd">        linewidth : float, optional</span>
 <span class="sd">            Line stroke width in px.  Default 2.</span>
+<span class="sd">        coords : ``&quot;data&quot;``, optional</span>
+<span class="sd">            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose</span>
+<span class="sd">            widgets default to image pixels; 1-D widgets are always in data</span>
+<span class="sd">            coordinates, so ``&quot;data&quot;`` is the only valid value.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1215,6 +1221,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_VLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                               <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">snap_values</span><span class="o">=</span><span class="n">snap_values</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_coords</span> <span class="o">=</span> <span class="n">_check_data_only</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1225,7 +1232,8 @@
 <a class="viewcode-back" href="../../../api/generated/anyplotlib.Plot1D.html#anyplotlib.plot1d.Plot1D.add_hline_widget">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_hline_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                          <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                         <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_HLineWidget</span><span class="p">:</span>
+                         <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_HLineWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable horizontal-line overlay.</span>
 
 <span class="sd">        Parameters</span>
@@ -1236,6 +1244,10 @@
 <span class="sd">            CSS colour string.  Default ``&quot;#00e5ff&quot;``.</span>
 <span class="sd">        linewidth : float, optional</span>
 <span class="sd">            Line stroke width in px.  Default 2.</span>
+<span class="sd">        coords : ``&quot;data&quot;``, optional</span>
+<span class="sd">            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose</span>
+<span class="sd">            widgets default to image pixels; 1-D widgets are always in data</span>
+<span class="sd">            coordinates, so ``&quot;data&quot;`` is the only valid value.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1245,6 +1257,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_HLineWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                               <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">snap_values</span><span class="o">=</span><span class="n">snap_values</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_coords</span> <span class="o">=</span> <span class="n">_check_data_only</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
@@ -1261,6 +1274,7 @@
                          <span class="n">max_extent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                          <span class="n">orientation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;horizontal&quot;</span><span class="p">,</span>
                          <span class="n">snap_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
                          <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_RangeWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a draggable range overlay to this panel.</span>
 
@@ -1299,6 +1313,10 @@
 <span class="sd">        _push : bool, optional</span>
 <span class="sd">            Push state to JS immediately. Set to ``False`` when adding</span>
 <span class="sd">            several widgets at once; call :meth:`_push` manually afterward.</span>
+<span class="sd">        coords : ``&quot;data&quot;``, optional</span>
+<span class="sd">            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose</span>
+<span class="sd">            widgets default to image pixels; 1-D widgets are always in data</span>
+<span class="sd">            coordinates, so ``&quot;data&quot;`` is the only valid value.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1311,6 +1329,7 @@
                               <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">max_extent</span><span class="o">=</span><span class="n">max_extent</span><span class="p">,</span>
                               <span class="n">orientation</span><span class="o">=</span><span class="n">orientation</span><span class="p">,</span>
                               <span class="n">snap_values</span><span class="o">=</span><span class="n">snap_values</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_coords</span> <span class="o">=</span> <span class="n">_check_data_only</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
@@ -1324,6 +1343,7 @@
                          <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#00e5ff&quot;</span><span class="p">,</span>
                          <span class="n">show_crosshair</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                          <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                         <span class="n">coords</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
                          <span class="n">_push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_PointWidget</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a freely-draggable control point to this panel.</span>
 
@@ -1343,6 +1363,10 @@
 <span class="sd">        _push : bool, optional</span>
 <span class="sd">            Push state to JS immediately. Set to ``False`` when adding</span>
 <span class="sd">            several widgets at once; call :meth:`_push` manually afterward.</span>
+<span class="sd">        coords : ``&quot;data&quot;``, optional</span>
+<span class="sd">            Accepted for symmetry with :class:`~anyplotlib.Plot2D`, whose</span>
+<span class="sd">            widgets default to image pixels; 1-D widgets are always in data</span>
+<span class="sd">            coordinates, so ``&quot;data&quot;`` is the only valid value.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1350,6 +1374,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">widget</span> <span class="o">=</span> <span class="n">_PointWidget</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
                               <span class="n">show_crosshair</span><span class="o">=</span><span class="n">show_crosshair</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">_coords</span> <span class="o">=</span> <span class="n">_check_data_only</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">_push_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widget_push_fn</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_widgets</span><span class="p">[</span><span class="n">widget</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">widget</span>
         <span class="k">if</span> <span class="n">_push</span><span class="p">:</span>
