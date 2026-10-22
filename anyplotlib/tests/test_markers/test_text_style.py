@@ -6,6 +6,11 @@ with no way to make it bold or give it an outline, so a label over a busy image
 was only as legible as its size allowed.  ``fontweight`` threads through to the
 canvas font the way ``fontsize`` does; ``outline_color`` / ``outline_width``
 stroke a halo under the fill.
+
+Rotation, anchor alignment and ``$...$`` TeX routing for ``texts`` markers
+extend the same thread: wire fields ``rotation`` (radians),
+``halign``/``valign``, and the JS renderer typesets math segments instead of
+showing raw markup.
 """
 from __future__ import annotations
 
@@ -84,6 +89,48 @@ class TestWire:
         g.set(outline_color=None)
         assert "outline_color" not in plot._state["markers"][0]
 
+    @pytest.mark.parametrize("make", [_plot2d, _plot1d])
+    def test_defaults_are_unrotated_left_top(self, make):
+        _, plot = make()
+        w = plot.add_texts([[5, 5]], ["a"]).to_wire("gid")
+        assert w["rotation"] == 0.0
+        assert (w["halign"], w["valign"]) == ("left", "top")
+
+    @pytest.mark.parametrize("make", [_plot2d, _plot1d])
+    def test_rotation_and_alignment_reach_the_wire(self, make):
+        _, plot = make()
+        w = plot.add_texts(
+            [[5, 5]], ["a"], rotation=1.5707963,
+            horizontalalignment="right", verticalalignment="bottom",
+        ).to_wire("gid")
+        assert w["rotation"] == pytest.approx(1.5707963)
+        assert (w["halign"], w["valign"]) == ("right", "bottom")
+
+    def test_mathtext_string_passes_through_the_wire(self):
+        _, plot = _plot2d()
+        w = plot.add_texts(
+            [[5, 5]], [r"$\mathrm{Fe}_{\mathrm{Ka}}$"]
+        ).to_wire("gid")
+        assert w["texts"] == [r"$\mathrm{Fe}_{\mathrm{Ka}}$"]
+
+    def test_registry_path_accepts_the_fields(self):
+        # The registry API (what non-plot callers such as the hyperspy
+        # backend use) takes the same style kwargs into the group data.
+        _, plot = _plot2d()
+        g = plot.markers.add("texts", offsets=[[5, 5]], texts=["a"],
+                             rotation=0.25, horizontalalignment="center")
+        w = g.to_wire("gid")
+        assert w["rotation"] == pytest.approx(0.25)
+        assert w["halign"] == "center"
+
+    def test_set_updates_rotation_live(self):
+        _, plot = _plot2d()
+        g = plot.add_texts([[5, 5]], ["a"])
+        g.set(rotation=0.5, horizontalalignment="center")
+        w = plot._state["markers"][0]
+        assert w["rotation"] == pytest.approx(0.5)
+        assert w["halign"] == "center"
+
 
 class TestValidation:
     @pytest.mark.parametrize("bad", ["heavy", "", 0, 1001, True, None])
@@ -110,6 +157,24 @@ class TestValidation:
         with pytest.raises(ValueError):
             g.set(fontweight="extra-bold")
         assert g._data["fontweight"] == "normal"
+
+    @pytest.mark.parametrize("bad", ["90", None, float("nan"), float("inf"), True])
+    def test_bad_rotation_is_refused(self, bad):
+        _, plot = _plot2d()
+        with pytest.raises(ValueError, match="rotation"):
+            plot.add_texts([[5, 5]], ["a"], rotation=bad)
+
+    @pytest.mark.parametrize("bad", ["centre", "top", None])
+    def test_bad_horizontalalignment_is_refused(self, bad):
+        _, plot = _plot2d()
+        with pytest.raises(ValueError, match="horizontalalignment"):
+            plot.add_texts([[5, 5]], ["a"], horizontalalignment=bad)
+
+    @pytest.mark.parametrize("bad", ["middle", "left", None])
+    def test_bad_verticalalignment_is_refused(self, bad):
+        _, plot = _plot2d()
+        with pytest.raises(ValueError, match="verticalalignment"):
+            plot.add_texts([[5, 5]], ["a"], verticalalignment=bad)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

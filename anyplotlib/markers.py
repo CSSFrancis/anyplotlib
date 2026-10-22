@@ -98,6 +98,25 @@ def _check_text_style(kwargs: dict) -> None:
         if (isinstance(ow, bool) or not isinstance(ow, (int, float))
                 or not ow >= 0):
             raise ValueError(f"outline_width must be a number >= 0, got {ow!r}")
+    if "rotation" in kwargs:
+        rot = kwargs["rotation"]
+        ok = (isinstance(rot, (int, float, np.integer, np.floating))
+              and not isinstance(rot, bool) and bool(np.isfinite(rot)))
+        if not ok:
+            raise ValueError(
+                f"rotation must be a finite number (radians), got {rot!r}")
+    if "horizontalalignment" in kwargs:
+        ha = kwargs["horizontalalignment"]
+        if ha not in ("left", "center", "right"):
+            raise ValueError(
+                "horizontalalignment must be 'left', 'center' or "
+                f"'right', got {ha!r}")
+    if "verticalalignment" in kwargs:
+        va = kwargs["verticalalignment"]
+        if va not in ("top", "center", "bottom", "baseline"):
+            raise ValueError(
+                "verticalalignment must be 'top', 'center', 'bottom' or "
+                f"'baseline', got {va!r}")
 
 
 def _apply_fill_color(wire: dict, d: dict) -> None:
@@ -344,6 +363,12 @@ class MarkerGroup:
                 "color":    d.get("color", d.get("edgecolors", "#ff0000")),
                 "fontsize": int(d.get("fontsize", 12)),
                 "fontweight": d.get("fontweight", "normal"),
+                # Rotation is in radians (matplotlib's TextCollection
+                # convention): the text anchors at the offset point, then
+                # rotates about it.
+                "rotation": float(d.get("rotation", 0.0)),
+                "halign":   d.get("horizontalalignment", "left"),
+                "valign":   d.get("verticalalignment", "top"),
             }
             # Outline (a halo stroked under the fill): only on the wire when set.
             if d.get("outline_color") is not None:

@@ -1583,6 +1583,8 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
     def add_texts(self, offsets, texts, name=None, *,
                   color="#ff0000", fontsize=12, fontweight="normal",
                   outline_color=None, outline_width=3.0,
+                  rotation=0.0, horizontalalignment="left",
+                  verticalalignment="top",
                   hover_edgecolors=None,
                   labels=None, label=None,
                   transform: str = "data",
@@ -1612,6 +1614,15 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
             Stroke width of the outline in pixels; about half of it shows
             outside the glyphs.  Default ``3.0``.  Ignored without
             ``outline_color``.
+        rotation : float, optional
+            Rotation of the text about its anchor point, in radians
+            (matplotlib's ``TextCollection`` convention).  Default ``0.0``.
+        horizontalalignment : {"left", "center", "right"}, optional
+            Which side of the anchor point the text extends from.
+            Default ``"left"``.
+        verticalalignment : {"top", "center", "bottom", "baseline"}, optional
+            How the text sits relative to the anchor vertically.
+            Default ``"top"``.
         hover_edgecolors : str, optional
             Colour override applied on mouse-hover.
         labels : list of str, optional
@@ -1628,6 +1639,9 @@ class Plot1D(_BasePlot, _PanelMixin, _MarkerMixin):
                                 fontweight=fontweight,
                                 outline_color=outline_color,
                                 outline_width=outline_width,
+                                rotation=rotation,
+                                horizontalalignment=horizontalalignment,
+                                verticalalignment=verticalalignment,
                                 hover_edgecolors=hover_edgecolors,
                                 labels=labels, label=label,
                                 transform=transform,

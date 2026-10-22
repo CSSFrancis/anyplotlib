@@ -311,9 +311,15 @@ range is the gutter's two ends through `_canvasToImg2d`, clamped to the outer
 pixel edges.  Python's `Plot2D._axis_extent_frac` (behind `set_view` /
 `set_xlim`) mirrors `_axisValToImg2d` — keep the two in step.
 
-`texts` markers (1-D and 2-D) set their font and optional outline through
-`_markerTextStyle(ctx, ms)` (`fontweight`, `outline_color`, `outline_width`)
-and draw via `_drawMarkerText`, which strokes the halo under the fill.
+`texts` markers (1-D and 2-D) set their font, alignment and optional outline
+through `_markerTextStyle(ctx, ms)` (`fontweight`, `halign`, `valign`,
+`outline_color`, `outline_width`; matplotlib vertical words map to canvas's
+`middle`/`alphabetic`) and draw via `_drawMarkerText`, which strokes the halo
+under the fill. `rotation` (radians, wire field) translates to the offset
+point and rotates about it before drawing; strings containing `$...$` markup
+go through `_drawTex` — the axis-label TeX engine — so scripts and
+`\mathrm{}` typeset instead of rendering raw markup (the halo strokes each
+run under the fill).
 
 ### Hover readout
 
