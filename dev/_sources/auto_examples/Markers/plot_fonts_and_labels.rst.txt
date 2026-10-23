@@ -306,7 +306,7 @@ Every option can change after the label is drawn with ``set(...)``.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 4.624 seconds)
+   **Total running time of the script:** (0 minutes 3.874 seconds)
 
 
 .. _sphx_glr_download_auto_examples_Markers_plot_fonts_and_labels.py:
