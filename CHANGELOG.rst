@@ -10,6 +10,122 @@ Fragment files in ``upcoming_changes/`` are assembled into this file by
 
 .. towncrier release notes start
 
+0.11.0 (2026-10-23)
+===================
+
+API and Behaviour Changes
+-------------------------
+
+- Changed 3-D panels created with ``elevation=0`` to render at 0 degrees; they were previously drawn as if the elevation were 30 degrees. (`#80 <https://github.com/CSSFrancis/anyplotlib/pull/80>`_)
+- :meth:`Figure.get_axes <anyplotlib.Figure.get_axes>` now lists every grid
+  axes the figure created, including ones with no plot attached yet, as
+  matplotlib does — so ``fig, ax = apl.subplots(1, 1); fig.get_axes()[0] is ax``.
+  Floating insets are still not listed.
+
+
+New Features
+------------
+
+- Added :meth:`~anyplotlib.Plot3D.set_rotation` and :meth:`~anyplotlib.Plot3D.set_drag_mode` to turn 3-D data to any orientation independently of the camera, by code or by dragging, with the result readable from :attr:`~anyplotlib.Plot3D.rotation` and ``event.rotation``. (`#80 <https://github.com/CSSFrancis/anyplotlib/pull/80>`_)
+- Added :meth:`~anyplotlib.Plot3D.add_patch` to draw filled regions and paths on 3-D panels, with edges along great circles, the far side dimmed, and a choice of turning with the data or staying fixed while it rotates. (`#81 <https://github.com/CSSFrancis/anyplotlib/pull/81>`_)
+- Added :attr:`~anyplotlib.Plot2D.transform` (an :class:`~anyplotlib.ImageTransform`),
+  :meth:`~anyplotlib.Plot2D.data_to_pixel`, :meth:`~anyplotlib.Plot2D.pixel_to_data`
+  and read-only :attr:`~anyplotlib.Plot2D.x_axis` / :attr:`~anyplotlib.Plot2D.y_axis`
+  for converting between calibrated data units and the image-pixel coordinates
+  that 2-D widgets and markers use, including offset, non-unit, descending and
+  non-uniform axes.
+- Added :meth:`Axes.set_xlabel <anyplotlib.Axes.set_xlabel>`,
+  :meth:`~anyplotlib.Axes.set_ylabel` and :meth:`~anyplotlib.Axes.set_title`,
+  which work before a plot is attached: the axes keeps the labels and applies
+  them to the plot that is attached first and to any plot that later replaces
+  it (a second ``imshow``/``plot``/… call on the same axes).
+- Added :meth:`Figure.on_close <anyplotlib.Figure.on_close>`, the
+  :attr:`~anyplotlib.Figure.closed` and :attr:`~anyplotlib.Figure.displayed`
+  flags and an idempotent :meth:`Figure.display <anyplotlib.Figure.display>`;
+  :meth:`~anyplotlib.Figure.close` now also fires ``close`` on the figure's own
+  callbacks (before the panels'), and still hides the figure if a handler raises.
+- Added ``coords="data"`` to every :class:`~anyplotlib.Plot2D` ``add_*_widget``
+  method (and :meth:`~anyplotlib.Plot2D.add_widget`): the widget then takes and
+  reports its geometry — attribute reads, :meth:`~anyplotlib.Widget.get`,
+  :meth:`~anyplotlib.Widget.to_dict`, :meth:`~anyplotlib.Widget.set` and so the
+  values seen in drag callbacks — in the panel's calibrated axis units instead
+  of image pixels.  See :attr:`~anyplotlib.Widget.coords` and
+  :meth:`~anyplotlib.Widget.set_coords`; 1-D and bar widget methods accept
+  ``coords="data"`` too.
+  A data-coordinate rectangle spans ``[x, x + w] × [y, y + h]`` in data, with
+  ``(x, y)`` its corner of smallest data x and y and positive ``w``, ``h``, so it
+  covers the right pixels with ``origin="lower"`` or a descending axis.
+- Added ``coords="data"`` to the :class:`~anyplotlib.Plot2D` marker methods and
+  :meth:`MarkerRegistry.add <anyplotlib.markers.MarkerRegistry.add>`: positions
+  and data-sized lengths are then given in the panel's calibrated axis units
+  and converted to image pixels on every render, so the markers follow
+  :meth:`~anyplotlib.Plot2D.set_extent`.  See
+  :attr:`MarkerGroup.coords <anyplotlib.markers.MarkerGroup.coords>`.
+- Added ``extent=(left, right, bottom, top)`` to :meth:`Axes.imshow
+  <anyplotlib.Axes.imshow>` and :meth:`Plot2D.set_extent_edges
+  <anyplotlib.Plot2D.set_extent_edges>`, which calibrate an image from its
+  outer edges the way matplotlib's ``imshow(extent=...)`` does.
+- Added a public ``notify`` keyword to :meth:`~anyplotlib.Widget.set`
+  (``widget.set(x=..., notify=False)``) to move a widget from Python without
+  firing its ``pointer_move`` handlers; ``_notify`` remains as an alias.
+- Added read-only :attr:`Axes.figure <anyplotlib.Axes.figure>`,
+  :attr:`~anyplotlib.Axes.primary_plot`, :attr:`~anyplotlib.Axes.plots`,
+  :attr:`~anyplotlib.Axes.image_plot` and :attr:`~anyplotlib.Axes.has_plot` so
+  code holding an axes can reach its figure and plot without private attributes.
+- Added read-only :attr:`MarkerGroup.marker_type
+  <anyplotlib.markers.MarkerGroup.marker_type>` and
+  :attr:`~anyplotlib.markers.MarkerGroup.name`, and
+  :meth:`MarkerGroup.get <anyplotlib.markers.MarkerGroup.get>` for reading a
+  group's properties back.
+- Added read-only :attr:`~anyplotlib.Widget.plot` (the owning plot, ``None``
+  once removed) and :attr:`~anyplotlib.Widget.kind` (``"rectangle"``,
+  ``"vline"``, …) so code holding only a widget handle can find its plot and
+  type without private attributes.
+- Added rotation, anchor alignment and ``$...$`` TeX typesetting to ``texts``
+  markers (wire fields ``rotation`` in radians, ``halign``, ``valign``):
+  labels anchor at their offset point, rotate counter-clockwise like
+  matplotlib's, and math markup renders through the existing axis-label TeX
+  engine instead of showing raw dollars.
+- Marker kwargs now accept a length-1 sequence wherever a scalar is accepted
+  (``radius=[5]``, ``linewidths=(1.5,)``, ``edgecolors=["#f00"]``), broadcasting
+  it across the group as matplotlib's property cycling does.
+
+
+Bug Fixes
+---------
+
+- :meth:`Figure.close <anyplotlib.Figure.close>` now also closes the
+  underlying ipywidgets comm (removing the figure's front-end views) and drops
+  it from ipywidgets' instance registry, so a closed figure that is no longer
+  referenced — and its plot data — can be garbage collected.  Previously every
+  figure stayed alive for the life of the process.
+- :meth:`Figure.close <anyplotlib.Figure.close>` now runs the figure-level and
+  each panel's ``close`` handlers independently: a handler that raises no
+  longer skips the remaining ones.  The figure is still marked closed and
+  hidden, and the first exception is re-raised once all handlers have run.
+- A widget's ``repr`` now shows its geometry in the widget's own
+  :attr:`~anyplotlib.Widget.coords` frame (and says ``coords='data'`` for a
+  data-coordinate widget on a 2-D panel) instead of the image pixels stored for
+  the renderer.
+- Fixed :meth:`~anyplotlib.callbacks._EventMixin.add_event_handler` raising
+  ``AttributeError`` for bound methods, and made ``remove_handler(obj.method)``
+  find a handler registered as ``obj.method``.
+- Fixed empty marker groups (``offsets=np.zeros((0, 2))``) raising
+  ``ValueError: offsets must be shape (N, 2)`` when created or updated with
+  ``coords="data"``; an empty ``offsets=[]`` is now accepted in either frame.
+
+
+Documentation
+-------------
+
+- Added a *Fonts and Labels* gallery example covering text-marker size,
+  weight, outline, rotation, alignment and ``$...$`` math, alongside the
+  panel's own title and axis labels.
+- Documented that after :meth:`~anyplotlib.Plot2D.set_extent` a
+  ``coords="data"`` widget stays on the same pixels (its data values change)
+  while a ``coords="data"`` marker group keeps its data position.
+
+
 0.10.1 (2026-09-17)
 ===================
 

@@ -1,1 +1,0 @@
-Added :meth:`~anyplotlib.Plot3D.set_rotation` and :meth:`~anyplotlib.Plot3D.set_drag_mode` to turn 3-D data to any orientation independently of the camera, by code or by dragging, with the result readable from :attr:`~anyplotlib.Plot3D.rotation` and ``event.rotation``.
