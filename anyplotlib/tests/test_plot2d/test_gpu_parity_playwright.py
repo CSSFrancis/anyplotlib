@@ -105,6 +105,29 @@ def _assert_parity(name, arr_gpu, arr_cpu, *, tol=10, max_diff_frac=0.005):
     assert ok, f"{name}: GPU render diverged from Canvas2D reference — {msg}"
 
 
+def _assert_page_parity(name, page_gpu, page_cpu, *, tol=10,
+                        max_diff_frac=0.005, timeout_ms=3000):
+    """:func:`_assert_parity` on live pages, re-snapshotting until it holds.
+
+    ``_settle`` waits a fixed interval, which a loaded CI runner can outlast:
+    one page then still shows a transient frame while its state already
+    matches the other's (seen once on macOS / Python 3.13 after a mouse pan,
+    0.8 % of pixels).  A real coordinate bug moves whole image regions and
+    never converges, so it still fails once the timeout runs out.
+    """
+    waited = 0
+    while True:
+        arr_gpu, arr_cpu = _snap(page_gpu), _snap(page_cpu)
+        ok, _ = compare_arrays(arr_gpu, arr_cpu, tol=tol,
+                               max_diff_frac=max_diff_frac)
+        if ok or waited >= timeout_ms:
+            break
+        _settle(page_gpu); _settle(page_cpu)
+        waited += 300
+    _assert_parity(name, arr_gpu, arr_cpu, tol=tol,
+                   max_diff_frac=max_diff_frac)
+
+
 def _assert_gpu_active(page, expect=True):
     diag = page.evaluate("() => globalThis.__apl_gpu2d || {}")
     assert diag, "no 2-D GPU diagnostic recorded"
@@ -137,7 +160,7 @@ class TestGpuImageParity:
         _settle(pg); _settle(pc)
         _assert_gpu_active(pg)
         _assert_gpu_active(pc, expect=False)
-        _assert_parity("rest", _snap(pg), _snap(pc))
+        _assert_page_parity("rest", pg, pc)
 
     def test_zoom_in_centred_parity(self, gpu_interact_page):
         pg, pc, p_gpu, p_cpu = _make_pair(gpu_interact_page)
@@ -145,7 +168,7 @@ class TestGpuImageParity:
             _set_zoom(page, plot, 3.0, 0.5, 0.5)
             _settle(page)
         _assert_gpu_active(pg)  # GPU must NOT fall back on zoom
-        _assert_parity("zoom-in centred", _snap(pg), _snap(pc))
+        _assert_page_parity("zoom-in centred", pg, pc)
 
     def test_pan_y_parity(self, gpu_interact_page):
         # Vertically OFF-CENTRE window — the historical v-mirror bug shows here.
@@ -154,7 +177,7 @@ class TestGpuImageParity:
             _set_zoom(page, plot, 3.0, 0.5, 0.22)
             _settle(page)
         _assert_gpu_active(pg)
-        _assert_parity("pan-y (off-centre v window)", _snap(pg), _snap(pc))
+        _assert_page_parity("pan-y (off-centre v window)", pg, pc)
 
     def test_pan_x_parity(self, gpu_interact_page):
         pg, pc, p_gpu, p_cpu = _make_pair(gpu_interact_page)
@@ -162,7 +185,7 @@ class TestGpuImageParity:
             _set_zoom(page, plot, 3.0, 0.2, 0.5)
             _settle(page)
         _assert_gpu_active(pg)
-        _assert_parity("pan-x (off-centre u window)", _snap(pg), _snap(pc))
+        _assert_page_parity("pan-x (off-centre u window)", pg, pc)
 
     def test_pan_corner_parity(self, gpu_interact_page):
         pg, pc, p_gpu, p_cpu = _make_pair(gpu_interact_page)
@@ -170,7 +193,7 @@ class TestGpuImageParity:
             _set_zoom(page, plot, 4.0, 0.85, 0.8)
             _settle(page)
         _assert_gpu_active(pg)
-        _assert_parity("pan corner", _snap(pg), _snap(pc))
+        _assert_page_parity("pan corner", pg, pc)
 
     def test_zoom_out_parity(self, gpu_interact_page):
         # zoom < 1: the dest-rect (letterbox shrink) branch of the uniform.
@@ -179,7 +202,7 @@ class TestGpuImageParity:
             _set_zoom(page, plot, 0.75, 0.5, 0.5)
             _settle(page)
         _assert_gpu_active(pg)
-        _assert_parity("zoom-out", _snap(pg), _snap(pc))
+        _assert_page_parity("zoom-out", pg, pc)
 
 
 class TestGpuMousePanParity:
@@ -194,7 +217,7 @@ class TestGpuMousePanParity:
             for _ in range(6):
                 page.mouse.wheel(0, -120)
             _settle(page)
-        _assert_parity("mouse wheel zoom", _snap(pg), _snap(pc))
+        _assert_page_parity("mouse wheel zoom", pg, pc)
 
         # Drag DOWN: image content must move down (view up) on BOTH paths.
         for page in (pg, pc):
@@ -209,7 +232,7 @@ class TestGpuMousePanParity:
         assert st_g["center_x"] == st_c["center_x"]
         assert st_g["center_y"] == st_c["center_y"]
         _assert_gpu_active(pg)
-        _assert_parity("mouse pan down", _snap(pg), _snap(pc))
+        _assert_page_parity("mouse pan down", pg, pc)
 
         # Then drag RIGHT while still vertically off-centre.
         for page in (pg, pc):
@@ -219,7 +242,7 @@ class TestGpuMousePanParity:
             page.mouse.up()
             _settle(page)
         _assert_gpu_active(pg)
-        _assert_parity("mouse pan right", _snap(pg), _snap(pc))
+        _assert_page_parity("mouse pan right", pg, pc)
 
     def test_pan_direction_moves_content_with_cursor(self, gpu_interact_page):
         """Row-profile check independent of the CPU reference: dragging DOWN
@@ -326,7 +349,7 @@ class TestGpuMarkerRegistration:
             _set_zoom(page, plot, 2.5, 0.6, 0.3)
             _settle(page)
         _assert_gpu_active(pg)
-        _assert_parity("markers over zoom/pan", _snap(pg), _snap(pc))
+        _assert_page_parity("markers over zoom/pan", pg, pc)
 
 
 class TestGpuWidgetParity:
@@ -372,7 +395,7 @@ class TestGpuWidgetParity:
                 f"widget {k} diverged: gpu={w_g[k]} cpu={w_c[k]}"
             )
         _assert_gpu_active(pg)
-        _assert_parity("widget drag composite", _snap(pg), _snap(pc))
+        _assert_page_parity("widget drag composite", pg, pc)
 
 
 # ---------------------------------------------------------------------------
