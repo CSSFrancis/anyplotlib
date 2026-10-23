@@ -1,1 +1,0 @@
-Changed 3-D panels created with ``elevation=0`` to render at 0 degrees; they were previously drawn as if the elevation were 30 degrees.
