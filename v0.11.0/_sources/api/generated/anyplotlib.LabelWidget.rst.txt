@@ -1,0 +1,6 @@
+﻿anyplotlib.LabelWidget
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: LabelWidget

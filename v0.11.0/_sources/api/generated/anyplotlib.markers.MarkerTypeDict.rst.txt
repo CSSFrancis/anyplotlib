@@ -1,0 +1,6 @@
+﻿anyplotlib.markers.MarkerTypeDict
+=================================
+
+.. currentmodule:: anyplotlib.markers
+
+.. autoclass:: MarkerTypeDict

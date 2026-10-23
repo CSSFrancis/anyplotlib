@@ -1,0 +1,6 @@
+﻿anyplotlib.Figure
+=================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: Figure

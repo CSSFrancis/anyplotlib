@@ -1,0 +1,6 @@
+﻿anyplotlib.Plot3D
+=================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: Plot3D

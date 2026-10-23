@@ -1,0 +1,6 @@
+﻿anyplotlib.AnnularWidget
+========================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: AnnularWidget

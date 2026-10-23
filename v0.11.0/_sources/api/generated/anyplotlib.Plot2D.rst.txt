@@ -1,0 +1,6 @@
+﻿anyplotlib.Plot2D
+=================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: Plot2D

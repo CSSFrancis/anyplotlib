@@ -1,0 +1,6 @@
+﻿anyplotlib.PlaneWidget
+======================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: PlaneWidget

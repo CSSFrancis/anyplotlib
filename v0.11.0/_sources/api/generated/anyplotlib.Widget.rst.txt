@@ -1,0 +1,6 @@
+﻿anyplotlib.Widget
+=================
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: Widget

@@ -1,0 +1,6 @@
+﻿anyplotlib.Axes
+===============
+
+.. currentmodule:: anyplotlib
+
+.. autoclass:: Axes
