@@ -224,7 +224,7 @@ New Features
 
   The handler receives the clicked panel, its state, the chosen theme, and bound
   ``exportPNG`` / ``exportCanvas`` / ``downloadPNG`` / ``copyPNG`` / ``toast``
-  helpers. See :doc:`exporting` for the full reference.
+  helpers. See :doc:`/user_guide/exporting` for the full reference.
 - The 2-D hover readout now also names the **value** of the pixel under the
   cursor — ``v:<value>`` for a colourmapped image, ``rgb:r,g,b`` for a true-colour
   one — alongside the existing physical and pixel coordinates. It is exact:

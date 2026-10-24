@@ -112,6 +112,16 @@ blitting instead of SVG.
       adding your own save formats from an embedding application.
 
    .. grid-item-card::
+      :link: changelog
+      :link-type: doc
+
+      :octicon:`history;2em;sd-text-info` Release Notes
+      ^^^
+
+      Notable changes in each release — new features, API and behaviour
+      changes, deprecations, and bug fixes.
+
+   .. grid-item-card::
       :link: dev/index
       :link-type: doc
 
