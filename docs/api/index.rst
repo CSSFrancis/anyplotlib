@@ -74,7 +74,7 @@ directly to a class or function.
 
       The :class:`~anyplotlib.CallbackRegistry` event engine and the
       flat :class:`~anyplotlib.Event` dataclass.
-      See :doc:`../events` for the full event-system guide.
+      See :doc:`/user_guide/events` for the full event-system guide.
 
 
 Figure

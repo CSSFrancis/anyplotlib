@@ -38,7 +38,7 @@ blitting instead of SVG.
    :gutter: 2
 
    .. grid-item-card::
-      :link: getting_started
+      :link: user_guide/getting_started
       :link-type: doc
 
       :octicon:`rocket;2em;sd-text-info` Getting Started
@@ -79,7 +79,7 @@ blitting instead of SVG.
       plus an honest look at current limitations.
 
    .. grid-item-card::
-      :link: benchmarking
+      :link: dev/benchmarking
       :link-type: doc
 
       :octicon:`tools;2em;sd-text-info` Benchmarking
@@ -90,7 +90,7 @@ blitting instead of SVG.
       comparisons hardware-agnostic.
 
    .. grid-item-card::
-      :link: events
+      :link: user_guide/events
       :link-type: doc
 
       :octicon:`zap;2em;sd-text-info` Event System
@@ -101,7 +101,7 @@ blitting instead of SVG.
       pygfx and an implementation-status table.
 
    .. grid-item-card::
-      :link: exporting
+      :link: user_guide/exporting
       :link-type: doc
 
       :octicon:`download;2em;sd-text-info` Exporting Images
@@ -110,6 +110,16 @@ blitting instead of SVG.
       Saving and copying figures as PNG — the right-click menu, ``Ctrl+C``,
       light/dark output, native-resolution export, ``Figure.savefig``, and
       adding your own save formats from an embedding application.
+
+   .. grid-item-card::
+      :link: changelog
+      :link-type: doc
+
+      :octicon:`history;2em;sd-text-info` Release Notes
+      ^^^
+
+      Notable changes in each release — new features, API and behaviour
+      changes, deprecations, and bug fixes.
 
    .. grid-item-card::
       :link: dev/index
@@ -125,15 +135,11 @@ blitting instead of SVG.
    :hidden:
    :maxdepth: 2
 
-   getting_started
-   events
-   embedding
-   exporting
-   api/index
-   auto_examples/index
-   Performance <auto_examples/Benchmarks/plot_benchmark_comparison>
-   benchmarking
-   dev/index
+   User guide <user_guide/index>
+   Examples <auto_examples/index>
+   References <api/index>
+   Contribute <dev/index>
+   Releases <changelog>
 
 * :ref:`genindex`
 * :ref:`modindex`
