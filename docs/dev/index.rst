@@ -6,6 +6,12 @@ This guide covers everything you need to contribute to anyplotlib —
 from setting up your environment to writing documentation and interactive
 gallery examples.
 
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+
+   benchmarking
+
 .. contents:: On this page
    :local:
    :depth: 2
@@ -123,14 +129,19 @@ extensions:
 Adding a new RST page
 ---------------------
 
-1. Create ``docs/my_page.rst``.
-2. Add it to the ``toctree`` in ``docs/index.rst``::
+1. Create the RST page, e.g. ``docs/user_guide/my_page.rst``.
+2. Add it to the ``toctree`` of its section's index page (e.g.
+   ``docs/user_guide/index.rst``)::
 
       .. toctree::
          :hidden:
          :maxdepth: 2
 
          my_page
+
+   The top navigation bar is rendered from the ``toctree`` in
+   ``docs/index.rst``; its five entries are the top-bar sections
+   (User guide, Examples, References, Contribute, Releases).
 
 Embedding a static figure in RST
 ---------------------------------

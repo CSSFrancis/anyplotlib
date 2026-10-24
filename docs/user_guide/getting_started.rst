@@ -135,7 +135,7 @@ All line properties can be changed after creation without recreating the panel::
   static marker collections at explicit data coordinates.
 
 See :class:`~anyplotlib.Plot1D` for the full API reference, and
-the :doc:`auto_examples/index` gallery (e.g. *1D Line Styles* or *1D Spectra*)
+the :doc:`/auto_examples/index` gallery (e.g. *1D Line Styles* or *1D Spectra*)
 for worked examples.
 
 2-D image
@@ -201,5 +201,5 @@ Bar chart
     bar = ax.bar(values, x_labels=months, color="#4fc3f7", show_values=True)
     bar  # display in a Jupyter cell
 
-For more elaborate usage, see the :doc:`auto_examples/index` gallery or
-the :doc:`api/index`.
+For more elaborate usage, see the :doc:`/auto_examples/index` gallery or
+the :doc:`/api/index`.
